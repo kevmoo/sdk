@@ -9471,7 +9471,9 @@ const A = null;
     expect(declarations, hasLength(2));
     Element expectedElement = (declarations[0] as TopLevelVariableDeclaration)
         .variables
-        .variables[0].name.staticElement;
+        .variables[0]
+        .name
+        .staticElement;
     EngineTestCase.assertInstanceOf((obj) => obj is PropertyInducingElement,
         PropertyInducingElement, expectedElement);
     expectedElement = (expectedElement as PropertyInducingElement).getter;
@@ -9662,7 +9664,9 @@ const A = null;
     expect(declarations, hasLength(2));
     Element expectedElement = (declarations[0] as TopLevelVariableDeclaration)
         .variables
-        .variables[0].name.staticElement;
+        .variables[0]
+        .name
+        .staticElement;
     EngineTestCase.assertInstanceOf((obj) => obj is PropertyInducingElement,
         PropertyInducingElement, expectedElement);
     expectedElement = (expectedElement as PropertyInducingElement).getter;
@@ -14045,9 +14049,8 @@ class TypeProviderImplTest extends EngineTestCase {
         List<TypeParameterTypeImpl> typeArguments =
             new List<TypeParameterTypeImpl>(count);
         for (int i = 0; i < count; i++) {
-          TypeParameterElementImpl typeParameter =
-              new TypeParameterElementImpl.forNode(
-                  AstFactory.identifier3(parameterNames[i]));
+          TypeParameterElementImpl typeParameter = new TypeParameterElementImpl
+              .forNode(AstFactory.identifier3(parameterNames[i]));
           typeParameters[i] = typeParameter;
           typeArguments[i] = new TypeParameterTypeImpl(typeParameter);
           typeParameter.type = typeArguments[i];

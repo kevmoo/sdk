@@ -8651,8 +8651,8 @@ class HtmlUnitBuilderTest_ExpectedLibrary {
   final HtmlUnitBuilderTest HtmlUnitBuilderTest_this;
   final List<HtmlUnitBuilderTest_ExpectedVariable> _expectedVariables;
   HtmlUnitBuilderTest_ExpectedLibrary(this.HtmlUnitBuilderTest_this,
-      [this._expectedVariables =
-          HtmlUnitBuilderTest_ExpectedVariable.EMPTY_LIST]);
+      [this._expectedVariables = HtmlUnitBuilderTest_ExpectedVariable
+          .EMPTY_LIST]);
   void _validate(int scriptIndex, EmbeddedHtmlScriptElementImpl script) {
     LibraryElement library = script.scriptLibrary;
     expect(library, isNotNull, reason: "script $scriptIndex");

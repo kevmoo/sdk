@@ -360,7 +360,8 @@ int b = aa;''';
     TopLevelVariableDeclaration use =
         partUnit.declarations[0] as TopLevelVariableDeclaration;
     Element useElement = (use.variables.variables[0].initializer
-        as SimpleIdentifier).staticElement;
+            as SimpleIdentifier)
+        .staticElement;
     expect((useElement as PropertyAccessorElement).variable,
         same(declarationElement));
     return pumpEventQueue().then((_) {

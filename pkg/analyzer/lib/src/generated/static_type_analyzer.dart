@@ -1657,10 +1657,9 @@ class StaticTypeAnalyzer extends SimpleAstVisitor<Object> {
       // the function is being called on] to get a more accurate returnType type
       InterfaceType interfaceTypeContext = context;
       //      Type[] argumentTypes = interfaceTypeContext.getTypeArguments();
-      List<TypeParameterElement> typeParameterElements =
-          interfaceTypeContext.element != null
-              ? interfaceTypeContext.element.typeParameters
-              : null;
+      List<TypeParameterElement> typeParameterElements = interfaceTypeContext
+              .element !=
+          null ? interfaceTypeContext.element.typeParameters : null;
       if (typeParameterElements != null) {
         for (int i = 0; i < typeParameterElements.length; i++) {
           TypeParameterElement typeParameterElement = typeParameterElements[i];

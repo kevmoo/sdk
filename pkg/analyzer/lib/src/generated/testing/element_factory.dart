@@ -194,8 +194,8 @@ class ElementFactory {
   }
 
   static ExportElementImpl exportFor(LibraryElement exportedLibrary,
-      [List<NamespaceCombinator> combinators =
-          NamespaceCombinator.EMPTY_LIST]) {
+      [List<NamespaceCombinator> combinators = NamespaceCombinator
+          .EMPTY_LIST]) {
     ExportElementImpl spec = new ExportElementImpl(-1);
     spec.exportedLibrary = exportedLibrary;
     spec.combinators = combinators;
@@ -428,8 +428,8 @@ class ElementFactory {
 
   static ImportElementImpl importFor(
       LibraryElement importedLibrary, PrefixElement prefix,
-      [List<NamespaceCombinator> combinators =
-          NamespaceCombinator.EMPTY_LIST]) {
+      [List<NamespaceCombinator> combinators = NamespaceCombinator
+          .EMPTY_LIST]) {
     ImportElementImpl spec = new ImportElementImpl(0);
     spec.importedLibrary = importedLibrary;
     spec.prefix = prefix;

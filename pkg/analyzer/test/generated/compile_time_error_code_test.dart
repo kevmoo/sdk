@@ -844,7 +844,8 @@ int f() {
     // TODO(paulberry): the error CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE is
     // redundant and ought to be suppressed.
     assertErrors(source, [
-      CompileTimeErrorCode.CONST_CONSTRUCTOR_WITH_FIELD_INITIALIZED_BY_NON_CONST,
+      CompileTimeErrorCode
+          .CONST_CONSTRUCTOR_WITH_FIELD_INITIALIZED_BY_NON_CONST,
       CompileTimeErrorCode.CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE
     ]);
     verify([source]);
@@ -1224,7 +1225,8 @@ library root;
 import 'lib1.dart' deferred as a;
 const B = a.V;'''
     ], <ErrorCode>[
-      CompileTimeErrorCode.CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE_FROM_DEFERRED_LIBRARY
+      CompileTimeErrorCode
+          .CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE_FROM_DEFERRED_LIBRARY
     ]);
   }
 
@@ -1238,7 +1240,8 @@ library root;
 import 'lib1.dart' deferred as a;
 const B = a.V + 1;'''
     ], <ErrorCode>[
-      CompileTimeErrorCode.CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE_FROM_DEFERRED_LIBRARY
+      CompileTimeErrorCode
+          .CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE_FROM_DEFERRED_LIBRARY
     ]);
   }
 
@@ -4569,7 +4572,8 @@ class A {
   const A() : x = a.c;
 }'''
     ], <ErrorCode>[
-      CompileTimeErrorCode.NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
+      CompileTimeErrorCode
+          .NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
     ]);
   }
 
@@ -4586,7 +4590,8 @@ class A {
   const A() : x = a.c + 1;
 }'''
     ], <ErrorCode>[
-      CompileTimeErrorCode.NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
+      CompileTimeErrorCode
+          .NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
     ]);
   }
 
@@ -4603,7 +4608,8 @@ class A {
   const A() : this.named(a.c);
 }'''
     ], <ErrorCode>[
-      CompileTimeErrorCode.NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
+      CompileTimeErrorCode
+          .NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
     ]);
   }
 
@@ -4622,7 +4628,8 @@ class B extends A {
   const B() : super(a.c);
 }'''
     ], <ErrorCode>[
-      CompileTimeErrorCode.NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
+      CompileTimeErrorCode
+          .NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY
     ]);
   }
 
