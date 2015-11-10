@@ -7,6 +7,9 @@ import 'package:path/path.dart' as path;
 import 'java_core.dart' show JavaIOException;
 
 class JavaFile {
+  static final Map<String, int> readCount = <String, int>{};
+  static final Map<String, String> _fileContentCache = <String, String>{};
+
   static path.Context pathContext = path.context;
   static final String separator = Platform.pathSeparator;
   static final int separatorChar = Platform.pathSeparator.codeUnitAt(0);
@@ -97,7 +100,25 @@ class JavaFile {
     return files;
   }
 
-  String readAsStringSync() => _newFile().readAsStringSync();
+  String readAsStringSync() {
+    var count = readCount.putIfAbsent(_path, () => 0);
+
+    readCount[_path] = count + 1;
+
+    var content = _fileContentCache[_path];
+
+    if (content != null) {
+      return content;
+    }
+
+    content = _newFile().readAsStringSync();
+
+    if (count >= 30) {
+      _fileContentCache[_path] = content;
+    }
+
+    return content;
+  }
   String toString() => _path.toString();
   Uri toURI() {
     String path = getAbsolutePath();
