@@ -667,7 +667,8 @@ class C implements A, B {
     expect(parameterC.type.isDynamic, isTrue);
   }
 
-  void test_inferCompilationUnit_method_parameter_multiple_optionalAndRequired() {
+  void
+      test_inferCompilationUnit_method_parameter_multiple_optionalAndRequired() {
     InstanceMemberInferrer inferrer = createInferrer;
     String methodName = 'm';
     CompilationUnitElement unit = resolve('''

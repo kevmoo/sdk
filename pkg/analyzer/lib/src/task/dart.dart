@@ -78,8 +78,8 @@ final ListResultDescriptor<AnalysisError> BUILD_LIBRARY_ERRORS =
  * functions, as well as constant constructors, annotations, and default values
  * of parameters to constant constructors.
  */
-final ListResultDescriptor<
-        ConstantEvaluationTarget> COMPILATION_UNIT_CONSTANTS =
+final ListResultDescriptor<ConstantEvaluationTarget>
+    COMPILATION_UNIT_CONSTANTS =
     new ListResultDescriptor<ConstantEvaluationTarget>(
         'COMPILATION_UNIT_CONSTANTS', null,
         cachingPolicy: ELEMENT_CACHING_POLICY);
@@ -183,8 +183,8 @@ final ListResultDescriptor<AnalysisError> INFER_STATIC_VARIABLE_TYPES_ERRORS =
  * The result is only available for [VariableElement]s, and only when strong
  * mode is enabled.
  */
-final ListResultDescriptor<
-        VariableElement> INFERABLE_STATIC_VARIABLE_DEPENDENCIES =
+final ListResultDescriptor<VariableElement>
+    INFERABLE_STATIC_VARIABLE_DEPENDENCIES =
     new ListResultDescriptor<VariableElement>(
         'INFERABLE_STATIC_VARIABLE_DEPENDENCIES', null);
 
@@ -555,8 +555,9 @@ class BuildCompilationUnitElementTask extends SourceBasedAnalysisTask {
     ConstantFinder constantFinder =
         new ConstantFinder(context, source, librarySpecificUnit.library);
     unit.accept(constantFinder);
-    List<ConstantEvaluationTarget> constants = new List<
-        ConstantEvaluationTarget>.from(constantFinder.constantsToCompute);
+    List<ConstantEvaluationTarget> constants =
+        new List<ConstantEvaluationTarget>.from(
+            constantFinder.constantsToCompute);
     //
     // Record outputs.
     //

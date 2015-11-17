@@ -226,8 +226,9 @@ int b = aa;''';
     Element declarationElement = declaration.variables.variables[0].element;
     TopLevelVariableDeclaration use =
         partUnit.declarations[0] as TopLevelVariableDeclaration;
-    Element useElement = (use.variables.variables[0].initializer
-        as SimpleIdentifier).staticElement;
+    Element useElement =
+        (use.variables.variables[0].initializer as SimpleIdentifier)
+            .staticElement;
     expect((useElement as PropertyAccessorElement).variable,
         same(declarationElement));
     return pumpEventQueue().then((_) {
@@ -547,12 +548,15 @@ main() {}''');
       expect(unit, isNotNull);
       completed = true;
     });
-    return pumpEventQueue().then((_) {
-      expect(completed, isFalse);
-      _performPendingAnalysisTasks();
-    }).then((_) => pumpEventQueue()).then((_) {
-      expect(completed, isTrue);
-    });
+    return pumpEventQueue()
+        .then((_) {
+          expect(completed, isFalse);
+          _performPendingAnalysisTasks();
+        })
+        .then((_) => pumpEventQueue())
+        .then((_) {
+          expect(completed, isTrue);
+        });
   }
 
   Future test_computeResolvedCompilationUnitAsync_afterDispose() {
@@ -641,12 +645,15 @@ main() {}''');
       expect(unit, isNotNull);
       completed = true;
     });
-    return pumpEventQueue().then((_) {
-      expect(completed, isFalse);
-      _performPendingAnalysisTasks();
-    }).then((_) => pumpEventQueue()).then((_) {
-      expect(completed, isTrue);
-    });
+    return pumpEventQueue()
+        .then((_) {
+          expect(completed, isFalse);
+          _performPendingAnalysisTasks();
+        })
+        .then((_) => pumpEventQueue())
+        .then((_) {
+          expect(completed, isTrue);
+        });
   }
 
   void test_dispose() {

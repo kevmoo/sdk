@@ -375,9 +375,8 @@ class AnalysisContextImpl implements InternalAnalysisContext {
   /**
    * Make _pendingFutureSources available to unit tests.
    */
-  HashMap<AnalysisTarget,
-      List<PendingFuture>> get pendingFutureSources_forTesting =>
-      _pendingFutureTargets;
+  HashMap<AnalysisTarget, List<PendingFuture>>
+      get pendingFutureSources_forTesting => _pendingFutureTargets;
 
   @override
   List<Source> get prioritySources => _priorityOrder;

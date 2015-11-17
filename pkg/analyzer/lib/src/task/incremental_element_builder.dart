@@ -222,8 +222,9 @@ class IncrementalCompilationUnitElementBuilder {
           }
         }
       }
-    } else if (node is PartDirective || node is PartOfDirective) {
-    } else if (node is Directive && node.element != null) {
+    } else if (node is PartDirective || node is PartOfDirective) {} else if (node
+        is Directive &&
+        node.element != null) {
       elements.add(node.element);
     } else if (node is Declaration && node.element != null) {
       Element element = node.element;

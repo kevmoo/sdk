@@ -3443,7 +3443,8 @@ f() {
     verify([source]);
   }
 
-  void test_nonAbstractClassInheritsAbstractMemberOne_abstractsDontOverrideConcretes_getter() {
+  void
+      test_nonAbstractClassInheritsAbstractMemberOne_abstractsDontOverrideConcretes_getter() {
     Source source = addSource(r'''
 class A {
   int get g => 0;
@@ -3457,7 +3458,8 @@ class C extends B {}''');
     verify([source]);
   }
 
-  void test_nonAbstractClassInheritsAbstractMemberOne_abstractsDontOverrideConcretes_method() {
+  void
+      test_nonAbstractClassInheritsAbstractMemberOne_abstractsDontOverrideConcretes_method() {
     Source source = addSource(r'''
 class A {
   m(p) {}
@@ -3471,7 +3473,8 @@ class C extends B {}''');
     verify([source]);
   }
 
-  void test_nonAbstractClassInheritsAbstractMemberOne_abstractsDontOverrideConcretes_setter() {
+  void
+      test_nonAbstractClassInheritsAbstractMemberOne_abstractsDontOverrideConcretes_setter() {
     Source source = addSource(r'''
 class A {
   set s(v) {}
@@ -3485,7 +3488,8 @@ class C extends B {}''');
     verify([source]);
   }
 
-  void test_nonAbstractClassInheritsAbstractMemberOne_classTypeAlias_interface() {
+  void
+      test_nonAbstractClassInheritsAbstractMemberOne_classTypeAlias_interface() {
     // 15979
     Source source = addSource(r'''
 abstract class M {}
@@ -3512,7 +3516,8 @@ abstract class B = A with M;''');
     verify([source]);
   }
 
-  void test_nonAbstractClassInheritsAbstractMemberOne_classTypeAlias_superclass() {
+  void
+      test_nonAbstractClassInheritsAbstractMemberOne_classTypeAlias_superclass() {
     // 15979
     Source source = addSource(r'''
 class M {}
@@ -3597,7 +3602,8 @@ class B extends A {
     verify([source]);
   }
 
-  void test_nonAbstractClassInheritsAbstractMemberOne_overridesMethodInObject() {
+  void
+      test_nonAbstractClassInheritsAbstractMemberOne_overridesMethodInObject() {
     Source source = addSource(r'''
 class A {
   String toString([String prefix = '']) => '${prefix}Hello';
@@ -4812,7 +4818,8 @@ main(Object p) {
     verify([source]);
   }
 
-  void test_typePromotion_booleanAnd_useInRight_accessedInClosureRight_noAssignment() {
+  void
+      test_typePromotion_booleanAnd_useInRight_accessedInClosureRight_noAssignment() {
     Source source = addSource(r'''
 callMe(f()) { f(); }
 main(Object p) {
@@ -4849,7 +4856,8 @@ main(Object p) {
     verify([source]);
   }
 
-  void test_typePromotion_conditional_useInThen_accessedInClosure_noAssignment() {
+  void
+      test_typePromotion_conditional_useInThen_accessedInClosure_noAssignment() {
     Source source = addSource(r'''
 callMe(f()) { f(); }
 main(Object p) {

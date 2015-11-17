@@ -560,8 +560,8 @@ class DartWorkManagerTest {
     entry1.setValue(SCAN_ERRORS, <AnalysisError>[error1], []);
     entry1.setValue(PARSE_ERRORS, <AnalysisError>[error2], []);
     // PARSED_UNIT is ready, set errors
-    manager.resultsComputed(
-        source1, {PARSED_UNIT: AstFactory.compilationUnit()});
+    manager
+        .resultsComputed(source1, {PARSED_UNIT: AstFactory.compilationUnit()});
     // all of the errors are included
     ChangeNoticeImpl notice = context.getNotice(source1);
     expect(notice.errors, unorderedEquals([error1, error2]));

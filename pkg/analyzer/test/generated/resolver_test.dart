@@ -296,8 +296,8 @@ class AnalysisContextFactory {
     ClassElementImpl htmlDocumentElement =
         ElementFactory.classElement("HtmlDocument", documentElement.type);
     htmlDocumentElement.methods = <MethodElement>[
-      ElementFactory.methodElement(
-          "query", elementType, <DartType>[provider.stringType])
+      ElementFactory
+          .methodElement("query", elementType, <DartType>[provider.stringType])
     ];
     htmlUnit.types = <ClassElement>[
       ElementFactory.classElement("AnchorElement", elementType),
@@ -317,8 +317,8 @@ class AnalysisContextFactory {
       ElementFactory.functionElement3("query", elementElement,
           <ClassElement>[provider.stringType.element], ClassElement.EMPTY_LIST)
     ];
-    TopLevelVariableElementImpl document = ElementFactory
-        .topLevelVariableElement3(
+    TopLevelVariableElementImpl document =
+        ElementFactory.topLevelVariableElement3(
             "document", false, true, htmlDocumentElement.type);
     htmlUnit.topLevelVariables = <TopLevelVariableElement>[document];
     htmlUnit.accessors = <PropertyAccessorElement>[document.getter];
@@ -4884,7 +4884,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classA);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_getter_method() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_getter_method() {
     // class I1 { int m(); }
     // class I2 { int get m; }
     // class A implements I2, I1 {}
@@ -4907,7 +4908,8 @@ class InheritanceManagerTest extends EngineTestCase {
         [StaticWarningCode.INCONSISTENT_METHOD_INHERITANCE_GETTER_AND_METHOD]);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_int_str() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_int_str() {
     // class I1 { int m(); }
     // class I2 { String m(); }
     // class A implements I1, I2 {}
@@ -4917,8 +4919,8 @@ class InheritanceManagerTest extends EngineTestCase {
         ElementFactory.methodElement(methodName, null, [_typeProvider.intType]);
     classI1.methods = <MethodElement>[methodM1];
     ClassElementImpl classI2 = ElementFactory.classElement2("I2");
-    MethodElement methodM2 = ElementFactory.methodElement(
-        methodName, null, [_typeProvider.stringType]);
+    MethodElement methodM2 = ElementFactory
+        .methodElement(methodName, null, [_typeProvider.stringType]);
     classI2.methods = <MethodElement>[methodM2];
     ClassElementImpl classA = ElementFactory.classElement2("A");
     classA.interfaces = <InterfaceType>[classI1.type, classI2.type];
@@ -4930,7 +4932,8 @@ class InheritanceManagerTest extends EngineTestCase {
         classA, [StaticTypeWarningCode.INCONSISTENT_METHOD_INHERITANCE]);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_method_getter() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_method_getter() {
     // class I1 { int m(); }
     // class I2 { int get m; }
     // class A implements I1, I2 {}
@@ -4953,7 +4956,8 @@ class InheritanceManagerTest extends EngineTestCase {
         [StaticWarningCode.INCONSISTENT_METHOD_INHERITANCE_GETTER_AND_METHOD]);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_numOfRequiredParams() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_numOfRequiredParams() {
     // class I1 { dynamic m(int, [int]); }
     // class I2 { dynamic m(int, int, int); }
     // class A implements I1, I2 {}
@@ -5002,14 +5006,15 @@ class InheritanceManagerTest extends EngineTestCase {
         classA, [StaticTypeWarningCode.INCONSISTENT_METHOD_INHERITANCE]);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_str_int() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_inconsistentMethodInheritance_str_int() {
     // class I1 { int m(); }
     // class I2 { String m(); }
     // class A implements I2, I1 {}
     ClassElementImpl classI1 = ElementFactory.classElement2("I1");
     String methodName = "m";
-    MethodElement methodM1 = ElementFactory.methodElement(
-        methodName, null, [_typeProvider.stringType]);
+    MethodElement methodM1 = ElementFactory
+        .methodElement(methodName, null, [_typeProvider.stringType]);
     classI1.methods = <MethodElement>[methodM1];
     ClassElementImpl classI2 = ElementFactory.classElement2("I2");
     MethodElement methodM2 =
@@ -5111,7 +5116,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classA);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_2_getters() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_2_getters() {
     // class I1 { int get g; }
     // class I2 { num get g; }
     // class A implements I1, I2 {}
@@ -5135,7 +5141,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classA);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_2_methods() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_2_methods() {
     // class I1 { dynamic m(int); }
     // class I2 { dynamic m(num); }
     // class A implements I1, I2 {}
@@ -5169,7 +5176,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classA);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_2_setters() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_2_setters() {
     // class I1 { set s(int); }
     // class I2 { set s(num); }
     // class A implements I1, I2 {}
@@ -5194,7 +5202,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classA);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_3_getters() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_3_getters() {
     // class A {}
     // class B extends A {}
     // class C extends B {}
@@ -5233,7 +5242,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classD);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_3_methods() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_3_methods() {
     // class A {}
     // class B extends A {}
     // class C extends B {}
@@ -5287,7 +5297,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classD);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_3_setters() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_multipleSubtypes_3_setters() {
     // class A {}
     // class B extends A {}
     // class C extends B {}
@@ -5327,7 +5338,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classD);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_oneSubtype_2_methods() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_oneSubtype_2_methods() {
     // class I1 { int m(); }
     // class I2 { int m([int]); }
     // class A implements I1, I2 {}
@@ -5354,7 +5366,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classA);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_oneSubtype_3_methods() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_oneSubtype_3_methods() {
     // class I1 { int m(); }
     // class I2 { int m([int]); }
     // class I3 { int m([int, int]); }
@@ -5399,7 +5412,8 @@ class InheritanceManagerTest extends EngineTestCase {
     _assertNoErrors(classA);
   }
 
-  void test_getMapOfMembersInheritedFromInterfaces_union_oneSubtype_4_methods() {
+  void
+      test_getMapOfMembersInheritedFromInterfaces_union_oneSubtype_4_methods() {
     // class I1 { int m(); }
     // class I2 { int m(); }
     // class I3 { int m([int]); }
@@ -9471,7 +9485,9 @@ const A = null;
     expect(declarations, hasLength(2));
     Element expectedElement = (declarations[0] as TopLevelVariableDeclaration)
         .variables
-        .variables[0].name.staticElement;
+        .variables[0]
+        .name
+        .staticElement;
     EngineTestCase.assertInstanceOf((obj) => obj is PropertyInducingElement,
         PropertyInducingElement, expectedElement);
     expectedElement = (expectedElement as PropertyInducingElement).getter;
@@ -9662,7 +9678,9 @@ const A = null;
     expect(declarations, hasLength(2));
     Element expectedElement = (declarations[0] as TopLevelVariableDeclaration)
         .variables
-        .variables[0].name.staticElement;
+        .variables[0]
+        .name
+        .staticElement;
     EngineTestCase.assertInstanceOf((obj) => obj is PropertyInducingElement,
         PropertyInducingElement, expectedElement);
     expectedElement = (expectedElement as PropertyInducingElement).getter;
@@ -12541,7 +12559,8 @@ class B extends A {
         code, typeProvider.dynamicType, typeProvider.intType);
   }
 
-  void fail_finalPropertyInducingVariable_classMember_instance_propagatedTarget() {
+  void
+      fail_finalPropertyInducingVariable_classMember_instance_propagatedTarget() {
     addNamedSource(
         "/lib.dart",
         r'''
@@ -12999,7 +13018,8 @@ f(MyMap<int, String> m) {
     expect(vParameter.identifier.propagatedType, same(stringType));
   }
 
-  void test_functionExpression_asInvocationArgument_functionExpressionInvocation() {
+  void
+      test_functionExpression_asInvocationArgument_functionExpressionInvocation() {
     String code = r'''
 main() {
   (f(String value)) {} ((v) {
