@@ -1907,9 +1907,9 @@ class Foo {
         "parseSwitchStatement",
         "switch (a) {default: return 0; default: return 1; default: return 2;}",
         [
-      ParserErrorCode.SWITCH_HAS_MULTIPLE_DEFAULT_CASES,
-      ParserErrorCode.SWITCH_HAS_MULTIPLE_DEFAULT_CASES
-    ]);
+          ParserErrorCode.SWITCH_HAS_MULTIPLE_DEFAULT_CASES,
+          ParserErrorCode.SWITCH_HAS_MULTIPLE_DEFAULT_CASES
+        ]);
   }
 
   void test_topLevel_getter() {
@@ -1999,10 +1999,10 @@ class Foo {
 void main() {
   var x = "''',
         [
-      ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
-      ParserErrorCode.EXPECTED_TOKEN,
-      ParserErrorCode.EXPECTED_TOKEN
-    ]);
+          ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
+          ParserErrorCode.EXPECTED_TOKEN,
+          ParserErrorCode.EXPECTED_TOKEN
+        ]);
   }
 
   void test_unterminatedString_at_eol() {
@@ -2028,10 +2028,10 @@ void main() {
 void main() {
   var x = """''',
         [
-      ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
-      ParserErrorCode.EXPECTED_TOKEN,
-      ParserErrorCode.EXPECTED_TOKEN
-    ]);
+          ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
+          ParserErrorCode.EXPECTED_TOKEN,
+          ParserErrorCode.EXPECTED_TOKEN
+        ]);
   }
 
   void test_unterminatedString_multiline_at_eof_4_quotes() {
@@ -2043,10 +2043,10 @@ void main() {
 void main() {
   var x = """"''',
         [
-      ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
-      ParserErrorCode.EXPECTED_TOKEN,
-      ParserErrorCode.EXPECTED_TOKEN
-    ]);
+          ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
+          ParserErrorCode.EXPECTED_TOKEN,
+          ParserErrorCode.EXPECTED_TOKEN
+        ]);
   }
 
   void test_unterminatedString_multiline_at_eof_5_quotes() {
@@ -2058,10 +2058,10 @@ void main() {
 void main() {
   var x = """""''',
         [
-      ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
-      ParserErrorCode.EXPECTED_TOKEN,
-      ParserErrorCode.EXPECTED_TOKEN
-    ]);
+          ScannerErrorCode.UNTERMINATED_STRING_LITERAL,
+          ParserErrorCode.EXPECTED_TOKEN,
+          ParserErrorCode.EXPECTED_TOKEN
+        ]);
   }
 
   void test_useOfUnaryPlusOperator() {

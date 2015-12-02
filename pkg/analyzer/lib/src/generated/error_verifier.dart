@@ -1377,10 +1377,10 @@ class ErrorVerifier extends RecursiveAstVisitor<Object> {
               : StaticWarningCode.INVALID_GETTER_OVERRIDE_RETURN_TYPE,
           errorNameTarget,
           [
-        overridingFTReturnType,
-        overriddenFTReturnType,
-        overriddenExecutable.enclosingElement.displayName
-      ]);
+            overridingFTReturnType,
+            overriddenFTReturnType,
+            overriddenExecutable.enclosingElement.displayName
+          ]);
       return true;
     }
     // SWC.INVALID_METHOD_OVERRIDE_NORMAL_PARAM_TYPE
@@ -1397,10 +1397,10 @@ class ErrorVerifier extends RecursiveAstVisitor<Object> {
                 : StaticWarningCode.INVALID_SETTER_OVERRIDE_NORMAL_PARAM_TYPE,
             parameterLocations[parameterIndex],
             [
-          overridingNormalPT[i],
-          overriddenNormalPT[i],
-          overriddenExecutable.enclosingElement.displayName
-        ]);
+              overridingNormalPT[i],
+              overriddenNormalPT[i],
+              overriddenExecutable.enclosingElement.displayName
+            ]);
         return true;
       }
       parameterIndex++;
@@ -1520,10 +1520,10 @@ class ErrorVerifier extends RecursiveAstVisitor<Object> {
                         .INVALID_OVERRIDE_DIFFERENT_DEFAULT_VALUES_NAMED,
                     formalParameters[i],
                     [
-                  overriddenExecutable.enclosingElement.displayName,
-                  overriddenExecutable.displayName,
-                  parameterName
-                ]);
+                      overriddenExecutable.enclosingElement.displayName,
+                      overriddenExecutable.displayName,
+                      parameterName
+                    ]);
                 foundError = true;
               }
             }
@@ -1559,9 +1559,9 @@ class ErrorVerifier extends RecursiveAstVisitor<Object> {
                     .INVALID_OVERRIDE_DIFFERENT_DEFAULT_VALUES_POSITIONAL,
                 formalParameters[i],
                 [
-              overriddenExecutable.enclosingElement.displayName,
-              overriddenExecutable.displayName
-            ]);
+                  overriddenExecutable.enclosingElement.displayName,
+                  overriddenExecutable.displayName
+                ]);
             foundError = true;
           }
         }
@@ -3747,7 +3747,10 @@ class ErrorVerifier extends RecursiveAstVisitor<Object> {
                 StaticWarningCode
                     .INSTANCE_METHOD_NAME_COLLIDES_WITH_SUPERCLASS_STATIC,
                 errorNameTarget,
-                [executableElementName, methodElement.enclosingElement.displayName]);
+                [
+                  executableElementName,
+                  methodElement.enclosingElement.displayName
+                ]);
             return true;
           }
         }
@@ -4592,12 +4595,12 @@ class ErrorVerifier extends RecursiveAstVisitor<Object> {
               .NON_ABSTRACT_CLASS_INHERITS_ABSTRACT_MEMBER_FIVE_PLUS,
           classNameNode,
           [
-        stringMembersArray[0],
-        stringMembersArray[1],
-        stringMembersArray[2],
-        stringMembersArray[3],
-        stringMembersArray.length - 4
-      ]);
+            stringMembersArray[0],
+            stringMembersArray[1],
+            stringMembersArray[2],
+            stringMembersArray[3],
+            stringMembersArray.length - 4
+          ]);
     }
     analysisError.setProperty(
         ErrorProperty.UNIMPLEMENTED_METHODS, missingOverridesArray);
