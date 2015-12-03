@@ -77,8 +77,8 @@ main() {
 
 MemoryResourceProvider resourceProvider;
 
-buildResourceProvider([bool emptyAnalysisOptions = false,
-                       bool badAnalysisOptions = false]) {
+buildResourceProvider(
+    [bool emptyAnalysisOptions = false, bool badAnalysisOptions = false]) {
   resourceProvider = new MemoryResourceProvider();
   resourceProvider.newFolder('/empty');
   resourceProvider.newFolder('/tmp');
@@ -88,8 +88,8 @@ buildResourceProvider([bool emptyAnalysisOptions = false,
     resourceProvider.newFile('/.analysis_options', r'''''');
   } else {
     resourceProvider.newFile(
-      '/.analysis_options',
-      r'''
+        '/.analysis_options',
+        r'''
 analyzer:
   ignore:
     - ignoreme.dart

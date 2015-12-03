@@ -972,8 +972,10 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
         result =
             _validate(element, CompileTimeErrorCode.NON_CONSTANT_LIST_ELEMENT);
         if (result != null) {
-          _reportErrorIfFromDeferredLibrary(element,
-              CompileTimeErrorCode.NON_CONSTANT_LIST_ELEMENT_FROM_DEFERRED_LIBRARY);
+          _reportErrorIfFromDeferredLibrary(
+              element,
+              CompileTimeErrorCode
+                  .NON_CONSTANT_LIST_ELEMENT_FROM_DEFERRED_LIBRARY);
         }
       }
     }
@@ -996,8 +998,10 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
         DartObjectImpl valueResult = _validate(
             valueExpression, CompileTimeErrorCode.NON_CONSTANT_MAP_VALUE);
         if (valueResult != null) {
-          _reportErrorIfFromDeferredLibrary(valueExpression,
-              CompileTimeErrorCode.NON_CONSTANT_MAP_VALUE_FROM_DEFERRED_LIBRARY);
+          _reportErrorIfFromDeferredLibrary(
+              valueExpression,
+              CompileTimeErrorCode
+                  .NON_CONSTANT_MAP_VALUE_FROM_DEFERRED_LIBRARY);
         }
         if (keyResult != null) {
           _reportErrorIfFromDeferredLibrary(key,
@@ -1010,7 +1014,8 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
           DartType type = keyResult.type;
           if (_implementsEqualsWhenNotAllowed(type)) {
             _errorReporter.reportErrorForNode(
-                CompileTimeErrorCode.CONST_MAP_KEY_EXPRESSION_TYPE_IMPLEMENTS_EQUALS,
+                CompileTimeErrorCode
+                    .CONST_MAP_KEY_EXPRESSION_TYPE_IMPLEMENTS_EQUALS,
                 key,
                 [type.displayName]);
           }
@@ -1067,8 +1072,10 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
         DartObjectImpl caseResult = _validate(
             expression, CompileTimeErrorCode.NON_CONSTANT_CASE_EXPRESSION);
         if (caseResult != null) {
-          _reportErrorIfFromDeferredLibrary(expression,
-              CompileTimeErrorCode.NON_CONSTANT_CASE_EXPRESSION_FROM_DEFERRED_LIBRARY);
+          _reportErrorIfFromDeferredLibrary(
+              expression,
+              CompileTimeErrorCode
+                  .NON_CONSTANT_CASE_EXPRESSION_FROM_DEFERRED_LIBRARY);
           DartObject value = caseResult;
           if (firstType == null) {
             firstType = value.type;
@@ -1108,8 +1115,10 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
       }
       _reportErrors(result.errors,
           CompileTimeErrorCode.CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE);
-      _reportErrorIfFromDeferredLibrary(initializer,
-          CompileTimeErrorCode.CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE_FROM_DEFERRED_LIBRARY);
+      _reportErrorIfFromDeferredLibrary(
+          initializer,
+          CompileTimeErrorCode
+              .CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE_FROM_DEFERRED_LIBRARY);
     }
     return null;
   }
@@ -1202,10 +1211,14 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
           identical(dataErrorCode, CompileTimeErrorCode.CONST_EVAL_TYPE_NUM) ||
           identical(dataErrorCode,
               CompileTimeErrorCode.RECURSIVE_COMPILE_TIME_CONSTANT) ||
-          identical(dataErrorCode,
-              CheckedModeCompileTimeErrorCode.CONST_CONSTRUCTOR_FIELD_TYPE_MISMATCH) ||
-          identical(dataErrorCode,
-              CheckedModeCompileTimeErrorCode.CONST_CONSTRUCTOR_PARAM_TYPE_MISMATCH) ||
+          identical(
+              dataErrorCode,
+              CheckedModeCompileTimeErrorCode
+                  .CONST_CONSTRUCTOR_FIELD_TYPE_MISMATCH) ||
+          identical(
+              dataErrorCode,
+              CheckedModeCompileTimeErrorCode
+                  .CONST_CONSTRUCTOR_PARAM_TYPE_MISMATCH) ||
           identical(dataErrorCode,
               CheckedModeCompileTimeErrorCode.VARIABLE_TYPE_MISMATCH)) {
         _errorReporter.reportError(data);
@@ -1302,8 +1315,10 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
           result = _validate(
               defaultValue, CompileTimeErrorCode.NON_CONSTANT_DEFAULT_VALUE);
           if (result != null) {
-            _reportErrorIfFromDeferredLibrary(defaultValue,
-                CompileTimeErrorCode.NON_CONSTANT_DEFAULT_VALUE_FROM_DEFERRED_LIBRARY);
+            _reportErrorIfFromDeferredLibrary(
+                defaultValue,
+                CompileTimeErrorCode
+                    .NON_CONSTANT_DEFAULT_VALUE_FROM_DEFERRED_LIBRARY);
           }
         }
         VariableElementImpl element = parameter.element as VariableElementImpl;
@@ -1343,7 +1358,8 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
                   subErrorReporter));
               if (result == null) {
                 _errorReporter.reportErrorForNode(
-                    CompileTimeErrorCode.CONST_CONSTRUCTOR_WITH_FIELD_INITIALIZED_BY_NON_CONST,
+                    CompileTimeErrorCode
+                        .CONST_CONSTRUCTOR_WITH_FIELD_INITIALIZED_BY_NON_CONST,
                     errorSite,
                     [variableDeclaration.name.name]);
               }
@@ -1373,8 +1389,10 @@ class ConstantVerifier extends RecursiveAstVisitor<Object> {
     _reportErrors(errorListener.errors,
         CompileTimeErrorCode.NON_CONSTANT_VALUE_IN_INITIALIZER);
     if (result != null) {
-      _reportErrorIfFromDeferredLibrary(expression,
-          CompileTimeErrorCode.NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY);
+      _reportErrorIfFromDeferredLibrary(
+          expression,
+          CompileTimeErrorCode
+              .NON_CONSTANT_VALUE_IN_INITIALIZER_FROM_DEFERRED_LIBRARY);
     }
   }
 
@@ -5694,8 +5712,9 @@ class InheritanceManager {
     if (memberName == null || memberName.isEmpty) {
       return null;
     }
-    ExecutableElement executable = _computeClassChainLookupMap(
-        classElt, new HashSet<ClassElement>()).get(memberName);
+    ExecutableElement executable =
+        _computeClassChainLookupMap(classElt, new HashSet<ClassElement>())
+            .get(memberName);
     if (executable == null) {
       return _computeInterfaceLookupMap(classElt, new HashSet<ClassElement>())
           .get(memberName);
@@ -6369,8 +6388,9 @@ class InheritanceManager {
               // Tests: test_getMapOfMembersInheritedFromInterfaces_
               // union_multipleSubtypes_*
               //
-              List<ExecutableElement> elementArrayToMerge = new List<
-                  ExecutableElement>(subtypesOfAllOtherTypesIndexes.length);
+              List<ExecutableElement> elementArrayToMerge =
+                  new List<ExecutableElement>(
+                      subtypesOfAllOtherTypesIndexes.length);
               for (int i = 0; i < elementArrayToMerge.length; i++) {
                 elementArrayToMerge[i] =
                     elements[subtypesOfAllOtherTypesIndexes[i]];
@@ -6385,7 +6405,8 @@ class InheritanceManager {
               classElt,
               classElt.nameOffset,
               classElt.displayName.length,
-              StaticWarningCode.INCONSISTENT_METHOD_INHERITANCE_GETTER_AND_METHOD,
+              StaticWarningCode
+                  .INCONSISTENT_METHOD_INHERITANCE_GETTER_AND_METHOD,
               [key]);
         }
       }
@@ -7056,8 +7077,8 @@ class LibraryElementBuilder {
     CompilationUnitBuilder builder = new CompilationUnitBuilder();
     Source librarySource = library.librarySource;
     CompilationUnit definingCompilationUnit = library.definingCompilationUnit;
-    CompilationUnitElementImpl definingCompilationUnitElement = builder
-        .buildCompilationUnit(
+    CompilationUnitElementImpl definingCompilationUnitElement =
+        builder.buildCompilationUnit(
             librarySource, definingCompilationUnit, librarySource);
     NodeList<Directive> directives = definingCompilationUnit.directives;
     LibraryIdentifier libraryNameNode = null;
@@ -7162,8 +7183,8 @@ class LibraryElementBuilder {
     CompilationUnitBuilder builder = new CompilationUnitBuilder();
     Source librarySource = library.librarySource;
     CompilationUnit definingCompilationUnit = library.definingCompilationUnit;
-    CompilationUnitElementImpl definingCompilationUnitElement = builder
-        .buildCompilationUnit(
+    CompilationUnitElementImpl definingCompilationUnitElement =
+        builder.buildCompilationUnit(
             librarySource, definingCompilationUnit, librarySource);
     NodeList<Directive> directives = definingCompilationUnit.directives;
     LibraryIdentifier libraryNameNode = null;
@@ -14288,10 +14309,10 @@ class TypeResolverVisitor extends ScopedVisitor {
       } else if ((redirectingConstructorKind =
               _getRedirectingConstructorKind(node)) !=
           null) {
-        ErrorCode errorCode = (redirectingConstructorKind ==
-                RedirectingConstructorKind.CONST
-            ? CompileTimeErrorCode.REDIRECT_TO_NON_CLASS
-            : StaticWarningCode.REDIRECT_TO_NON_CLASS);
+        ErrorCode errorCode =
+            (redirectingConstructorKind == RedirectingConstructorKind.CONST
+                ? CompileTimeErrorCode.REDIRECT_TO_NON_CLASS
+                : StaticWarningCode.REDIRECT_TO_NON_CLASS);
         reportErrorForNode(errorCode, typeName, [typeName.name]);
       } else if (_isTypeNameInTypeArgumentList(node)) {
         reportErrorForNode(StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT,
@@ -14348,10 +14369,10 @@ class TypeResolverVisitor extends ScopedVisitor {
       } else if ((redirectingConstructorKind =
               _getRedirectingConstructorKind(node)) !=
           null) {
-        ErrorCode errorCode = (redirectingConstructorKind ==
-                RedirectingConstructorKind.CONST
-            ? CompileTimeErrorCode.REDIRECT_TO_NON_CLASS
-            : StaticWarningCode.REDIRECT_TO_NON_CLASS);
+        ErrorCode errorCode =
+            (redirectingConstructorKind == RedirectingConstructorKind.CONST
+                ? CompileTimeErrorCode.REDIRECT_TO_NON_CLASS
+                : StaticWarningCode.REDIRECT_TO_NON_CLASS);
         reportErrorForNode(errorCode, typeName, [typeName.name]);
       } else if (_isTypeNameInTypeArgumentList(node)) {
         reportErrorForNode(StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT,

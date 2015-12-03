@@ -216,38 +216,38 @@ abstract class AbstractScannerTest {
     ht.Token token = _tokenize2(
         " < html \n bob = 'joe\n' >\n <\np > one \r\n two <!-- \rfoo --> </ p > </ html > ",
         <Object>[
-      " ",
-      ht.TokenType.LT,
-      "html",
-      "bob",
-      ht.TokenType.EQ,
-      "'joe\n'",
-      ht.TokenType.GT,
-      "\n ",
-      ht.TokenType.LT,
-      "p",
-      ht.TokenType.GT,
-      " one \r\n two ",
-      "<!-- \rfoo -->",
-      " ",
-      ht.TokenType.LT_SLASH,
-      "p",
-      ht.TokenType.GT,
-      " ",
-      ht.TokenType.LT_SLASH,
-      "html",
-      ht.TokenType.GT,
-      " "
-    ],
+          " ",
+          ht.TokenType.LT,
+          "html",
+          "bob",
+          ht.TokenType.EQ,
+          "'joe\n'",
+          ht.TokenType.GT,
+          "\n ",
+          ht.TokenType.LT,
+          "p",
+          ht.TokenType.GT,
+          " one \r\n two ",
+          "<!-- \rfoo -->",
+          " ",
+          ht.TokenType.LT_SLASH,
+          "p",
+          ht.TokenType.GT,
+          " ",
+          ht.TokenType.LT_SLASH,
+          "html",
+          ht.TokenType.GT,
+          " "
+        ],
         <int>[
-      0,
-      9,
-      21,
-      25,
-      28,
-      38,
-      49
-    ]);
+          0,
+          9,
+          21,
+          25,
+          28,
+          38,
+          49
+        ]);
     token = token.next;
     expect(token.offset, 1);
     token = token.next;
@@ -955,19 +955,22 @@ class ConstantFinderTest extends EngineTestCase {
     expect(_findConstants(), contains(field.element));
   }
 
-  void test_visitVariableDeclaration_static_const_inClassWithConstConstructor() {
+  void
+      test_visitVariableDeclaration_static_const_inClassWithConstConstructor() {
     VariableDeclaration field = _setupFieldDeclaration('C', 'f', Keyword.CONST,
         isStatic: true, hasConstConstructor: true);
     expect(_findConstants(), contains(field.element));
   }
 
-  void test_visitVariableDeclaration_static_final_inClassWithConstConstructor() {
+  void
+      test_visitVariableDeclaration_static_final_inClassWithConstConstructor() {
     VariableDeclaration field = _setupFieldDeclaration('C', 'f', Keyword.FINAL,
         isStatic: true, hasConstConstructor: true);
     expect(_findConstants(), isNot(contains(field.element)));
   }
 
-  void test_visitVariableDeclaration_uninitialized_final_inClassWithConstConstructor() {
+  void
+      test_visitVariableDeclaration_uninitialized_final_inClassWithConstConstructor() {
     VariableDeclaration field = _setupFieldDeclaration('C', 'f', Keyword.FINAL,
         isInitialized: false, hasConstConstructor: true);
     expect(_findConstants(), isNot(contains(field.element)));
@@ -1001,8 +1004,8 @@ class ConstantFinderTest extends EngineTestCase {
 
   ConstructorElement _setupConstructorDeclaration(String name, bool isConst) {
     Keyword constKeyword = isConst ? Keyword.CONST : null;
-    ConstructorDeclaration constructorDeclaration = AstFactory
-        .constructorDeclaration2(
+    ConstructorDeclaration constructorDeclaration =
+        AstFactory.constructorDeclaration2(
             constKeyword,
             null,
             null,
@@ -1043,8 +1046,8 @@ class ConstantFinderTest extends EngineTestCase {
     classElement.fields = <FieldElement>[fieldElement];
     classDeclaration.name.staticElement = classElement;
     if (hasConstConstructor) {
-      ConstructorDeclaration constructorDeclaration = AstFactory
-          .constructorDeclaration2(
+      ConstructorDeclaration constructorDeclaration =
+          AstFactory.constructorDeclaration2(
               Keyword.CONST,
               null,
               AstFactory.identifier3(className),
@@ -1709,19 +1712,23 @@ class A {
     _assertIntField(fields, "k", 13);
   }
 
-  void test_instanceCreationExpression_computedField_namedOptionalWithDefault() {
+  void
+      test_instanceCreationExpression_computedField_namedOptionalWithDefault() {
     _checkInstanceCreationOptionalParams(false, true, true);
   }
 
-  void test_instanceCreationExpression_computedField_namedOptionalWithoutDefault() {
+  void
+      test_instanceCreationExpression_computedField_namedOptionalWithoutDefault() {
     _checkInstanceCreationOptionalParams(false, true, false);
   }
 
-  void test_instanceCreationExpression_computedField_unnamedOptionalWithDefault() {
+  void
+      test_instanceCreationExpression_computedField_unnamedOptionalWithDefault() {
     _checkInstanceCreationOptionalParams(false, false, true);
   }
 
-  void test_instanceCreationExpression_computedField_unnamedOptionalWithoutDefault() {
+  void
+      test_instanceCreationExpression_computedField_unnamedOptionalWithoutDefault() {
     _checkInstanceCreationOptionalParams(false, false, false);
   }
 
@@ -1814,19 +1821,23 @@ class A {
     _assertIntField(fields, "x", 42);
   }
 
-  void test_instanceCreationExpression_fieldFormalParameter_namedOptionalWithDefault() {
+  void
+      test_instanceCreationExpression_fieldFormalParameter_namedOptionalWithDefault() {
     _checkInstanceCreationOptionalParams(true, true, true);
   }
 
-  void test_instanceCreationExpression_fieldFormalParameter_namedOptionalWithoutDefault() {
+  void
+      test_instanceCreationExpression_fieldFormalParameter_namedOptionalWithoutDefault() {
     _checkInstanceCreationOptionalParams(true, true, false);
   }
 
-  void test_instanceCreationExpression_fieldFormalParameter_unnamedOptionalWithDefault() {
+  void
+      test_instanceCreationExpression_fieldFormalParameter_unnamedOptionalWithDefault() {
     _checkInstanceCreationOptionalParams(true, false, true);
   }
 
-  void test_instanceCreationExpression_fieldFormalParameter_unnamedOptionalWithoutDefault() {
+  void
+      test_instanceCreationExpression_fieldFormalParameter_unnamedOptionalWithoutDefault() {
     _checkInstanceCreationOptionalParams(true, false, false);
   }
 
@@ -5231,8 +5242,8 @@ class ElementBuilderTest extends EngineTestCase {
     ElementHolder holder = new ElementHolder();
     ElementBuilder builder = new ElementBuilder(holder);
     String className = "A";
-    ConstructorDeclaration constructorDeclaration = AstFactory
-        .constructorDeclaration2(
+    ConstructorDeclaration constructorDeclaration =
+        AstFactory.constructorDeclaration2(
             null,
             null,
             AstFactory.identifier3(className),
@@ -5260,8 +5271,8 @@ class ElementBuilderTest extends EngineTestCase {
     ElementHolder holder = new ElementHolder();
     ElementBuilder builder = new ElementBuilder(holder);
     String className = "A";
-    ConstructorDeclaration constructorDeclaration = AstFactory
-        .constructorDeclaration2(
+    ConstructorDeclaration constructorDeclaration =
+        AstFactory.constructorDeclaration2(
             null,
             Keyword.FACTORY,
             AstFactory.identifier3(className),
@@ -5287,8 +5298,8 @@ class ElementBuilderTest extends EngineTestCase {
     ElementHolder holder = new ElementHolder();
     ElementBuilder builder = new ElementBuilder(holder);
     String className = "A";
-    ConstructorDeclaration constructorDeclaration = AstFactory
-        .constructorDeclaration2(
+    ConstructorDeclaration constructorDeclaration =
+        AstFactory.constructorDeclaration2(
             null,
             null,
             AstFactory.identifier3(className),
@@ -5315,8 +5326,8 @@ class ElementBuilderTest extends EngineTestCase {
     ElementBuilder builder = new ElementBuilder(holder);
     String className = "A";
     String constructorName = "c";
-    ConstructorDeclaration constructorDeclaration = AstFactory
-        .constructorDeclaration2(
+    ConstructorDeclaration constructorDeclaration =
+        AstFactory.constructorDeclaration2(
             null,
             null,
             AstFactory.identifier3(className),
@@ -5344,8 +5355,8 @@ class ElementBuilderTest extends EngineTestCase {
     ElementHolder holder = new ElementHolder();
     ElementBuilder builder = new ElementBuilder(holder);
     String className = "A";
-    ConstructorDeclaration constructorDeclaration = AstFactory
-        .constructorDeclaration2(
+    ConstructorDeclaration constructorDeclaration =
+        AstFactory.constructorDeclaration2(
             null,
             null,
             AstFactory.identifier3(className),
@@ -5425,8 +5436,8 @@ class ElementBuilderTest extends EngineTestCase {
     ElementHolder holder = new ElementHolder();
     ElementBuilder builder = new ElementBuilder(holder);
     String parameterName = 'p';
-    DefaultFormalParameter formalParameter = AstFactory
-        .positionalFormalParameter(
+    DefaultFormalParameter formalParameter =
+        AstFactory.positionalFormalParameter(
             AstFactory.simpleFormalParameter3(parameterName),
             AstFactory.integer(0));
     formalParameter.accept(builder);
@@ -6760,7 +6771,8 @@ class A {
         (obj) => obj is FunctionElement, FunctionElement, element);
   }
 
-  void test_locate_Identifier_annotationClass_namedConstructor_forSimpleFormalParameter() {
+  void
+      test_locate_Identifier_annotationClass_namedConstructor_forSimpleFormalParameter() {
     AstNode id = _findNodeIndexedIn(
         "Class",
         2,
@@ -6775,7 +6787,8 @@ void main(@Class.name() parameter) {
         (obj) => obj is ClassElement, ClassElement, element);
   }
 
-  void test_locate_Identifier_annotationClass_unnamedConstructor_forSimpleFormalParameter() {
+  void
+      test_locate_Identifier_annotationClass_unnamedConstructor_forSimpleFormalParameter() {
     AstNode id = _findNodeIndexedIn(
         "Class",
         2,
@@ -6882,8 +6895,8 @@ void main() {
     SimpleIdentifier identifier = AstFactory.identifier3("A");
     PrefixedIdentifier prefixedIdentifier =
         AstFactory.identifier4("pref", identifier);
-    InstanceCreationExpression creation = AstFactory
-        .instanceCreationExpression2(
+    InstanceCreationExpression creation =
+        AstFactory.instanceCreationExpression2(
             Keyword.NEW, AstFactory.typeName3(prefixedIdentifier));
     // set ClassElement
     ClassElement classElement = ElementFactory.classElement2("A");
@@ -6900,8 +6913,8 @@ void main() {
   void test_locate_InstanceCreationExpression_type_simpleIdentifier() {
     // prepare: new A()
     SimpleIdentifier identifier = AstFactory.identifier3("A");
-    InstanceCreationExpression creation = AstFactory
-        .instanceCreationExpression2(
+    InstanceCreationExpression creation =
+        AstFactory.instanceCreationExpression2(
             Keyword.NEW, AstFactory.typeName3(identifier));
     // set ClassElement
     ClassElement classElement = ElementFactory.classElement2("A");
@@ -8843,8 +8856,8 @@ class ReferenceFinderTest extends EngineTestCase {
       String name, bool isConst) {
     List<ConstructorInitializer> initializers =
         new List<ConstructorInitializer>();
-    ConstructorDeclaration constructorDeclaration = AstFactory
-        .constructorDeclaration(AstFactory.identifier3(name), null,
+    ConstructorDeclaration constructorDeclaration =
+        AstFactory.constructorDeclaration(AstFactory.identifier3(name), null,
             AstFactory.formalParameterList(), initializers);
     if (isConst) {
       constructorDeclaration.constKeyword = new KeywordToken(Keyword.CONST, 0);

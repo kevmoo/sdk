@@ -268,8 +268,8 @@ abstract class ListResultDescriptor<E> implements ResultDescriptor<List<E>> {
    * values associated with this result will remain in the cache.
    */
   factory ListResultDescriptor(String name, List<E> defaultValue,
-      {ResultCachingPolicy<List<E>> cachingPolicy}) = ListResultDescriptorImpl<
-      E>;
+      {ResultCachingPolicy<
+          List<E>> cachingPolicy}) = ListResultDescriptorImpl<E>;
 
   @override
   ListTaskInput<E> of(AnalysisTarget target);

@@ -282,8 +282,8 @@ abstract class A<K, V> = Object with MapMixin<K, V>;
   void test_isEnum() {
     String firstConst = "A";
     String secondConst = "B";
-    ClassElementImpl enumE = ElementFactory.enumElement(
-        new TestTypeProvider(), "E", [firstConst, secondConst]);
+    ClassElementImpl enumE = ElementFactory
+        .enumElement(new TestTypeProvider(), "E", [firstConst, secondConst]);
 
     // E is an enum
     expect(enumE.isEnum, true);
@@ -634,7 +634,8 @@ abstract class A<K, V> = Object with MapMixin<K, V>;
     expect(classB.lookUpInheritedConcreteMethod(methodName, library), isNull);
   }
 
-  void test_lookUpInheritedConcreteMethod_declaredAndInheritedWithAbstractBetween() {
+  void
+      test_lookUpInheritedConcreteMethod_declaredAndInheritedWithAbstractBetween() {
     // class A {
     //   m() {}
     // }
@@ -1919,8 +1920,8 @@ class FunctionTypeImplTest extends EngineTestCase {
     functionType.typeArguments = <DartType>[parameterType];
     InterfaceTypeImpl argumentType = new InterfaceTypeImpl(
         new ClassElementImpl.forNode(AstFactory.identifier3("D")));
-    FunctionType result = functionType.substitute2(
-        <DartType>[argumentType], <DartType>[parameterType]);
+    FunctionType result = functionType
+        .substitute2(<DartType>[argumentType], <DartType>[parameterType]);
     expect(result.returnType, argumentType);
     List<DartType> normalParameters = result.normalParameterTypes;
     expect(normalParameters, hasLength(1));
@@ -1956,8 +1957,8 @@ class FunctionTypeImplTest extends EngineTestCase {
         new ClassElementImpl.forNode(AstFactory.identifier3("D")));
     TypeParameterTypeImpl parameterType = new TypeParameterTypeImpl(
         new TypeParameterElementImpl.forNode(AstFactory.identifier3("E")));
-    FunctionType result = functionType.substitute2(
-        <DartType>[argumentType], <DartType>[parameterType]);
+    FunctionType result = functionType
+        .substitute2(<DartType>[argumentType], <DartType>[parameterType]);
     expect(result.returnType, returnType);
     List<DartType> normalParameters = result.normalParameterTypes;
     expect(normalParameters, hasLength(1));

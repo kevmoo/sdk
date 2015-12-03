@@ -118,8 +118,8 @@ class TaskDescriptorImplTest extends EngineTestCase {
   }
 
   test_createTask() {
-    BuildTask buildTask = (context, target) =>
-        new TestAnalysisTask(context, target);
+    BuildTask buildTask =
+        (context, target) => new TestAnalysisTask(context, target);
     CreateTaskInputs createTaskInputs = (target) {};
     List<ResultDescriptor> results = <ResultDescriptor>[];
     TaskDescriptorImpl descriptor =

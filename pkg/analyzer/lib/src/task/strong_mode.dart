@@ -284,8 +284,8 @@ class InstanceMemberInferrer {
       DartType newType = null;
       if (overriddenGetters.isNotEmpty && _onlyGetters(overriddenGetters)) {
         newType = _computeReturnType(overriddenGetters);
-        List<ExecutableElement> overriddenSetters = inheritanceManager
-            .lookupOverrides(
+        List<ExecutableElement> overriddenSetters =
+            inheritanceManager.lookupOverrides(
                 fieldElement.enclosingElement, fieldElement.name + '=');
         if (!_isCompatible(newType, overriddenSetters)) {
           newType = null;

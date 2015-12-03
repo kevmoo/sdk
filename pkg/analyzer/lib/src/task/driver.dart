@@ -44,8 +44,8 @@ class AnalysisDriver {
   /**
    * The map of [ComputedResult] controllers.
    */
-  final Map<ResultDescriptor,
-          StreamController<ComputedResult>> resultComputedControllers =
+  final Map<ResultDescriptor, StreamController<ComputedResult>>
+      resultComputedControllers =
       <ResultDescriptor, StreamController<ComputedResult>>{};
 
   /**

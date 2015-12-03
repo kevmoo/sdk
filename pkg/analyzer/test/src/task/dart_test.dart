@@ -1201,8 +1201,9 @@ class ComputeConstantValueTaskTest extends _AbstractDartTaskTest {
         computeResult(target, CONSTANT_VALUE,
             matcher: isComputeConstantValueTask);
         expect(outputs[CONSTANT_VALUE], same(target));
-        EvaluationResultImpl evaluationResult = (annotation.elementAnnotation
-            as ElementAnnotationImpl).evaluationResult;
+        EvaluationResultImpl evaluationResult =
+            (annotation.elementAnnotation as ElementAnnotationImpl)
+                .evaluationResult;
         return evaluationResult;
       }
     }
@@ -1370,8 +1371,9 @@ const x = 1;
     for (String otherVariableName in otherVariables) {
       PropertyInducingElement otherVariableElement =
           _findVariable(unit, otherVariableName);
-      _expectCircularityError((otherVariableElement
-          as TopLevelVariableElementImpl).evaluationResult);
+      _expectCircularityError(
+          (otherVariableElement as TopLevelVariableElementImpl)
+              .evaluationResult);
     }
   }
 

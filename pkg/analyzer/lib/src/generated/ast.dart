@@ -2885,8 +2885,8 @@ abstract class AstNode {
    * the same offset, and a positive value if the offset of the first node is
    * greater than the offset of the second node.
    */
-  static Comparator<AstNode> LEXICAL_ORDER = (AstNode first, AstNode second) =>
-      first.offset - second.offset;
+  static Comparator<AstNode> LEXICAL_ORDER =
+      (AstNode first, AstNode second) => first.offset - second.offset;
 
   /**
    * The parent of the node, or `null` if the node is the root of an AST
