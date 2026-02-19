@@ -2439,7 +2439,8 @@ class Intrinsifier {
           if (e is ConstantExpression) {
             final c = e.constant;
             if (c is DoubleConstant) return c.value;
-            if (c is InstanceConstant && c.classNode == translator.wasmF64Class) {
+            if (c is InstanceConstant &&
+                c.classNode == translator.wasmF64Class) {
               return (c.fieldValues.values.single as DoubleConstant).value;
             }
           }
@@ -2716,7 +2717,8 @@ class Intrinsifier {
           if (e is ConstantExpression) {
             final c = e.constant;
             if (c is DoubleConstant) return c.value;
-            if (c is InstanceConstant && c.classNode == translator.wasmF64Class) {
+            if (c is InstanceConstant &&
+                c.classNode == translator.wasmF64Class) {
               return (c.fieldValues.values.single as DoubleConstant).value;
             }
           }
