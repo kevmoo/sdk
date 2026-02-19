@@ -24,6 +24,33 @@ PROG_NAME="$(follow_links "$BASH_SOURCE")"
 PROG_DIR="$(cd "${PROG_NAME%/*}" ; pwd -P)"
 source "$PROG_DIR/utils.sh"
 
+function usage() {
+  echo "Usage: $(basename "$0") [options] <file.dart> [file.wasm]"
+  echo ""
+  echo "Options:"
+  echo "  -h, --help            Show this help message."
+  echo "  --run[=<shell>]       Run the compiled Wasm using the specified shell (default: d8)."
+  echo "  --src                 Run the compiler from source instead of the AOT snapshot."
+  echo "  --temp-output         Use a temporary directory for the output .wasm file."
+  echo "                        Cannot be used with an explicit [file.wasm] argument."
+  echo "  --extra-compiler-option=<opt>"
+  echo "                        Pass an extra option directly to dart2wasm."
+  echo "                        Example: --extra-compiler-option=--enable-experimental-wasm-interop"
+  echo "  --js-compatibility    Use the JS compatibility platform and flags."
+  echo "  --compiler-asserts    Use the dart2wasm snapshot with assertions enabled."
+  echo "  -O<level>             Set optimization level (0, 1, 2, 3, 4, S, O)."
+  echo "                        Level 0 disables Binaryen (wasm-opt)."
+  echo "  --no-source-maps      Disable source map generation."
+  echo "  --phases=<phases>     Comma-separated list of compiler phases to run."
+  echo "                        (default: cfe,tfa,codegen)"
+  echo "  -o <file.wasm>        Specify the output file (alternative to positional argument)."
+  echo "  --compile-benchmark=<name>"
+  echo "                        Measure and report compilation time, size, and memory usage"
+  echo "                        under the given benchmark name."
+  echo ""
+  echo "Any other flags starting with '-' or '--' are passed directly to dart2wasm."
+}
+
 # Locate build directory, containing executables, snapshots and platform dill.
 if [[ `uname` == 'Darwin' ]]; then
   OUT_DIR="$SDK_DIR/xcodebuild"
@@ -57,6 +84,11 @@ OUTPUT_FILE=""
 PHASES=""
 while [ $# -gt 0 ]; do
     case "$1" in
+      -h | --help)
+      usage
+      exit 0
+      ;;
+
       --compile-benchmark=*)
       COMPILE_BENCHMARK_BASE_NAME=$(echo $1 | sed 's/--compile-benchmark=//g')
       shift
@@ -169,17 +201,21 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$DART_FILE" ]; then
-  echo "Expected <file.dart> [file.wasm]"
+  usage
   exit 1
 fi
 
 if [ $USE_TEMP_OUTPUT -eq 1 ] && [ -n "$OUTPUT_FILE" ]; then
-  echo "Cannot specify both --temp-output and an explicit output file!"
+  echo "Error: Cannot specify both --temp-output and an explicit output file!"
+  echo ""
+  usage
   exit 1
 fi
 
 if [ $USE_TEMP_OUTPUT -eq 0 ] && [ -z "$OUTPUT_FILE" ]; then
-  echo "Expected <file.dart> <file.wasm>"
+  echo "Error: Expected <file.dart> <file.wasm> (or use --temp-output)"
+  echo ""
+  usage
   exit 1
 fi
 

@@ -1,0 +1,130 @@
+// ignore: import_internal_library
+import 'dart:_wasm';
+
+import 'package:expect/expect.dart';
+
+// I8x16
+const _i8x16 = WasmI8x16(
+  WasmV128.literal([
+    WasmI32(1),
+    WasmI32(2),
+    WasmI32(3),
+    WasmI32(4),
+    WasmI32(5),
+    WasmI32(6),
+    WasmI32(7),
+    WasmI32(8),
+    WasmI32(9),
+    WasmI32(10),
+    WasmI32(11),
+    WasmI32(12),
+    WasmI32(13),
+    WasmI32(14),
+    WasmI32(15),
+    WasmI32(16),
+  ]),
+);
+
+// I16x8
+const _i16x8 = WasmI16x8(
+  WasmV128.literal([
+    WasmI32(10),
+    WasmI32(20),
+    WasmI32(30),
+    WasmI32(40),
+    WasmI32(50),
+    WasmI32(60),
+    WasmI32(70),
+    WasmI32(80),
+  ]),
+);
+
+// I32x4
+const _i32x4 = WasmI32x4(
+  WasmV128.literal([WasmI32(100), WasmI32(200), WasmI32(300), WasmI32(400)]),
+);
+
+// I64x2
+const _i64x2 = WasmI64x2(WasmV128.literal([WasmI64(1000), WasmI64(2000)]));
+
+// F32x4
+const _f32x4 = WasmF32x4(
+  WasmV128.literal([WasmF32(1.5), WasmF32(2.5), WasmF32(3.5), WasmF32(4.5)]),
+);
+
+// F64x2
+const _f64x2 = WasmF64x2(WasmV128.literal([WasmF64(1.1), WasmF64(2.2)]));
+
+void main() {
+  print("Starting tests...");
+  testI8x16();
+  testI16x8();
+  testI32x4();
+  testI64x2();
+  testF32x4();
+  testF64x2();
+  testF64x2Literal();
+  print("All tests passed!");
+}
+
+void testF64x2Literal() {
+  print("Running testF64x2Literal...");
+  // Constant
+  const v_const = WasmF64x2(WasmV128.literal([WasmF64(3.3), WasmF64(4.4)]));
+  Expect.equals(3.3, v_const.extractLane(0).toDouble());
+  Expect.equals(4.4, v_const.extractLane(1).toDouble());
+
+  // Using runtime call to verify intrinsic generation for non-const arguments.
+  final a = 3.3;
+  final b = 4.4;
+  final v = WasmF64x2.literal(WasmF64.fromDouble(a), WasmF64.fromDouble(b));
+  Expect.equals(3.3, v.extractLane(0).toDouble());
+  Expect.equals(4.4, v.extractLane(1).toDouble());
+}
+
+void testI8x16() {
+  print("Running testI8x16...");
+  final v = _i8x16;
+  Expect.equals(1, v.extractLaneSigned(0).toIntSigned());
+  Expect.equals(2, v.extractLaneSigned(1).toIntSigned());
+  Expect.equals(8, v.extractLaneSigned(7).toIntSigned());
+  Expect.equals(16, v.extractLaneSigned(15).toIntSigned());
+}
+
+void testI16x8() {
+  print("Running testI16x8...");
+  final v = _i16x8;
+  Expect.equals(10, v.extractLaneSigned(0).toIntSigned());
+  Expect.equals(20, v.extractLaneSigned(1).toIntSigned());
+  Expect.equals(80, v.extractLaneSigned(7).toIntSigned());
+}
+
+void testI32x4() {
+  print("Running testI32x4...");
+  final v = _i32x4;
+  Expect.equals(100, v.extractLane(0).toIntSigned());
+  Expect.equals(200, v.extractLane(1).toIntSigned());
+  Expect.equals(400, v.extractLane(3).toIntSigned());
+}
+
+void testI64x2() {
+  print("Running testI64x2...");
+  final v = _i64x2;
+  Expect.equals(1000, v.extractLane(0).toInt());
+  Expect.equals(2000, v.extractLane(1).toInt());
+}
+
+void testF32x4() {
+  print("Running testF32x4...");
+  final v = _f32x4;
+  Expect.equals(1.5, v.extractLane(0).toDouble());
+  Expect.equals(2.5, v.extractLane(1).toDouble());
+  Expect.equals(4.5, v.extractLane(3).toDouble());
+}
+
+void testF64x2() {
+  print("Running testF64x2...");
+  final v = _f64x2;
+  Expect.equals(1.1, v.extractLane(0).toDouble());
+  Expect.equals(2.2, v.extractLane(1).toDouble());
+}

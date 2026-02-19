@@ -4,6 +4,8 @@
 
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:typed_data';
+
 import '../../source_map.dart';
 import '../ir/ir.dart' as ir;
 import 'builder.dart';
@@ -2075,6 +2077,22 @@ class InstructionsBuilder with Builder<ir.Instructions> {
       ),
     );
     _add(ir.F64Const(value));
+  }
+
+  void v128_const(Uint8List bytes) {
+    assert(_verifyTypes(const [], const [ir.NumType.v128],
+        trace: ['v128.const', bytes]));
+    _add(ir.V128Const(bytes));
+  }
+
+  void v128_const_f64x2(double value0, double value1) {
+    assert(_verifyTypes(const [], const [ir.NumType.v128],
+        trace: ['v128.const f64x2', value0, value1]));
+    final bytes = Uint8List(16);
+    final data = ByteData.view(bytes.buffer);
+    data.setFloat64(0, value0, Endian.little);
+    data.setFloat64(8, value1, Endian.little);
+    _add(ir.V128Const(bytes));
   }
 
   /// Emit an `i32.eqz` instruction.

@@ -659,6 +659,60 @@ class ConstantInstantiator extends ConstantVisitor<w.ValueType>
       b.f64_const(value);
       return w.NumType.f64;
     }
+    if (constant.classNode == translator.wasmV128Class) {
+      final listConstant = constant.fieldValues.values.single as ListConstant;
+      final elements = listConstant.entries;
+
+      final bytes = Uint8List(16);
+      final byteData = ByteData.view(bytes.buffer);
+      for (int i = 0; i < elements.length; i++) {
+        final laneValue = elements[i];
+        if (laneValue is DoubleConstant) {
+          if (elements.length == 2) {
+            byteData.setFloat64(i * 8, laneValue.value, Endian.little);
+          } else {
+            byteData.setFloat32(
+                i * 4, laneValue.value.toDouble(), Endian.little);
+          }
+        } else if (laneValue is IntConstant) {
+          if (elements.length == 2) {
+            byteData.setInt64(i * 8, laneValue.value, Endian.little);
+          } else if (elements.length == 4) {
+            byteData.setInt32(i * 4, laneValue.value, Endian.little);
+          } else if (elements.length == 8) {
+            byteData.setInt16(i * 2, laneValue.value, Endian.little);
+          } else if (elements.length == 16) {
+            byteData.setInt8(i, laneValue.value);
+          }
+        } else if (laneValue is InstanceConstant) {
+          if (laneValue.classNode == translator.wasmI32Class) {
+            final value =
+                (laneValue.fieldValues.values.single as IntConstant).value;
+            if (elements.length == 4) {
+              byteData.setInt32(i * 4, value, Endian.little);
+            } else if (elements.length == 8) {
+              byteData.setInt16(i * 2, value, Endian.little);
+            } else if (elements.length == 16) {
+              byteData.setInt8(i, value);
+            }
+          } else if (laneValue.classNode == translator.wasmI64Class) {
+            final value =
+                (laneValue.fieldValues.values.single as IntConstant).value;
+            byteData.setInt64(i * 8, value, Endian.little);
+          } else if (laneValue.classNode == translator.wasmF32Class) {
+            final value =
+                (laneValue.fieldValues.values.single as DoubleConstant).value;
+            byteData.setFloat32(i * 4, value, Endian.little);
+          } else if (laneValue.classNode == translator.wasmF64Class) {
+            final value =
+                (laneValue.fieldValues.values.single as DoubleConstant).value;
+            byteData.setFloat64(i * 8, value, Endian.little);
+          }
+        }
+      }
+      b.v128_const(bytes);
+      return w.NumType.v128;
+    }
     return super.visitInstanceConstant(constant);
   }
 }
@@ -815,7 +869,11 @@ class ConstantCreator extends ConstantVisitor<ConstantInfo?>
     if (cls == translator.immutableWasmArrayClass) {
       return _makeWasmArrayLiteral(constant, mutable: false);
     }
-    if (cls == translator.wasmI32Class) {
+    if (cls == translator.wasmI32Class ||
+        cls == translator.wasmI64Class ||
+        cls == translator.wasmF32Class ||
+        cls == translator.wasmF64Class ||
+        cls == translator.wasmV128Class) {
       return null;
     }
 

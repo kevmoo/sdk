@@ -357,7 +357,8 @@ enum StaticIntrinsic {
   wasmMemoryStoreInt8('dart:_wasm', null, 'MemoryAccessExtension|storeInt8'),
   wasmMemoryStoreInt16('dart:_wasm', null, 'MemoryAccessExtension|storeInt16'),
   wasmMemoryStoreInt32('dart:_wasm', null, 'MemoryAccessExtension|storeInt32'),
-  wasmMemoryStoreInt64('dart:_wasm', null, 'MemoryAccessExtension|storeInt64');
+  wasmMemoryStoreInt64('dart:_wasm', null, 'MemoryAccessExtension|storeInt64'),
+  wasmF64x2Literal('dart:_wasm', null, 'WasmF64x2|literal');
 
   final String library;
   final String? cls;
@@ -2429,6 +2430,33 @@ class Intrinsifier {
         codeGen.translateExpression(value2, w.NumType.v128);
         b.f64x2_ge();
         return w.NumType.v128;
+      case StaticIntrinsic.wasmF64x2Literal:
+        Expression e0 = node.arguments.positional[0];
+        Expression e1 = node.arguments.positional[1];
+
+        double? getDouble(Expression e) {
+          if (e is DoubleLiteral) return e.value;
+          if (e is ConstantExpression) {
+            final c = e.constant;
+            if (c is DoubleConstant) return c.value;
+            if (c is InstanceConstant && c.classNode == translator.wasmF64Class) {
+              return (c.fieldValues.values.single as DoubleConstant).value;
+            }
+          }
+          return null;
+        }
+
+        double? l0 = getDouble(e0);
+        double? l1 = getDouble(e1);
+        if (l0 != null && l1 != null) {
+          b.v128_const_f64x2(l0, l1);
+        } else {
+          codeGen.translateExpression(e0, w.NumType.f64);
+          b.f64x2_splat();
+          codeGen.translateExpression(e1, w.NumType.f64);
+          b.f64x2_replace_lane(1);
+        }
+        return w.NumType.v128;
 
       case StaticIntrinsic.wasmAnyRefFromObject:
       case StaticIntrinsic.wasmFuncRefFromWasmFunction:
@@ -2664,6 +2692,51 @@ class Intrinsifier {
       }
       b.array_new_fixed(arrayType, elements.length);
       return w.RefType.def(arrayType, nullable: false);
+    }
+
+    // WasmV128.literal
+    if (klass == translator.wasmV128Class && name == "literal") {
+      Expression value = node.arguments.positional[0];
+      List<Expression> elements = value is ListLiteral
+          ? value.expressions
+          : value is ConstantExpression && value.constant is ListConstant
+              ? (value.constant as ListConstant)
+                  .entries
+                  .map(ConstantExpression.new)
+                  .toList()
+              : throw "WasmV128.literal argument is not a list literal"
+                  " at ${value.location}";
+
+      if (elements.length == 2) {
+        Expression e0 = elements[0];
+        Expression e1 = elements[1];
+
+        double? getDouble(Expression e) {
+          if (e is DoubleLiteral) return e.value;
+          if (e is ConstantExpression) {
+            final c = e.constant;
+            if (c is DoubleConstant) return c.value;
+            if (c is InstanceConstant && c.classNode == translator.wasmF64Class) {
+              return (c.fieldValues.values.single as DoubleConstant).value;
+            }
+          }
+          return null;
+        }
+
+        double? l0 = getDouble(e0);
+        double? l1 = getDouble(e1);
+        if (l0 != null && l1 != null) {
+          b.v128_const_f64x2(l0, l1);
+        } else {
+          codeGen.translateExpression(e0, w.NumType.f64);
+          b.f64x2_splat();
+          codeGen.translateExpression(e1, w.NumType.f64);
+          b.f64x2_replace_lane(1);
+        }
+      } else {
+        throw "WasmV128.literal only supports 2 elements for now";
+      }
+      return w.NumType.v128;
     }
 
     return null;
