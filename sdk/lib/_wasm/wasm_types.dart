@@ -285,9 +285,9 @@ class WasmF64 extends _WasmBase {
 @pragma("wasm:entry-point")
 class WasmV128 extends _WasmBase {
   @pragma('wasm:entry-point')
-  final List<Object> laneValues;
+  final List<Object> _value;
 
-  const WasmV128.literal(this.laneValues);
+  const WasmV128(this._value);
 }
 
 extension WasmV128Extension on WasmV128 {
@@ -479,9 +479,6 @@ extension type const WasmF32x4(WasmV128 value) implements WasmV128 {
 }
 
 extension type const WasmF64x2(WasmV128 value) implements WasmV128 {
-  @pragma("wasm:intrinsic")
-  external static WasmF64x2 literal(WasmF64 a, WasmF64 b);
-
   @pragma("wasm:intrinsic")
   external factory WasmF64x2.fromLaneValues(WasmF64 lane0, WasmF64 lane1);
   @pragma("wasm:intrinsic")

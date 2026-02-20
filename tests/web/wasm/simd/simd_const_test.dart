@@ -11,7 +11,7 @@ import 'package:expect/expect.dart';
 
 // I8x16
 const _i8x16 = WasmI8x16(
-  WasmV128.literal([
+  WasmV128([
     WasmI32(1),
     WasmI32(2),
     WasmI32(3),
@@ -33,7 +33,7 @@ const _i8x16 = WasmI8x16(
 
 // I16x8
 const _i16x8 = WasmI16x8(
-  WasmV128.literal([
+  WasmV128([
     WasmI32(10),
     WasmI32(20),
     WasmI32(30),
@@ -47,19 +47,19 @@ const _i16x8 = WasmI16x8(
 
 // I32x4
 const _i32x4 = WasmI32x4(
-  WasmV128.literal([WasmI32(100), WasmI32(200), WasmI32(300), WasmI32(400)]),
+  WasmV128([WasmI32(100), WasmI32(200), WasmI32(300), WasmI32(400)]),
 );
 
 // I64x2
-const _i64x2 = WasmI64x2(WasmV128.literal([WasmI64(1000), WasmI64(2000)]));
+const _i64x2 = WasmI64x2(WasmV128([WasmI64(1000), WasmI64(2000)]));
 
 // F32x4
 const _f32x4 = WasmF32x4(
-  WasmV128.literal([WasmF32(1.5), WasmF32(2.5), WasmF32(3.5), WasmF32(4.5)]),
+  WasmV128([WasmF32(1.5), WasmF32(2.5), WasmF32(3.5), WasmF32(4.5)]),
 );
 
 // F64x2
-const _f64x2 = WasmF64x2(WasmV128.literal([WasmF64(1.1), WasmF64(2.2)]));
+const _f64x2 = WasmF64x2(WasmV128([WasmF64(1.1), WasmF64(2.2)]));
 
 void main() {
   print("Starting tests...");
@@ -76,14 +76,14 @@ void main() {
 void testF64x2Literal() {
   print("Running testF64x2Literal...");
   // Constant
-  const v_const = WasmF64x2(WasmV128.literal([WasmF64(3.3), WasmF64(4.4)]));
+  const v_const = WasmF64x2(WasmV128([WasmF64(3.3), WasmF64(4.4)]));
   Expect.equals(3.3, v_const.extractLane(0).toDouble());
   Expect.equals(4.4, v_const.extractLane(1).toDouble());
 
   // Using runtime call to verify intrinsic generation for non-const arguments.
   final a = 3.3;
   final b = 4.4;
-  final v = WasmF64x2.literal(WasmF64.fromDouble(a), WasmF64.fromDouble(b));
+  final v = WasmF64x2(WasmV128([WasmF64.fromDouble(a), WasmF64.fromDouble(b)]));
   Expect.equals(3.3, v.extractLane(0).toDouble());
   Expect.equals(4.4, v.extractLane(1).toDouble());
 }

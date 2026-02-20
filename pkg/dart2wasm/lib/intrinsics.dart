@@ -2695,8 +2695,8 @@ class Intrinsifier {
       return w.RefType.def(arrayType, nullable: false);
     }
 
-    // WasmV128.literal
-    if (klass == translator.wasmV128Class && name == "literal") {
+    // WasmV128
+    if (klass == translator.wasmV128Class && name == "") {
       Expression value = node.arguments.positional[0];
       List<Expression> elements = value is ListLiteral
           ? value.expressions

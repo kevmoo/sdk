@@ -35,8 +35,6 @@ function usage() {
   echo "                        Cannot be used with an explicit [file.wasm] argument."
   echo "  --extra-compiler-option=<opt>"
   echo "                        Pass an extra option directly to dart2wasm."
-  echo "                        Example: --extra-compiler-option=--enable-experimental-wasm-interop"
-  echo "  --js-compatibility    Use the JS compatibility platform and flags."
   echo "  --compiler-asserts    Use the dart2wasm snapshot with assertions enabled."
   echo "  -O<level>             Set optimization level (0, 1, 2, 3, 4, S, O)."
   echo "                        Level 0 disables Binaryen (wasm-opt)."
