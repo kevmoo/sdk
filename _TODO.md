@@ -14,7 +14,6 @@ To get kernel bits for web libraries, you must use a compiler that knows about w
 
 ```bash
 # From within the qr.dart directory
-# Assuming SDK_PATH is the path to your built dart-sdk (e.g. xcodebuild/ReleaseARM64/dart-sdk)
 SDK_PATH=~/github/dart/sdk/xcodebuild/ReleaseARM64/dart-sdk
 
 $SDK_PATH/bin/dartaotruntime $SDK_PATH/bin/snapshots/dart2wasm_product.snapshot \
@@ -38,6 +37,32 @@ $SDK_PATH/bin/dartaotruntime $SDK_PATH/bin/snapshots/frontend_server_aot.dart.sn
   --output-dill=example/main.dill \
   example/main.dart
 ```
+
+## Parsing and Tracing Kernel
+You can parse and analyze `.dill` files using `package:kernel`.
+
+### Running Analysis Scripts
+To run a script that uses `package:kernel` from within the SDK root:
+```bash
+dart --packages=.dart_tool/package_config.json your_script.dart your_file.dill
+```
+
+### Insights
+- **Entry Point**: `component.mainMethod` is the starting point of the program.
+- **Graph Structure**: Kernel is a graph of nodes linked by `Reference` objects.
+- **Edges**: 
+    - `StaticInvocation.target` -> The function being called.
+    - `ConstructorInvocation.target` -> The constructor being called.
+    - `StaticGet.target` -> The static field/getter being accessed.
+- **Virtual/Instance Calls**:
+    - `InstanceInvocation.interfaceTarget` -> The statically known interface member being called.
+    - Kernel does **not** store a list of all possible runtime targets by default.
+    - To find possible targets, you must use `ClassHierarchy` (from `package:kernel/class_hierarchy.dart`) to find all subclasses that override the `interfaceTarget`.
+    - **TFA (Type Flow Analysis)**: During AOT compilation, TFA can resolve virtual calls to a specific set of targets. This information can be found in `DirectCallMetadata` if present in the component's metadata repositories.
+
+### Tools
+- `trace_main.dart`: Traces the call graph from `main` using Kernel structure.
+- `trace_tfa.dart`: Runs Type Flow Analysis to find reachable members.
 
 ## Legacy TODOs
 compile the sdk
