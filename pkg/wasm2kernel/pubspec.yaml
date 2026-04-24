@@ -1,0 +1,23 @@
+name: wasm2kernel
+description: A tool to translate Wasm to Dart Kernel IR.
+version: 0.1.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  kernel:
+    path: ../kernel
+  wasm_builder:
+    path: ../wasm_builder
+  _fe_analyzer_shared:
+    path: ../_fe_analyzer_shared
+  path: ^1.9.0
+
+dependency_overrides:
+  kernel:
+    path: ../kernel
+  wasm_builder:
+    path: ../wasm_builder
+  _fe_analyzer_shared:
+    path: ../_fe_analyzer_shared
