@@ -34,3 +34,21 @@ expose the port it is bound to. This is problematic when binding to port 0
 *   **Fix**: Used a hack `(server as dynamic)._socket.port` to access the
     private field for testing purposes. A future improvement should add a
     `port` getter to the interface.
+
+## 7. The Dummy Class Compilation Error
+After adding the `port` getter to the `ServerSocket2` interface and the
+actual implementation in `socket2_patch.dart`, the build failed.
+*   **Stumble**: The non-abstract class `_ServerSocket2` in `socket2.dart`
+    (which acts as a dummy implementation) was missing the `port` getter
+    implementation.
+*   **Fix**: Added the `port` getter to `_ServerSocket2` with a throw of
+    `UnimplementedError`.
+
+## 8. Zero-Length Read/Write Hang
+While testing edge cases, I found that passing an empty buffer to `read()` or
+`write()` caused the test to time out.
+*   **Stumble**: The C++ binding returned 0 (read 0 bytes), but the Dart
+    implementation interpreted `result == 0` as "would block" and waited
+    indefinitely for the next event.
+*   **Fix**: Added early returns in Dart for empty buffers, returning
+    immediately without making native calls.
