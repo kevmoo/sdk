@@ -62,3 +62,6 @@ started.
 *   **Fix**: Added `await Future.delayed(Duration.zero)` before the client
     loop to yield control to the event loop, allowing the server to start
     reading.
+*   **Update**: I found that yielding once before the loop was not enough if
+    the client loop writes fast in microtasks. I needed to yield *inside* the
+    while loop as well to ensure the server gets scheduled to read.
