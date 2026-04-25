@@ -25,3 +25,18 @@ To solve a subtle unhandled exception issue, we realized we could bypass `RawSoc
 ## 6. Comprehensive API Documentation
 We achieved a high standard of documentation for the new API, explicitly defining the ownership-passing paradigm and named record returns.
 *   **Impact**: The `Socket2` and `ServerSocket2` interfaces are now fully documented with `dartdoc` comments, including clear explanations of buffer ownership, error handling, and performance characteristics. This ensures that the API is ready for public review and use.
+
+## 7. Strategic Modifications to `_NativeSocket`
+To enable the "Hijack" strategy, we made surgical modifications to the internal `_NativeSocket` class in `sdk/lib/_internal/vm/bin/socket_patch.dart`.
+
+### The `isSocket2` Flag
+*   **Change**: Added `bool isSocket2 = false;` to the `_NativeSocket` class.
+*   **Motivation**: This allows the shared native event-handling logic to distinguish between legacy `Stream`-based sockets and the new `Socket2` instances. This distinction is critical for applying performance-tuned logic without affecting the stability of the existing network stack.
+
+### Event Multiplexing Bypass
+*   **Change**: Modified the `multiplex` method to call `readEventHandler` directly when `isSocket2` is true, bypassing the legacy `issueReadEvent()` mechanism.
+*   **Motivation**: Legacy sockets use `issueReadEvent()`, which relies on `scheduleMicrotask` and checks the `available` property (queried from the OS). We discovered that the `available` count can occasionally lag behind the actual OS readiness signal on some platforms (like macOS). By bypassing this and calling the handler directly, `Socket2` responds to OS notifications with minimal latency, which was the key to achieving the **1.5 GB/s throughput** milestone.
+
+### Non-Triggering `setListening`
+*   **Change**: Added an optional `issueEvents` parameter (defaulting to `true` for backward compatibility) to `setListening()`.
+*   **Motivation**: In a completion-based model, we often need to update the OS interest mask (e.g., "start listening for when I can write again") without immediately triggering a Dart event. If we were to trigger a Dart event immediately before the OS actually has space in its buffer, the `Socket2` loop would enter a "busy-wait" state, repeatedly failing to write and wasting CPU cycles. The `issueEvents: false` flag allows us to silently update the OS interest and wait for a *fresh* notification from the kernel.

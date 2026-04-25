@@ -32,7 +32,13 @@ Instead of building a new OS-specific async layer, the implementation "hijacks" 
 - **Direct Pointers**: Uses `Dart_TypedDataAcquireData` to pin Dart memory, allowing native `read`/`write` syscalls to operate directly on Dart-owned buffers.
 - **Zero-Copy**: Eliminates the intermediate copy between the OS kernel and Dart heap.
 
-### 3. Buffer Management
+### 3. Strategic Modifications to `_NativeSocket`
+To enable the "Hijack" strategy without regressing existing code, surgical changes were made to `sdk/lib/_internal/vm/bin/socket_patch.dart`:
+- **API Distinction**: Added an `isSocket2` flag to `_NativeSocket` to apply performance-tuned logic only to new sockets.
+- **Low-Latency Multiplexing**: Modified `multiplex()` to call handlers directly for `Socket2`, bypassing legacy microtask scheduling and eliminating the "available bytes" polling lag on macOS.
+- **Controlled Interest Masks**: Enhanced `setListening()` with an `issueEvents` flag to allow silent OS interest mask updates, preventing CPU-intensive "busy-wait" loops during async completions.
+
+### 4. Buffer Management
 Highly efficient when used with buffer pooling. Benchmarks show **zero steady-state allocations** during high-throughput transfers.
 
 ## Alternatives Considered

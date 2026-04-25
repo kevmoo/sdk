@@ -11,6 +11,10 @@
 ### Modifications
 - `sdk/lib/io/io.dart`: Added `part 'socket2.dart';`.
 - `sdk/lib/_internal/vm/bin/common_patch.dart`: Added `part 'socket2_patch.dart';`.
+- `sdk/lib/_internal/vm/bin/socket_patch.dart`: 
+    - Added `isSocket2` flag to `_NativeSocket` to distinguish completion-based sockets.
+    - Optimized `multiplex` to call handlers directly for `Socket2`, bypassing legacy microtask scheduling for lower latency.
+    - Enhanced `setListening` with an `issueEvents` flag to allow silent OS interest mask updates, preventing busy-wait loops.
 - `sdk/lib/_internal/vm/bin/vm_internal_bin.gni`: Registered the new patch file in the build system.
 - `runtime/bin/io_natives.cc`: Registered `Socket2_ReadInto` and `Socket2_WriteFrom` native functions.
 - `runtime/bin/io_impl_sources.gni`: Registered `socket2.cc` and `socket2.h` for compilation.
