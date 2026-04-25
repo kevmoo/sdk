@@ -182,6 +182,7 @@ class _Socket2Impl implements Socket2 {
   @override
   Future<void> close() async {
     _socket.close();
+    _completeAllWithError(SocketException("Socket closed"));
   }
 
   @pragma("vm:external-name", "Socket2_ReadInto")
