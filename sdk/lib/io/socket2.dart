@@ -33,6 +33,9 @@ class _ServerSocket2 implements ServerSocket2 {
   Future<void> close() {
     throw UnimplementedError();
   }
+
+  @override
+  int get port => throw UnimplementedError();
 }
 
 /// A high-performance, ownership-based socket connection.
