@@ -2,6 +2,8 @@ part of dart.io;
 
 /// A high-performance, ownership-based server socket.
 ///
+/// **NOTE: This is an experimental feature and may change in the future.**
+///
 /// [ServerSocket2] is an advanced, completion-based alternative to [ServerSocket].
 /// It is designed for high-throughput applications that require precise control
 /// over memory allocations and buffer lifecycle.
@@ -72,6 +74,8 @@ class _ServerSocket2 implements ServerSocket2 {
 }
 
 /// A high-performance, ownership-based socket connection.
+///
+/// **NOTE: This is an experimental feature and may change in the future.**
 ///
 /// [Socket2] is an advanced alternative to [Socket], providing a
 /// completion-based API instead of a [Stream]-based one. It is specifically
