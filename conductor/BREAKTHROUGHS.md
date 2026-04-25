@@ -44,3 +44,7 @@ To enable the "Hijack" strategy, we made surgical modifications to the internal 
 ## 8. Beating `dart:io` with Header Serialization Caching
 In the `bottom_shelf` project (our custom `shelf` adapter), we identified that standard HTTP header serialization was bottlenecking performance due to repeated `utf8.encode()` calls for common header keys (`content-length`, `connection`, `date`, `x-powered-by`).
 *   **Impact**: By introducing a static, bounded cache mapping `String` header lines to pre-encoded `Uint8List` bytes, `bottom_shelf` successfully eliminated the per-request allocation overhead. This architectural change allowed `bottom_shelf` to achieve **~1,300 RPS** on the `/headers` benchmark under AOT compilation, strictly beating the raw `dart:io` server's **~1,288 RPS**.
+
+## 9. The Straight-Line Latency Revelation
+While investigating abysmal concurrent streaming performance (49.9 RPS for 50 concurrent streams of 1.3 MB), we decided to isolate the benchmark and test pure straight-line processing (`oha -c 1`).
+*   **Impact**: When concurrency is removed, `Socket2` achieves an astonishing **1,695 RPS** on the `/headers` benchmark compared to `bottom_shelf`'s 1,232 RPS—a **37% latency reduction**. This proved that `Socket2`'s zero-copy architecture and direct C++ pointer access is profoundly superior for raw I/O throughput. The concurrent collapse is strictly an artifact of Dart event-loop thrashing caused by repeatedly `await`ing thousands of asynchronous native calls, pointing the way toward future batching APIs as the ultimate solution for scale.

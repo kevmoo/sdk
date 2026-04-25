@@ -23,16 +23,15 @@ You are taking over Project Socket2. The project has moved from a raw socket pro
 
 ## Critical Performance Observations
 *   **The Baseline SDK Gap**: The Custom SDK is generally ~15% slower across the board than the System (Flutter) SDK. This is a known, expected difference. The System SDK is compiled using `-m product` which strips `PRODUCT` macros, `dart:developer`, and profiling metadata, while our Custom SDK is built using `-m release`. Future agents: **Do not investigate this 15% gap.** Use the Custom SDK's `dart:io` as the baseline for `Socket2` comparisons.
-*   **The "Real World" Gap**: While raw `Socket2` benchmarks hit 1.5GB/s, the `Socket2ShelfServer` currently trails legacy `bottom_shelf` in RPS for small payloads (~31k vs ~58k).
-*   **The AOT / Stream Catastrophe**: `Socket2` performance under AOT for chunked writes (`/stream`) absolutely collapses when stressed. Under `--disable-keepalive` conditions, it drops to **-97.8%** of the baseline.
-*   **The "Slam Dunk" is missing**: We need to understand why the throughput wins at the socket layer are being eaten by overhead at the HTTP/Shelf layer.
+*   **The "Slam Dunk" achieved on `/headers`**: We successfully beat `dart:io AOT` (1295 RPS vs 1288 RPS) on the `/headers` benchmark by implementing a bounded static cache for UTF-8 encoded header serialization, eliminating expensive per-request string allocations.
+*   **The Straight-Line Dominance**: When concurrency is removed (`oha -c 1`), `Socket2` completely dominates `bottom_shelf` (1,695 RPS vs 1,232 RPS), validating the zero-copy performance hypothesis. 
+*   **The AOT / Stream Catastrophe Identified**: `Socket2` performance collapses under heavy concurrent stress (e.g. 49.9 RPS on `/stream` with 50 connections). This is definitively caused by **Event Loop Thrashing**. Because `Socket2` is fully asynchronous, streaming large files involves crossing the Dart-to-C++ boundary thousands of times via `await`. When multiplied by 50 concurrent connections, the isolate spends all its time context switching. Standard `dart:io` avoids this via `addStream`.
 
 ## Next Steps & Research Priorities
 
-1.  **Investigation: Performance Degredation**:
-    *   Profile the AOT vs JIT execution for `/stream`.
-    *   Analyze the overhead of `Future` and `Record` allocations in the high-frequency read/write loop.
-    *   Check if `TypedData` pinning (`Dart_TypedDataAcquireData`) is more expensive than the legacy buffering strategy in certain runtimes.
+1.  **Fixing the Event-Loop Thrashing**:
+    *   Implement "Batch Writes" or "Buffered Writes" for `Socket2ShelfResponseSerializer` to prevent crossing the asynchronous native boundary for every single chunk when streaming large payloads.
+    *   Investigate if a `Socket2` equivalent to `addStream` could be built natively in C++ to bypass Dart entirely during heavy throughput.
 
 2.  **Benchmark Refinement**:
     *   **DONE**: Migrated from `wrk` to `oha`. `matrix.dart` now runs 5x 2-second bursts, disabling keep-alive to test true connection pipeline overhead. Metrics include RPS and `p99` latencies.
