@@ -5,13 +5,10 @@ class _Socket2 {
   @patch
   static Future<Socket2> _connect(Object host, int port,
       Object? sourceAddress, int sourcePort, Duration? timeout) async {
-    final rawSocket = await RawSocket.connect(
-        host, port,
-        sourceAddress: sourceAddress,
-        sourcePort: sourcePort,
-        timeout: timeout) as _RawSocket;
+    final nativeSocket = await _NativeSocket.connect(
+        host, port, sourceAddress, sourcePort, timeout);
     
-    return _Socket2Impl(rawSocket._socket);
+    return _Socket2Impl(nativeSocket);
   }
 }
 
@@ -20,15 +17,15 @@ class _ServerSocket2 {
   @patch
   static Future<ServerSocket2> _bind(
       Object address, int port, int backlog, bool v6Only, bool shared) async {
-    final rawServerSocket = await RawServerSocket.bind(
+    final nativeSocket = await _NativeSocket.bind(
       address,
       port,
-      backlog: backlog,
-      v6Only: v6Only,
-      shared: shared,
-    ) as _RawServerSocket;
+      backlog,
+      v6Only,
+      shared,
+    );
     
-    return _ServerSocket2Impl(rawServerSocket._socket);
+    return _ServerSocket2Impl(nativeSocket);
   }
 }
 
@@ -105,6 +102,7 @@ class _Socket2Impl implements Socket2 {
   }
 
   void _completeAllWithError(Object error) {
+    print("Socket2 _completeAllWithError: error=$error, readCompleter=$_readCompleter, writeCompleter=$_writeCompleter");
     if (_readCompleter != null && !_readCompleter!.isCompleted) {
       var c = _readCompleter!;
       _readCompleter = null;
@@ -121,30 +119,41 @@ class _Socket2Impl implements Socket2 {
 
   void _tryRead() {
     if (_readCompleter != null && _pendingReadBuffer != null) {
-      int result = _nativeReadInto(_socket, _pendingReadBuffer!, 0, _pendingReadBuffer!.lengthInBytes);
-      if (result > 0 || (result == 0 && _socket.isClosed)) {
-        var completer = _readCompleter!;
-        var buffer = _pendingReadBuffer!;
-        _readCompleter = null;
-        _pendingReadBuffer = null;
-        completer.complete((bytes: result, buffer: buffer));
-      } else if (result == -1 || result == 0) {
-        // Would block, wait for next event.
+      try {
+        int result = _nativeReadInto(_socket, _pendingReadBuffer!, 0, _pendingReadBuffer!.lengthInBytes);
+        if (result > 0 || (result == 0 && _socket.isClosed)) {
+          var completer = _readCompleter!;
+          var buffer = _pendingReadBuffer!;
+          _readCompleter = null;
+          _pendingReadBuffer = null;
+          completer.complete((bytes: result, buffer: buffer));
+        } else if (result == -1 || result == 0) {
+          // Would block, wait for next event.
+        }
+      } catch (e) {
+        print("Socket2 _tryRead caught exception: $e");
+        _completeAllWithError(e);
       }
     }
   }
 
   void _tryWrite() {
     if (_writeCompleter != null && _pendingWriteBuffer != null) {
-      int result = _nativeWriteFrom(_socket, _pendingWriteBuffer!, 0, _pendingWriteBuffer!.lengthInBytes);
-      if (result > 0 || (result == 0 && _socket.isClosed)) {
-        var completer = _writeCompleter!;
-        var buffer = _pendingWriteBuffer!;
-        _writeCompleter = null;
-        _pendingWriteBuffer = null;
-        completer.complete((bytes: result, buffer: buffer));
-      } else if (result == -1 || result == 0) {
-        // Would block, wait for next event.
+      try {
+        int result = _nativeWriteFrom(_socket, _pendingWriteBuffer!, 0, _pendingWriteBuffer!.lengthInBytes);
+        if (result > 0 || (result == 0 && _socket.isClosed)) {
+          var completer = _writeCompleter!;
+          var buffer = _pendingWriteBuffer!;
+          _writeCompleter = null;
+          _pendingWriteBuffer = null;
+          completer.complete((bytes: result, buffer: buffer));
+        } else if (result == -1 || result == 0) {
+          // Would block, wait for next event.
+          _socket.setListening(read: true, write: true);
+        }
+      } catch (e) {
+        print("Socket2 _tryWrite caught exception: $e");
+        _completeAllWithError(e);
       }
     }
   }
@@ -175,6 +184,7 @@ class _Socket2Impl implements Socket2 {
     _writeCompleter = Completer<({int bytes, TypedData buffer})>();
     var future = _writeCompleter!.future;
     _pendingWriteBuffer = buffer;
+    _socket.setListening(read: true, write: true);
     _tryWrite();
     return future;
   }

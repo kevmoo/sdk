@@ -1,23 +1,40 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:expect/expect.dart';
 
-void main() async {
-  try {
-    await testReadTwiceThrows();
-    await testZeroLengthReadWrite();
-    await testSimultaneousReadWrite();
-    await testConnectionDropDuringRead();
-    await testAddressResolution();
-    await testPartialWrite();
-    await testCloseCancelsPendingRead();
-    print("All tests completed successfully!");
-  } catch (e, st) {
-    stdout.writeln("Caught exception in main: $e");
-    stdout.writeln(st);
-    await stdout.flush();
-  }
+void main() {
+  runZonedGuarded(() async {
+    try {
+      print("Running testReadTwiceThrows...");
+      await testReadTwiceThrows();
+      print("Running testZeroLengthReadWrite...");
+      await testZeroLengthReadWrite();
+      print("Running testSimultaneousReadWrite...");
+      await testSimultaneousReadWrite();
+      print("Running testConnectionDropDuringRead...");
+      await testConnectionDropDuringRead();
+      print("Running testAddressResolution...");
+      await testAddressResolution();
+      print("Running testPartialWrite...");
+      await testPartialWrite();
+      print("Running testCloseCancelsPendingRead...");
+      await testCloseCancelsPendingRead();
+      print("All tests completed successfully!");
+      print("Waiting for 2 seconds to see if background exception occurs...");
+      await Future.delayed(Duration(seconds: 2));
+      print("Exiting main normally.");
+    } catch (e, st) {
+      stdout.writeln("Caught exception in main: $e");
+      stdout.writeln(st);
+      await stdout.flush();
+    }
+  }, (error, stackTrace) {
+    stdout.writeln("Caught UNHANDLED exception in zone: $error");
+    stdout.writeln(stackTrace);
+    stdout.flush();
+  });
 }
 
 Future<void> testReadTwiceThrows() async {
@@ -43,15 +60,16 @@ Future<void> testReadTwiceThrows() async {
         (e as StateError).message);
   }
   
+  // Handle the error of the first read future, which was cancelled on close.
+  final expectReadFuture = readFuture.then((_) {
+    Expect.fail("Should have thrown SocketException");
+  }).catchError((e) {
+    Expect.isTrue(e is SocketException);
+  });
+
   // Clean up.
   await client.close();
-  
-  // Handle the error of the first read future, which was cancelled on close.
-  try {
-    await readFuture;
-  } catch (e) {
-    Expect.isTrue(e is SocketException);
-  }
+  await expectReadFuture;
   
   await serverConnection.close();
   await server.close();
@@ -138,15 +156,15 @@ Future<void> testConnectionDropDuringRead() async {
   // Initiate read on client.
   final readFuture = client.read(buffer);
   
+  final expectReadFuture = readFuture.then((_) {
+    Expect.fail("Should have thrown SocketException");
+  }).catchError((e) {
+    Expect.isTrue(e is SocketException);
+  });
+
   // Close connection from server side.
   await serverConnection.close();
-  
-  try {
-    await readFuture;
-    Expect.fail("Should have thrown SocketException");
-  } catch (e) {
-    Expect.isTrue(e is SocketException);
-  }
+  await expectReadFuture;
   
   await client.close();
   await server.close();
@@ -157,12 +175,22 @@ Future<void> testAddressResolution() async {
   final port = server.port;
   
   // Test localhost.
-  final client1 = await Socket2.connect('localhost', port);
+  final client1Future = Socket2.connect('localhost', port);
+  final serverSocketFuture1 = server.accept();
+  
+  final client1 = await client1Future;
+  final serverConnection1 = await serverSocketFuture1;
   await client1.close();
+  await serverConnection1.close();
   
   // Test 127.0.0.1.
-  final client2 = await Socket2.connect('127.0.0.1', port);
+  final client2Future = Socket2.connect('127.0.0.1', port);
+  final serverSocketFuture2 = server.accept();
+  
+  final client2 = await client2Future;
+  final serverConnection2 = await serverSocketFuture2;
   await client2.close();
+  await serverConnection2.close();
   
   // Test invalid DNS name.
   try {

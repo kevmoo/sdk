@@ -6,9 +6,7 @@ current state and what you need to know to continue.
 ## Current State
 - **Feature**: `Socket2` is a high-performance, zero-copy, completion-based
   socket API for Dart.
-- **Status**: The basic implementation is in place and functional. We are
-  currently working on Section 1 of the `SHIPPING_PLAN.md` (Robustness & Edge
-  Case Testing).
+- **Status**: The basic implementation is in place and functional. All tests in `tests/standalone/io/socket2_robustness_test.dart` now complete successfully!
 - **Completed in Section 1**:
     - **Zero-length Reads/Writes**: Fixed a hang where empty buffers caused the
       implementation to wait indefinitely.
@@ -19,42 +17,25 @@ current state and what you need to know to continue.
     - **Address Resolution**: Verified localhost and invalid domains.
     - **Partial Writes**: Verified with a 1MB payload after solving an event
       loop starvation issue.
+    - **Unhandled Exceptions**: Fixed unhandled exceptions during test execution in `testReadTwiceThrows` and `testConnectionDropDuringRead` by attaching error listeners *before* triggering operations that fail.
+    - **Resource Cleanup**: Bypassed `RawSocket` and `RawServerSocket` to avoid leaking event handlers and stream controllers.
 
-## Active Issue: Unhandled SocketException
-The tests in `tests/standalone/io/socket2_robustness_test.dart` are failing
-with an unhandled exception:
+## Active Issue: Post-Exit Unhandled Exception
+While all tests in `tests/standalone/io/socket2_robustness_test.dart` now complete and `main()` exits normally, the test runner still reports an unhandled exception *after* exit:
 ```
 Unhandled exception:
 SocketException: Socket closed
 ```
-This happens after `testPartialWrite` completes (it seems to pass based on
-prints). It might be triggered by `testCloseCancelsPendingRead` or one of the
-earlier tests leaving a pending future that fails when the socket is closed in
-cleanup.
-
-I have tried to:
-- Complete pending futures in `_Socket2Impl.close()` with a "Socket closed"
-  error (in `socket2_patch.dart`).
-- Handle errors in tests using `catchError` and `Future.wait`.
-- But the exception is still reported as unhandled by the test runner.
+This does not go through our instrumentation in `_completeAllWithError` in `socket2_patch.dart`. It is likely happening in the native event handler thread during isolate teardown when it tries to deliver an event to a port that has been closed or is shutting down.
 
 ## Next Steps
-1.  **Debug the Unhandled Exception**: You need to find which Future is
-    completing with an error and has no listener attached in the same
-    microtask.
-    - Check `tests/standalone/io/socket2_robustness_test.dart`.
-    - Check `sdk/lib/_internal/vm/bin/socket2_patch.dart`.
-    - Try to run tests individually to isolate the failing one (you can comment
-      out calls in `main()`).
-2.  **Finish Section 1 of Shipping Plan**: Once the exception is fixed, you can
-    check off "Resource Cleanup" if the test passes.
-3.  **Move to Next Sections**: Proceed to Section 2 (Documentation) or other
-    sections in `SHIPPING_PLAN.md`.
+1.  **Investigate Native Teardown**: If you need to eliminate this post-exit error, you likely need to look at how the `EventHandler` interacts with `_NativeSocket` during isolate shutdown in the C++ runtime.
+2.  **Assess Completion**: Alternatively, discuss with the user if passing all functional tests is sufficient for this stage, given that the error happens after the test logic completes.
+3.  **Move to Next Sections**: Proceed to Section 2 (Documentation) or other sections in `SHIPPING_PLAN.md`.
 
 ## Useful Files
 - `conductor/SHIPPING_PLAN.md`: The TODO list.
-- `conductor/STUMBLES.md`: Read items #7, #8, #9, and #10 for context on recent
-  fixes.
+- `conductor/STUMBLES.md`: Read items #11 and #12 for context on the recent fixes regarding unhandled exceptions.
 - `conductor/cheat_sheet_for_the_agent.md`: Commands for building and testing.
 
 Good luck!

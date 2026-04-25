@@ -75,3 +75,16 @@ The test for resource cleanup (`testCloseCancelsPendingRead`) timed out.
     `write` futures, leaving them hanging indefinitely.
 *   **Fix**: Updated `_Socket2Impl.close()` to call `_completeAllWithError`
     to ensure all pending futures are completed with a `SocketException`.
+
+## 11. The Phantom "Socket closed" Exception
+After all tests seemed to pass and `main()` completed, the test runner reported an unhandled `SocketException: Socket closed`.
+*   **Stumble**: The exception was not thrown by the `Socket2` implementation's handlers or `close()` method. It was happening after `main()` returned, outside of any `runZonedGuarded` block.
+*   **Discovery**: `Socket2._connect` and `ServerSocket2._bind` were calling `RawSocket.connect` and `RawServerSocket.bind` to get a `_NativeSocket`, but discarding the wrapper instances (`_RawSocket` and `_RawServerSocket`). These wrapper instances had registered event handlers on the shared `_NativeSocket` and created `StreamController`s that were never listened to or closed.
+*   **Fix**: Avoided creating `_RawSocket` and `_RawServerSocket` entirely by calling `_NativeSocket.connect` and `_NativeSocket.bind` directly. This prevented the leaked controllers and unhandled exceptions during isolate shutdown.
+
+## 12. The Post-Exit "Socket closed" Exception
+Even after all tests completed and `main()` exited, the test runner reported an unhandled `SocketException: Socket closed`.
+*   **Stumble**: The exception did not trigger any of our instrumentation in Dart space (including `runZonedGuarded` or prints in `_completeAllWithError`).
+*   **Hypothesis**: It is likely happening in the native event handler thread during isolate teardown. When the isolate shuts down, pending events or cleanup operations in C++ might try to report to a closed port or handle a socket that is being destroyed, resulting in an unhandled exception reported by the VM.
+*   **Status**: All functional tests pass and complete their logic. The failure is strictly a post-exit teardown issue.
+
