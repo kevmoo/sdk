@@ -571,6 +571,9 @@ base class _NativeSocket extends _NativeSocketNativeWrapper
   bool writeEventIssued = false;
   bool writeAvailable = false;
 
+  // If true, this socket is being used via Socket2 API.
+  bool isSocket2 = false;
+
   // The owner object is the object that the Socket is being used by, e.g.
   // a HttpServer, a WebSocket connection, a process pipe, etc.
   Object? owner;
@@ -1708,7 +1711,12 @@ base class _NativeSocket extends _NativeSocketNativeWrapper
               } else {
                 available = _nativeAvailable();
               }
-              issueReadEvent();
+              if (isSocket2) {
+                var handler = readEventHandler;
+                if (handler != null) handler();
+              } else {
+                issueReadEvent();
+              }
               continue;
             }
             break;
@@ -1796,11 +1804,17 @@ base class _NativeSocket extends _NativeSocketNativeWrapper
     destroyedEventHandler = destroyed;
   }
 
-  void setListening({bool read = true, bool write = true}) {
+  void setListening({
+    bool read = true,
+    bool write = true,
+    bool issueEvents = true,
+  }) {
     sendReadEvents = read;
     sendWriteEvents = write;
-    if (read) issueReadEvent();
-    if (write) issueWriteEvent();
+    if (issueEvents) {
+      if (read) issueReadEvent();
+      if (write) issueWriteEvent();
+    }
     if (!flagsSent && !isClosing) {
       flagsSent = true;
       int flags = 1 << setEventMaskCommand;

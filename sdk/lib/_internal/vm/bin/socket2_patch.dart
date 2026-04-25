@@ -3,11 +3,21 @@ part of "common_patch.dart";
 @patch
 class _Socket2 {
   @patch
-  static Future<Socket2> _connect(Object host, int port,
-      Object? sourceAddress, int sourcePort, Duration? timeout) async {
+  static Future<Socket2> _connect(
+    Object host,
+    int port,
+    Object? sourceAddress,
+    int sourcePort,
+    Duration? timeout,
+  ) async {
     final nativeSocket = await _NativeSocket.connect(
-        host, port, sourceAddress, sourcePort, timeout);
-    
+      host,
+      port,
+      sourceAddress,
+      sourcePort,
+      timeout,
+    );
+
     return _Socket2Impl(nativeSocket);
   }
 }
@@ -16,7 +26,12 @@ class _Socket2 {
 class _ServerSocket2 {
   @patch
   static Future<ServerSocket2> _bind(
-      Object address, int port, int backlog, bool v6Only, bool shared) async {
+    Object address,
+    int port,
+    int backlog,
+    bool v6Only,
+    bool shared,
+  ) async {
     final nativeSocket = await _NativeSocket.bind(
       address,
       port,
@@ -24,7 +39,7 @@ class _ServerSocket2 {
       v6Only,
       shared,
     );
-    
+
     return _ServerSocket2Impl(nativeSocket);
   }
 }
@@ -34,12 +49,13 @@ class _ServerSocket2Impl implements ServerSocket2 {
   Completer<Socket2>? _acceptCompleter;
 
   _ServerSocket2Impl(this._socket) {
+    _socket.isSocket2 = true;
     _socket.setHandlers(
       read: _tryAccept,
       error: (e, st) => _completeWithError(e),
       closed: () => _completeWithError(SocketException("Server socket closed")),
     );
-    _socket.setListening(read: true, write: false);
+    _socket.setListening(read: true, write: false, issueEvents: true);
   }
 
   void _completeWithError(Object error) {
@@ -82,7 +98,7 @@ class _ServerSocket2Impl implements ServerSocket2 {
 
 class _Socket2Impl implements Socket2 {
   final _NativeSocket _socket;
-  
+
   Completer<({int bytes, TypedData buffer})>? _readCompleter;
   Completer<({int bytes, TypedData buffer})>? _writeCompleter;
 
@@ -90,6 +106,7 @@ class _Socket2Impl implements Socket2 {
   TypedData? _pendingWriteBuffer;
 
   _Socket2Impl(this._socket) {
+    _socket.isSocket2 = true;
     // Hijack the event handlers from _RawSocket.
     _socket.setHandlers(
       read: _tryRead,
@@ -98,11 +115,10 @@ class _Socket2Impl implements Socket2 {
       closed: () => _completeAllWithError(SocketException("Socket closed")),
     );
     // Ensure we are listening for both read and write events.
-    _socket.setListening(read: true, write: true);
+    _socket.setListening(read: true, write: true, issueEvents: true);
   }
 
   void _completeAllWithError(Object error) {
-    print("Socket2 _completeAllWithError: error=$error, readCompleter=$_readCompleter, writeCompleter=$_writeCompleter");
     if (_readCompleter != null && !_readCompleter!.isCompleted) {
       var c = _readCompleter!;
       _readCompleter = null;
@@ -120,7 +136,12 @@ class _Socket2Impl implements Socket2 {
   void _tryRead() {
     if (_readCompleter != null && _pendingReadBuffer != null) {
       try {
-        int result = _nativeReadInto(_socket, _pendingReadBuffer!, 0, _pendingReadBuffer!.lengthInBytes);
+        int result = _nativeReadInto(
+          _socket,
+          _pendingReadBuffer!,
+          0,
+          _pendingReadBuffer!.lengthInBytes,
+        );
         if (result > 0 || (result == 0 && _socket.isClosed)) {
           var completer = _readCompleter!;
           var buffer = _pendingReadBuffer!;
@@ -129,9 +150,9 @@ class _Socket2Impl implements Socket2 {
           completer.complete((bytes: result, buffer: buffer));
         } else if (result == -1 || result == 0) {
           // Would block, wait for next event.
+          // Note: multiplex will call _tryRead again when readEvent arrives.
         }
       } catch (e) {
-        print("Socket2 _tryRead caught exception: $e");
         _completeAllWithError(e);
       }
     }
@@ -140,7 +161,12 @@ class _Socket2Impl implements Socket2 {
   void _tryWrite() {
     if (_writeCompleter != null && _pendingWriteBuffer != null) {
       try {
-        int result = _nativeWriteFrom(_socket, _pendingWriteBuffer!, 0, _pendingWriteBuffer!.lengthInBytes);
+        int result = _nativeWriteFrom(
+          _socket,
+          _pendingWriteBuffer!,
+          0,
+          _pendingWriteBuffer!.lengthInBytes,
+        );
         if (result > 0 || (result == 0 && _socket.isClosed)) {
           var completer = _writeCompleter!;
           var buffer = _pendingWriteBuffer!;
@@ -149,10 +175,10 @@ class _Socket2Impl implements Socket2 {
           completer.complete((bytes: result, buffer: buffer));
         } else if (result == -1 || result == 0) {
           // Would block, wait for next event.
-          _socket.setListening(read: true, write: true);
+          // Ensure we are listening for write events, but don't trigger immediately.
+          _socket.setListening(read: true, write: true, issueEvents: false);
         }
       } catch (e) {
-        print("Socket2 _tryWrite caught exception: $e");
         _completeAllWithError(e);
       }
     }
@@ -184,7 +210,7 @@ class _Socket2Impl implements Socket2 {
     _writeCompleter = Completer<({int bytes, TypedData buffer})>();
     var future = _writeCompleter!.future;
     _pendingWriteBuffer = buffer;
-    _socket.setListening(read: true, write: true);
+    _socket.setListening(read: true, write: true, issueEvents: true);
     _tryWrite();
     return future;
   }
@@ -196,8 +222,18 @@ class _Socket2Impl implements Socket2 {
   }
 
   @pragma("vm:external-name", "Socket2_ReadInto")
-  external static int _nativeReadInto(_NativeSocket socket, TypedData buffer, int offset, int length);
+  external static int _nativeReadInto(
+    _NativeSocket socket,
+    TypedData buffer,
+    int offset,
+    int length,
+  );
 
   @pragma("vm:external-name", "Socket2_WriteFrom")
-  external static int _nativeWriteFrom(_NativeSocket socket, TypedData buffer, int offset, int length);
+  external static int _nativeWriteFrom(
+    _NativeSocket socket,
+    TypedData buffer,
+    int offset,
+    int length,
+  );
 }

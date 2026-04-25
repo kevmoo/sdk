@@ -34,18 +34,23 @@ To build the runtime in release mode (as mentioned in `SHIPPING_PLAN.md`):
 ## Running Tests
 
 ### Core SDK Tests
-Core library tests (like `dart:io`) are typically run using the SDK's custom
-test runner.
-```bash
-./tools/test.py
-```
-*Note: We need to verify the exact flags and path for Socket2 tests.*
+Core library tests (like `dart:io`) MUST be run using the SDK's custom
+test runner to ensure they use the newly built runtime and patches.
 
-### Package Tests (from GEMINI.md)
-For tests in specific packages, use standard `dart test`:
 ```bash
-dart test pkg/linter/test/rules/prefer_relative_imports_test.dart
+./tools/test.py -m release standalone/io/socket2_robustness_test
 ```
+*Note: This assumes you have built the runtime in release mode first.*
+
+### Running Benchmarks
+Benchmarks should be run with a timeout to prevent hanging the agent if
+something goes wrong.
+
+```bash
+# Run with a 60-second timeout
+timeout 60s DART_CONFIGURATION=ReleaseARM64 xcodebuild/ReleaseARM64/dart benchmarks/socket2_throughput.dart
+```
+*Note: If 'timeout' is not available, use 'is_background: true' and monitor.*
 
 ## Presubmit Hooks
 

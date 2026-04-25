@@ -88,3 +88,9 @@ Even after all tests completed and `main()` exited, the test runner reported an 
 *   **Hypothesis**: It is likely happening in the native event handler thread during isolate teardown. When the isolate shuts down, pending events or cleanup operations in C++ might try to report to a closed port or handle a socket that is being destroyed, resulting in an unhandled exception reported by the VM.
 *   **Status**: All functional tests pass and complete their logic. The failure is strictly a post-exit teardown issue.
 
+## 13. Throughput Benchmark Hang on macOS
+When running a high-volume throughput benchmark (100MB), the process would hang indefinitely after the initial connection.
+*   **Stumble**: The benchmark would connect and then stop. Analysis revealed that `_NativeSocket.multiplex` logic on macOS suppresses `readEvent` delivery to the Dart handler if `available == 0`.
+*   **Cause**: `Socket2` does not use the `available` property (which is updated via a separate native call), but the shared `multiplex` logic relies on it to decide whether to trigger `readEventHandler`. On macOS, `kevent` might signal readiness, but if `available` hasn't been updated yet, the event is swallowed.
+*   **Fix**: Modified `_NativeSocket.multiplex` to always deliver `readEvent` if the socket is not in "listening" mode, ensuring `Socket2` always gets its completion signal.
+

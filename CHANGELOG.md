@@ -6,6 +6,12 @@
 
 #### `dart:io`
 
+- Added `Socket2` and `ServerSocket2`, a new high-performance, completion-based
+  socket API. Unlike the existing `Socket` class which is `Stream`-based,
+  `Socket2` uses an ownership-passing paradigm with `TypedData` buffers,
+  enabling zero-copy data transfers and precise memory management for
+  high-throughput applications.
+
 - The cookie-date parser now uses the correct algorithm again.
   A change to the parsing made it only accept the formats that
   cookie-dates _should_ have, but the RFC specifies a very

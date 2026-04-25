@@ -21,3 +21,7 @@ The user's prompt to use **Named Records** was a significant breakthrough for th
 ## 5. Bypassing Wrapper Classes for Direct Native Socket Access
 To solve a subtle unhandled exception issue, we realized we could bypass `RawSocket` and `RawServerSocket` entirely when creating `Socket2` instances.
 *   **Impact**: By calling `_NativeSocket.connect` and `_NativeSocket.bind` directly, we avoided creating unnecessary wrapper instances that leaked event handlers and stream controllers. This simplified the resource management and ensured that only our `Socket2` implementation was handling events from the underlying native socket.
+
+## 6. Comprehensive API Documentation
+We achieved a high standard of documentation for the new API, explicitly defining the ownership-passing paradigm and named record returns.
+*   **Impact**: The `Socket2` and `ServerSocket2` interfaces are now fully documented with `dartdoc` comments, including clear explanations of buffer ownership, error handling, and performance characteristics. This ensures that the API is ready for public review and use.
