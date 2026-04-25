@@ -21,14 +21,14 @@ Our current tests cover the "happy path" of connection and full buffer transfers
 ## 3. Engineering & Performance
 - [ ] **Memory Profiling**: Run the VM under a heap profiler during high-throughput runs to confirm zero allocations in the steady state.
 - [ ] **Cross-Platform Verification**: While the architecture is generic, we must verify the implementation on Linux (`epoll`) and Windows (`IOCP`).
-- [ ] **Member Sorting**: Run `dart run pkg/analysis_server/test/verify_sorted_test.dart` to ensure the SDK files follow the project's presubmit rules.
 
 ## 4. Release Management
+- [ ] **Presubmit**: Run `git cl presubmit` and make sure it passes!!
 - [ ] **CHANGELOG.md Entry**: Draft a high-impact entry for the next Dart SDK release.
 - [ ] **Documentation Samples**: Create high-quality examples in the `samples/` directory showing how to use `Socket2` with a buffer pool.
 - [ ] **Experimental Flag**: Consider hiding `Socket2` behind a VM flag (e.g., `--enable-socket2`) for the first release to gather feedback before committing to long-term stability.
 
 ## 5. Verification Checklist
-- [ ] `./tools/build.py -m release runtime` passes on all platforms.
-- [ ] `dart analyze sdk/lib/io/socket2.dart` returns zero issues.
+- [x] `./tools/build.py -m release runtime` passes on macOS.
+- [x] `dart analyze sdk/lib/io/socket2.dart` returns zero issues.
 - [ ] `wrk` benchmarks show no regression in stability under long-duration stress tests (e.g., > 1 hour).

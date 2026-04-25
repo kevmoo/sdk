@@ -13,6 +13,9 @@ abstract interface class ServerSocket2 {
 
   /// Closes the server socket.
   Future<void> close();
+
+  /// Returns the port that this server socket is bound to.
+  int get port;
 }
 
 class _ServerSocket2 implements ServerSocket2 {

@@ -24,3 +24,13 @@ My first benchmark returned a 2-byte "ok". I was surprised to see that `Socket2`
 ## 5. Partial Writes
 I initially forgot that `write()` syscalls can be partial. If the OS socket buffer is full, it might only take 64KB of a 1MB buffer. My first benchmark code just "fired and forgot" the write, leading to broken HTTP responses in `wrk`.
 *   **Fix**: Implemented an async `while` loop in the server code to ensure the entire buffer is consumed across multiple `Socket2.write` calls.
+
+## 6. The Missing Port Getter
+While writing tests for `Socket2`, I realized that `ServerSocket2` does not
+expose the port it is bound to. This is problematic when binding to port 0
+(random available port).
+*   **Stumble**: I couldn't easily find the port to connect the client to in
+    the test.
+*   **Fix**: Used a hack `(server as dynamic)._socket.port` to access the
+    private field for testing purposes. A future improvement should add a
+    `port` getter to the interface.

@@ -78,6 +78,9 @@ class _ServerSocket2Impl implements ServerSocket2 {
   Future<void> close() async {
     _socket.close();
   }
+
+  @override
+  int get port => _socket.port;
 }
 
 class _Socket2Impl implements Socket2 {
