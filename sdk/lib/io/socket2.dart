@@ -51,14 +51,14 @@ abstract interface class Socket2 {
   /// The socket takes ownership of the buffer until the Future completes.
   /// The returned Record contains the number of bytes read and
   /// returns ownership of the buffer.
-  Future<(int bytes, ByteBuffer buffer)> read(ByteBuffer buffer);
+  Future<({int bytes, TypedData buffer})> read(TypedData buffer);
 
   /// Initiates an asynchronous write from [buffer].
   /// 
   /// The socket takes ownership of the buffer until the Future completes.
   /// The returned Record contains the number of bytes written and
   /// returns ownership of the buffer.
-  Future<(int bytes, ByteBuffer buffer)> write(ByteBuffer buffer);
+  Future<({int bytes, TypedData buffer})> write(TypedData buffer);
 
   /// Closes the socket.
   Future<void> close();
@@ -71,12 +71,12 @@ class _Socket2 implements Socket2 {
   }
 
   @override
-  Future<(int bytes, ByteBuffer buffer)> read(ByteBuffer buffer) {
+  Future<({int bytes, TypedData buffer})> read(TypedData buffer) {
     throw UnimplementedError();
   }
 
   @override
-  Future<(int bytes, ByteBuffer buffer)> write(ByteBuffer buffer) {
+  Future<({int bytes, TypedData buffer})> write(TypedData buffer) {
     throw UnimplementedError();
   }
 

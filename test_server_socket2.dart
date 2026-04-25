@@ -15,7 +15,7 @@ void main() async {
         var client = await Socket2.connect('localhost', 8081);
         print("Client connected!");
         var req = utf8.encode("Hello from client!");
-        var buffer = Uint8List.fromList(req).buffer;
+        var buffer = Uint8List.fromList(req);
         await client.write(buffer);
         await client.close();
       } catch (e) {
@@ -27,11 +27,11 @@ void main() async {
     var socket = await server.accept();
     print("Server accepted connection!");
 
-    var buffer = Uint8List(1024).buffer;
+    var buffer = Uint8List(1024);
     var result = await socket.read(buffer);
-    print("Server read ${result.$1} bytes");
+    print("Server read ${result.bytes} bytes");
 
-    var resString = utf8.decode(Uint8List.view(result.$2, 0, result.$1));
+    var resString = utf8.decode(Uint8List.sublistView(result.buffer, 0, result.bytes));
     print("Server received: $resString");
 
     await socket.close();

@@ -11,20 +11,20 @@ void main() async {
     // Write request
     var reqString = "GET / HTTP/1.1\r\nHost: google.com\r\nConnection: close\r\n\r\n";
     var reqBytes = utf8.encode(reqString);
-    var reqBuffer = Uint8List.fromList(reqBytes).buffer;
+    var reqBuffer = Uint8List.fromList(reqBytes);
     
     print("Writing request...");
     var writeResult = await socket.write(reqBuffer);
-    print("Wrote ${writeResult.$1} bytes");
+    print("Wrote ${writeResult.bytes} bytes");
 
     // Read response
     print("Reading response...");
-    var resBuffer = Uint8List(1024).buffer;
+    var resBuffer = Uint8List(1024);
     var readResult = await socket.read(resBuffer);
-    print("Read ${readResult.$1} bytes");
+    print("Read ${readResult.bytes} bytes");
     
-    if (readResult.$1 > 0) {
-      var resString = utf8.decode(Uint8List.view(readResult.$2, 0, readResult.$1));
+    if (readResult.bytes > 0) {
+      var resString = utf8.decode(Uint8List.sublistView(readResult.buffer, 0, readResult.bytes));
       print("Response:\n$resString");
     }
 

@@ -83,11 +83,11 @@ class _ServerSocket2Impl implements ServerSocket2 {
 class _Socket2Impl implements Socket2 {
   final _NativeSocket _socket;
   
-  Completer<(int, ByteBuffer)>? _readCompleter;
-  Completer<(int, ByteBuffer)>? _writeCompleter;
+  Completer<({int bytes, TypedData buffer})>? _readCompleter;
+  Completer<({int bytes, TypedData buffer})>? _writeCompleter;
 
-  ByteBuffer? _pendingReadBuffer;
-  ByteBuffer? _pendingWriteBuffer;
+  TypedData? _pendingReadBuffer;
+  TypedData? _pendingWriteBuffer;
 
   _Socket2Impl(this._socket) {
     // Hijack the event handlers from _RawSocket.
@@ -118,13 +118,13 @@ class _Socket2Impl implements Socket2 {
 
   void _tryRead() {
     if (_readCompleter != null && _pendingReadBuffer != null) {
-      int result = _nativeReadInto(_socket, Uint8List.view(_pendingReadBuffer!), 0, _pendingReadBuffer!.lengthInBytes);
+      int result = _nativeReadInto(_socket, _pendingReadBuffer!, 0, _pendingReadBuffer!.lengthInBytes);
       if (result > 0 || (result == 0 && _socket.isClosed)) {
         var completer = _readCompleter!;
         var buffer = _pendingReadBuffer!;
         _readCompleter = null;
         _pendingReadBuffer = null;
-        completer.complete((result, buffer));
+        completer.complete((bytes: result, buffer: buffer));
       } else if (result == -1 || result == 0) {
         // Would block, wait for next event.
       }
@@ -133,13 +133,13 @@ class _Socket2Impl implements Socket2 {
 
   void _tryWrite() {
     if (_writeCompleter != null && _pendingWriteBuffer != null) {
-      int result = _nativeWriteFrom(_socket, Uint8List.view(_pendingWriteBuffer!), 0, _pendingWriteBuffer!.lengthInBytes);
+      int result = _nativeWriteFrom(_socket, _pendingWriteBuffer!, 0, _pendingWriteBuffer!.lengthInBytes);
       if (result > 0 || (result == 0 && _socket.isClosed)) {
         var completer = _writeCompleter!;
         var buffer = _pendingWriteBuffer!;
         _writeCompleter = null;
         _pendingWriteBuffer = null;
-        completer.complete((result, buffer));
+        completer.complete((bytes: result, buffer: buffer));
       } else if (result == -1 || result == 0) {
         // Would block, wait for next event.
       }
@@ -147,11 +147,11 @@ class _Socket2Impl implements Socket2 {
   }
 
   @override
-  Future<(int bytes, ByteBuffer buffer)> read(ByteBuffer buffer) {
+  Future<({int bytes, TypedData buffer})> read(TypedData buffer) {
     if (_readCompleter != null) {
       throw StateError("A read operation is already pending.");
     }
-    _readCompleter = Completer<(int, ByteBuffer)>();
+    _readCompleter = Completer<({int bytes, TypedData buffer})>();
     var future = _readCompleter!.future;
     _pendingReadBuffer = buffer;
     _tryRead();
@@ -159,11 +159,11 @@ class _Socket2Impl implements Socket2 {
   }
 
   @override
-  Future<(int bytes, ByteBuffer buffer)> write(ByteBuffer buffer) {
+  Future<({int bytes, TypedData buffer})> write(TypedData buffer) {
     if (_writeCompleter != null) {
       throw StateError("A write operation is already pending.");
     }
-    _writeCompleter = Completer<(int, ByteBuffer)>();
+    _writeCompleter = Completer<({int bytes, TypedData buffer})>();
     var future = _writeCompleter!.future;
     _pendingWriteBuffer = buffer;
     _tryWrite();
