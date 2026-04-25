@@ -165,20 +165,14 @@ Future<void> testPartialWrite() async {
   final client = await clientFuture;
   final serverConnection = await serverSocketFuture;
   
-  // 1MB buffer to reduce timeout risk while still forcing partial writes.
+  // 1MB buffer to force partial writes.
   final largeBuffer = Uint8List(1 * 1024 * 1024);
   for (int i = 0; i < largeBuffer.length; i++) {
     largeBuffer[i] = i % 256;
   }
   
-  // Initiate write on client.
-  final writeResult = await client.write(largeBuffer);
-  stdout.writeln("Initial bytes written: ${writeResult.bytes}");
-  await stdout.flush();
-  
-  int totalWritten = writeResult.bytes;
-  
   // Server reads in background to drain the buffer.
+  // START THIS BEFORE CLIENT WRITES!
   final serverReadFuture = Future(() async {
     int totalRead = 0;
     final serverBuffer = Uint8List(1024 * 1024); // 1MB chunks
@@ -193,6 +187,13 @@ Future<void> testPartialWrite() async {
     }
     return totalRead;
   });
+  
+  // Initiate write on client.
+  final writeResult = await client.write(largeBuffer);
+  stdout.writeln("Initial bytes written: ${writeResult.bytes}");
+  await stdout.flush();
+  
+  int totalWritten = writeResult.bytes;
   
   // Client continues writing the rest.
   while (totalWritten < largeBuffer.lengthInBytes) {
