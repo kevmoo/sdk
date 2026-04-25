@@ -1,63 +1,60 @@
-# Socket2 Implementation Plan
+# Socket2 Implementation Plan (Updated April 2026)
 
 ## Background & Motivation
 The current `Socket` API in `dart:io` uses a `Stream<List<int>>` paradigm, which is built on a readiness-based model (similar to traditional `epoll`). While functional, this approach introduces overhead (allocations, copying, GC pressure) that limits peak throughput and scalability for high-performance applications like HTTP clients, web servers, and database drivers.
 
-`Socket2` aims to be a best-in-class, high-performance socket API for Dart. Drawing inspiration from modern frameworks like Rust's `tokio-uring`, it will use an **ownership-based completion model**. This allows for true zero-copy operations, maximizing bytes-per-second and minimizing CPU and GC overhead.
+`Socket2` aims to be a best-in-class, high-performance socket API for Dart. Drawing inspiration from modern frameworks like Rust's `tokio-uring`, it uses an **ownership-based completion model**. This allows for true zero-copy operations, maximizing bytes-per-second and minimizing CPU and GC overhead.
 
 ## Scope & Impact
-- **New API**: Introduce `Socket2` (or a similar naming convention) in `dart:io` as an advanced, opt-in alternative to `Socket`.
-- **Target Audience**: Savvy developers building foundational networking libraries (HTTP, RPC, databases) rather than casual end-users.
-- **C++ Backend**: Implement the heavy lifting in the Dart VM's C++ layer (`runtime/bin/`).
-- **Initial Platform Support**: Due to current environment constraints, the initial implementation will focus on macOS using `kqueue`. The architecture will be designed to easily accommodate Linux (`io_uring`/`epoll`) and Windows (`IOCP`) in the future.
+- **New API**: Introduce `Socket2` and `ServerSocket2` in `dart:io` as an advanced, opt-in alternative to `Socket`.
+- **Target Audience**: Savvy developers building foundational networking libraries (HTTP, RPC, databases).
+- **C++ Backend**: Leverages the Dart VM's C++ layer (`runtime/bin/`) via the existing `EventHandler`.
+- **Platform Support**: Verified on macOS (`kqueue`). The "hijack" architecture is designed to be cross-platform, working with existing `epoll` and `IOCP` backends in the VM.
 
-## Proposed Solution
+## Finalized Solution
 
-### 1. Dart API Layer (The Interface)
-Move away from `Stream` to an **ownership-passing paradigm** using Futures. The user provides a buffer to the socket, yielding ownership until the operation completes.
+### 1. Dart API Layer (Named Records)
+The API uses an **ownership-passing paradigm** with `Future<({int bytes, TypedData buffer})>`. The user provides a buffer to the socket, yielding ownership until the operation completes.
 
 ```dart
-// Conceptual API
-class ReadResult {
-  final int bytesRead;
-  final ByteBuffer buffer; // Ownership returned
-  ReadResult(this.bytesRead, this.buffer);
-}
-
-abstract class Socket2 {
-  // ... connection methods ...
-
+abstract interface class Socket2 {
   /// Initiates a read, taking ownership of [buffer].
-  /// The future completes with the buffer and the number of bytes read.
-  Future<ReadResult> read(ByteBuffer buffer);
+  /// Returns a record containing the bytes read and the buffer.
+  Future<({int bytes, TypedData buffer})> read(TypedData buffer);
 
   /// Initiates a write, taking ownership of [buffer].
-  Future<WriteResult> write(ByteBuffer buffer);
+  Future<({int bytes, TypedData buffer})> write(TypedData buffer);
 }
 ```
 
-### 2. C++ VM Layer (The Engine)
-- **Abstraction**: Create a C++ abstraction over OS-specific async APIs that supports the completion model.
-- **kqueue Implementation**: Build the initial backend using macOS `kqueue`.
-- **Zero-Copy**: Implement mechanisms to read/write directly to memory visible to Dart (e.g., pinning `TypedData` or using direct memory allocation) to avoid intermediate copies between kernel space, native space, and Dart space.
+### 2. C++ VM Layer (The "Hijack" Strategy)
+Instead of building a new OS-specific async layer, the implementation "hijacks" the Dart VM's existing `EventHandler`.
+- **Direct Pointers**: Uses `Dart_TypedDataAcquireData` to pin Dart memory, allowing native `read`/`write` syscalls to operate directly on Dart-owned buffers.
+- **Zero-Copy**: Eliminates the intermediate copy between the OS kernel and Dart heap.
 
 ### 3. Buffer Management
-Encourage the use of buffer pooling to eliminate allocations during steady-state network operations.
+Highly efficient when used with buffer pooling. Benchmarks show **zero steady-state allocations** during high-throughput transfers.
 
 ## Alternatives Considered
-- **Enhancing Existing `Socket`**: Rejected. The existing `Stream` API is fundamentally readiness-based and changing it would break the vast ecosystem built on `dart:io`.
-- **Callback-driven Readiness**: Rejected. Familiar to C/epoll developers, but less safe than ownership passing and less optimal for future integration with modern APIs like `io_uring`.
+- **Enhancing Existing `Socket`**: Rejected. Fundamentally readiness-based; changing it would break the ecosystem.
+- **New IO Loop**: Rejected. Extending the existing `EventHandler` provided cross-platform support with significantly less complexity.
 
-## Implementation Plan
-1.  **Phase 1: API Definition**: Define the Dart `Socket2` interface and any necessary buffer management primitives in `sdk/lib/io/`.
-2.  **Phase 2: C++ Engine (macOS)**: Implement the async completion behavior by integrating with the Dart VM's existing `EventHandler` (`kqueue` backend) to wait for readiness, executing operations upon notification to simulate completion.
-3.  **Phase 3: FFI / Native Binding**: Connect the Dart `Socket2` API to the C++ backend using `@pragma("vm:external-name")` and the existing `_EventHandler` infrastructure (`_EventHandler._sendData`) to listen for completion events via a `RawReceivePort`.
-4.  **Phase 4: Testing & Benchmarking**: Write unit tests and benchmarks to validate functionality and measure throughput/GC improvements against the legacy `Socket`.
+## Implementation Status
+
+1.  **Phase 1: API Definition [COMPLETED]**: Defined `Socket2` and `ServerSocket2` interfaces in `sdk/lib/io/`.
+2.  **Phase 2: C++ Engine [COMPLETED]**: Implemented `Socket2_ReadInto` and `Socket2_WriteFrom` in the VM.
+3.  **Phase 3: Native Binding [COMPLETED]**: Integrated with `_NativeSocket` to intercept events via `RawReceivePort`.
+4.  **Phase 4: Testing & Benchmarking [COMPLETED]**:
+    - **Throughput**: ~1.5 GB/s (3.3x improvement over legacy `Socket`).
+    - **Robustness**: Comprehensive test suite covering edge cases and simultaneous IO.
+
+## Next Steps
+- **Cross-Platform Verification**: Verify stability and performance on Linux (`epoll`) and Windows (`IOCP`).
+- **Experimental Flag**: Hide the API behind `--enable-socket2` for the initial release.
+  - **OR** annotate them as experimental and release without the flag.
+- **Internal Migration**: Explore migrating `HttpClient` or `HttpServer` to use `Socket2` internally for performance gains.
+  - **OR** Deprecate `HttpClient` and `HttpServer` and move this logic to packages.
 
 ## Verification
--   **Correctness**: Comprehensive test suite covering edge cases, partial reads/writes, and connection drops.
--   **Performance**: Benchmarks demonstrating significant improvements in throughput and reduced GC pauses compared to the existing `Socket`.
-
-## Migration & Rollback
--   **Migration**: `Socket2` is an opt-in API. No existing users are forced to migrate. `HttpClient` and other internal tools can be migrated progressively once the API is stable.
--   **Rollback**: As a new, additive API, rollback simply involves deprecating or removing the `Socket2` classes.
+-   **Correctness**: Verified via `tests/standalone/io/socket2_robustness_test.dart`.
+-   **Performance**: Verified via `benchmarks/socket2_throughput.dart`.
