@@ -191,6 +191,9 @@ Future<void> testPartialWrite() async {
     return totalRead;
   });
   
+  // Yield control to allow the server read future to start!
+  await Future.delayed(Duration.zero);
+  
   // Client continues writing the rest.
   while (totalWritten < largeBuffer.lengthInBytes) {
     final view = Uint8List.sublistView(largeBuffer, totalWritten);
