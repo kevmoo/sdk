@@ -3,8 +3,8 @@ part of "common_patch.dart";
 @patch
 class _Socket2 {
   @patch
-  static Future<Socket2> _connect(dynamic host, int port,
-      dynamic sourceAddress, int sourcePort, Duration? timeout) async {
+  static Future<Socket2> _connect(Object host, int port,
+      Object? sourceAddress, int sourcePort, Duration? timeout) async {
     final rawSocket = await RawSocket.connect(
         host, port,
         sourceAddress: sourceAddress,
@@ -12,6 +12,71 @@ class _Socket2 {
         timeout: timeout) as _RawSocket;
     
     return _Socket2Impl(rawSocket._socket);
+  }
+}
+
+@patch
+class _ServerSocket2 {
+  @patch
+  static Future<ServerSocket2> _bind(
+      Object address, int port, int backlog, bool v6Only, bool shared) async {
+    final rawServerSocket = await RawServerSocket.bind(
+      address,
+      port,
+      backlog: backlog,
+      v6Only: v6Only,
+      shared: shared,
+    ) as _RawServerSocket;
+    
+    return _ServerSocket2Impl(rawServerSocket._socket);
+  }
+}
+
+class _ServerSocket2Impl implements ServerSocket2 {
+  final _NativeSocket _socket;
+  Completer<Socket2>? _acceptCompleter;
+
+  _ServerSocket2Impl(this._socket) {
+    _socket.setHandlers(
+      read: _tryAccept,
+      error: (e, st) => _completeWithError(e),
+      closed: () => _completeWithError(SocketException("Server socket closed")),
+    );
+    _socket.setListening(read: true, write: false);
+  }
+
+  void _completeWithError(Object error) {
+    if (_acceptCompleter != null && !_acceptCompleter!.isCompleted) {
+      var c = _acceptCompleter!;
+      _acceptCompleter = null;
+      c.completeError(error);
+    }
+  }
+
+  void _tryAccept() {
+    if (_acceptCompleter != null && _socket.connections > 0) {
+      var nativeSocket = _socket.accept();
+      if (nativeSocket != null) {
+        var c = _acceptCompleter!;
+        _acceptCompleter = null;
+        c.complete(_Socket2Impl(nativeSocket));
+      }
+    }
+  }
+
+  @override
+  Future<Socket2> accept() {
+    if (_acceptCompleter != null) {
+      throw StateError("An accept operation is already pending.");
+    }
+    _acceptCompleter = Completer<Socket2>();
+    _tryAccept();
+    return _acceptCompleter!.future;
+  }
+
+  @override
+  Future<void> close() async {
+    _socket.close();
   }
 }
 
