@@ -236,16 +236,19 @@ Future<void> testCloseCancelsPendingRead() async {
   // Initiate read.
   final readFuture = client.read(buffer);
   
-  // Close client immediately.
-  await client.close();
-  
-  try {
-    await readFuture;
+  // Attach listener immediately to avoid unhandled exception on yield during close.
+  final expectFuture = readFuture.then((_) {
     Expect.fail("Should have thrown SocketException");
-  } catch (e) {
+  }).catchError((e) {
     Expect.isTrue(e is SocketException);
     Expect.equals("Socket closed", (e as SocketException).message);
-  }
+  });
+  
+  // Close client.
+  await client.close();
+  
+  // Wait for the expectation to be verified.
+  await expectFuture;
   
   await serverConnection.close();
   await server.close();
