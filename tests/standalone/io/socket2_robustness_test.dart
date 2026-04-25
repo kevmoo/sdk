@@ -194,14 +194,15 @@ Future<void> testPartialWrite() async {
     return totalRead;
   });
   
-  // Yield control to allow the server read future to start!
-  await Future.delayed(Duration.zero);
-  
   // Client continues writing the rest.
   while (totalWritten < largeBuffer.lengthInBytes) {
     final view = Uint8List.sublistView(largeBuffer, totalWritten);
     stdout.writeln("Client trying to write...");
     await stdout.flush();
+    
+    // Yield control to allow the server read future to start/continue!
+    await Future.delayed(Duration.zero);
+    
     final result = await client.write(view);
     stdout.writeln("Client wrote ${result.bytes} bytes");
     await stdout.flush();
