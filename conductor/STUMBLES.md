@@ -52,3 +52,13 @@ While testing edge cases, I found that passing an empty buffer to `read()` or
     indefinitely for the next event.
 *   **Fix**: Added early returns in Dart for empty buffers, returning
     immediately without making native calls.
+
+## 9. Event Loop Starvation in Tests
+The `testPartialWrite` test timed out because the server read loop never
+started.
+*   **Stumble**: The client loop was running in a microtask chain (since the
+    initial writes completed immediately) and starved the event queue where
+    the server read future was waiting to be scheduled.
+*   **Fix**: Added `await Future.delayed(Duration.zero)` before the client
+    loop to yield control to the event loop, allowing the server to start
+    reading.
