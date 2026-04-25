@@ -9,6 +9,7 @@ void main() async {
   await testSimultaneousReadWrite();
   await testConnectionDropDuringRead();
   await testAddressResolution();
+  await testPartialWrite();
 }
 
 Future<void> testReadTwiceThrows() async {
@@ -151,5 +152,56 @@ Future<void> testAddressResolution() async {
     Expect.isTrue(e is SocketException);
   }
   
+  await server.close();
+}
+
+Future<void> testPartialWrite() async {
+  final server = await ServerSocket2.bind('127.0.0.1', 0);
+  final port = server.port;
+  
+  final clientFuture = Socket2.connect('127.0.0.1', port);
+  final serverSocketFuture = server.accept();
+  
+  final client = await clientFuture;
+  final serverConnection = await serverSocketFuture;
+  
+  // 10MB buffer to force partial writes.
+  final largeBuffer = Uint8List(10 * 1024 * 1024);
+  for (int i = 0; i < largeBuffer.length; i++) {
+    largeBuffer[i] = i % 256;
+  }
+  
+  // Initiate write on client.
+  final writeResult = await client.write(largeBuffer);
+  print("Initial bytes written: ${writeResult.bytes}");
+  
+  int totalWritten = writeResult.bytes;
+  
+  // Server reads in background to drain the buffer.
+  final serverReadFuture = Future(() async {
+    int totalRead = 0;
+    final serverBuffer = Uint8List(1024 * 1024); // 1MB chunks
+    while (totalRead < largeBuffer.lengthInBytes) {
+      final result = await serverConnection.read(serverBuffer);
+      if (result.bytes == 0) break; // Socket closed
+      totalRead += result.bytes;
+    }
+    return totalRead;
+  });
+  
+  // Client continues writing the rest.
+  while (totalWritten < largeBuffer.lengthInBytes) {
+    final view = Uint8List.sublistView(largeBuffer, totalWritten);
+    final result = await client.write(view);
+    totalWritten += result.bytes;
+  }
+  
+  Expect.equals(largeBuffer.lengthInBytes, totalWritten);
+  
+  final totalRead = await serverReadFuture;
+  Expect.equals(largeBuffer.lengthInBytes, totalRead);
+  
+  await client.close();
+  await serverConnection.close();
   await server.close();
 }
