@@ -8,6 +8,7 @@ void main() async {
   await testZeroLengthReadWrite();
   await testSimultaneousReadWrite();
   await testConnectionDropDuringRead();
+  await testAddressResolution();
 }
 
 Future<void> testReadTwiceThrows() async {
@@ -127,5 +128,28 @@ Future<void> testConnectionDropDuringRead() async {
   }
   
   await client.close();
+  await server.close();
+}
+
+Future<void> testAddressResolution() async {
+  final server = await ServerSocket2.bind('127.0.0.1', 0);
+  final port = server.port;
+  
+  // Test localhost.
+  final client1 = await Socket2.connect('localhost', port);
+  await client1.close();
+  
+  // Test 127.0.0.1.
+  final client2 = await Socket2.connect('127.0.0.1', port);
+  await client2.close();
+  
+  // Test invalid DNS name.
+  try {
+    await Socket2.connect('invalid.domain.name.that.does.not.exist', port);
+    Expect.fail("Should have thrown SocketException");
+  } catch (e) {
+    Expect.isTrue(e is SocketException);
+  }
+  
   await server.close();
 }
