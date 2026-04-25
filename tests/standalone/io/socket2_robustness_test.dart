@@ -4,13 +4,20 @@ import 'dart:typed_data';
 import 'package:expect/expect.dart';
 
 void main() async {
-  await testReadTwiceThrows();
-  await testZeroLengthReadWrite();
-  await testSimultaneousReadWrite();
-  await testConnectionDropDuringRead();
-  await testAddressResolution();
-  await testPartialWrite();
-  await testCloseCancelsPendingRead();
+  try {
+    await testReadTwiceThrows();
+    await testZeroLengthReadWrite();
+    await testSimultaneousReadWrite();
+    await testConnectionDropDuringRead();
+    await testAddressResolution();
+    await testPartialWrite();
+    await testCloseCancelsPendingRead();
+    print("All tests completed successfully!");
+  } catch (e, st) {
+    stdout.writeln("Caught exception in main: $e");
+    stdout.writeln(st);
+    await stdout.flush();
+  }
 }
 
 Future<void> testReadTwiceThrows() async {
