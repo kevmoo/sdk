@@ -49,6 +49,7 @@ part "namespace_patch.dart";
 part "platform_patch.dart";
 part "process_patch.dart";
 part "socket_patch.dart";
+part "socket2_patch.dart";
 part "stdio_patch.dart";
 part "secure_socket_patch.dart";
 part "sync_socket_patch.dart";

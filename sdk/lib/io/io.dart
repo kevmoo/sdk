@@ -262,6 +262,7 @@ part 'secure_socket.dart';
 part 'security_context.dart';
 part 'service_object.dart';
 part 'socket.dart';
+part 'socket2.dart';
 part 'stdio.dart';
 part 'string_transformer.dart';
 part 'sync_socket.dart';

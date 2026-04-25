@@ -19,6 +19,7 @@ vm_internal_bin_sources = [
   "resident_compiler_utils.dart",
   "secure_socket_patch.dart",
   "socket_patch.dart",
+  "socket2_patch.dart",
   "stdio_patch.dart",
   "sync_socket_patch.dart",
   "vmservice_io.dart",
