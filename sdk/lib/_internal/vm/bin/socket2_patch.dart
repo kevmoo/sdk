@@ -150,7 +150,8 @@ class _Socket2Impl implements Socket2 {
           completer.complete((bytes: result, buffer: buffer));
         } else if (result == -1 || result == 0) {
           // Would block, wait for next event.
-          // Note: multiplex will call _tryRead again when readEvent arrives.
+          // Re-register interest to ensure we get the next readiness event.
+          _socket.setListening(read: true, write: true, issueEvents: false);
         }
       } catch (e) {
         _completeAllWithError(e);
@@ -175,7 +176,7 @@ class _Socket2Impl implements Socket2 {
           completer.complete((bytes: result, buffer: buffer));
         } else if (result == -1 || result == 0) {
           // Would block, wait for next event.
-          // Ensure we are listening for write events, but don't trigger immediately.
+          // Re-register interest to ensure we get the next readiness event.
           _socket.setListening(read: true, write: true, issueEvents: false);
         }
       } catch (e) {
@@ -210,7 +211,8 @@ class _Socket2Impl implements Socket2 {
     _writeCompleter = Completer<({int bytes, TypedData buffer})>();
     var future = _writeCompleter!.future;
     _pendingWriteBuffer = buffer;
-    _socket.setListening(read: true, write: true, issueEvents: true);
+    // Always ensure we are listening when a write is initiated.
+    _socket.setListening(read: true, write: true, issueEvents: false);
     _tryWrite();
     return future;
   }

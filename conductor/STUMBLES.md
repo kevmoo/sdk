@@ -94,3 +94,22 @@ When running a high-volume throughput benchmark (100MB), the process would hang 
 *   **Cause**: `Socket2` does not use the `available` property (which is updated via a separate native call), but the shared `multiplex` logic relies on it to decide whether to trigger `readEventHandler`. On macOS, `kevent` might signal readiness, but if `available` hasn't been updated yet, the event is swallowed.
 *   **Fix**: Modified `_NativeSocket.multiplex` to always deliver `readEvent` if the socket is not in "listening" mode, ensuring `Socket2` always gets its completion signal.
 
+## 14. Concurrency Hang under Load
+While benchmarking with `wrk`, I found that the server would hang indefinitely
+when the number of concurrent connections exceeded a small threshold (e.g., 50).
+*   **Stumble**: The server stopped responding to new requests and existing
+    requests never completed.
+*   **Cause**: In `_Socket2Impl._tryRead` and `_tryWrite`, when the native
+    call returned 0 or -1 (EWOULDBLOCK), the code was simply waiting for the
+    next event without re-registering interest. For edge-triggered OS APIs
+    (like `kqueue` and `epoll`), once a readiness event is delivered, the
+    `EventHandler` will not send another notification for that same interest
+    unless you either drain the buffer completely or explicitly re-arm the
+    interest.
+*   **Fix**: Modified `_tryRead` and `_tryWrite` to call `setListening()` with
+    `issueEvents: false` when they encounter a "would block" state. This
+    re-arms the interest in the VM's event loop without triggering a redundant
+    immediate callback.
+*   **Validation**: Added `tests/standalone/io/socket2_concurrency_test.dart` to
+    the SDK to verify that multiple concurrent connections can perform I/O
+    simultaneously without deadlocking.
