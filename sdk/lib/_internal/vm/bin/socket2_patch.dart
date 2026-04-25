@@ -151,6 +151,9 @@ class _Socket2Impl implements Socket2 {
 
   @override
   Future<({int bytes, TypedData buffer})> read(TypedData buffer) {
+    if (buffer.lengthInBytes == 0) {
+      return Future.value((bytes: 0, buffer: buffer));
+    }
     if (_readCompleter != null) {
       throw StateError("A read operation is already pending.");
     }
@@ -163,6 +166,9 @@ class _Socket2Impl implements Socket2 {
 
   @override
   Future<({int bytes, TypedData buffer})> write(TypedData buffer) {
+    if (buffer.lengthInBytes == 0) {
+      return Future.value((bytes: 0, buffer: buffer));
+    }
     if (_writeCompleter != null) {
       throw StateError("A write operation is already pending.");
     }
