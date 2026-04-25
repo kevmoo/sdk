@@ -36,7 +36,16 @@ Future<void> testReadTwiceThrows() async {
         (e as StateError).message);
   }
   
+  // Clean up.
   await client.close();
+  
+  // Handle the error of the first read future, which was cancelled on close.
+  try {
+    await readFuture;
+  } catch (e) {
+    Expect.isTrue(e is SocketException);
+  }
+  
   await serverConnection.close();
   await server.close();
 }
