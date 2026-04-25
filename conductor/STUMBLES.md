@@ -65,3 +65,6 @@ started.
 *   **Update**: I found that yielding once before the loop was not enough if
     the client loop writes fast in microtasks. I needed to yield *inside* the
     while loop as well to ensure the server gets scheduled to read.
+*   **Update 2**: Starting the server read loop *before* the client initiated
+    its first write ensured that the server was actively listening and ready to
+    drain the buffer, resolving the deadlock.
