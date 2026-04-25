@@ -68,3 +68,10 @@ started.
 *   **Update 2**: Starting the server read loop *before* the client initiated
     its first write ensured that the server was actively listening and ready to
     drain the buffer, resolving the deadlock.
+
+## 10. Close Does Not Cancel Pending Futures
+The test for resource cleanup (`testCloseCancelsPendingRead`) timed out.
+*   **Stumble**: Calling `Socket2.close()` did not cancel pending `read` or
+    `write` futures, leaving them hanging indefinitely.
+*   **Fix**: Updated `_Socket2Impl.close()` to call `_completeAllWithError`
+    to ensure all pending futures are completed with a `SocketException`.
