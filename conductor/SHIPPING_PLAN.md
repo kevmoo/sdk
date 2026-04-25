@@ -5,12 +5,12 @@ This document outlines the remaining requirements and quality checks needed to m
 ## 1. Robustness & Edge Case Testing
 Our current tests cover the "happy path" of connection and full buffer transfers. Before shipping, we must verify:
 - [ ] **Partial Reads/Writes**: Ensure the `while` loop logic is correct for all OS-level partial transfers.
-- [ ] **Zero-length Reads/Writes**: Define behavior when an empty `TypedData` is passed.
-- [ ] **Connection Drops**: Verify that `SocketException` is correctly propagated when the remote peer disconnects during a pending `read` or `write`.
-- [ ] **Simultaneous Read/Write**: Verify that `Future.wait([socket.read(b1), socket.write(b2)])` works without internal state corruption.
-- [ ] **Protocol Violations**: Add tests that attempt to call `read()` twice simultaneously (should throw `StateError`).
+- [x] **Zero-length Reads/Writes**: Define behavior when an empty `TypedData` is passed.
+- [x] **Connection Drops**: Verify that `SocketException` is correctly propagated when the remote peer disconnects during a pending `read` or `write`.
+- [x] **Simultaneous Read/Write**: Verify that `Future.wait([socket.read(b1), socket.write(b2)])` works without internal state corruption.
+- [x] **Protocol Violations**: Add tests that attempt to call `read()` twice simultaneously (should throw `StateError`).
 - [ ] **Resource Cleanup**: Verify that `close()` cancels pending futures and frees C++ `Socket*` resources without leaking memory.
-- [ ] **Address Resolution**: Test with IPv4, IPv6, `localhost`, and invalid DNS names.
+- [x] **Address Resolution**: Test with IPv4, IPv6, `localhost`, and invalid DNS names.
 
 ## 2. API Documentation & Quality
 - [ ] **Public API Docs**: Complete `dartdoc` comments for all public classes and methods in `sdk/lib/io/socket2.dart`.
