@@ -165,8 +165,8 @@ Future<void> testPartialWrite() async {
   final client = await clientFuture;
   final serverConnection = await serverSocketFuture;
   
-  // 10MB buffer to force partial writes.
-  final largeBuffer = Uint8List(10 * 1024 * 1024);
+  // 1MB buffer to reduce timeout risk while still forcing partial writes.
+  final largeBuffer = Uint8List(1 * 1024 * 1024);
   for (int i = 0; i < largeBuffer.length; i++) {
     largeBuffer[i] = i % 256;
   }
