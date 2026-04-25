@@ -173,7 +173,8 @@ Future<void> testPartialWrite() async {
   
   // Initiate write on client.
   final writeResult = await client.write(largeBuffer);
-  print("Initial bytes written: ${writeResult.bytes}");
+  stdout.writeln("Initial bytes written: ${writeResult.bytes}");
+  await stdout.flush();
   
   int totalWritten = writeResult.bytes;
   
@@ -182,9 +183,11 @@ Future<void> testPartialWrite() async {
     int totalRead = 0;
     final serverBuffer = Uint8List(1024 * 1024); // 1MB chunks
     while (totalRead < largeBuffer.lengthInBytes) {
-      print("Server trying to read...");
+      stdout.writeln("Server trying to read...");
+      await stdout.flush();
       final result = await serverConnection.read(serverBuffer);
-      print("Server read ${result.bytes} bytes");
+      stdout.writeln("Server read ${result.bytes} bytes");
+      await stdout.flush();
       if (result.bytes == 0) break; // Socket closed
       totalRead += result.bytes;
     }
@@ -197,9 +200,11 @@ Future<void> testPartialWrite() async {
   // Client continues writing the rest.
   while (totalWritten < largeBuffer.lengthInBytes) {
     final view = Uint8List.sublistView(largeBuffer, totalWritten);
-    print("Client trying to write...");
+    stdout.writeln("Client trying to write...");
+    await stdout.flush();
     final result = await client.write(view);
-    print("Client wrote ${result.bytes} bytes");
+    stdout.writeln("Client wrote ${result.bytes} bytes");
+    await stdout.flush();
     totalWritten += result.bytes;
   }
   
