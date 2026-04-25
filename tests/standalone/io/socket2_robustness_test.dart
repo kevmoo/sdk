@@ -101,16 +101,19 @@ Future<void> testSimultaneousReadWrite() async {
   final readFuture = client.read(buffer1);
   final writeFuture = client.write(buffer2);
   
-  // Server needs to write something so the read completes,
-  // and read something so the write completes.
   final serverBuffer = Uint8List(10);
-  await serverConnection.write(serverBuffer);
-  await serverConnection.read(serverBuffer);
   
-  final results = await Future.wait([readFuture, writeFuture]);
+  // Run server operations in a Future to avoid blocking and handle errors together.
+  final serverOperationsFuture = Future(() async {
+    await serverConnection.write(serverBuffer);
+    await serverConnection.read(serverBuffer);
+  });
   
-  final readResult = results[0];
-  final writeResult = results[1];
+  // Wait for all operations to complete.
+  await Future.wait([readFuture, writeFuture, serverOperationsFuture]);
+  
+  final readResult = await readFuture;
+  final writeResult = await writeFuture;
   
   Expect.isTrue(readResult.bytes > 0);
   Expect.isTrue(writeResult.bytes > 0);
