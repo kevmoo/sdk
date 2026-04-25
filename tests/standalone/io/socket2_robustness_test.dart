@@ -10,6 +10,7 @@ void main() async {
   await testConnectionDropDuringRead();
   await testAddressResolution();
   await testPartialWrite();
+  await testCloseCancelsPendingRead();
 }
 
 Future<void> testReadTwiceThrows() async {
@@ -216,6 +217,36 @@ Future<void> testPartialWrite() async {
   Expect.equals(largeBuffer.lengthInBytes, totalRead);
   
   await client.close();
+  await serverConnection.close();
+  await server.close();
+}
+
+Future<void> testCloseCancelsPendingRead() async {
+  final server = await ServerSocket2.bind('127.0.0.1', 0);
+  final port = server.port;
+  
+  final clientFuture = Socket2.connect('127.0.0.1', port);
+  final serverSocketFuture = server.accept();
+  
+  final client = await clientFuture;
+  final serverConnection = await serverSocketFuture;
+  
+  final buffer = Uint8List(10);
+  
+  // Initiate read.
+  final readFuture = client.read(buffer);
+  
+  // Close client immediately.
+  await client.close();
+  
+  try {
+    await readFuture;
+    Expect.fail("Should have thrown SocketException");
+  } catch (e) {
+    Expect.isTrue(e is SocketException);
+    Expect.equals("Socket closed", (e as SocketException).message);
+  }
+  
   await serverConnection.close();
   await server.close();
 }
