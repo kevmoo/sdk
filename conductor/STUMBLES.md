@@ -113,3 +113,15 @@ when the number of concurrent connections exceeded a small threshold (e.g., 50).
 *   **Validation**: Added `tests/standalone/io/socket2_concurrency_test.dart` to
     the SDK to verify that multiple concurrent connections can perform I/O
     simultaneously without deadlocking.
+
+## 15. The "Hanging" Keep-Alive Client
+While testing `Socket2ShelfServer` with `dart:io`'s `HttpClient`, the client script appeared to hang indefinitely after receiving the response.
+*   **Stumble**: I initially suspected `Socket2` was failing to send EOF or flush the TCP buffer, causing `HttpClient` to wait forever.
+*   **Discovery**: `HttpClient` defaults to HTTP/1.1 (which implies `Connection: keep-alive`). The client successfully read the exact `Content-Length` bytes, but because it was a keep-alive connection, the server immediately looped back to `socket.read()` and kept the socket open. The Dart VM didn't exit because the server was still actively awaiting new requests on that open socket.
+*   **Fix**: When `socket.destroy()` was called by the client, `Socket2.read` correctly completed with 0 bytes (EOF) and the server gracefully closed the connection. The "hang" was simply the intended behavior of a persistent connection.
+
+## 16. Event Loop Thrashing on Concurrent Streams
+When running the `oha` stress test with 50 concurrent connections streaming a 1.3 MB file, `socket2` performance collapsed to **49.9 RPS** (compared to ~1600 RPS on standard `dart:io`).
+*   **Stumble**: Since a single connection streamed the file in exactly the same time (~45ms) as `dart:io`, I assumed it would scale linearly. Instead, 50 connections took over 10 seconds.
+*   **Cause**: The `Socket2ShelfResponseSerializer` uses an `await for` loop to read 64KB chunks from the file, and then `await socket.writeAll(chunk)` for each piece. For 50 connections * 21 chunks, this creates over 1,000 asynchronous boundaries crossing between Dart and C++. The massive influx of interleaved `await`s caused severe event-loop thrashing and effectively serialized the throughput. Standard `dart:io` avoids this by using `Socket.addStream`, which handles the chunking and OS buffer draining entirely natively in C++ without yielding back to Dart.
+*   **Takeaway**: An ownership-passing API like `Socket2` requires highly optimized, buffered batch-writes in Dart to prevent crossing the FFI boundary too frequently, or a native equivalent to `addStream` for heavy payload streaming.
