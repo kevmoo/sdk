@@ -11,6 +11,7 @@ You are taking over Project Socket2. The project has moved from a raw socket pro
 
 2.  **SDK Robustness & Concurrency Fixes**:
     *   **The "Would Block" Bug**: Fixed a critical hang where `Socket2` failed to re-register interest when a native call returned `EWOULDBLOCK`. Resolved by using `setListening(..., issueEvents: false)`.
+    *   **The Dangling ReceivePort Fix**: Fixed a suite-wide test runner deadlock by explicitly calling `socket.destroy()` in client tearDowns instead of `socket.close()`, resolving half-close dangling OS read futures.
     *   Added `tests/standalone/io/socket2_concurrency_test.dart` (100 concurrent connections).
     *   Added `tests/standalone/io/socket_large_stream_test.dart` (100MB legacy stream regression test).
 
@@ -29,17 +30,14 @@ You are taking over Project Socket2. The project has moved from a raw socket pro
 
 ## Next Steps & Research Priorities
 
-1.  **Fixing the Event-Loop Thrashing**:
-    *   Implement "Batch Writes" or "Buffered Writes" for `Socket2ShelfResponseSerializer` to prevent crossing the asynchronous native boundary for every single chunk when streaming large payloads.
-    *   Investigate if a `Socket2` equivalent to `addStream` could be built natively in C++ to bypass Dart entirely during heavy throughput.
+1.  **Configuration for the BufferPool**:
+    *   Currently, `_bufferPoolSliceSize` (256KB) and `_bufferPoolMaxSlices` (128) are hardcoded constants in `socket2_shelf_response_serializer.dart`.
+    *   Next task is to expose these variables as optional configuration parameters in `Socket2ShelfServer.serve(...)` so that memory utilization can be tuned at runtime depending on deployment environment limitations.
 
-2.  **Benchmark Refinement**:
-    *   **DONE**: Migrated from `wrk` to `oha`. `matrix.dart` now runs 5x 2-second bursts, disabling keep-alive to test true connection pipeline overhead. Metrics include RPS and `p99` latencies.
+2.  **AOT Benchmark Verification**:
+    *   Now that the memory bottlenecks are resolved and steady-state zero-allocation writes are achieved, run a fully AOT-compiled `dart test` and re-run `oha` using the full `matrix.dart` script to verify how `Socket2` performs under max-load AOT constraints compared to standard `dart:io`.
 
-3.  **Cleanup**:
-    *   **Remove the HACK**: There is a temporary `read().timeout(...)` in `_Socket2HttpConnection` added to debug hangs. Now that the `EWOULDBLOCK` re-registration fix is in, this should be replaced by a proper integration with `headerTimeout`.
-
-4.  **Cross-Platform Verification**:
+3.  **Cross-Platform Verification**:
     *   Verify the concurrency fix on **Linux (`epoll`)** and **Windows (`IOCP`)**.
 
 ## Useful Files

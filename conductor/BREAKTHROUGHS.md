@@ -48,3 +48,11 @@ In the `bottom_shelf` project (our custom `shelf` adapter), we identified that s
 ## 9. The Straight-Line Latency Revelation
 While investigating abysmal concurrent streaming performance (49.9 RPS for 50 concurrent streams of 1.3 MB), we decided to isolate the benchmark and test pure straight-line processing (`oha -c 1`).
 *   **Impact**: When concurrency is removed, `Socket2` achieves an astonishing **1,695 RPS** on the `/headers` benchmark compared to `bottom_shelf`'s 1,232 RPS—a **37% latency reduction**. This proved that `Socket2`'s zero-copy architecture and direct C++ pointer access is profoundly superior for raw I/O throughput. The concurrent collapse is strictly an artifact of Dart event-loop thrashing caused by repeatedly `await`ing thousands of asynchronous native calls, pointing the way toward future batching APIs as the ultimate solution for scale.
+
+## 10. BufferPool and Batched Writes
+To combat the event-loop thrashing when serving large response streams, we introduced a global `_BufferPool` and a `_BufferedWriter`.
+*   **Impact**: By aggregating multiple small `Future` byte chunks into pre-allocated 256KB buffer slices, we slashed the number of FFI boundary crossings required for a single 1.3 MB response from 21 down to 6. This **increased concurrent streaming performance by 1.7x** (from 667 RPS to 1,128 RPS in JIT mode) while maintaining steady-state **zero-allocation** characteristics.
+
+## 11. Half-Close Socket Test Deadlocks
+We discovered that Dart's `Socket.close()` performs a "half-close" (sending FIN but keeping the `ReceivePort` active). In tests sending malformed data to `Socket2`, the server's `socket.read()` would correctly time out and leave a dangling future, because the client was still alive awaiting responses.
+*   **Impact**: By identifying that `addTearDown(socket.close)` was responsible for test runner hangs, we switched to `addTearDown(socket.destroy)`. Forcefully closing the socket immediately unblocks any pending OS reads with EOF, ensuring `Socket2` cleanly cleans up its underlying `ReceivePort` and allows the Dart VM to exit without artificial server-side timeouts.
