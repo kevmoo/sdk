@@ -146,6 +146,7 @@ namespace bin {
   V(SocketBase_IsBindError, 2)                                                 \
   V(Socket2_ReadInto, 4)                                                       \
   V(Socket2_WriteFrom, 4)                                                      \
+  V(Socket2_WriteList, 2)                                                      \
   V(Socket_Available, 1)                                                       \
   V(Socket_AvailableDatagram, 1)                                               \
   V(Socket_CreateBindConnect, 6)                                               \

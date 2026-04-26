@@ -99,11 +99,13 @@ class _ServerSocket2Impl implements ServerSocket2 {
 class _Socket2Impl implements Socket2 {
   final _NativeSocket _socket;
 
-  Completer<({int bytes, TypedData buffer})>? _readCompleter;
-  Completer<({int bytes, TypedData buffer})>? _writeCompleter;
+  Completer<({int bytes, Uint8List buffer})>? _readCompleter;
+  Completer<({int bytes, Uint8List buffer})>? _writeCompleter;
+  Completer<({int bytes, List<Uint8List> buffers})>? _writeListCompleter;
 
-  TypedData? _pendingReadBuffer;
-  TypedData? _pendingWriteBuffer;
+  Uint8List? _pendingReadBuffer;
+  Uint8List? _pendingWriteBuffer;
+  List<Uint8List>? _pendingWriteListBuffers;
 
   _Socket2Impl(this._socket) {
     _socket.isSocket2 = true;
@@ -112,7 +114,7 @@ class _Socket2Impl implements Socket2 {
       read: _tryRead,
       write: _tryWrite,
       error: (e, st) => _completeAllWithError(e),
-      closed: () => _completeAllWithError(SocketException("Socket closed")),
+      closed: _onClosed,
     );
     // Ensure we are listening for both read and write events.
     _socket.setListening(read: true, write: true, issueEvents: true);
@@ -130,6 +132,34 @@ class _Socket2Impl implements Socket2 {
       _writeCompleter = null;
       _pendingWriteBuffer = null;
       c.completeError(error);
+    }
+    if (_writeListCompleter != null && !_writeListCompleter!.isCompleted) {
+      var c = _writeListCompleter!;
+      _writeListCompleter = null;
+      _pendingWriteListBuffers = null;
+      c.completeError(error);
+    }
+  }
+
+  void _onClosed() {
+    if (_readCompleter != null && !_readCompleter!.isCompleted) {
+      var c = _readCompleter!;
+      var buffer = _pendingReadBuffer!;
+      _readCompleter = null;
+      _pendingReadBuffer = null;
+      c.complete((bytes: 0, buffer: buffer));
+    }
+    if (_writeCompleter != null && !_writeCompleter!.isCompleted) {
+      var c = _writeCompleter!;
+      _writeCompleter = null;
+      _pendingWriteBuffer = null;
+      c.completeError(const SocketException("Connection closed while writing"));
+    }
+    if (_writeListCompleter != null && !_writeListCompleter!.isCompleted) {
+      var c = _writeListCompleter!;
+      _writeListCompleter = null;
+      _pendingWriteListBuffers = null;
+      c.completeError(const SocketException("Connection closed while writing"));
     }
   }
 
@@ -182,18 +212,38 @@ class _Socket2Impl implements Socket2 {
       } catch (e) {
         _completeAllWithError(e);
       }
+    } else if (_writeListCompleter != null && _pendingWriteListBuffers != null) {
+      try {
+        int result = _nativeWriteList(
+          _socket,
+          _pendingWriteListBuffers!,
+        );
+        if (result > 0 || (result == 0 && _socket.isClosed)) {
+          var completer = _writeListCompleter!;
+          var buffers = _pendingWriteListBuffers!;
+          _writeListCompleter = null;
+          _pendingWriteListBuffers = null;
+          completer.complete((bytes: result, buffers: buffers));
+        } else if (result == -1 || result == 0) {
+          // Would block, wait for next event.
+          // Re-register interest to ensure we get the next readiness event.
+          _socket.setListening(read: true, write: true, issueEvents: false);
+        }
+      } catch (e) {
+        _completeAllWithError(e);
+      }
     }
   }
 
   @override
-  Future<({int bytes, TypedData buffer})> read(TypedData buffer) {
+  Future<({int bytes, Uint8List buffer})> read(Uint8List buffer) {
     if (buffer.lengthInBytes == 0) {
       return Future.value((bytes: 0, buffer: buffer));
     }
     if (_readCompleter != null) {
       throw StateError("A read operation is already pending.");
     }
-    _readCompleter = Completer<({int bytes, TypedData buffer})>();
+    _readCompleter = Completer<({int bytes, Uint8List buffer})>();
     var future = _readCompleter!.future;
     _pendingReadBuffer = buffer;
     _tryRead();
@@ -201,16 +251,33 @@ class _Socket2Impl implements Socket2 {
   }
 
   @override
-  Future<({int bytes, TypedData buffer})> write(TypedData buffer) {
+  Future<({int bytes, Uint8List buffer})> write(Uint8List buffer) {
     if (buffer.lengthInBytes == 0) {
       return Future.value((bytes: 0, buffer: buffer));
     }
-    if (_writeCompleter != null) {
+    if (_writeCompleter != null || _writeListCompleter != null) {
       throw StateError("A write operation is already pending.");
     }
-    _writeCompleter = Completer<({int bytes, TypedData buffer})>();
+    _writeCompleter = Completer<({int bytes, Uint8List buffer})>();
     var future = _writeCompleter!.future;
     _pendingWriteBuffer = buffer;
+    // Always ensure we are listening when a write is initiated.
+    _socket.setListening(read: true, write: true, issueEvents: false);
+    _tryWrite();
+    return future;
+  }
+
+  @override
+  Future<({int bytes, List<Uint8List> buffers})> writeList(List<Uint8List> buffers) {
+    if (buffers.isEmpty) {
+      return Future.value((bytes: 0, buffers: buffers));
+    }
+    if (_writeCompleter != null || _writeListCompleter != null) {
+      throw StateError("A write operation is already pending.");
+    }
+    _writeListCompleter = Completer<({int bytes, List<Uint8List> buffers})>();
+    var future = _writeListCompleter!.future;
+    _pendingWriteListBuffers = buffers;
     // Always ensure we are listening when a write is initiated.
     _socket.setListening(read: true, write: true, issueEvents: false);
     _tryWrite();
@@ -226,7 +293,7 @@ class _Socket2Impl implements Socket2 {
   @pragma("vm:external-name", "Socket2_ReadInto")
   external static int _nativeReadInto(
     _NativeSocket socket,
-    TypedData buffer,
+    Uint8List buffer,
     int offset,
     int length,
   );
@@ -234,8 +301,14 @@ class _Socket2Impl implements Socket2 {
   @pragma("vm:external-name", "Socket2_WriteFrom")
   external static int _nativeWriteFrom(
     _NativeSocket socket,
-    TypedData buffer,
+    Uint8List buffer,
     int offset,
     int length,
+  );
+
+  @pragma("vm:external-name", "Socket2_WriteList")
+  external static int _nativeWriteList(
+    _NativeSocket socket,
+    List<Uint8List> buffers,
   );
 }

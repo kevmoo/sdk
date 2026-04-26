@@ -56,3 +56,7 @@ To combat the event-loop thrashing when serving large response streams, we intro
 ## 11. Half-Close Socket Test Deadlocks
 We discovered that Dart's `Socket.close()` performs a "half-close" (sending FIN but keeping the `ReceivePort` active). In tests sending malformed data to `Socket2`, the server's `socket.read()` would correctly time out and leave a dangling future, because the client was still alive awaiting responses.
 *   **Impact**: By identifying that `addTearDown(socket.close)` was responsible for test runner hangs, we switched to `addTearDown(socket.destroy)`. Forcefully closing the socket immediately unblocks any pending OS reads with EOF, ensuring `Socket2` cleanly cleans up its underlying `ReceivePort` and allows the Dart VM to exit without artificial server-side timeouts.
+
+## 12. Dart_TypedDataAcquireData and View Semantics
+We realized a subtle detail about how `Dart_TypedDataAcquireData` operates on the C++ side when handling `Uint8List` buffers.
+*   **Impact**: When Dart creates a view like `Uint8List.sublistView(buffer, offset, length)`, the C++ `Dart_TypedDataAcquireData` API natively intercepts this view. It automatically adjusts the returned `void* data` pointer to include the `offsetInBytes` and updates the `intptr_t* len` to reflect the view's length, completely abstracting the view semantics away from the C++ implementer. This means our zero-allocation batching APIs (`writeList`) do not need to explicitly pass size/length parameters from Dart; the C++ layer correctly reads exactly the bounded slices.

@@ -84,7 +84,7 @@ class _ServerSocket2 implements ServerSocket2 {
 /// intermediate data copying.
 ///
 /// Unlike [Socket], [Socket2] uses an ownership-passing paradigm:
-/// 1. You pass a [TypedData] buffer to [read] or [write].
+/// 1. You pass a [Uint8List] buffer to [read] or [write].
 /// 2. The socket takes ownership of that buffer while the operation is in flight.
 /// 3. The returned [Future] completes with a record that returns ownership of
 ///    the buffer along with the result of the operation.
@@ -122,7 +122,7 @@ abstract interface class Socket2 {
   ///
   /// Only one [read] operation can be pending at a time. Calling [read] while
   /// another read is in progress will throw a [StateError].
-  Future<({int bytes, TypedData buffer})> read(TypedData buffer);
+  Future<({int bytes, Uint8List buffer})> read(Uint8List buffer);
 
   /// Initiates an asynchronous write from [buffer].
   ///
@@ -139,7 +139,20 @@ abstract interface class Socket2 {
   /// another write is in progress will throw a [StateError].
   ///
   /// Note: [Socket2] allows a [read] and a [write] to be pending simultaneously.
-  Future<({int bytes, TypedData buffer})> write(TypedData buffer);
+  Future<({int bytes, Uint8List buffer})> write(Uint8List buffer);
+
+  /// Initiates an asynchronous batch write from [buffers].
+  ///
+  /// The socket takes ownership of the entire list of [buffers] until the
+  /// returned [Future] completes. The operation iterates over the list and
+  /// performs a sequence of native writes until either all buffers are written,
+  /// or a write would block.
+  ///
+  /// The returned [Future] completes with a named record:
+  /// - `bytes`: The total number of bytes actually written across all buffers.
+  /// - `buffers`: The same list instance passed to the method, with its
+  ///   ownership returned to the caller.
+  Future<({int bytes, List<Uint8List> buffers})> writeList(List<Uint8List> buffers);
 
   /// Closes the socket.
   ///
@@ -160,12 +173,17 @@ class _Socket2 implements Socket2 {
   }
 
   @override
-  Future<({int bytes, TypedData buffer})> read(TypedData buffer) {
+  Future<({int bytes, Uint8List buffer})> read(Uint8List buffer) {
     throw UnimplementedError();
   }
 
   @override
-  Future<({int bytes, TypedData buffer})> write(TypedData buffer) {
+  Future<({int bytes, Uint8List buffer})> write(Uint8List buffer) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<({int bytes, List<Uint8List> buffers})> writeList(List<Uint8List> buffers) {
     throw UnimplementedError();
   }
 

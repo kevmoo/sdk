@@ -26,7 +26,7 @@ You are taking over Project Socket2. The project has moved from a raw socket pro
 *   **The Baseline SDK Gap**: The Custom SDK is generally ~15% slower across the board than the System (Flutter) SDK. This is a known, expected difference. The System SDK is compiled using `-m product` which strips `PRODUCT` macros, `dart:developer`, and profiling metadata, while our Custom SDK is built using `-m release`. Future agents: **Do not investigate this 15% gap.** Use the Custom SDK's `dart:io` as the baseline for `Socket2` comparisons.
 *   **The "Slam Dunk" achieved on `/headers`**: We successfully beat `dart:io AOT` (1295 RPS vs 1288 RPS) on the `/headers` benchmark by implementing a bounded static cache for UTF-8 encoded header serialization, eliminating expensive per-request string allocations.
 *   **The Straight-Line Dominance**: When concurrency is removed (`oha -c 1`), `Socket2` completely dominates `bottom_shelf` (1,695 RPS vs 1,232 RPS), validating the zero-copy performance hypothesis. 
-*   **The AOT / Stream Catastrophe Identified**: `Socket2` performance collapses under heavy concurrent stress (e.g. 49.9 RPS on `/stream` with 50 connections). This is definitively caused by **Event Loop Thrashing**. Because `Socket2` is fully asynchronous, streaming large files involves crossing the Dart-to-C++ boundary thousands of times via `await`. When multiplied by 50 concurrent connections, the isolate spends all its time context switching. Standard `dart:io` avoids this via `addStream`.
+*   **The AOT / Stream Catastrophe Solved!**: The performance collapse under heavy concurrent stress (originally 49.9 RPS on `/stream` with 50 connections) was definitively caused by **Event Loop Thrashing**. We fixed this by introducing the `BufferPool` and a zero-allocation `writeList` API that batches slices before crossing the FFI boundary. Now, `Socket2` JIT streams at **1611.4 RPS** (beating `dart:io`'s 1454.1 RPS), and `Socket2` AOT streams at **1576.1 RPS** (beating `dart:io`'s 1468.4 RPS). We achieved the Slam Dunk!
 
 ## Next Steps & Research Priorities
 
@@ -34,10 +34,7 @@ You are taking over Project Socket2. The project has moved from a raw socket pro
     *   Currently, `_bufferPoolSliceSize` (256KB) and `_bufferPoolMaxSlices` (128) are hardcoded constants in `socket2_shelf_response_serializer.dart`.
     *   Next task is to expose these variables as optional configuration parameters in `Socket2ShelfServer.serve(...)` so that memory utilization can be tuned at runtime depending on deployment environment limitations.
 
-2.  **AOT Benchmark Verification**:
-    *   Now that the memory bottlenecks are resolved and steady-state zero-allocation writes are achieved, run a fully AOT-compiled `dart test` and re-run `oha` using the full `matrix.dart` script to verify how `Socket2` performs under max-load AOT constraints compared to standard `dart:io`.
-
-3.  **Cross-Platform Verification**:
+2.  **Cross-Platform Verification**:
     *   Verify the concurrency fix on **Linux (`epoll`)** and **Windows (`IOCP`)**.
 
 ## Useful Files

@@ -131,3 +131,15 @@ While running `dart test`, the suite would print "All tests passed!" but the pro
 *   **Stumble**: The `Socket2HttpConnection` removes timed-out requests by calling `_sendError`, which enters a read drain loop (`await socket.read().timeout(...)`). However, the test runner clients were only calling `socket.close()` in their `tearDown` methods.
 *   **Cause**: Dart's `Socket.close()` performs a TCP half-close (sends FIN). The outgoing stream is closed, but the incoming stream (and the underlying `ReceivePort`) remains completely active. Because the server loop was legitimately waiting for the client to close its side (or timeout), it created a dangling `Future` on the `ReceivePort`. The Dart VM will intentionally not exit as long as there is an active `ReceivePort` waiting on the OS.
 *   **Fix**: Switching `addTearDown(socket.close)` to `addTearDown(socket.destroy)` forcefully killed the sockets. `Socket.destroy()` closes both streams, sends EOF/RST to the OS, instantly unblocks the server's `socket.read()` with `0 bytes`, and cleans up the native ports, allowing the VM to exit gracefully.
+
+## 18. The "EWOULDBLOCK vs EOF" Read/Write Deadlock
+When testing the new batch `writeList` implementation, the `testBatchWriteList` hung because the HTTP client never saw an `EOF` on its read future.
+*   **Stumble**: Our Dart code treated a native return value of `0` strictly as `EOF`. It would complete the future with 0 bytes and stop requesting events. However, in non-blocking POSIX mode (on Mac `kqueue`), a `0` return from `SocketBase::Read` or `SocketBase::Write` actually means "EWOULDBLOCK" (the socket is alive but has no available space or data).
+*   **Cause**: We were completing the `await socket.read()` with 0 bytes *before* the socket had actually closed, causing the client code to break out of its read loop immediately.
+*   **Fix**: We refactored `_tryRead`, `_tryWrite`, and `_tryWriteList` in `_Socket2Impl` to check the `_isClosed` boolean (maintained by the OS closure events). A return of `0` is treated as "would block" unless `_isClosed` is explicitly true, in which case it is an `EOF`.
+
+## 19. Misleading Analyzer Typing Errors
+After refactoring the SDK's `Socket2` signatures from `TypedData` to `Uint8List`, I ran `dart analyze` on `bottom_shelf` and saw bizarre type failures like "A value of type `double` cannot be assigned to a variable of type `int`" and "Undefined class `Socket2`".
+*   **Stumble**: I spent time chasing a phantom double assignment.
+*   **Cause**: I ran `dart analyze` using the *System SDK* (`flutter/bin/dart`), which does not contain the `Socket2` APIs. Because `Socket2` was completely unresolved, `result.bytes` became `dynamic`, and Dart 3 strictly prohibits assigning `dynamic` to `int`.
+*   **Fix**: Recognized that standard Dart analyzer outputs will be messy for custom SDK integration paths unless explicitly running `dart analyze` using the custom-built `dart-sdk/bin/dart`. All "errors" vanished during the actual AOT compilation against the custom SDK once the `Uint8List` casts were corrected.
