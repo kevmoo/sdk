@@ -324,6 +324,26 @@ extension WasmV128Extension on WasmV128 {
 
 extension type const WasmI8x16(WasmV128 value) implements WasmV128 {
   @pragma("wasm:intrinsic")
+  external factory WasmI8x16.fromInts(
+    int l0,
+    int l1,
+    int l2,
+    int l3,
+    int l4,
+    int l5,
+    int l6,
+    int l7,
+    int l8,
+    int l9,
+    int l10,
+    int l11,
+    int l12,
+    int l13,
+    int l14,
+    int l15,
+  );
+
+  @pragma("wasm:intrinsic")
   external factory WasmI8x16.splat(WasmI32 value);
 
   @pragma("wasm:intrinsic")
@@ -346,6 +366,18 @@ extension type const WasmI8x16(WasmV128 value) implements WasmV128 {
 }
 
 extension type const WasmI16x8(WasmV128 value) implements WasmV128 {
+  @pragma("wasm:intrinsic")
+  external factory WasmI16x8.fromInts(
+    int l0,
+    int l1,
+    int l2,
+    int l3,
+    int l4,
+    int l5,
+    int l6,
+    int l7,
+  );
+
   @pragma("wasm:intrinsic")
   external factory WasmI16x8.splat(WasmI32 value);
 
@@ -375,6 +407,9 @@ extension type const WasmI16x8(WasmV128 value) implements WasmV128 {
 
 extension type const WasmI32x4(WasmV128 value) implements WasmV128 {
   @pragma("wasm:intrinsic")
+  external factory WasmI32x4.fromInts(int l0, int l1, int l2, int l3);
+
+  @pragma("wasm:intrinsic")
   external factory WasmI32x4.splat(WasmI32 value);
   @pragma("wasm:intrinsic")
   external WasmI32 extractLane(int index);
@@ -396,6 +431,9 @@ extension type const WasmI32x4(WasmV128 value) implements WasmV128 {
 }
 
 extension type const WasmI64x2(WasmV128 value) implements WasmV128 {
+  @pragma("wasm:intrinsic")
+  external factory WasmI64x2.fromInts(int l0, int l1);
+
   @pragma("wasm:intrinsic")
   external factory WasmI64x2.splat(WasmI64 value);
   @pragma("wasm:intrinsic")
@@ -420,6 +458,14 @@ extension type const WasmI64x2(WasmV128 value) implements WasmV128 {
 }
 
 extension type const WasmF32x4(WasmV128 value) implements WasmV128 {
+  @pragma("wasm:intrinsic")
+  external factory WasmF32x4.fromDoubles(
+    double l0,
+    double l1,
+    double l2,
+    double l3,
+  );
+
   @pragma("wasm:intrinsic")
   external factory WasmF32x4.fromLaneValues(
     WasmF32 lane0,
@@ -479,6 +525,9 @@ extension type const WasmF32x4(WasmV128 value) implements WasmV128 {
 }
 
 extension type const WasmF64x2(WasmV128 value) implements WasmV128 {
+  @pragma("wasm:intrinsic")
+  external factory WasmF64x2.fromDoubles(double l0, double l1);
+
   @pragma("wasm:intrinsic")
   external factory WasmF64x2.fromLaneValues(WasmF64 lane0, WasmF64 lane1);
   @pragma("wasm:intrinsic")

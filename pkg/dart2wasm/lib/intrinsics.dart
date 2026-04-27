@@ -354,6 +354,36 @@ enum StaticIntrinsic {
     null,
     'MemoryAccessExtension|storeFloat64',
   ),
+  wasmF64x2ConstructorFromDoubles(
+    'dart:_wasm',
+    null,
+    'WasmF64x2|constructor#fromDoubles',
+  ),
+  wasmF32x4ConstructorFromDoubles(
+    'dart:_wasm',
+    null,
+    'WasmF32x4|constructor#fromDoubles',
+  ),
+  wasmI64x2ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI64x2|constructor#fromInts',
+  ),
+  wasmI32x4ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI32x4|constructor#fromInts',
+  ),
+  wasmI16x8ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI16x8|constructor#fromInts',
+  ),
+  wasmI8x16ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI8x16|constructor#fromInts',
+  ),
   wasmMemoryStoreInt8('dart:_wasm', null, 'MemoryAccessExtension|storeInt8'),
   wasmMemoryStoreInt16('dart:_wasm', null, 'MemoryAccessExtension|storeInt16'),
   wasmMemoryStoreInt32('dart:_wasm', null, 'MemoryAccessExtension|storeInt32'),
@@ -1693,6 +1723,102 @@ class Intrinsifier {
         );
         b.f64x2_pmax();
         return w.NumType.v128;
+      case StaticIntrinsic.wasmF64x2ConstructorFromDoubles:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.f64,
+        );
+        b.f64x2_splat();
+        codeGen.translateExpression(
+          node.arguments.positional[1],
+          w.NumType.f64,
+        );
+        b.f64x2_replace_lane(1);
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmF32x4ConstructorFromDoubles:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.f32,
+        );
+        b.f32x4_splat();
+        codeGen.translateExpression(
+          node.arguments.positional[1],
+          w.NumType.f32,
+        );
+        b.f32x4_replace_lane(1);
+        codeGen.translateExpression(
+          node.arguments.positional[2],
+          w.NumType.f32,
+        );
+        b.f32x4_replace_lane(2);
+        codeGen.translateExpression(
+          node.arguments.positional[3],
+          w.NumType.f32,
+        );
+        b.f32x4_replace_lane(3);
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI64x2ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i64,
+        );
+        b.i64x2_splat();
+        codeGen.translateExpression(
+          node.arguments.positional[1],
+          w.NumType.i64,
+        );
+        b.i64x2_replace_lane(1);
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI32x4ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i32,
+        );
+        b.i32x4_splat();
+        codeGen.translateExpression(
+          node.arguments.positional[1],
+          w.NumType.i32,
+        );
+        b.i32x4_replace_lane(1);
+        codeGen.translateExpression(
+          node.arguments.positional[2],
+          w.NumType.i32,
+        );
+        b.i32x4_replace_lane(2);
+        codeGen.translateExpression(
+          node.arguments.positional[3],
+          w.NumType.i32,
+        );
+        b.i32x4_replace_lane(3);
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI16x8ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i32,
+        );
+        b.i16x8_splat();
+        for (int i = 1; i < 8; i++) {
+          codeGen.translateExpression(
+            node.arguments.positional[i],
+            w.NumType.i32,
+          );
+          b.i16x8_replace_lane(i);
+        }
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI8x16ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i32,
+        );
+        b.i8x16_splat();
+        for (int i = 1; i < 16; i++) {
+          codeGen.translateExpression(
+            node.arguments.positional[i],
+            w.NumType.i32,
+          );
+          b.i8x16_replace_lane(i);
+        }
+        return w.NumType.v128;
       case StaticIntrinsic.wasmF64x2ConstructorFromLaneValues:
         codeGen.translateExpression(
           node.arguments.positional[0],
@@ -2701,44 +2827,174 @@ class Intrinsifier {
       List<Expression> elements = value is ListLiteral
           ? value.expressions
           : value is ConstantExpression && value.constant is ListConstant
-              ? (value.constant as ListConstant)
-                  .entries
-                  .map(ConstantExpression.new)
-                  .toList()
-              : throw "WasmV128.literal argument is not a list literal"
-                  " at ${value.location}";
+          ? (value.constant as ListConstant).entries
+                .map(ConstantExpression.new)
+                .toList()
+          : throw "WasmV128 constructor argument is not a list literal"
+                " at ${value.location}";
+
+      Expression unwrap(Expression e, Class expectedClass) {
+        if (e is ConstructorInvocation &&
+            e.target.enclosingClass == expectedClass) {
+          return e.arguments.positional.single;
+        }
+        if (e is ConstantExpression) {
+          final c = e.constant;
+          if (c is InstanceConstant && c.classNode == expectedClass) {
+            return ConstantExpression(c.fieldValues.values.single);
+          }
+        }
+        return e;
+      }
 
       if (elements.length == 2) {
-        Expression e0 = elements[0];
-        Expression e1 = elements[1];
-
-        double? getDouble(Expression e) {
-          if (e is DoubleLiteral) return e.value;
-          if (e is ConstantExpression) {
-            final c = e.constant;
-            if (c is DoubleConstant) return c.value;
-            if (c is InstanceConstant &&
-                c.classNode == translator.wasmF64Class) {
-              return (c.fieldValues.values.single as DoubleConstant).value;
-            }
-          }
-          return null;
+        // F64x2 or I64x2
+        Expression u0 = unwrap(elements[0], translator.wasmF64Class);
+        Expression u1 = unwrap(elements[1], translator.wasmF64Class);
+        double? d0 = _extractDoubleValue(u0);
+        double? d1 = _extractDoubleValue(u1);
+        if (d0 != null && d1 != null) {
+          b.v128_const_f64x2(d0, d1);
+          return w.NumType.v128;
         }
-
-        double? l0 = getDouble(e0);
-        double? l1 = getDouble(e1);
-        if (l0 != null && l1 != null) {
-          b.v128_const_f64x2(l0, l1);
-        } else {
-          codeGen.translateExpression(e0, w.NumType.f64);
+        if (u0 != elements[0]) {
+          codeGen.translateExpression(u0, w.NumType.f64);
           b.f64x2_splat();
-          codeGen.translateExpression(e1, w.NumType.f64);
+          codeGen.translateExpression(u1, w.NumType.f64);
           b.f64x2_replace_lane(1);
+          return w.NumType.v128;
         }
-      } else {
-        throw "WasmV128.literal only supports 2 elements for now";
+
+        u0 = unwrap(elements[0], translator.wasmI64Class);
+        u1 = unwrap(elements[1], translator.wasmI64Class);
+        int? i0 = _extractIntValue(u0);
+        int? i1 = _extractIntValue(u1);
+        if (i0 != null && i1 != null) {
+          b.v128_const_i64x2(i0, i1);
+          return w.NumType.v128;
+        }
+        codeGen.translateExpression(u0, w.NumType.i64);
+        b.i64x2_splat();
+        codeGen.translateExpression(u1, w.NumType.i64);
+        b.i64x2_replace_lane(1);
+        return w.NumType.v128;
       }
-      return w.NumType.v128;
+
+      if (elements.length == 4) {
+        // F32x4 or I32x4
+        Expression u0 = unwrap(elements[0], translator.wasmF32Class);
+        Expression u1 = unwrap(elements[1], translator.wasmF32Class);
+        Expression u2 = unwrap(elements[2], translator.wasmF32Class);
+        Expression u3 = unwrap(elements[3], translator.wasmF32Class);
+        double? d0 = _extractDoubleValue(u0);
+        double? d1 = _extractDoubleValue(u1);
+        double? d2 = _extractDoubleValue(u2);
+        double? d3 = _extractDoubleValue(u3);
+        if (d0 != null && d1 != null && d2 != null && d3 != null) {
+          b.v128_const_f32x4(d0, d1, d2, d3);
+          return w.NumType.v128;
+        }
+        if (u0 != elements[0]) {
+          codeGen.translateExpression(u0, w.NumType.f32);
+          b.f32x4_splat();
+          codeGen.translateExpression(u1, w.NumType.f32);
+          b.f32x4_replace_lane(1);
+          codeGen.translateExpression(u2, w.NumType.f32);
+          b.f32x4_replace_lane(2);
+          codeGen.translateExpression(u3, w.NumType.f32);
+          b.f32x4_replace_lane(3);
+          return w.NumType.v128;
+        }
+
+        u0 = unwrap(elements[0], translator.wasmI32Class);
+        u1 = unwrap(elements[1], translator.wasmI32Class);
+        u2 = unwrap(elements[2], translator.wasmI32Class);
+        u3 = unwrap(elements[3], translator.wasmI32Class);
+        int? i0 = _extractIntValue(u0);
+        int? i1 = _extractIntValue(u1);
+        int? i2 = _extractIntValue(u2);
+        int? i3 = _extractIntValue(u3);
+        if (i0 != null && i1 != null && i2 != null && i3 != null) {
+          b.v128_const_i32x4(i0, i1, i2, i3);
+          return w.NumType.v128;
+        }
+        codeGen.translateExpression(u0, w.NumType.i32);
+        b.i32x4_splat();
+        codeGen.translateExpression(u1, w.NumType.i32);
+        b.i32x4_replace_lane(1);
+        codeGen.translateExpression(u2, w.NumType.i32);
+        b.i32x4_replace_lane(2);
+        codeGen.translateExpression(u3, w.NumType.i32);
+        b.i32x4_replace_lane(3);
+        return w.NumType.v128;
+      }
+
+      if (elements.length == 8) {
+        // I16x8
+        final values = elements
+            .map((e) => unwrap(e, translator.wasmI32Class))
+            .toList();
+        final ints = values.map(_extractIntValue).toList();
+        if (ints.every((i) => i != null)) {
+          b.v128_const_i16x8(
+            ints[0]!,
+            ints[1]!,
+            ints[2]!,
+            ints[3]!,
+            ints[4]!,
+            ints[5]!,
+            ints[6]!,
+            ints[7]!,
+          );
+          return w.NumType.v128;
+        }
+        codeGen.translateExpression(values[0], w.NumType.i32);
+        b.i16x8_splat();
+        for (int i = 1; i < 8; i++) {
+          codeGen.translateExpression(values[i], w.NumType.i32);
+          b.i16x8_replace_lane(i);
+        }
+        return w.NumType.v128;
+      }
+
+      if (elements.length == 16) {
+        // I8x16
+        final values = elements
+            .map((e) => unwrap(e, translator.wasmI32Class))
+            .toList();
+        final ints = values.map(_extractIntValue).toList();
+        if (ints.every((i) => i != null)) {
+          b.v128_const_i8x16(
+            ints[0]!,
+            ints[1]!,
+            ints[2]!,
+            ints[3]!,
+            ints[4]!,
+            ints[5]!,
+            ints[6]!,
+            ints[7]!,
+            ints[8]!,
+            ints[9]!,
+            ints[10]!,
+            ints[11]!,
+            ints[12]!,
+            ints[13]!,
+            ints[14]!,
+            ints[15]!,
+          );
+          return w.NumType.v128;
+        }
+        codeGen.translateExpression(values[0], w.NumType.i32);
+        b.i8x16_splat();
+        for (int i = 1; i < 16; i++) {
+          codeGen.translateExpression(values[i], w.NumType.i32);
+          b.i8x16_replace_lane(i);
+        }
+        return w.NumType.v128;
+      }
+
+      throw "WasmV128 constructor only supports 2, 4, 8, or 16 elements"
+          " at ${value.location}";
     }
 
     return null;
@@ -3485,6 +3741,21 @@ double? _extractDoubleValue(Expression expr) {
   if (expr is ConstantExpression) {
     final constant = expr.constant;
     if (constant is DoubleConstant) {
+      return constant.value;
+    }
+  }
+
+  return null;
+}
+
+int? _extractIntValue(Expression expr) {
+  if (expr is IntLiteral) {
+    return expr.value;
+  }
+
+  if (expr is ConstantExpression) {
+    final constant = expr.constant;
+    if (constant is IntConstant) {
       return constant.value;
     }
   }

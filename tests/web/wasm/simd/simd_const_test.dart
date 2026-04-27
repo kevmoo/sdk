@@ -83,7 +83,7 @@ void testF64x2Literal() {
   // Using runtime call to verify intrinsic generation for non-const arguments.
   final a = 3.3;
   final b = 4.4;
-  final v = WasmF64x2(WasmV128([WasmF64.fromDouble(a), WasmF64.fromDouble(b)]));
+  final v = WasmF64x2.fromDoubles(a, b);
   Expect.equals(3.3, v.extractLane(0).toDouble());
   Expect.equals(4.4, v.extractLane(1).toDouble());
 }

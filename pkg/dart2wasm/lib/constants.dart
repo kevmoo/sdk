@@ -672,7 +672,10 @@ class ConstantInstantiator extends ConstantVisitor<w.ValueType>
             byteData.setFloat64(i * 8, laneValue.value, Endian.little);
           } else {
             byteData.setFloat32(
-                i * 4, laneValue.value.toDouble(), Endian.little);
+              i * 4,
+              laneValue.value.toDouble(),
+              Endian.little,
+            );
           }
         } else if (laneValue is IntConstant) {
           if (elements.length == 2) {

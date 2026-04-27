@@ -218,5 +218,5 @@ void main() {
   Expect.equals(0.0, zeroWidth.aspectRatio); // 0.0 / 100.0 = 0.0
 }
 
-const _zeroF64x2 = WasmF64x2(WasmV128([0.0, 0.0]));
-const _halfF64x2 = WasmF64x2(WasmV128([0.5, 0.5]));
+const _zeroF64x2 = WasmF64x2(WasmV128([WasmF64(0.0), WasmF64(0.0)]));
+const _halfF64x2 = WasmF64x2(WasmV128([WasmF64(0.5), WasmF64(0.5)]));
