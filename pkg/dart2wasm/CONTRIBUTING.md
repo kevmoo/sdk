@@ -58,3 +58,23 @@ nothing).
 
 Always use the compiled SDK's `dart` binary for analysis and running tools to
 ensure you are testing against your local changes to `dart:_wasm`.
+
+### Manual Compilation (for Benchmarking)
+
+To see direct `stdout` from benchmarks or to manually inspect generated Wasm:
+
+```bash
+# Define configuration
+export CONF=ReleaseARM64 # or ReleaseX64
+
+# Compile
+./xcodebuild/$CONF/dart-sdk/bin/dart \
+  pkg/dart2wasm/bin/dart2wasm.dart \
+  --platform=xcodebuild/$CONF/dart2wasm_platform.dill \
+  --enable-experimental-wasm-interop \
+  path/to/benchmark.dart \
+  out.wasm
+
+# Run
+DART_CONFIGURATION=$CONF pkg/dart2wasm/tool/run_benchmark --d8 out.wasm
+```
