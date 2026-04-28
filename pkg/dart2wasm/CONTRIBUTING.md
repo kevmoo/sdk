@@ -64,10 +64,11 @@ ensure you are testing against your local changes to `dart:_wasm`.
 To see direct `stdout` from benchmarks or to manually inspect generated Wasm:
 
 ```bash
-# Define configuration
+# Define configuration (Note: on macOS, build.py uses xcodebuild/ by default)
 export CONF=ReleaseARM64 # or ReleaseX64
 
-# Compile
+# Compile using the dart2wasm.dart entrypoint directly to ensure 
+# your local changes to the compiler and dart:_wasm are picked up.
 ./xcodebuild/$CONF/dart-sdk/bin/dart \
   pkg/dart2wasm/bin/dart2wasm.dart \
   --platform=xcodebuild/$CONF/dart2wasm_platform.dill \
@@ -78,3 +79,10 @@ export CONF=ReleaseARM64 # or ReleaseX64
 # Run
 DART_CONFIGURATION=$CONF pkg/dart2wasm/tool/run_benchmark --d8 out.wasm
 ```
+
+## Common Stumbles
+
+1.  **`out/` vs `xcodebuild/`**: On macOS, the build script `tools/build.py` places artifacts in `xcodebuild/` by default. If you see an empty `out/` directory, check `xcodebuild/`.
+2.  **Raw Entrypoint**: Using `dart compile wasm` may use the pre-compiled AOT snapshot of the compiler. When developing compiler changes, **always** run the `pkg/dart2wasm/bin/dart2wasm.dart` source file using the built SDK's `dart` binary.
+3.  **Platform Dill**: The raw entrypoint requires an explicit `--platform` argument pointing to the `dart2wasm_platform.dill` file in your build directory.
+4.  **Interop Flag**: SIMD benchmarks often require `--enable-experimental-wasm-interop` (or `--extra-compiler-option=--enable-experimental-wasm-interop` if using higher-level tools) to bypass internal library checks.
