@@ -38,13 +38,14 @@ Our research into **Area 2 (Bulk Memory Interop)** revealed a critical performan
 3.  **The Bottleneck**: Crossing the `double` -> `WasmV128` boundary via `WasmF64x2.fromDoubles(list[i], list[i+1])` is the primary throttle. Each load from a `Float64List` involves scalar extraction and transient boxing before it can be packed into a SIMD register.
 4.  **Discovery: Scalar Penalty**: In a dedicated benchmark, accessing individual `double` elements from a `WasmArray<WasmV128>` (via `extractLane`) is **1.69x slower** than accessing them from a native `WasmArray<WasmF64>`. SIMD only wins when the complexity of the math (like inversion) outweighs the load/store cost.
 
-## Final Recommendation: Specializing `Float64List`
+## Final Recommendation: Specializing `Float64List` vs. Native Storage
 To unlock the 13x speedups in Flutter without sacrificing standard list compatibility:
-*   **Wasm-Native Storage**: We should explore backing `Float64List` with `WasmArray<WasmV128>` on `dart2wasm`.
-*   **The Trade-off**: Paying a ~1.7x penalty on scalar `list[i]` access is a massive net win if it enables the 10-13x speedups we've verified for `Matrix4` and `Rect` operations.
-*   **Alternative**: Implement a highly optimized `WasmArray<f64>` -> `WasmArray<v128>` bulk copy intrinsic to provide a fast "on-ramp" for SIMD math.
+1.  **Prefer Native Storage**: For `Matrix4`, `Offset`, and `Rect`, move to `WasmArray<WasmV128>` storage on Wasm. This achieves the **13x "Golden" gain**.
+2.  **Handle the Boundary**: Specializing the Wasm implementation of `dart:ui` to accept `v128` backed storage directly is the cleanest path for engine interop.
+3.  **Prioritize the Math Dividend**: The verified **1.7x scalar penalty** is a negligible cost compared to the **10x-13x math dividend** saved per frame.
 
-## Technical "Gotchas" for the Next Agent
+## Benchmark Suite Reference (`tests/web/wasm/simd/`)
+
 1.  **Shuffle Masks**: `shuffle(other, lanes)` **MUST** use a `const` list (e.g. `const [1, 0]`). Using a non-const literal will cause a `Invalid f64x2.shuffle` compiler crash.
 2.  **Constant Lowering**: `const` SIMD values (like `const WasmF64x2.fromDoubles(...)`) are verified to be lowered to `v128.const` instructions. Zero-cost identity matrices are possible!
 3.  **Precision**: `WasmF32x4` is ~2x faster than `WasmF64x2`. If Flutter can tolerate F32 for UI transforms, the gains move from "great" to "transformative."

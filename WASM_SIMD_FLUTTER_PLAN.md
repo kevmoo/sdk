@@ -18,13 +18,37 @@ Demonstrate significant, production-ready performance gains for `vector_math` an
 *   **Key Verification**: Ensure precision matches the scalar version across common Flutter transforms (translation, rotation, perspective).
 
 ## Area 2: Data Movement (Bulk Memory Interop)
-**Status**: The "Bridge" Problem
+**Status**: The "Bridge" Problem (Optional if using Native Storage)
 
 *   **Objective**: Minimize the overhead of loading data from `Float64List` into SIMD registers.
 *   **Method**: 
     *   Benchmark transformation of a `Float64List` containing 1,000 points.
-    *   **New Feature**: Investigate adding a `dart2wasm` intrinsic for direct `v128.load` from a `TypedData` backing buffer, bypassing the `list[i]` scalar extraction and boxing.
+    *   **New Feature**: Investigate adding a `dart2wasm` intrinsic for direct `v128.load` from a `TypedData` backing buffer.
 *   **Success Metric**: SIMD should be faster than scalar even when including the cost of loading/storing from a standard Dart list.
+*   **Shift in Strategy**: Our research indicates that we can achieve much higher gains (13x vs 2.45x) by **avoiding** `Float64List` entirely for core types like `Matrix4`.
+
+---
+
+## Architectural Strategy: Platform Abstraction
+
+To unlock maximum performance, we should move toward a platform-specialized implementation of `vector_math` (and related painting logic).
+
+### 1. Wasm-Native Storage
+*   **Approach**: Specialize `Matrix4`, `Offset`, and `Rect` to use `WasmArray<WasmV128>` as their primary storage on Wasm.
+*   **Benefit**: Math operations (multiplication, inversion, transformation) achieve their "Golden" **10x-13x speedup** because data never leaves the SIMD-optimized Wasm GC arrays.
+
+### 2. The "Interface Boundary" Challenge
+Many Flutter and Engine APIs (e.g., `Canvas.transform`, `SceneBuilder.pushTransform`) expect a `Float64List`.
+*   **Strategy A (Copy-on-Export)**: Provide a `.storage` getter that copies the `v128` data into a transient `Float64List`.
+*   **Strategy B (Engine Specialization)**: Update the Wasm implementation of `dart:ui` to accept Wasm-native SIMD storage directly, bypassing the `Float64List` requirement.
+*   **Strategy C (Vectorized List)**: Back the standard `Float64List` implementation on Wasm with `WasmArray<WasmV128>`.
+
+### 3. Performance Trade-off (The "Math Dividend")
+*   **The Loss**: Accessing a single `double` (e.g., `matrix.entry(0,0)`) sees a **1.69x slowdown** compared to native `f64` access.
+*   **The Win**: Core math operations see **10x-13x speedups**.
+*   **Conclusion**: In a rendering framework like Flutter, where math complexity vastly outweighs simple scalar property access, this is a massive net win. We should prioritize the **Math Dividend**.
+
+---
 
 ## Area 3: Layout Primitives (AABB & Bounding Boxes)
 **Status**: The "Bread & Butter" operations
