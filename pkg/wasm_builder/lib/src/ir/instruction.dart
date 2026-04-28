@@ -1628,22 +1628,21 @@ class MemoryOffsetAlign implements Serializable {
 
 abstract class MemoryInstruction extends Instruction {
   final MemoryOffsetAlign memory;
-  final int encoding;
 
-  MemoryInstruction(this.memory, {required this.encoding});
-
-  @override
-  void serialize(Serializer s) {
-    s.writeByte(encoding);
-    memory.serialize(s);
-  }
+  MemoryInstruction(this.memory);
 }
 
 class I32Load extends MemoryInstruction {
-  I32Load(super.memory) : super(encoding: 0x28);
+  I32Load(super.memory);
 
   static I32Load deserialize(Deserializer d, Memories memories) {
     return I32Load(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x28);
+    memory.serialize(s);
   }
 
   @override
@@ -1657,10 +1656,16 @@ class I32Load extends MemoryInstruction {
 }
 
 class I64Load extends MemoryInstruction {
-  I64Load(super.memory) : super(encoding: 0x29);
+  I64Load(super.memory);
 
   static I64Load deserialize(Deserializer d, Memories memories) {
     return I64Load(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x29);
+    memory.serialize(s);
   }
 
   @override
@@ -1674,10 +1679,16 @@ class I64Load extends MemoryInstruction {
 }
 
 class F32Load extends MemoryInstruction {
-  F32Load(super.memory) : super(encoding: 0x2A);
+  F32Load(super.memory);
 
   static F32Load deserialize(Deserializer d, Memories memories) {
     return F32Load(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x2A);
+    memory.serialize(s);
   }
 
   @override
@@ -1691,10 +1702,16 @@ class F32Load extends MemoryInstruction {
 }
 
 class F64Load extends MemoryInstruction {
-  F64Load(super.memory) : super(encoding: 0x2B);
+  F64Load(super.memory);
 
   static F64Load deserialize(Deserializer d, Memories memories) {
     return F64Load(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x2B);
+    memory.serialize(s);
   }
 
   @override
@@ -1708,10 +1725,16 @@ class F64Load extends MemoryInstruction {
 }
 
 class I32Load8S extends MemoryInstruction {
-  I32Load8S(super.memory) : super(encoding: 0x2C);
+  I32Load8S(super.memory);
 
   static I32Load8S deserialize(Deserializer d, Memories memories) {
     return I32Load8S(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x2C);
+    memory.serialize(s);
   }
 
   @override
@@ -1725,10 +1748,16 @@ class I32Load8S extends MemoryInstruction {
 }
 
 class I32Load8U extends MemoryInstruction {
-  I32Load8U(super.memory) : super(encoding: 0x2D);
+  I32Load8U(super.memory);
 
   static I32Load8U deserialize(Deserializer d, Memories memories) {
     return I32Load8U(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x2D);
+    memory.serialize(s);
   }
 
   @override
@@ -1742,10 +1771,16 @@ class I32Load8U extends MemoryInstruction {
 }
 
 class I32Load16S extends MemoryInstruction {
-  I32Load16S(super.memory) : super(encoding: 0x2E);
+  I32Load16S(super.memory);
 
   static I32Load16S deserialize(Deserializer d, Memories memories) {
     return I32Load16S(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x2E);
+    memory.serialize(s);
   }
 
   @override
@@ -1759,10 +1794,16 @@ class I32Load16S extends MemoryInstruction {
 }
 
 class I32Load16U extends MemoryInstruction {
-  I32Load16U(super.memory) : super(encoding: 0x2F);
+  I32Load16U(super.memory);
 
   static I32Load16U deserialize(Deserializer d, Memories memories) {
     return I32Load16U(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x2F);
+    memory.serialize(s);
   }
 
   @override
@@ -1776,10 +1817,16 @@ class I32Load16U extends MemoryInstruction {
 }
 
 class I64Load8S extends MemoryInstruction {
-  I64Load8S(super.memory) : super(encoding: 0x30);
+  I64Load8S(super.memory);
 
   static I64Load8S deserialize(Deserializer d, Memories memories) {
     return I64Load8S(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x30);
+    memory.serialize(s);
   }
 
   @override
@@ -1793,10 +1840,16 @@ class I64Load8S extends MemoryInstruction {
 }
 
 class I64Load8U extends MemoryInstruction {
-  I64Load8U(super.memory) : super(encoding: 0x31);
+  I64Load8U(super.memory);
 
   static I64Load8U deserialize(Deserializer d, Memories memories) {
     return I64Load8U(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x31);
+    memory.serialize(s);
   }
 
   @override
@@ -1810,10 +1863,16 @@ class I64Load8U extends MemoryInstruction {
 }
 
 class I64Load16S extends MemoryInstruction {
-  I64Load16S(super.memory) : super(encoding: 0x32);
+  I64Load16S(super.memory);
 
   static I64Load16S deserialize(Deserializer d, Memories memories) {
     return I64Load16S(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x32);
+    memory.serialize(s);
   }
 
   @override
@@ -1827,10 +1886,16 @@ class I64Load16S extends MemoryInstruction {
 }
 
 class I64Load16U extends MemoryInstruction {
-  I64Load16U(super.memory) : super(encoding: 0x33);
+  I64Load16U(super.memory);
 
   static I64Load16U deserialize(Deserializer d, Memories memories) {
     return I64Load16U(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x33);
+    memory.serialize(s);
   }
 
   @override
@@ -1844,10 +1909,16 @@ class I64Load16U extends MemoryInstruction {
 }
 
 class I64Load32S extends MemoryInstruction {
-  I64Load32S(super.memory) : super(encoding: 0x34);
+  I64Load32S(super.memory);
 
   static I64Load32S deserialize(Deserializer d, Memories memories) {
     return I64Load32S(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x34);
+    memory.serialize(s);
   }
 
   @override
@@ -1861,10 +1932,16 @@ class I64Load32S extends MemoryInstruction {
 }
 
 class I64Load32U extends MemoryInstruction {
-  I64Load32U(super.memory) : super(encoding: 0x35);
+  I64Load32U(super.memory);
 
   static I64Load32U deserialize(Deserializer d, Memories memories) {
     return I64Load32U(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x35);
+    memory.serialize(s);
   }
 
   @override
@@ -1877,11 +1954,37 @@ class I64Load32U extends MemoryInstruction {
   }
 }
 
+class V128Load extends MemoryInstruction {
+  V128Load(super.memory);
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0xFD);
+    s.writeUnsigned(0x00);
+    memory.serialize(s);
+  }
+
+  @override
+  String get name => 'v128.load';
+
+  @override
+  void printTo(IrPrinter p) {
+    p.write(name);
+    memory.printTo(p);
+  }
+}
+
 class I32Store extends MemoryInstruction {
-  I32Store(super.memory) : super(encoding: 0x36);
+  I32Store(super.memory);
 
   static I32Store deserialize(Deserializer d, Memories memories) {
     return I32Store(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x36);
+    memory.serialize(s);
   }
 
   @override
@@ -1895,10 +1998,16 @@ class I32Store extends MemoryInstruction {
 }
 
 class I64Store extends MemoryInstruction {
-  I64Store(super.memory) : super(encoding: 0x37);
+  I64Store(super.memory);
 
   static I64Store deserialize(Deserializer d, Memories memories) {
     return I64Store(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x37);
+    memory.serialize(s);
   }
 
   @override
@@ -1912,10 +2021,16 @@ class I64Store extends MemoryInstruction {
 }
 
 class F32Store extends MemoryInstruction {
-  F32Store(super.memory) : super(encoding: 0x38);
+  F32Store(super.memory);
 
   static F32Store deserialize(Deserializer d, Memories memories) {
     return F32Store(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x38);
+    memory.serialize(s);
   }
 
   @override
@@ -1929,10 +2044,16 @@ class F32Store extends MemoryInstruction {
 }
 
 class F64Store extends MemoryInstruction {
-  F64Store(super.memory) : super(encoding: 0x39);
+  F64Store(super.memory);
 
   static F64Store deserialize(Deserializer d, Memories memories) {
     return F64Store(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x39);
+    memory.serialize(s);
   }
 
   @override
@@ -1946,10 +2067,16 @@ class F64Store extends MemoryInstruction {
 }
 
 class I32Store8 extends MemoryInstruction {
-  I32Store8(super.memory) : super(encoding: 0x3A);
+  I32Store8(super.memory);
 
   static I32Store8 deserialize(Deserializer d, Memories memories) {
     return I32Store8(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x3A);
+    memory.serialize(s);
   }
 
   @override
@@ -1963,10 +2090,16 @@ class I32Store8 extends MemoryInstruction {
 }
 
 class I32Store16 extends MemoryInstruction {
-  I32Store16(super.memory) : super(encoding: 0x3B);
+  I32Store16(super.memory);
 
   static I32Store16 deserialize(Deserializer d, Memories memories) {
     return I32Store16(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x3B);
+    memory.serialize(s);
   }
 
   @override
@@ -1980,10 +2113,16 @@ class I32Store16 extends MemoryInstruction {
 }
 
 class I64Store8 extends MemoryInstruction {
-  I64Store8(super.memory) : super(encoding: 0x3C);
+  I64Store8(super.memory);
 
   static I64Store8 deserialize(Deserializer d, Memories memories) {
     return I64Store8(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x3C);
+    memory.serialize(s);
   }
 
   @override
@@ -1997,10 +2136,16 @@ class I64Store8 extends MemoryInstruction {
 }
 
 class I64Store16 extends MemoryInstruction {
-  I64Store16(super.memory) : super(encoding: 0x3D);
+  I64Store16(super.memory);
 
   static I64Store16 deserialize(Deserializer d, Memories memories) {
     return I64Store16(MemoryOffsetAlign.deserialize(d, memories));
+  }
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0x3D);
+    memory.serialize(s);
   }
 
   @override
@@ -2014,14 +2159,40 @@ class I64Store16 extends MemoryInstruction {
 }
 
 class I64Store32 extends MemoryInstruction {
-  I64Store32(super.memory) : super(encoding: 0x3E);
+  I64Store32(super.memory);
 
   static I64Store32 deserialize(Deserializer d, Memories memories) {
     return I64Store32(MemoryOffsetAlign.deserialize(d, memories));
   }
 
   @override
+  void serialize(Serializer s) {
+    s.writeByte(0x3E);
+    memory.serialize(s);
+  }
+
+  @override
   String get name => 'i64.store32';
+
+  @override
+  void printTo(IrPrinter p) {
+    p.write(name);
+    memory.printTo(p);
+  }
+}
+
+class V128Store extends MemoryInstruction {
+  V128Store(super.memory);
+
+  @override
+  void serialize(Serializer s) {
+    s.writeByte(0xFD);
+    s.writeUnsigned(0x0B);
+    memory.serialize(s);
+  }
+
+  @override
+  String get name => 'v128.store';
 
   @override
   void printTo(IrPrinter p) {

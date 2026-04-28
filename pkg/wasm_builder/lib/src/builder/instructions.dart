@@ -1375,6 +1375,42 @@ class InstructionsBuilder with Builder<ir.Instructions> {
     );
   }
 
+  /// Emit a `v128.load` instruction.
+  void v128_load(ir.Memory memory, int offset, [int align = 4]) {
+    assert(align >= 0 && align <= 4);
+    assert(
+      _verifyTypes(
+        const [ir.NumType.i32],
+        const [ir.NumType.v128],
+        trace: ['v128.load', memory.name, offset, align],
+      ),
+    );
+    _addMemoryInstruction(
+      ir.V128Load.new,
+      memory,
+      offset: offset,
+      align: align,
+    );
+  }
+
+  /// Emit a `v128.store` instruction.
+  void v128_store(ir.Memory memory, int offset, [int align = 4]) {
+    assert(align >= 0 && align <= 4);
+    assert(
+      _verifyTypes(
+        const [ir.NumType.i32, ir.NumType.v128],
+        const [],
+        trace: ['v128.store', memory.name, offset, align],
+      ),
+    );
+    _addMemoryInstruction(
+      ir.V128Store.new,
+      memory,
+      offset: offset,
+      align: align,
+    );
+  }
+
   /// Emit an `i32.store` instruction.
   void i32_store(ir.Memory memory, int offset, [int align = 2]) {
     assert(align >= 0 && align <= 2);

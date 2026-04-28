@@ -193,4 +193,15 @@ extension MemoryAccessExtension on Memory {
     int align = 0,
     int offset = 0,
   });
+
+  @pragma("wasm:intrinsic")
+  external WasmV128 loadV128(int address, {int align = 0, int offset = 0});
+
+  @pragma("wasm:intrinsic")
+  external void storeV128(
+    int address,
+    WasmV128 value, {
+    int align = 0,
+    int offset = 0,
+  });
 }

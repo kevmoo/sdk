@@ -363,6 +363,9 @@ extension type const WasmI8x16(WasmV128 value) implements WasmV128 {
 
   @pragma("wasm:intrinsic")
   external WasmI8x16 eq(WasmI8x16 other);
+
+  @pragma("wasm:intrinsic")
+  external WasmI8x16 shuffle(WasmI8x16 other, List<int> lanes);
 }
 
 extension type const WasmI16x8(WasmV128 value) implements WasmV128 {
@@ -403,6 +406,9 @@ extension type const WasmI16x8(WasmV128 value) implements WasmV128 {
 
   @pragma("wasm:intrinsic")
   external WasmI16x8 eq(WasmI16x8 other);
+
+  @pragma("wasm:intrinsic")
+  external WasmI16x8 shuffle(WasmI16x8 other, List<int> lanes);
 }
 
 extension type const WasmI32x4(WasmV128 value) implements WasmV128 {
@@ -428,6 +434,9 @@ extension type const WasmI32x4(WasmV128 value) implements WasmV128 {
 
   @pragma("wasm:intrinsic")
   external WasmI32x4 eq(WasmI32x4 other);
+
+  @pragma("wasm:intrinsic")
+  external WasmI32x4 shuffle(WasmI32x4 other, List<int> lanes);
 }
 
 extension type const WasmI64x2(WasmV128 value) implements WasmV128 {
@@ -522,6 +531,9 @@ extension type const WasmF32x4(WasmV128 value) implements WasmV128 {
 
   @pragma("wasm:intrinsic")
   external WasmI32x4 eq(WasmF32x4 other);
+
+  @pragma("wasm:intrinsic")
+  external WasmF32x4 shuffle(WasmF32x4 other, List<int> lanes);
 }
 
 extension type const WasmF64x2(WasmV128 value) implements WasmV128 {
