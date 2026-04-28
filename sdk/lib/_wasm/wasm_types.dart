@@ -599,6 +599,9 @@ extension type const WasmF64x2(WasmV128 value) implements WasmV128 {
 
   @pragma("wasm:intrinsic")
   external WasmF64x2 shuffle(WasmF64x2 other, List<int> lanes);
+
+  @pragma("wasm:intrinsic")
+  external WasmF64 dotProduct(WasmF64x2 other);
 }
 
 /// A Wasm array.
@@ -634,6 +637,16 @@ extension WasmArrayExt<T> on WasmArray<T> {
   external void fill(int offset, T value, int size);
   @pragma("wasm:intrinsic")
   external WasmArray<T> clone();
+}
+
+abstract class WasmSIMD {
+  @pragma("wasm:intrinsic")
+  external static void matrix4Multiply(
+      WasmArray<WasmV128> a, WasmArray<WasmV128> b, WasmArray<WasmV128> out);
+
+  @pragma("wasm:intrinsic")
+  external static void transformPoints(
+      WasmArray<WasmV128> points, WasmArray<WasmV128> matrix, WasmArray<WasmV128> out);
 }
 
 extension I8ArrayExt on WasmArray<WasmI8> {

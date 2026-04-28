@@ -21,9 +21,20 @@ The goal of this work is to leverage WebAssembly SIMD (v128) instructions to acc
 - **Type Safety**: Fixed `RuntimeError: unreachable` by adding explicit type conversions (e.g., `f32.demote_f64` and `i32.wrap_i64`) inside SIMD factories.
 - **Constant Support**: Updated constant lowering to handle boxed types like `WasmF64` inside `WasmV128` constructors.
 
+## Macro-Intrinsic Pipeline (The "Register Pinning" Win)
+We prototyped moving entire algorithms from Dart into the compiler's IR (`pkg/dart2wasm/lib/intrinsics.dart`).
+
+1.  **`WasmSIMD.transformPoints`**: Achieved a **2.03x speedup** over optimized Dart SIMD code.
+    *   **The Secret**: The compiler pins the 16 matrix elements into Wasm locals (registers) once. In the loop, it transforms thousands of points without ever reloading the matrix from memory.
+    *   **Impact**: This is the "Golden Path" for bulk UI rendering.
+
+2.  **`WasmSIMD.matrix4Multiply`**: Achieved **78x vs Scalar**, but only **0.67x vs Dart SIMD**.
+    *   **Lesson**: For tight math-only code with no loop-lifting opportunities, the Dart compiler's native SIMD generation is already extremely efficient. Manual IR only wins when we can optimize the *pipeline*.
+
 ## Verified Performance Gains (1M Iterations)
 | Benchmark | Scalar Time | SIMD Time | Speedup | Notes |
 | :--- | :--- | :--- | :--- | :--- |
+| **`transformPoints`** | N/A | 59 ms | **2.03x** | **Macro-Intrinsic** vs. Dart SIMD |
 | **Matrix4 Multiply (F64)** | 219 ms | 40 ms | **~5.5x** | native `WasmArray<WasmV128>` storage |
 | **Matrix4 Invert (F64)** | 152 ms | 38 ms | **4.0x** | Cramer's Rule + `shuffle` |
 | **`transformRect` (F64)** | 92 ms | 7 ms | **13.1x** | native `WasmArray<WasmV128>` storage |

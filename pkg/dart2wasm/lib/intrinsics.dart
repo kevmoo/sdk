@@ -109,7 +109,10 @@ enum StaticIntrinsic {
   wasmArrayCopy('dart:_wasm', null, 'WasmArrayExt|copy'),
   wasmArrayFill('dart:_wasm', null, 'WasmArrayExt|fill'),
   wasmArrayClone('dart:_wasm', null, 'WasmArrayExt|clone'),
+  wasmMatrix4Multiply('dart:_wasm', 'WasmSIMD', 'matrix4Multiply'),
+  wasmTransformPoints('dart:_wasm', 'WasmSIMD', 'transformPoints'),
   immutableWasmArrayNew('dart:_wasm', 'ImmutableWasmArray', ''),
+
   immutableWasmArrayFilled('dart:_wasm', 'ImmutableWasmArray', 'filled'),
   immutableWasmArrayIndex('dart:_wasm', null, 'ImmutableWasmArrayExt|[]'),
   i64ArrayExtRead('dart:_wasm', null, 'I64ArrayExt|read'),
@@ -272,6 +275,7 @@ enum StaticIntrinsic {
   wasmI32x4Shuffle('dart:_wasm', null, 'WasmI32x4|shuffle'),
   wasmF32x4Shuffle('dart:_wasm', null, 'WasmF32x4|shuffle'),
   wasmF64x2Shuffle('dart:_wasm', null, 'WasmF64x2|shuffle'),
+  wasmF64x2Dot('dart:_wasm', null, 'WasmF64x2|dotProduct'),
   wasmMemoryLoadV128('dart:_wasm', null, 'MemoryAccessExtension|loadV128'),
   wasmMemoryStoreV128('dart:_wasm', null, 'MemoryAccessExtension|storeV128'),
   wasmAnyRefFromObject('dart:_wasm', 'WasmAnyRef', 'fromObject'),
@@ -1887,6 +1891,261 @@ class Intrinsifier {
             .toList();
         b.i8x16_shuffle(bytes);
         return w.NumType.v128;
+      case StaticIntrinsic.wasmF64x2Dot:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.v128,
+        );
+        codeGen.translateExpression(
+          node.arguments.positional[1],
+          w.NumType.v128,
+        );
+        b.f64x2_mul();
+
+        // Horizontal add:
+        // Current stack: [mul_result]
+        final res = b.addLocal(w.NumType.v128);
+        b.local_tee(res);
+        // Stack: [mul_result]
+        
+        b.local_get(res);
+        b.local_get(res);
+        // Stack: [mul_result, mul_result, mul_result]
+
+        // Shuffle needs TWO operands on stack. 
+        // We use the same vector twice to shuffle lanes [1, 0] within the same vector.
+        b.i8x16_shuffle(const [
+          8, 9, 10, 11, 12, 13, 14, 15, // Lane 1
+          0, 1, 2, 3, 4, 5, 6, 7 // Lane 0
+        ]);
+        // i8x16_shuffle popped TWO mul_results and pushed swizzled_result.
+        // Stack: [mul_result, swizzled_result]
+
+        b.f64x2_add();
+        // f64x2_add popped two and pushed sum_vector.
+        // Stack: [sum_vector]
+
+        b.f64x2_extract_lane(0);
+        // Stack: [dot_product_double]
+        return w.NumType.f64;
+      case StaticIntrinsic.wasmMatrix4Multiply:
+        final dartWasmArrayType = dartTypeOf(node.arguments.positional.first);
+        final w.ArrayType arrayType =
+            (translator.translateType(dartWasmArrayType) as w.RefType).heapType
+                as w.ArrayType;
+
+        final aExpr = node.arguments.positional[0];
+        final bExpr = node.arguments.positional[1];
+        final outExpr = node.arguments.positional[2];
+
+        final arrayRefType = w.RefType.def(arrayType, nullable: false);
+        final aLocal = b.addLocal(arrayRefType);
+        final bLocal = b.addLocal(arrayRefType);
+        final outLocal = b.addLocal(arrayRefType);
+
+        codeGen.translateExpression(aExpr, arrayRefType);
+        b.local_set(aLocal);
+        codeGen.translateExpression(bExpr, arrayRefType);
+        b.local_set(bLocal);
+        codeGen.translateExpression(outExpr, arrayRefType);
+        b.local_set(outLocal);
+
+        // Matrix A columns: (al0, ah0), (al1, ah1), (al2, ah2), (al3, ah3)
+        final al = List.generate(4, (_) => b.addLocal(w.NumType.v128));
+        final ah = List.generate(4, (_) => b.addLocal(w.NumType.v128));
+
+        for (int i = 0; i < 4; i++) {
+          b.local_get(aLocal);
+          b.i32_const(i * 2);
+          b.array_get(arrayType);
+          b.local_set(al[i]);
+          b.local_get(aLocal);
+          b.i32_const(i * 2 + 1);
+          b.array_get(arrayType);
+          b.local_set(ah[i]);
+        }
+
+        for (int j = 0; j < 4; j++) {
+          // Load Col j of B
+          final bl = b.addLocal(w.NumType.v128);
+          final bh = b.addLocal(w.NumType.v128);
+          b.local_get(bLocal);
+          b.i32_const(j * 2);
+          b.array_get(arrayType);
+          b.local_set(bl);
+          b.local_get(bLocal);
+          b.i32_const(j * 2 + 1);
+          b.array_get(arrayType);
+          b.local_set(bh);
+
+          void emitPart(bool high) {
+            final a = high ? ah : al;
+
+            // term 0: a[0] * splat(bl[0])
+            b.local_get(a[0]);
+            b.local_get(bl);
+            b.f64x2_extract_lane(0);
+            b.f64x2_splat();
+            b.f64x2_mul();
+
+            // term 1: a[1] * splat(bl[1])
+            b.local_get(a[1]);
+            b.local_get(bl);
+            b.f64x2_extract_lane(1);
+            b.f64x2_splat();
+            b.f64x2_mul();
+            b.f64x2_add();
+
+            // term 2: a[2] * splat(bh[0])
+            b.local_get(a[2]);
+            b.local_get(bh);
+            b.f64x2_extract_lane(0);
+            b.f64x2_splat();
+            b.f64x2_mul();
+            b.f64x2_add();
+
+            // term 3: a[3] * splat(bh[1])
+            b.local_get(a[3]);
+            b.local_get(bh);
+            b.f64x2_extract_lane(1);
+            b.f64x2_splat();
+            b.f64x2_mul();
+            b.f64x2_add();
+
+            // Store
+            final resV = b.addLocal(w.NumType.v128);
+            b.local_set(resV);
+            b.local_get(outLocal);
+            b.i32_const(j * 2 + (high ? 1 : 0));
+            b.local_get(resV);
+            b.array_set(arrayType);
+          }
+
+          emitPart(false);
+          emitPart(true);
+        }
+        return codeGen.voidMarker;
+      case StaticIntrinsic.wasmTransformPoints:
+        final dartWasmArrayType =
+            dartTypeOf(node.arguments.positional.first) as InterfaceType;
+        final w.ArrayType arrayType =
+            (translator.translateType(dartWasmArrayType) as w.RefType).heapType
+                as w.ArrayType;
+
+        final pointsExpr = node.arguments.positional[0];
+        final matrixExpr = node.arguments.positional[1];
+        final outExpr = node.arguments.positional[2];
+
+        final arrayRefType = w.RefType.def(arrayType, nullable: false);
+        final pointsLocal = b.addLocal(arrayRefType);
+        final matrixLocal = b.addLocal(arrayRefType);
+        final outLocal = b.addLocal(arrayRefType);
+
+        codeGen.translateExpression(pointsExpr, arrayRefType);
+        b.local_set(pointsLocal);
+        codeGen.translateExpression(matrixExpr, arrayRefType);
+        b.local_set(matrixLocal);
+        codeGen.translateExpression(outExpr, arrayRefType);
+        b.local_set(outLocal);
+
+        // Load Matrix columns once
+        final ml = List.generate(4, (_) => b.addLocal(w.NumType.v128));
+        final mh = List.generate(4, (_) => b.addLocal(w.NumType.v128));
+        for (int i = 0; i < 4; i++) {
+          b.local_get(matrixLocal);
+          b.i32_const(i * 2);
+          b.array_get(arrayType);
+          b.local_set(ml[i]);
+          b.local_get(matrixLocal);
+          b.i32_const(i * 2 + 1);
+          b.array_get(arrayType);
+          b.local_set(mh[i]);
+        }
+
+        // Loop over points
+        final i = b.addLocal(w.NumType.i32);
+        final len = b.addLocal(w.NumType.i32);
+        b.local_get(pointsLocal);
+        b.array_len();
+        b.local_set(len);
+        b.i32_const(0);
+        b.local_set(i);
+
+        final loopLabel = b.loop(const []);
+        b.local_get(i);
+        b.local_get(len);
+        b.i32_lt_u();
+        b.if_();
+
+        // Load point (low, high)
+        final pl = b.addLocal(w.NumType.v128);
+        final ph = b.addLocal(w.NumType.v128);
+        b.local_get(pointsLocal);
+        b.local_get(i);
+        b.array_get(arrayType);
+        b.local_set(pl);
+        b.local_get(pointsLocal);
+        b.local_get(i);
+        b.i32_const(1);
+        b.i32_add();
+        b.array_get(arrayType);
+        b.local_set(ph);
+
+        void emitTransformPart(bool high) {
+          final m = high ? mh : ml;
+          
+          b.local_get(m[0]);
+          b.local_get(pl);
+          b.f64x2_extract_lane(0);
+          b.f64x2_splat();
+          b.f64x2_mul();
+
+          b.local_get(m[1]);
+          b.local_get(pl);
+          b.f64x2_extract_lane(1);
+          b.f64x2_splat();
+          b.f64x2_mul();
+          b.f64x2_add();
+
+          b.local_get(m[2]);
+          b.local_get(ph);
+          b.f64x2_extract_lane(0);
+          b.f64x2_splat();
+          b.f64x2_mul();
+          b.f64x2_add();
+
+          b.local_get(m[3]);
+          b.local_get(ph);
+          b.f64x2_extract_lane(1);
+          b.f64x2_splat();
+          b.f64x2_mul();
+          b.f64x2_add();
+
+          final res = b.addLocal(w.NumType.v128);
+          b.local_set(res);
+          b.local_get(outLocal);
+          b.local_get(i);
+          if (high) {
+            b.i32_const(1);
+            b.i32_add();
+          }
+          b.local_get(res);
+          b.array_set(arrayType);
+        }
+
+        emitTransformPart(false);
+        emitTransformPart(true);
+
+        // Increment i by 2
+        b.local_get(i);
+        b.i32_const(2);
+        b.i32_add();
+        b.local_set(i);
+        b.br(loopLabel);
+        b.end(); // if
+        b.end(); // loop
+        
+        return codeGen.voidMarker;
       case StaticIntrinsic.wasmF32x4Shuffle:
       case StaticIntrinsic.wasmI32x4Shuffle:
         codeGen.translateExpression(
