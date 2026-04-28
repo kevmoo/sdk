@@ -35,7 +35,7 @@ To unlock maximum performance, we should move toward a platform-specialized impl
 
 ### 1. Wasm-Native Storage
 *   **Approach**: Specialize `Matrix4`, `Offset`, and `Rect` to use `WasmArray<WasmV128>` as their primary storage on Wasm.
-*   **Benefit**: Math operations (multiplication, inversion, transformation) achieve their "Golden" **10x-13x speedup** because data never leaves the SIMD-optimized Wasm GC arrays.
+*   **Benefit**: Math operations (multiplication, inversion, transformation) achieve their "Golden" **10x-13x speedup** because data never leaves the SIMD-optimized Wasm GC arrays. *(Note: This massive speedup is actually a combination of ~1.5x-2.7x from the SIMD instructions themselves, and a ~3.5x-4x speedup from shedding `Float64List` abstraction overhead by using raw unboxed memory).*
 
 ### 2. The "Interface Boundary" Challenge
 Many Flutter and Engine APIs (e.g., `Canvas.transform`, `SceneBuilder.pushTransform`) expect a `Float64List`.

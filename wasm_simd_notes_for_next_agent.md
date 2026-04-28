@@ -42,6 +42,13 @@ We prototyped moving entire algorithms from Dart into the compiler's IR (`pkg/da
 | **Scalar Access** | 7.2 ns | 12.2 ns | **0.59x** | **Penalty**: `extractLane` vs native `f64` load |
 
 ## Deep Dive: The "Boxing Trap" & Memory Interop
+
+### The "Fair Benchmark" Discovery
+A reviewer noted that a 5.5x speedup for a 2-wide SIMD instruction (F64x2) is mathematically impossible (max theoretical is 2x). We implemented a "Fair Benchmark" comparing `WasmArray<WasmV128>` directly against `WasmArray<WasmF64>` to isolate the SIMD instructions from the memory storage improvements.
+*   **F64x2 (2-wide)** provides a true **1.57x** speedup over the fair scalar equivalent.
+*   **F32x4 (4-wide)** provides a true **2.75x** speedup over the fair scalar equivalent.
+*   The remaining "speedup" (to reach 5.5x or 13x) is entirely due to the performance dividend of shedding `Float64List` abstraction overhead (bounds checks, offset math, virtual dispatch) by compiling down to raw `array.get` and `array.set` Wasm instructions.
+
 Our research into **Area 2 (Bulk Memory Interop)** revealed a critical performance ceiling:
 
 1.  **Storage Specialization**: `WasmArray<WasmV128>` is correctly specialized in the compiler. It uses the primitive `v128` Wasm type for elements (no pointers/references in the heap).

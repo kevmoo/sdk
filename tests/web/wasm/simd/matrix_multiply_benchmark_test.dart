@@ -23,6 +23,16 @@ void main() {
     b[i] = (16 - i).toDouble() * 0.1;
   }
 
+  // Wasm-side storage (Fair Scalar)
+  final aFair = WasmArray<WasmF64>(16);
+  final bFair = WasmArray<WasmF64>(16);
+  final outFair = WasmArray<WasmF64>(16);
+
+  for (int i = 0; i < 16; i++) {
+    aFair[i] = WasmF64.fromDouble(a[i]);
+    bFair[i] = WasmF64.fromDouble(b[i]);
+  }
+
   // Wasm-side storage (F64)
   final aSimd64 = WasmArray<WasmV128>(8);
   final bSimd64 = WasmArray<WasmV128>(8);
@@ -56,6 +66,7 @@ void main() {
   print("Warming up...");
   for (int i = 0; i < 1000; i++) {
     multiplyScalar(a, b, out);
+    multiplyScalarFair(aFair, bFair, outFair);
     multiplySimdF64x2(aSimd64, bSimd64, outSimd64);
     multiplySimdF32x4(aSimd32, bSimd32, outSimd32);
   }
@@ -68,6 +79,17 @@ void main() {
   sw.stop();
   final scalarTime = sw.elapsedMicroseconds;
   print("Scalar Time: ${scalarTime / 1000} ms");
+
+  print("Starting Fair Scalar Benchmark ($iterations iterations)...");
+  sw
+    ..reset()
+    ..start();
+  for (int i = 0; i < iterations; i++) {
+    multiplyScalarFair(aFair, bFair, outFair);
+  }
+  sw.stop();
+  final fairTime = sw.elapsedMicroseconds;
+  print("Fair Scalar Time: ${fairTime / 1000} ms");
 
   print("Starting SIMD F64x2 Benchmark ($iterations iterations)...");
   sw
@@ -91,12 +113,23 @@ void main() {
   final simd32Time = sw.elapsedMicroseconds;
   print("SIMD F32x4 Time: ${simd32Time / 1000} ms");
 
-  print("F64 Speedup: ${(scalarTime / simd64Time).toStringAsFixed(2)}x");
-  print("F32 Speedup: ${(scalarTime / simd32Time).toStringAsFixed(2)}x");
+  print(
+    "F64 Speedup vs Scalar: ${(scalarTime / simd64Time).toStringAsFixed(2)}x",
+  );
+  print("F64 Speedup vs Fair: ${(fairTime / simd64Time).toStringAsFixed(2)}x");
+  print(
+    "F32 Speedup vs Scalar: ${(scalarTime / simd32Time).toStringAsFixed(2)}x",
+  );
+  print("F32 Speedup vs Fair: ${(fairTime / simd32Time).toStringAsFixed(2)}x");
 
   // Verification
   final expected = Float64List(16);
   multiplyScalar(a, b, expected);
+
+  // Verify Fair
+  for (int i = 0; i < 16; i++) {
+    Expect.approxEquals(expected[i], outFair[i].toDouble());
+  }
 
   // Verify F64
   for (int i = 0; i < 8; i++) {
@@ -134,6 +167,43 @@ void multiplyScalar(Float64List a, Float64List b, Float64List out) {
     out[j4 + 1] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
     out[j4 + 2] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
     out[j4 + 3] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+  }
+}
+
+@pragma("wasm:prefer-inline")
+void multiplyScalarFair(
+  WasmArray<WasmF64> a,
+  WasmArray<WasmF64> b,
+  WasmArray<WasmF64> out,
+) {
+  final double a00 = a[0].toDouble(),
+      a01 = a[1].toDouble(),
+      a02 = a[2].toDouble(),
+      a03 = a[3].toDouble();
+  final double a10 = a[4].toDouble(),
+      a11 = a[5].toDouble(),
+      a12 = a[6].toDouble(),
+      a13 = a[7].toDouble();
+  final double a20 = a[8].toDouble(),
+      a21 = a[9].toDouble(),
+      a22 = a[10].toDouble(),
+      a23 = a[11].toDouble();
+  final double a30 = a[12].toDouble(),
+      a31 = a[13].toDouble(),
+      a32 = a[14].toDouble(),
+      a33 = a[15].toDouble();
+
+  for (int j = 0; j < 4; j++) {
+    final int j4 = j * 4;
+    final double b0 = b[j4 + 0].toDouble();
+    final double b1 = b[j4 + 1].toDouble();
+    final double b2 = b[j4 + 2].toDouble();
+    final double b3 = b[j4 + 3].toDouble();
+
+    out[j4 + 0] = WasmF64.fromDouble(a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3);
+    out[j4 + 1] = WasmF64.fromDouble(a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3);
+    out[j4 + 2] = WasmF64.fromDouble(a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3);
+    out[j4 + 3] = WasmF64.fromDouble(a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3);
   }
 }
 
