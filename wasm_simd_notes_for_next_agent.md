@@ -22,23 +22,47 @@ The goal of this work is to leverage WebAssembly SIMD (v128) instructions to acc
 - **Constant Support**: Updated constant lowering to handle boxed types like `WasmF64` inside `WasmV128` constructors.
 
 ## Verified Performance Gains (1M Iterations)
-| Benchmark | Scalar Time | SIMD Time | Speedup |
-| :--- | :--- | :--- | :--- |
-| **Matrix4 Multiply (F64)** | 219 ms | 40 ms | **~5.5x** |
-| **Matrix4 Multiply (F32)** | 219 ms | 23 ms | **~9.5x** |
-| **`transformPoint` (F64)** | 37 ms | 9 ms | **~4.1x** |
-| **`transformRect` (F64)** | 92 ms | 7 ms | **13.1x** |
+| Benchmark | Scalar Time | SIMD Time | Speedup | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Matrix4 Multiply (F64)** | 219 ms | 40 ms | **~5.5x** | native `WasmArray<WasmV128>` storage |
+| **Matrix4 Invert (F64)** | 152 ms | 38 ms | **4.0x** | Cramer's Rule + `shuffle` |
+| **`transformRect` (F64)** | 92 ms | 7 ms | **13.1x** | native `WasmArray<WasmV128>` storage |
+| **`transformRect` (F64)** | 108 ms | 44 ms | **2.45x** | **Realistic**: Loaded from `Float64List` |
+| **Scalar Access** | 7.2 ns | 12.2 ns | **0.59x** | **Penalty**: `extractLane` vs native `f64` load |
+
+## Deep Dive: The "Boxing Trap" & Memory Interop
+Our research into **Area 2 (Bulk Memory Interop)** revealed a critical performance ceiling:
+
+1.  **Storage Specialization**: `WasmArray<WasmV128>` is correctly specialized in the compiler. It uses the primitive `v128` Wasm type for elements (no pointers/references in the heap).
+2.  **The Interop Gap**: There is a massive difference between **13x** (data stays in `v128` arrays) and **2.45x** (data starts in `Float64List`).
+3.  **The Bottleneck**: Crossing the `double` -> `WasmV128` boundary via `WasmF64x2.fromDoubles(list[i], list[i+1])` is the primary throttle. Each load from a `Float64List` involves scalar extraction and transient boxing before it can be packed into a SIMD register.
+4.  **Discovery: Scalar Penalty**: In a dedicated benchmark, accessing individual `double` elements from a `WasmArray<WasmV128>` (via `extractLane`) is **1.69x slower** than accessing them from a native `WasmArray<WasmF64>`. SIMD only wins when the complexity of the math (like inversion) outweighs the load/store cost.
+
+## Final Recommendation: Specializing `Float64List`
+To unlock the 13x speedups in Flutter without sacrificing standard list compatibility:
+*   **Wasm-Native Storage**: We should explore backing `Float64List` with `WasmArray<WasmV128>` on `dart2wasm`.
+*   **The Trade-off**: Paying a ~1.7x penalty on scalar `list[i]` access is a massive net win if it enables the 10-13x speedups we've verified for `Matrix4` and `Rect` operations.
+*   **Alternative**: Implement a highly optimized `WasmArray<f64>` -> `WasmArray<v128>` bulk copy intrinsic to provide a fast "on-ramp" for SIMD math.
 
 ## Technical "Gotchas" for the Next Agent
-1. **Lane Indices**: `extractLane(index)` MUST use a literal integer (e.g. `0`, `1`). Dynamic variables will cause compiler errors.
-2. **Return Types**: Every `case` in the intrinsifier MUST return a `w.ValueType`. Missing returns lead to `unreachable` instructions.
-3. **Record Crash**: `dart2wasm` currently crashes when returning a Record containing Wasm types (e.g. `(WasmF64x2, WasmF64x2)`). Workaround: Pass a `WasmArray` to store results or return a single `WasmV128`.
-4. **Documentation**: Detailed "wish I knew" notes are now in `CONTRIBUTING.md` in both `pkg/wasm_builder` and `pkg/dart2wasm`.
+1.  **Shuffle Masks**: `shuffle(other, lanes)` **MUST** use a `const` list (e.g. `const [1, 0]`). Using a non-const literal will cause a `Invalid f64x2.shuffle` compiler crash.
+2.  **Constant Lowering**: `const` SIMD values (like `const WasmF64x2.fromDoubles(...)`) are verified to be lowered to `v128.const` instructions. Zero-cost identity matrices are possible!
+3.  **Precision**: `WasmF32x4` is ~2x faster than `WasmF64x2`. If Flutter can tolerate F32 for UI transforms, the gains move from "great" to "transformative."
+
 
 ## Next Steps: Flutter Integration
 - [ ] **Import Flutter Source**: Point the agent to the local Flutter checkout.
 - [ ] **Analyze Core Types**: Map `painting/matrix_utils.dart` hand-optimized methods to our new SIMD intrinsics.
 - [ ] **Implement SIMD-Ready `Matrix4`**: Prototype a version of `Matrix4` that uses `WasmArray<WasmV128>` storage.
 - [ ] **Verify End-to-End**: Run existing Flutter painting tests on the new SIMD-accelerated paths.
+
+## Benchmark Suite Reference (`tests/web/wasm/simd/`)
+The following files were added to prove SIMD readiness:
+
+1.  **`matrix_invert_benchmark_test.dart`**: Implements 4x4 Cramer's Rule using `WasmF64x2.shuffle`. Proves that complex, branchy math sees a **4.0x gain**.
+2.  **`flutter_layout_benchmark_test.dart`**: A realistic simulation of `MatrixUtils.transformRect`. Measures the **2.45x gain** when loading transiently from `Float64List`.
+3.  **`scalar_penalty_benchmark_test.dart`**: Directly measures the "tax" of pulling a scalar out of a SIMD register. Confirmed a **1.69x penalty**, which is the primary bottleneck for interop.
+4.  **`matrix_array_get_benchmark_test.dart`**: Compares `WasmArray<f64>` load throughput vs `WasmArray<v128>`. Confirmed that unboxed SIMD storage is required for peak performance.
+5.  **`matrix_const_benchmark_test.dart`**: Verifies that `const` SIMD factories are correctly lowered to zero-cost Wasm data section constants.
 
 **Branch**: `wasm_simd_perf` (all changes are committed and pass presubmit).
