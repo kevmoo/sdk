@@ -283,7 +283,7 @@ class WasmF64 extends _WasmBase {
 
 /// The Wasm `v128` type.
 @pragma("wasm:entry-point")
-class WasmV128 extends _WasmBase {
+final class WasmV128 extends _WasmBase {
   @pragma('wasm:entry-point')
   final List<Object> _value;
 
