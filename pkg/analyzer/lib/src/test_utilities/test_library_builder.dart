@@ -798,7 +798,7 @@ class _ParsedFunctionType implements _ParsedType {
     formalParameters.createFragments();
     formalParameters.resolve(functionScope);
 
-    return FunctionTypeImpl.v2(
+    return FunctionTypeImpl(
       returnType: returnType.materialize(functionScope),
       typeParameters: typeParameters.elements,
       formalParameters: formalParameters.elements,

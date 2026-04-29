@@ -121,6 +121,7 @@ class EnclosingExecutableContext {
   /// `Future<T>.catchError`'s `onError` parameter, which is `FutureOr<T>`,
   /// otherwise `null`.
   final InterfaceTypeImpl? catchErrorOnErrorReturnType;
+  final InterfaceTypeImpl? thenOnErrorReturnType;
 
   /// The return statements that have a value.
   final List<ReturnStatement> _returnsWith = [];
@@ -140,6 +141,7 @@ class EnclosingExecutableContext {
     required this.isAsynchronous,
     required this.isGenerator,
     this.catchErrorOnErrorReturnType,
+    this.thenOnErrorReturnType,
   }) : isConstConstructor =
            element is InternalConstructorElement && element.isConst,
        isGenerativeConstructor =
@@ -173,7 +175,9 @@ class EnclosingExecutableContext {
   bool get isSynchronous => !isAsynchronous;
 
   TypeImpl get returnType {
-    return catchErrorOnErrorReturnType ?? element!.returnType;
+    return catchErrorOnErrorReturnType ??
+        thenOnErrorReturnType ??
+        element!.returnType;
   }
 
   static bool _inFactoryConstructor(Element? element) {

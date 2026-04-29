@@ -14610,6 +14610,27 @@ returnOfInvalidTypeFromMethod = DiagnosticWithArguments(
 );
 
 /// Parameters:
+/// Type actualType: the return type as declared in the return statement
+/// Type expectedType: the expected return type as defined by the type of the
+///                    Future
+const DiagnosticWithArguments<
+  LocatableDiagnostic Function({
+    required DartType actualType,
+    required DartType expectedType,
+  })
+>
+returnOfInvalidTypeFromThen = DiagnosticWithArguments(
+  name: 'invalid_return_type_for_then',
+  problemMessage:
+      "A value of type '{0}' can't be returned by the 'onError' handler because "
+      "it must be assignable to '{1}', as required by 'Future.then'.",
+  type: DiagnosticType.STATIC_WARNING,
+  uniqueName: 'return_of_invalid_type_from_then',
+  withArguments: _withArgumentsReturnOfInvalidTypeFromThen,
+  expectedTypes: [ExpectedType.type, ExpectedType.type],
+);
+
+/// Parameters:
 /// Type actualType: the return type of the function
 /// Type expectedType: the expected return type as defined by the type of the
 ///                    Future
@@ -14628,6 +14649,27 @@ returnTypeInvalidForCatchError = DiagnosticWithArguments(
   type: DiagnosticType.STATIC_WARNING,
   uniqueName: 'return_type_invalid_for_catch_error',
   withArguments: _withArgumentsReturnTypeInvalidForCatchError,
+  expectedTypes: [ExpectedType.type, ExpectedType.type],
+);
+
+/// Parameters:
+/// Type actualType: the return type of the function
+/// Type expectedType: the expected return type as defined by the type of the
+///                    Future
+const DiagnosticWithArguments<
+  LocatableDiagnostic Function({
+    required DartType actualType,
+    required DartType expectedType,
+  })
+>
+returnTypeInvalidForThen = DiagnosticWithArguments(
+  name: 'invalid_return_type_for_then',
+  problemMessage:
+      "The return type '{0}' isn't assignable to '{1}', as required by "
+      "'Future.then'.",
+  type: DiagnosticType.STATIC_WARNING,
+  uniqueName: 'return_type_invalid_for_then',
+  withArguments: _withArgumentsReturnTypeInvalidForThen,
   expectedTypes: [ExpectedType.type, ExpectedType.type],
 );
 
@@ -21065,11 +21107,31 @@ LocatableDiagnostic _withArgumentsReturnOfInvalidTypeFromMethod({
   ]);
 }
 
+LocatableDiagnostic _withArgumentsReturnOfInvalidTypeFromThen({
+  required DartType actualType,
+  required DartType expectedType,
+}) {
+  return LocatableDiagnosticImpl(diag.returnOfInvalidTypeFromThen, [
+    actualType,
+    expectedType,
+  ]);
+}
+
 LocatableDiagnostic _withArgumentsReturnTypeInvalidForCatchError({
   required DartType actualType,
   required DartType expectedType,
 }) {
   return LocatableDiagnosticImpl(diag.returnTypeInvalidForCatchError, [
+    actualType,
+    expectedType,
+  ]);
+}
+
+LocatableDiagnostic _withArgumentsReturnTypeInvalidForThen({
+  required DartType actualType,
+  required DartType expectedType,
+}) {
+  return LocatableDiagnosticImpl(diag.returnTypeInvalidForThen, [
     actualType,
     expectedType,
   ]);

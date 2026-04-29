@@ -66,7 +66,7 @@ class Linker {
   /// Libraries that are being linked.
   final Map<Uri, LibraryBuilder> builders = {};
 
-  final Map<Object, ast.AstNode> elementNodes = Map.identity();
+  final Map<FragmentImpl, ast.AstNode> _fragmentNodes = Map.identity();
 
   final Map<ast.FormalParameterImpl, DeclaringFormalParameterInfo>
   declaringFormalParameters = Map.identity();
@@ -96,13 +96,7 @@ class Linker {
   /// If the [fragment] is part of a library being linked, return the node
   /// from which it was created.
   ast.AstNode? getLinkingNode(FragmentImpl fragment) {
-    return elementNodes[fragment];
-  }
-
-  /// If the [fragment] is part of a library being linked, return the node
-  /// from which it was created.
-  ast.AstNode? getLinkingNode2(Fragment fragment) {
-    return elementNodes[fragment];
+    return _fragmentNodes[fragment];
   }
 
   bool isLinkingElement(Element element) {
@@ -130,6 +124,11 @@ class Linker {
     performance.run('writeLibraries', (performance) {
       _writeLibraries(performance: performance);
     });
+  }
+
+  void setFragmentNode(FragmentImpl fragment, ast.AstNode node) {
+    assert(!_fragmentNodes.containsKey(fragment));
+    _fragmentNodes[fragment] = node;
   }
 
   void _buildClassSyntheticConstructors() {

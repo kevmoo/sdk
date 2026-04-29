@@ -21,7 +21,6 @@ class BoxedInt {
   String toString() => _jsBigIntToString(this, 10);
 }
 
-@pragma("wasm:prefer-inline")
 String _jsBigIntToString(int i, int radix) {
   final upperBits = (i >> 31);
   final result = (upperBits == -1 || upperBits == 0)

@@ -116,7 +116,7 @@ class AstToIr extends ast.RecursiveVisitor {
     }
     if (builder.hasOpenBlock) {
       builder.addNullConstant();
-      _buildReturn();
+      builder.addReturn();
     }
     return builder.done();
   }
@@ -150,13 +150,6 @@ class AstToIr extends ast.RecursiveVisitor {
       ], typeParameters: _typeParametersForType(emittedValueType));
       builder.addEnterSuspendableFunction();
     }
-  }
-
-  void _buildReturn() {
-    if (function.isSuspendable) {
-      builder.addLeaveSuspendableFunction(function.returnType);
-    }
-    builder.addReturn();
   }
 
   void _buildImplicitGetter(ast.Field node) {
@@ -506,7 +499,7 @@ class AstToIr extends ast.RecursiveVisitor {
     final value = builder.pop();
     _generateNonLocalControlTransfer(node, null, () {
       builder.push(value);
-      _buildReturn();
+      builder.addReturn();
     });
   }
 
@@ -1824,7 +1817,39 @@ class AstToIr extends ast.RecursiveVisitor {
       builder.pop();
       return;
     }
-    builder.addSuspend(node.isYieldStar ? .yieldStar : .yield, const TopType());
+    switch (function.asyncMarker) {
+      case .AsyncStar:
+        // yield/yield* statement acts as a return statement if subscription
+        // to the async* Stream is cancelled.
+        final canceledBlock = builder.newTargetBlock();
+        final continueBlock = builder.newTargetBlock();
+
+        // Suspend will evaluate to true if subscription to async* Stream is cancelled.
+        builder.addSuspend(
+          node.isYieldStar ? .asyncYieldStar : .asyncYield,
+          const BoolType(),
+        );
+        builder.addBranch(canceledBlock, continueBlock);
+
+        builder.startBlock(canceledBlock);
+        _generateNonLocalControlTransfer(node, null, () {
+          builder.addNullConstant();
+          builder.addReturn();
+        });
+
+        builder.startBlock(continueBlock);
+        break;
+
+      case .SyncStar:
+        builder.addSuspend(
+          node.isYieldStar ? .syncYieldStar : .syncYield,
+          const TopType(),
+        );
+        break;
+
+      default:
+        throw 'Unexpected YieldStatement in $function with ${function.asyncMarker}';
+    }
   }
 }
 
@@ -1880,10 +1905,7 @@ class LocalVariableIndexer {
         builder.declareLocalVariable('#value', null, function.valueType),
       );
     }
-    ast.FunctionNode? functionNode = switch (function) {
-      LocalFunction() => function.localFunction.function,
-      _ => function.member.function,
-    };
+    final functionNode = function.functionNode;
     if (functionNode != null) {
       for (final v in functionNode.positionalParameters) {
         parameters.add(variableForDeclaration(v));

@@ -116,6 +116,7 @@ class _BottomType extends _Type {
 
 @pragma("wasm:entry-point")
 class _TopType extends _Type {
+  @pragma("wasm:entry-point")
   final int _kind;
 
   // Values for the `_kind` field. Must match the definitions in `TopTypeKind`.

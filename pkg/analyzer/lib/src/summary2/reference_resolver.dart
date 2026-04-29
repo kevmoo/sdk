@@ -136,7 +136,7 @@ class ReferenceResolver extends ThrowingAstVisitor<void> {
 
     for (var field in fragment.fields) {
       if (field.isEnumConstant || field.isOriginEnumValues) {
-        var fieldNode = linker.elementNodes[field];
+        var fieldNode = linker.getLinkingNode(field);
         fieldNode as VariableDeclarationImpl;
         fieldNode.initializerScope = node.bodyScope;
       }

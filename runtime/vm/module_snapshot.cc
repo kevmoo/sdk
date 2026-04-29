@@ -1493,6 +1493,21 @@ void Deserializer::Deserialize() {
   AddBaseObject(StubCode::Subtype3TestCache());
   AddBaseObject(StubCode::Subtype4TestCache());
   AddBaseObject(StubCode::Subtype6TestCache());
+  AddBaseObject(Code::Handle(zone(), object_store->init_async_stub()));
+  AddBaseObject(Code::Handle(zone(), object_store->init_async_star_stub()));
+  AddBaseObject(Code::Handle(zone(), object_store->init_sync_star_stub()));
+  AddBaseObject(Code::Handle(zone(), object_store->await_stub()));
+  AddBaseObject(
+      Code::Handle(zone(), object_store->await_with_type_check_stub()));
+  AddBaseObject(Code::Handle(zone(), object_store->yield_async_star_stub()));
+  AddBaseObject(
+      Code::Handle(zone(), object_store->suspend_sync_star_at_start_stub()));
+  AddBaseObject(
+      Code::Handle(zone(), object_store->suspend_sync_star_at_yield_stub()));
+  AddBaseObject(Code::Handle(zone(), object_store->return_async_stub()));
+  AddBaseObject(
+      Code::Handle(zone(), object_store->return_async_not_future_stub()));
+  AddBaseObject(Code::Handle(zone(), object_store->return_async_star_stub()));
 
   if (num_base_objects_ != (next_ref_index_ - kFirstReference)) {
     FATAL("Snapshot expects %" Pd

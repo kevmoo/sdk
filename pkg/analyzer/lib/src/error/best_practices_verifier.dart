@@ -168,6 +168,7 @@ class BestPracticesVerifier extends RecursiveAstVisitor<void> {
   void visitAnnotation(Annotation node) {
     _annotationVerifier.checkAnnotation(node);
     _widgetPreviewVerifier.checkAnnotation(node);
+    _elementUsageFrontierDetector.annotation(node);
     super.visitAnnotation(node);
   }
 

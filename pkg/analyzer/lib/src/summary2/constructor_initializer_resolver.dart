@@ -38,7 +38,7 @@ class ConstructorInitializerResolver {
     if (!element.isOriginDeclaration) return;
 
     for (var fragment in element.fragments) {
-      var node = _linker.getLinkingNode2(fragment);
+      var node = _linker.getLinkingNode(fragment);
       switch (node) {
         case ConstructorDeclarationImpl():
           var initializerScope = node.formalParameterInitializerScope!;

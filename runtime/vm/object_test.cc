@@ -5812,7 +5812,7 @@ ISOLATE_UNIT_TEST_CASE(SpecialClassesHaveEmptyArrays) {
   EXPECT(!array.IsNull());
   EXPECT(array.IsArray());
 
-  cls = Object::void_class();
+  cls = IsolateGroup::Current()->class_table()->At(kVoidCid);
   array = cls.fields();
   EXPECT(!array.IsNull());
   EXPECT(array.IsArray());
@@ -5820,7 +5820,7 @@ ISOLATE_UNIT_TEST_CASE(SpecialClassesHaveEmptyArrays) {
   EXPECT(!array.IsNull());
   EXPECT(array.IsArray());
 
-  cls = Object::dynamic_class();
+  cls = IsolateGroup::Current()->class_table()->At(kDynamicCid);
   array = cls.fields();
   EXPECT(!array.IsNull());
   EXPECT(array.IsArray());

@@ -605,6 +605,8 @@ final class Return extends Instruction
     setInputAt(0, value);
   }
 
+  Definition get value => inputDefAt(0);
+
   @override
   R accept<R>(InstructionVisitor<R> v) => v.visitReturn(this);
 }
@@ -1412,28 +1414,14 @@ final class EnterSuspendableFunction extends Instruction
   R accept<R>(InstructionVisitor<R> v) => v.visitEnterSuspendableFunction(this);
 }
 
-/// Leave a suspendable function.
-final class LeaveSuspendableFunction extends Definition
-    with CanThrow, HasSideEffects {
-  @override
-  final CType type;
-
-  LeaveSuspendableFunction(
-    super.graph,
-    super.sourcePosition,
-    this.type,
-    Definition returnValue,
-  ) : super(inputCount: 1) {
-    setInputAt(0, returnValue);
-  }
-
-  Definition get returnValue => inputDefAt(0);
-
-  @override
-  R accept<R>(InstructionVisitor<R> v) => v.visitLeaveSuspendableFunction(this);
+enum SuspendOpcode {
+  await,
+  awaitWithTypeCheck,
+  asyncYield,
+  asyncYieldStar,
+  syncYield,
+  syncYieldStar,
 }
-
-enum SuspendOpcode { await, awaitWithTypeCheck, yield, yieldStar }
 
 /// A point where execution of a suspendable function can be suspended
 /// and resumed (await, yield or yield*).

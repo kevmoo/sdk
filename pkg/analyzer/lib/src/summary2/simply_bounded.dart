@@ -8,6 +8,7 @@ import 'package:_fe_analyzer_shared/src/util/dependency_walker.dart'
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/ast/extensions.dart';
+import 'package:analyzer/src/dart/element/element.dart';
 import 'package:analyzer/src/summary2/link.dart';
 
 /// Compute simple-boundedness for all classes and generic types aliases in
@@ -90,10 +91,10 @@ class SimplyBoundedDependencyWalker
     }
   }
 
-  SimplyBoundedNode getNode(Element element) {
+  SimplyBoundedNode getNode(ElementImpl element) {
     var graphNode = nodeMap[element];
     if (graphNode == null) {
-      var node = linker.getLinkingNode2(element.firstFragment);
+      var node = linker.getLinkingNode(element.firstFragment);
       if (node is ClassDeclaration) {
         var parameters = node.namePart.typeParameters?.typeParameters;
         graphNode = SimplyBoundedNode(

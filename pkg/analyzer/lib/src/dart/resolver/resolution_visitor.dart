@@ -534,7 +534,7 @@ class ResolutionVisitor extends RecursiveAstVisitor<void> {
 
     var type = FunctionTypeImpl(
       typeParameters: element.typeParameters,
-      parameters: element.formalParameters,
+      formalParameters: element.formalParameters,
       returnType: element.returnType,
       nullabilitySuffix: _getNullability(node.question != null),
     );
@@ -796,7 +796,7 @@ class ResolutionVisitor extends RecursiveAstVisitor<void> {
       var element = node.declaredFragment!.element;
       element.type = FunctionTypeImpl(
         typeParameters: element.typeParameters,
-        parameters: element.formalParameters,
+        formalParameters: element.formalParameters,
         returnType: node.type?.type ?? _typeProvider.dynamicType,
         nullabilitySuffix: _getNullability(
           functionTypedSuffix.question != null,

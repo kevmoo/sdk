@@ -523,6 +523,17 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
   }
 
   @override
+  void branchIfBoolIs(Register left, bool right, Label label) {
+    // Test bool value bit: 0 = true, 1 = false.
+    final boolValueBit = boolValueBitPosition(log2wordSize);
+    if (right) {
+      tbz(left, boolValueBit, label);
+    } else {
+      tbnz(left, boolValueBit, label);
+    }
+  }
+
+  @override
   void loadFromPool(Register reg, Object obj) {
     int poolIndex = objectPool.getObject(obj);
     ldr(
@@ -755,6 +766,20 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
     loadFromPool(codeReg, stub);
     ldr(LR, fieldAddress(codeReg, vmOffsets.Code_entry_point_offset.first));
     blr(LR);
+  }
+
+  // TODO: remove after all stubs are implemented in the compiler
+  void callVmStub(StubCode vmStub) {
+    loadFromPool(codeReg, vmStub);
+    ldr(LR, fieldAddress(codeReg, vmOffsets.Code_entry_point_offset.first));
+    blr(LR);
+  }
+
+  // TODO: remove after all stubs are implemented in the compiler
+  void jumpVmStub(StubCode vmStub) {
+    loadFromPool(codeReg, vmStub);
+    ldr(LR, fieldAddress(codeReg, vmOffsets.Code_entry_point_offset.first));
+    br(LR);
   }
 
   @override

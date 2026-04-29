@@ -139,7 +139,7 @@ class FunctionTypeImpl extends TypeImpl
 
   factory FunctionTypeImpl({
     required List<TypeParameterElementImpl> typeParameters,
-    required List<InternalFormalParameterElement> parameters,
+    required List<InternalFormalParameterElement> formalParameters,
     required TypeImpl returnType,
     required NullabilitySuffix nullabilitySuffix,
     InstantiatedTypeAliasElementImpl? alias,
@@ -152,8 +152,8 @@ class FunctionTypeImpl extends TypeImpl
     // Check if already sorted.
     var namedParametersAlreadySorted = true;
     var lastNamedParameterName = '';
-    for (var i = 0; i < parameters.length; ++i) {
-      var parameter = parameters[i];
+    for (var i = 0; i < formalParameters.length; ++i) {
+      var parameter = formalParameters[i];
       if (parameter.isNamed) {
         firstNamedParameterIndex ??= i;
         var name = parameter.name ?? '';
@@ -171,7 +171,10 @@ class FunctionTypeImpl extends TypeImpl
     }
     sortedNamedParameters = firstNamedParameterIndex == null
         ? const []
-        : parameters.sublist(firstNamedParameterIndex, parameters.length);
+        : formalParameters.sublist(
+            firstNamedParameterIndex,
+            formalParameters.length,
+          );
     if (!namedParametersAlreadySorted) {
       // Sort named parameters.
       sortedNamedParameters.sort(
@@ -179,37 +182,21 @@ class FunctionTypeImpl extends TypeImpl
       );
 
       // Combine into a new list, with sorted named parameters.
-      parameters = parameters.toList();
-      parameters.replaceRange(
+      formalParameters = formalParameters.toList();
+      formalParameters.replaceRange(
         firstNamedParameterIndex!,
-        parameters.length,
+        formalParameters.length,
         sortedNamedParameters,
       );
     }
     return FunctionTypeImpl._(
       typeParameters: typeParameters,
-      parameters: parameters,
+      parameters: formalParameters,
       returnType: returnType,
       nullabilitySuffix: nullabilitySuffix,
       positionalParameterTypes: positionalParameterTypes,
       requiredPositionalParameterCount: requiredPositionalParameterCount,
       sortedNamedParameters: sortedNamedParameters,
-      alias: alias,
-    );
-  }
-
-  factory FunctionTypeImpl.v2({
-    required List<TypeParameterElementImpl> typeParameters,
-    required List<InternalFormalParameterElement> formalParameters,
-    required TypeImpl returnType,
-    required NullabilitySuffix nullabilitySuffix,
-    InstantiatedTypeAliasElementImpl? alias,
-  }) {
-    return FunctionTypeImpl(
-      typeParameters: typeParameters,
-      parameters: formalParameters,
-      returnType: returnType,
-      nullabilitySuffix: nullabilitySuffix,
       alias: alias,
     );
   }
@@ -340,7 +327,7 @@ class FunctionTypeImpl extends TypeImpl
     return FunctionTypeImpl(
       returnType: substitution.substituteType(returnType),
       typeParameters: const [],
-      parameters: newParameters,
+      formalParameters: newParameters,
       nullabilitySuffix: nullabilitySuffix,
     );
   }
@@ -373,7 +360,7 @@ class FunctionTypeImpl extends TypeImpl
 
   @override
   FunctionTypeImpl withAlias(InstantiatedTypeAliasElementImpl alias) {
-    return FunctionTypeImpl.v2(
+    return FunctionTypeImpl(
       typeParameters: typeParameters,
       formalParameters: parameters,
       returnType: returnType,

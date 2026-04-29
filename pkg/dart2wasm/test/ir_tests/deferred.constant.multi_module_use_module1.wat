@@ -26,7 +26,7 @@
   (elem $module0.cross-module-funcs-0
     (set 0 (ref.func $int.parse))
     (set 1 (ref.func $"mainImpl <noInline>")))
-  (func $"mainImpl <noInline>" (param $var0 i32) (result (ref null $#Top))
+  (func $"mainImpl <noInline>" (param $var0 i32)
     i64.const 0
     i32.const 2
     call_indirect $module0.cross-module-funcs-0 (param i64) (result i32)
@@ -45,10 +45,9 @@
     if
       global.get $"\"bad\""
       i32.const 4
-      call_indirect $module0.cross-module-funcs-0 (param (ref $#Top)) (result (ref none))
+      call_indirect $module0.cross-module-funcs-0 (param (ref $#Top))
       unreachable
     end
-    ref.null none
   )
   (func $"modH1Use <noInline>" (param $var0 i32) (result (ref $MyConstClass))
     local.get $var0

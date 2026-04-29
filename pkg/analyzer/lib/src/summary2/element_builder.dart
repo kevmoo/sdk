@@ -1110,7 +1110,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1145,7 +1145,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1189,7 +1189,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     }
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _addChildFragment(fragment);
 
@@ -1212,7 +1212,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1284,7 +1284,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
           type: null,
           variables: [variableDeclaration],
         );
-        _linker.elementNodes[field] = variableDeclaration;
+        _linker.setFragmentNode(field, variableDeclaration);
 
         _addChildFragment(field);
 
@@ -1344,7 +1344,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
         variables: [variableDeclaration],
         type: valuesTypeNode,
       );
-      _linker.elementNodes[valuesField] = variableDeclaration;
+      _linker.setFragmentNode(valuesField, variableDeclaration);
 
       _addChildFragment(valuesField);
 
@@ -1389,7 +1389,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1422,7 +1422,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1470,7 +1470,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
       }
 
       variable.declaredFragment = fragment;
-      _linker.elementNodes[fragment] = variable;
+      _linker.setFragmentNode(fragment, variable);
 
       _addChildFragment(fragment);
     }
@@ -1503,7 +1503,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
       parameterKind: node.kind,
       privateName: privateName,
     );
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
     _enclosingContext.addParameter(fragment);
 
     fragment.constantInitializer = node.defaultClause?.value;
@@ -1586,7 +1586,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     executableFragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = executableFragment;
-    _linker.elementNodes[executableFragment] = node;
+    _linker.setFragmentNode(executableFragment, node);
 
     _buildExecutableElementChildren(
       fragment: executableFragment,
@@ -1609,7 +1609,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1629,7 +1629,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     _libraryFragment.encloseElement(fragment);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     var holder = _EnclosingContext(fragment: fragment);
     _withEnclosing(holder, () {
@@ -1657,7 +1657,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1726,7 +1726,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     executableFragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = executableFragment;
-    _linker.elementNodes[executableFragment] = node;
+    _linker.setFragmentNode(executableFragment, node);
 
     _buildExecutableElementChildren(
       fragment: executableFragment,
@@ -1748,7 +1748,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
@@ -1819,7 +1819,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.typeName = node.typeName.lexeme;
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
 
     _addChildFragment(fragment);
 
@@ -1859,7 +1859,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
             formalParameter.isFinal || isExtensionTypeRepresentation;
         fieldFragment.isOriginDeclaringFormalParameter = true;
         fieldFragment.hasImplicitType = !formalParameter.isExplicitlyTyped;
-        _linker.elementNodes[fieldFragment] = formalParameter;
+        _linker.setFragmentNode(fieldFragment, formalParameter);
         _addChildFragment(fieldFragment);
 
         var formalParameterName = name;
@@ -1941,7 +1941,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
         parameterKind: node.kind,
       );
     }
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
     _enclosingContext.addParameter(fragment);
 
     fragment.constantInitializer = node.defaultClause?.value;
@@ -1982,7 +1982,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
       nameOffset: null,
       parameterKind: node.kind,
     );
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
     _enclosingContext.addParameter(fragment);
 
     fragment.constantInitializer = node.defaultClause?.value;
@@ -2042,7 +2042,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
 
       _libraryBuilder.addTopFragment(_libraryFragment, fragment);
 
-      _linker.elementNodes[fragment] = variable;
+      _linker.setFragmentNode(fragment, variable);
       variable.declaredFragment = fragment;
     }
 
@@ -2062,7 +2062,7 @@ class FragmentBuilder extends ThrowingAstVisitor<void> {
     fragment.metadata = _buildMetadata(node.metadata);
 
     node.declaredFragment = fragment;
-    _linker.elementNodes[fragment] = node;
+    _linker.setFragmentNode(fragment, node);
     _enclosingContext.addTypeParameter(fragment);
 
     node.bound?.accept(this);

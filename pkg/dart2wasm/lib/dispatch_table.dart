@@ -61,6 +61,11 @@ class SelectorInfo {
   /// This should be read after all targets have been added to the selector.
   late final w.FunctionType signature = _computeSignature();
 
+  /// Whether callers should synthesize a `null` return value.
+  ///
+  /// Will be set during `_computeSignature`.
+  late final bool synthesizeNullReturnValue;
+
   /// The selector's member's name.
   final String name;
 
@@ -203,6 +208,15 @@ class SelectorInfo {
       outputSets.length,
       (i) => _upperBound(outputSets[i], ensureBoxed: false),
     );
+    if (outputs case [w.RefType(heapType: w.HeapType.none, nullable: true)]) {
+      // All functions are guaranteed to return null.
+      // Will prune the signature and make call sites synthesize `null` if
+      // needed.
+      outputs.clear();
+      synthesizeNullReturnValue = true;
+    } else {
+      synthesizeNullReturnValue = false;
+    }
     return translator.typesBuilder.defineFunction([
       inputs[0],
       ...typeParameters,

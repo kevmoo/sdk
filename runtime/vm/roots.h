@@ -15,47 +15,10 @@ namespace dart {
   V(ObjectPtr, null_obj)                                                       \
   V(BoolPtr, true_obj)                                                         \
   V(BoolPtr, false_obj)                                                        \
-  V(ClassPtr, class_class)                                                     \
-  V(ClassPtr, dynamic_class)                                                   \
-  V(ClassPtr, void_class)                                                      \
-  V(ClassPtr, type_parameters_class)                                           \
-  V(ClassPtr, type_arguments_class)                                            \
-  V(ClassPtr, patch_class_class)                                               \
-  V(ClassPtr, function_class)                                                  \
-  V(ClassPtr, closure_data_class)                                              \
-  V(ClassPtr, ffi_trampoline_data_class)                                       \
-  V(ClassPtr, field_class)                                                     \
-  V(ClassPtr, script_class)                                                    \
-  V(ClassPtr, library_class)                                                   \
-  V(ClassPtr, namespace_class)                                                 \
-  V(ClassPtr, kernel_program_info_class)                                       \
-  V(ClassPtr, code_class)                                                      \
-  V(ClassPtr, instructions_class)                                              \
-  V(ClassPtr, instructions_section_class)                                      \
-  V(ClassPtr, instructions_table_class)                                        \
-  V(ClassPtr, object_pool_class)                                               \
-  V(ClassPtr, pc_descriptors_class)                                            \
-  V(ClassPtr, code_source_map_class)                                           \
-  V(ClassPtr, compressed_stackmaps_class)                                      \
-  V(ClassPtr, var_descriptors_class)                                           \
-  V(ClassPtr, exception_handlers_class)                                        \
-  V(ClassPtr, context_class)                                                   \
-  V(ClassPtr, context_scope_class)                                             \
-  V(ClassPtr, bytecode_class)                                                  \
-  V(ClassPtr, sentinel_class)                                                  \
-  V(ClassPtr, singletargetcache_class)                                         \
-  V(ClassPtr, unlinkedcall_class)                                              \
-  V(ClassPtr, monomorphicsmiablecall_class)                                    \
-  V(ClassPtr, icdata_class)                                                    \
-  V(ClassPtr, megamorphic_cache_class)                                         \
-  V(ClassPtr, subtypetestcache_class)                                          \
-  V(ClassPtr, loadingunit_class)                                               \
-  V(ClassPtr, api_error_class)                                                 \
-  V(ClassPtr, language_error_class)                                            \
-  V(ClassPtr, unhandled_exception_class)                                       \
-  V(ClassPtr, unwind_error_class)                                              \
-  V(ClassPtr, weak_serialization_reference_class)                              \
-  V(ClassPtr, weak_array_class)
+  V(SentinelPtr, sentinel_obj)                                                 \
+  V(SentinelPtr, unknown_constant_obj)                                         \
+  V(SentinelPtr, non_constant_obj)                                             \
+  V(SentinelPtr, optimized_out_obj)
 
 #define HANDLE_ROOTS_LIST(V)                                                   \
   V(Object, null_object)                                                       \

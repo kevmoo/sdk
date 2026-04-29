@@ -179,7 +179,7 @@ class NamedTypeBuilder extends TypeBuilder {
       if (node is GenericFunctionType) {
         return _buildType(node.typeOrThrow);
       } else {
-        return FunctionTypeImpl.v2(
+        return FunctionTypeImpl(
           typeParameters: const <TypeParameterElementImpl>[],
           formalParameters: const <InternalFormalParameterElement>[],
           returnType: _dynamicType,
@@ -237,7 +237,7 @@ class NamedTypeBuilder extends TypeBuilder {
     var typeParameters = _typeParameters(typeParameterList);
     var formalParameters = _formalParameters(parameterList);
 
-    return FunctionTypeImpl.v2(
+    return FunctionTypeImpl(
       typeParameters: typeParameters,
       formalParameters: formalParameters,
       returnType: returnType,
@@ -269,7 +269,7 @@ class NamedTypeBuilder extends TypeBuilder {
       return element.aliasedType;
     }
 
-    var typedefNode = linker.getLinkingNode2(element.firstFragment)!;
+    var typedefNode = linker.getLinkingNode(element.firstFragment)!;
 
     // Break a possible recursion.
     var existing = element.aliasedTypeRaw;

@@ -115,9 +115,6 @@ final class GetterFunction extends CFunction {
   GetterFunction._(super.member) : assert(member.hasGetter), super._();
 
   @override
-  ast.FunctionNode? get functionNode => null;
-
-  @override
   int get numberOfRequiredPositionalParameters => numberOfImplicitParameters;
 
   @override
@@ -138,9 +135,6 @@ final class ImplicitFieldGetter extends GetterFunction {
 /// Function representing a setter.
 final class SetterFunction extends CFunction {
   SetterFunction._(super.member) : assert(member.hasSetter), super._();
-
-  @override
-  ast.FunctionNode? get functionNode => null;
 
   @override
   int get numberOfRequiredPositionalParameters =>
@@ -267,6 +261,9 @@ final class TearOffFunction extends ClosureFunction {
           )
         : member.function!.returnType,
   );
+
+  @override
+  ast.AsyncMarker get asyncMarker => .Sync;
 }
 
 class ArgumentsShape {

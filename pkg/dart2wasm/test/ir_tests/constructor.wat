@@ -102,6 +102,7 @@
     struct.get $SubNamed $subInitializerField
     call $JSStringImpl._interpolate4
     call $print
+    ref.null none
     drop
   )
   (func $"new SubNamed (initializer)" (param $var0 (ref $_Type)) (param $onlyUsedInSubField i64) (param $onlyUsedInSuper i64) (result (ref $_Type)) (result (ref $WasmListBase)) (result (ref null $#Top)) (result (ref null $#Top)) (result i64)
@@ -144,6 +145,7 @@
     struct.get $SubOptionalNamed $subInitializerField
     call $JSStringImpl._interpolate4
     call $print
+    ref.null none
     drop
   )
   (func $"new SubOptionalNamed (initializer)" (param $var0 (ref $_Type)) (param $onlyUsedInSubField (ref null $BoxedInt)) (param $onlyUsedInSuper (ref null $BoxedInt)) (result (ref $_Type)) (result (ref $WasmListBase)) (result (ref null $#Top)) (result (ref $_Type)) (result (ref null $#Top)) (result i64)
@@ -186,6 +188,7 @@
     array.new_fixed $Array<Object?> 6
     call $JSStringImpl._interpolate
     call $print
+    ref.null none
     drop
   )
   (func $"new SubOptionalPos (initializer)" (param $var0 (ref $_Type)) (param $onlyUsedInSubField (ref null $BoxedInt)) (param $onlyUsedInSubBody (ref null $BoxedInt)) (param $onlyUsedInSuper1 (ref null $BoxedInt)) (param $onlyUsedInSuper2 (ref null $BoxedInt)) (result (ref null $BoxedInt)) (result i64) (result (ref $_Type)) (result (ref $WasmListBase)) (result (ref null $#Top)) (result (ref $_Type)) (result (ref null $#Top)) (result i64)
@@ -251,6 +254,7 @@
     array.new_fixed $Array<Object?> 6
     call $JSStringImpl._interpolate
     call $print
+    ref.null none
     drop
   )
   (func $"new SubPos1 (initializer)" (param $var0 (ref $_Type)) (param $onlyUsedInSubField i64) (param $onlyUsedInSubBody i64) (param $onlyUsedInSuper1 i64) (param $onlyUsedInSuper2 i64) (result i64) (result i64) (result (ref $_Type)) (result (ref $WasmListBase)) (result (ref null $#Top)) (result (ref $_Type)) (result (ref null $#Top)) (result i64)
@@ -310,6 +314,7 @@
     struct.get $SubPos2 $subInitializerField
     call $JSStringImpl._interpolate4
     call $print
+    ref.null none
     drop
   )
   (func $"new SubPos2 (initializer)" (param $var0 (ref $_Type)) (param $onlyUsedInSubField i64) (param $onlyUsedInSuper1 i64) (result (ref $_Type)) (result (ref $WasmListBase)) (result (ref null $#Top)) (result (ref null $#Top)) (result i64)
@@ -616,5 +621,5 @@
     struct.get $SubPos2 $field2
     array.new_fixed $Array<_Type> 1
   )
-  (func $print (param $object (ref null $#Top)) (result (ref null $#Top)) <...>)
+  (func $print (param $object (ref null $#Top)) <...>)
 )

@@ -528,7 +528,7 @@ class FfiVerifier extends RecursiveAstVisitor<void> {
             if (dartSignature.returnType is VoidType) {
               // The Dart signature has a `void` return type, so we create a new
               // `FunctionType` with FFI's `Void` as the return type.
-              dartSignature = FunctionTypeImpl.v2(
+              dartSignature = FunctionTypeImpl(
                 typeParameters: dartSignature.typeParameters,
                 formalParameters: dartSignature.formalParameters,
                 returnType: ffiVoidType ??= annotationType.element.library
@@ -702,7 +702,7 @@ class FfiVerifier extends RecursiveAstVisitor<void> {
       }
 
       // Include receiver when validating the full function type.
-      dartType = FunctionTypeImpl.v2(
+      dartType = FunctionTypeImpl(
         typeParameters: dartType.typeParameters,
         formalParameters: [
           FormalParameterElementImpl.synthetic(
@@ -786,7 +786,7 @@ class FfiVerifier extends RecursiveAstVisitor<void> {
       }
     }
 
-    var nativeType = FunctionTypeImpl.v2(
+    var nativeType = FunctionTypeImpl(
       typeParameters: ffiSignature.typeParameters,
       formalParameters: ffiParameters,
       returnType: ffiSignature.returnType,
@@ -1850,7 +1850,7 @@ class FfiVerifier extends RecursiveAstVisitor<void> {
                 if (staticType.returnType is VoidType) {
                   // The Dart signature has a `void` return type, so we create a
                   // new `FunctionType` with FFI's `Void` as the return type.
-                  staticType = FunctionTypeImpl.v2(
+                  staticType = FunctionTypeImpl(
                     typeParameters: staticType.typeParameters,
                     formalParameters: staticType.formalParameters,
                     returnType: ffiVoidType ??= annotationType.element.library

@@ -4001,17 +4001,19 @@ void AllocationSinking::CreateMaterializationAt(
     cls = &(instr->cls());
   } else if (auto instr = alloc->AsAllocateClosure()) {
     cls = &Class::ZoneHandle(
-        flow_graph_->isolate_group()->object_store()->closure_class());
+        flow_graph_->isolate_group()->class_table()->At(kClosureCid));
     length_or_shape = instr->EncodedLengthAndFlags();
   } else if (auto instr = alloc->AsAllocateContext()) {
-    cls = &Class::ZoneHandle(Object::context_class());
+    cls = &Class::ZoneHandle(
+        flow_graph_->isolate_group()->class_table()->At(kContextCid));
     length_or_shape = instr->num_context_variables();
   } else if (auto instr = alloc->AsAllocateUninitializedContext()) {
-    cls = &Class::ZoneHandle(Object::context_class());
+    cls = &Class::ZoneHandle(
+        flow_graph_->isolate_group()->class_table()->At(kContextCid));
     length_or_shape = instr->num_context_variables();
   } else if (auto instr = alloc->AsCreateArray()) {
     cls = &Class::ZoneHandle(
-        flow_graph_->isolate_group()->object_store()->array_class());
+        flow_graph_->isolate_group()->class_table()->At(kArrayCid));
     length_or_shape = instr->GetConstantNumElements();
   } else if (auto instr = alloc->AsAllocateTypedData()) {
     cls = &Class::ZoneHandle(

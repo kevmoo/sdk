@@ -64,7 +64,7 @@ class ConstantInitializersResolver {
     }
 
     var fragment = constantInitializer.fragment;
-    var node = linker.elementNodes[fragment] as VariableDeclarationImpl;
+    var node = linker.getLinkingNode(fragment) as VariableDeclarationImpl;
     var scope = node.initializerScope!;
 
     var astResolver = AstResolver(
@@ -211,7 +211,7 @@ class _PropertyInducingElementTypeInference
     ExpressionImpl Function()? getInitializer;
     List<FormalParameterElementImpl>? inScopePrimaryConstructorParameters;
     for (var fragment in _element.fragments) {
-      var node = _linker.elementNodes[fragment];
+      var node = _linker.getLinkingNode(fragment);
       switch (node) {
         case VariableDeclarationImpl():
           if (node.initializer != null) {

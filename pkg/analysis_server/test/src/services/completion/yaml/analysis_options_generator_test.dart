@@ -295,6 +295,32 @@ linter:
     assertNoSuggestion('removed_lint');
   }
 
+  void test_plugins_git_keys() {
+    getCompletions('''
+plugins:
+  my_plugin:
+    git:
+      ^
+''');
+    assertSuggestion('${AnalysisOptionsFileKeys.url}: ');
+    assertSuggestion('${AnalysisOptionsFileKeys.ref}: ');
+    assertSuggestion('${AnalysisOptionsFileKeys.path}: ');
+    assertSuggestion('${AnalysisOptionsFileKeys.tagPattern}: ');
+  }
+
+  void test_plugins_keys() {
+    getCompletions('''
+plugins:
+  my_plugin:
+    ^
+''');
+    assertSuggestion('${AnalysisOptionsFileKeys.diagnostics}: ');
+    assertSuggestion('${AnalysisOptionsFileKeys.git}: ');
+    assertSuggestion('${AnalysisOptionsFileKeys.path}: ');
+    assertSuggestion('${AnalysisOptionsFileKeys.version}: ');
+    assertSuggestion('${AnalysisOptionsFileKeys.hosted}: ');
+  }
+
   @failingTest
   void test_topLevel_afterOtherKeys() {
     // This test fails because the cursor is considered to be inside the exclude

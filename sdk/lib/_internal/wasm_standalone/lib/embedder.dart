@@ -26,7 +26,7 @@ import 'dart:_wasm';
 @pragma("wasm:import", "dart.scheduleOnce")
 external WasmExternRef scheduleOnce(
   WasmI64 delay,
-  WasmFunction<void Function(WasmAnyRef)> callback,
+  WasmFunction<WasmVoid Function(WasmAnyRef)> callback,
   WasmAnyRef arg,
 );
 
@@ -37,21 +37,21 @@ external WasmExternRef scheduleOnce(
 @pragma("wasm:import", "dart.scheduleRepeated")
 external WasmExternRef scheduleRepeated(
   WasmI64 interval,
-  WasmFunction<void Function(WasmAnyRef)> callback,
+  WasmFunction<WasmVoid Function(WasmAnyRef)> callback,
   WasmAnyRef arg,
 );
 
 /// Instructs the runtime to invoke `callback(arg)` before returning to the
 /// event loop.
 @pragma("wasm:import", "dart.queueMicrotask")
-external void queueMicrotask(
-  WasmFunction<void Function(WasmAnyRef)> callback,
+external WasmVoid queueMicrotask(
+  WasmFunction<WasmVoid Function(WasmAnyRef)> callback,
   WasmAnyRef arg,
 );
 
 /// Cancels a schedule created through [scheduleOnce] or [scheduleRepeated].
 @pragma("wasm:import", "dart.clearSchedule")
-external void clearSchedule(WasmExternRef? schedule);
+external WasmVoid clearSchedule(WasmExternRef? schedule);
 
 @pragma("wasm:import", "dart.currentTime")
 external WasmI64 currentTimeMicros();

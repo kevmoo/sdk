@@ -81,7 +81,7 @@ class TypesBuilder {
   /// Build types for all type annotations, and set types for declarations.
   void build(NodesToBuildType nodes) {
     DefaultTypesBuilder(
-      getTypeParameterNode: _linker.getLinkingNode2,
+      getTypeParameterNode: _linker.getLinkingNode,
     ).build(nodes.declarations);
 
     for (var builder in nodes.typeBuilders) {
@@ -120,7 +120,7 @@ class TypesBuilder {
 
     return FunctionTypeImpl(
       typeParameters: typeParameters.map((f) => f.asElement2).toList(),
-      parameters: formalParameters,
+      formalParameters: formalParameters,
       returnType: returnType,
       nullabilitySuffix: nullabilitySuffix,
     );
@@ -460,7 +460,7 @@ class TypesBuilder {
   static FunctionTypeImpl _errorFunctionType() {
     return FunctionTypeImpl(
       typeParameters: const [],
-      parameters: const [],
+      formalParameters: const [],
       returnType: DynamicTypeImpl.instance,
       nullabilitySuffix: NullabilitySuffix.none,
     );

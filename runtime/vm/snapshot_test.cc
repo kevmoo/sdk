@@ -357,18 +357,20 @@ ISOLATE_UNIT_TEST_CASE(SerializeCapability) {
   }
 
 ISOLATE_UNIT_TEST_CASE(SerializeSingletons) {
-  TEST_ROUND_TRIP_IDENTICAL(Object::class_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::type_arguments_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::function_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::field_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::script_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::library_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::code_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::instructions_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::pc_descriptors_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::exception_handlers_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::context_class());
-  TEST_ROUND_TRIP_IDENTICAL(Object::context_scope_class());
+  ClassTable* table = IsolateGroup::Current()->class_table();
+
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kClassCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kTypeArgumentsCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kFunctionCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kFieldCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kScriptCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kLibraryCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kCodeCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kInstructionsCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kPcDescriptorsCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kExceptionHandlersCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kContextCid));
+  TEST_ROUND_TRIP_IDENTICAL(table->At(kContextScopeCid));
 }
 
 static void TestString(const char* cstr) {

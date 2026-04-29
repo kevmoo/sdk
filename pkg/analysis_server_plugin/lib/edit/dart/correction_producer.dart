@@ -573,7 +573,7 @@ abstract class ResolvedCorrectionProducer
         if (type is InterfaceType && type.isDartCoreFunction) {
           return FunctionTypeImpl(
             typeParameters: const [],
-            parameters: const [],
+            formalParameters: const [],
             returnType: DynamicTypeImpl.instance,
             nullabilitySuffix: NullabilitySuffix.none,
           );

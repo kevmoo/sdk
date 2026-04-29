@@ -70,10 +70,11 @@ void StubCode::Init() {
   {
     // Set Function owner for UnknownDartCode stub so it pretends to
     // be a Dart code.
-    Zone* zone = Thread::Current()->zone();
+    Thread* thread = Thread::Current();
+    Zone* zone = thread->zone();
     const auto& signature = FunctionType::Handle(zone, FunctionType::New());
     auto& owner = Object::Handle(zone);
-    owner = Object::void_class();
+    owner = thread->isolate_group()->class_table()->At(kVoidCid);
     ASSERT(!owner.IsNull());
     owner = Function::New(signature, Object::null_string(),
                           UntaggedFunction::kRegularFunction,

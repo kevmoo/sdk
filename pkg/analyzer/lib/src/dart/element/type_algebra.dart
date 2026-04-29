@@ -86,7 +86,7 @@ FunctionTypeImpl replaceTypeParameters(
     return p.copyWith(type: type);
   }
 
-  return FunctionTypeImpl.v2(
+  return FunctionTypeImpl(
     typeParameters: newTypeParameters,
     formalParameters: type.formalParameters.map(transformParameter).toList(),
     returnType: substitution.substituteType(type.returnType),
@@ -112,7 +112,7 @@ class FreshTypeParameters {
   FreshTypeParameters(this.freshTypeParameters, this.substitution);
 
   FunctionTypeImpl applyToFunctionType(FunctionTypeImpl type) {
-    return FunctionTypeImpl.v2(
+    return FunctionTypeImpl(
       typeParameters: freshTypeParameters,
       formalParameters: type.formalParameters.map((parameter) {
         var type = substitute(parameter.type);
@@ -450,7 +450,7 @@ abstract class _TypeSubstitutor
 
     if (useCounter == before) return type;
 
-    return FunctionTypeImpl.v2(
+    return FunctionTypeImpl(
       typeParameters: typeFormals,
       formalParameters: parameters,
       returnType: returnType,

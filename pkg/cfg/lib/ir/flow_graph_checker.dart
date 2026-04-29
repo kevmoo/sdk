@@ -414,11 +414,6 @@ final class FlowGraphChecker extends Pass implements InstructionVisitor<void> {
   }
 
   @override
-  void visitLeaveSuspendableFunction(LeaveSuspendableFunction instr) {
-    assert(graph.function.isSuspendable);
-  }
-
-  @override
   void visitSuspend(Suspend instr) {
     assert(graph.function.isSuspendable);
     final asyncMarker = graph.function.asyncMarker;
@@ -426,8 +421,11 @@ final class FlowGraphChecker extends Pass implements InstructionVisitor<void> {
       case .await || .awaitWithTypeCheck:
         assert(asyncMarker == .Async || asyncMarker == .AsyncStar);
         break;
-      case .yield || .yieldStar:
-        assert(asyncMarker == .AsyncStar || asyncMarker == .SyncStar);
+      case .asyncYield || .asyncYieldStar:
+        assert(asyncMarker == .AsyncStar);
+        break;
+      case .syncYield || .syncYieldStar:
+        assert(asyncMarker == .SyncStar);
         break;
     }
     if (instr.op == .awaitWithTypeCheck) {

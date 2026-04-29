@@ -17,14 +17,12 @@
     (struct.new $JSExternWrapper))
   (elem $module0.cross-module-funcs-0
     (set 0 (ref.func $"deferredFoo <noInline>")))
-  (func $"deferredFoo <noInline>" (result (ref null $#Top))
+  (func $"deferredFoo <noInline>"
     call $"mainFoo <noInline>"
-    ref.null none
   )
   (func $"mainFoo <noInline>"
     global.get $"\"hello world\""
     i32.const 1
-    call_indirect (param (ref null $#Top)) (result (ref null $#Top))
-    drop
+    call_indirect (param (ref null $#Top))
   )
 )

@@ -27928,6 +27928,22 @@ WarningCode:
         future.catchError(callback);
       }
       ```
+  returnOfInvalidTypeFromThen:
+    type: staticWarning
+    parameters:
+      Type actualType: the return type as declared in the return statement
+      Type expectedType: the expected return type as defined by the type of the Future
+    sharedName: invalidReturnTypeForThen
+    problemMessage: "A value of type '#actualType' can't be returned by the 'onError' handler because it must be assignable to '#expectedType', as required by 'Future.then'."
+    hasPublishedDocs: false
+  returnTypeInvalidForThen:
+    type: staticWarning
+    parameters:
+      Type actualType: the return type of the function
+      Type expectedType: the expected return type as defined by the type of the Future
+    sharedName: invalidReturnTypeForThen
+    problemMessage: "The return type '#actualType' isn't assignable to '#expectedType', as required by 'Future.then'."
+    hasPublishedDocs: false
   invalidReopenAnnotation:
     type: staticWarning
     parameters: none

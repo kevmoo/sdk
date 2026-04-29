@@ -105,6 +105,7 @@ class FunctionCollector {
             member.reference,
             null,
             isImportOrExport: true,
+            synthesizeNullReturnValue: false,
           );
           return _functions[member.reference] =
               translator
@@ -133,7 +134,13 @@ class FunctionCollector {
       }
 
       final w.FunctionType ftype = exportName != null
-          ? _makeFunctionType(translator, target, null, isImportOrExport: true)
+          ? _makeFunctionType(
+              translator,
+              target,
+              null,
+              isImportOrExport: true,
+              synthesizeNullReturnValue: false,
+            )
           : translator.signatureForDirectCall(target);
 
       final function = module.functions.define(ftype, getFunctionName(target))
@@ -232,15 +239,35 @@ class FunctionCollector {
 
   w.FunctionType _getFunctionType(Reference target) {
     final Member member = target.asMember;
+    final synthesizeNullReturnValue = this.synthesizeNullReturnValue(target);
 
     if (target.isBodyReference) {
       // This is the function body that is always called directly (never via
       // dispatch table) and with checked arguments. That means we can make a
       // precise function type signature based on that member's argument types.
-      return makeFunctionTypeForBody(translator, member);
+      return makeFunctionTypeForBody(
+        translator,
+        member,
+        synthesizeNullReturnValue,
+      );
     }
 
-    return member.accept1(_FunctionTypeGenerator(translator), target);
+    return member.accept1(
+      _FunctionTypeGenerator(translator, synthesizeNullReturnValue),
+      target,
+    );
+  }
+
+  bool synthesizeNullReturnValue(Reference target) {
+    final member = target.asMember;
+    if (member is! Procedure) return false;
+
+    final returnType = translator.typeOfReturnValue(member);
+    final wasmType = translator.translateType(returnType);
+    if (wasmType case w.RefType(heapType: w.HeapType.none, nullable: true)) {
+      return true;
+    }
+    return false;
   }
 
   String getFunctionName(Reference target) {
@@ -379,14 +406,20 @@ class FunctionCollector {
 
 class _FunctionTypeGenerator extends MemberVisitor1<w.FunctionType, Reference> {
   final Translator translator;
+  final bool synthesizeNullReturnValue;
 
-  _FunctionTypeGenerator(this.translator);
+  _FunctionTypeGenerator(this.translator, this.synthesizeNullReturnValue);
 
   @override
   w.FunctionType visitField(Field node, Reference target) {
     if (!node.isInstanceMember) {
       // Static field initializer function or implicit getter/setter.
-      return _makeFunctionType(translator, target, null);
+      return _makeFunctionType(
+        translator,
+        target,
+        null,
+        synthesizeNullReturnValue: synthesizeNullReturnValue,
+      );
     }
     assert(
       !translator.dispatchTable
@@ -405,6 +438,7 @@ class _FunctionTypeGenerator extends MemberVisitor1<w.FunctionType, Reference> {
       translator,
       target,
       translator.translateType(receiverType),
+      synthesizeNullReturnValue: synthesizeNullReturnValue,
     );
   }
 
@@ -412,7 +446,12 @@ class _FunctionTypeGenerator extends MemberVisitor1<w.FunctionType, Reference> {
   w.FunctionType visitProcedure(Procedure node, Reference target) {
     assert(!node.isAbstract);
     if (!node.isInstanceMember) {
-      return _makeFunctionType(translator, target, null);
+      return _makeFunctionType(
+        translator,
+        target,
+        null,
+        synthesizeNullReturnValue: synthesizeNullReturnValue,
+      );
     }
 
     assert(
@@ -432,7 +471,12 @@ class _FunctionTypeGenerator extends MemberVisitor1<w.FunctionType, Reference> {
       return makeTearOffFunctionType(translator, node.function, receiverType);
     }
 
-    return _makeFunctionType(translator, target, receiverType);
+    return _makeFunctionType(
+      translator,
+      target,
+      receiverType,
+      synthesizeNullReturnValue: synthesizeNullReturnValue,
+    );
   }
 
   @override
@@ -664,7 +708,11 @@ List<w.ValueType> _getInputTypes(
 // Implicit setters also support checked/unchecked entries, but those will not
 // call a shared body but have such body (which is trivial) in the checked &
 // unchecked functions directly.
-w.FunctionType makeFunctionTypeForBody(Translator translator, Member member) {
+w.FunctionType makeFunctionTypeForBody(
+  Translator translator,
+  Member member,
+  bool synthesizeNullReturnValue,
+) {
   assert(member.isInstanceMember);
   assert(member is Procedure);
   final function = member.function!;
@@ -685,7 +733,8 @@ w.FunctionType makeFunctionTypeForBody(Translator translator, Member member) {
   ];
 
   final hasNoReturnValue =
-      member is Procedure && (member.isSetter || member.name.text == '[]=');
+      member is Procedure && (member.isSetter || member.name.text == '[]=') ||
+      synthesizeNullReturnValue;
   final outputs = [
     if (!hasNoReturnValue)
       translator.translateReturnType(translator.typeOfReturnValue(member)),
@@ -770,6 +819,7 @@ w.FunctionType _makeFunctionType(
   Translator translator,
   Reference target,
   w.ValueType? receiverType, {
+  required bool synthesizeNullReturnValue,
   bool isImportOrExport = false,
 }) {
   Member member = target.asMember;
@@ -804,7 +854,8 @@ w.FunctionType _makeFunctionType(
       (t is InterfaceType && t.classNode == translator.wasmVoidClass);
 
   final List<w.ValueType> outputs;
-  final hasNoReturnValue = target.isSetter || member.name.text == '[]=';
+  final hasNoReturnValue =
+      target.isSetter || member.name.text == '[]=' || synthesizeNullReturnValue;
   if (hasNoReturnValue) {
     // Setters and []= are the only functions without any returned values. All
     // other functions can return values (even `void` returning functions).

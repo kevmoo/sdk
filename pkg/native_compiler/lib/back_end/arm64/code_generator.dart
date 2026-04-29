@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:cfg/ir/constant_value.dart';
 import 'package:cfg/ir/field.dart';
 import 'package:cfg/ir/functions.dart';
+import 'package:cfg/ir/global_context.dart';
 import 'package:cfg/ir/instructions.dart';
 import 'package:cfg/ir/types.dart';
 import 'package:cfg/utils/misc.dart';
@@ -24,6 +25,39 @@ import 'package:native_compiler/runtime/vm_defs.dart';
 final class Arm64CodeGenerator extends CodeGenerator {
   final FunctionRegistry functionRegistry;
   late final Arm64Assembler _asm;
+
+  late final CFunction _asyncStarStreamControllerAdd = functionRegistry
+      .getFunction(
+        GlobalContext.instance.coreTypes.index.getProcedure(
+          'dart:async',
+          '_AsyncStarStreamController',
+          'add',
+        ),
+      );
+  late final CFunction _asyncStarStreamControllerAddStream = functionRegistry
+      .getFunction(
+        GlobalContext.instance.coreTypes.index.getProcedure(
+          'dart:async',
+          '_AsyncStarStreamController',
+          'addStream',
+        ),
+      );
+
+  late final CField _syncStarIteratorCurrent = CField(
+    GlobalContext.instance.coreTypes.index.getField(
+      'dart:async',
+      '_SyncStarIterator',
+      '_current',
+    ),
+  );
+
+  late final CField _syncStarIteratorYieldStarIterable = CField(
+    GlobalContext.instance.coreTypes.index.getField(
+      'dart:async',
+      '_SyncStarIterator',
+      '_yieldStarIterable',
+    ),
+  );
 
   Arm64CodeGenerator(super.backEndState, this.functionRegistry);
 
@@ -297,17 +331,11 @@ final class Arm64CodeGenerator extends CodeGenerator {
   @override
   void visitBranch(Branch instr) {
     final cond = inputReg(instr, 0);
-    final boolValueBit = boolValueBitPosition(log2wordSize);
     _generateBranch(instr.trueSuccessor, instr.falseSuccessor, (
       bool value,
       Label label,
     ) {
-      // Test bool value bit: 0 = true, 1 = false.
-      if (value) {
-        _asm.tbz(cond, boolValueBit, label);
-      } else {
-        _asm.tbnz(cond, boolValueBit, label);
-      }
+      _asm.branchIfBoolIs(cond, value, label);
     });
   }
 
@@ -425,6 +453,24 @@ final class Arm64CodeGenerator extends CodeGenerator {
   @override
   void visitReturn(Return instr) {
     assert(inputReg(instr, 0) == returnReg);
+    switch (graph.function.asyncMarker) {
+      case .Async:
+        _asm.jumpVmStub(
+          instr.value.type.canBeFuture
+              ? StubCode.ReturnAsync
+              : StubCode.ReturnAsyncNotFuture,
+        );
+        return;
+      case .AsyncStar:
+        _asm.jumpVmStub(StubCode.ReturnAsyncStar);
+        return;
+      case .SyncStar:
+        // Overwrite the return value to indicate the end of iteration.
+        _asm.loadConstant(returnReg, ConstantValue.fromBool(false));
+        break;
+      case .Sync:
+        break;
+    }
     _asm.leaveDartFrame();
     _asm.ret();
   }
@@ -1076,12 +1122,7 @@ final class Arm64CodeGenerator extends CodeGenerator {
         });
 
         _asm.loadFromPool(TypeTestingStub.subtypeTestCacheReg, stc);
-        _asm.loadFromPool(codeReg, stub);
-        _asm.ldr(
-          tempReg,
-          _asm.fieldAddress(codeReg, vmOffsets.Code_entry_point_offset.first),
-        );
-        _asm.blr(tempReg);
+        _asm.callVmStub(stub);
         _asm.cmp(TypeTestingStub.subtypeTestCacheResultReg, nullReg);
         _asm.b(slowPath, .equal);
         _asm.mov(resultReg, TypeTestingStub.subtypeTestCacheResultReg);
@@ -1618,21 +1659,94 @@ final class Arm64CodeGenerator extends CodeGenerator {
 
   @override
   void visitEnterSuspendableFunction(EnterSuspendableFunction instr) {
-    _asm.unimplemented(
-      'Unimplemented: code generation for EnterSuspendableFunction',
-    );
-  }
-
-  @override
-  void visitLeaveSuspendableFunction(LeaveSuspendableFunction instr) {
-    _asm.unimplemented(
-      'Unimplemented: code generation for LeaveSuspendableFunction',
-    );
+    final asyncMarker = graph.function.asyncMarker;
+    final stub = switch (asyncMarker) {
+      .Async => StubCode.InitAsync,
+      .AsyncStar => StubCode.InitAsyncStar,
+      .SyncStar => StubCode.InitSyncStar,
+      .Sync => throw 'Unexpected async marker',
+    };
+    _asm.callVmStub(stub);
+    // Suspend async* and sync* functions at the beginning.
+    if (asyncMarker == .AsyncStar) {
+      _asm.mov(SuspendStub.argumentReg, nullReg);
+      _asm.callVmStub(StubCode.YieldAsyncStar);
+    } else if (asyncMarker == .SyncStar) {
+      _asm.mov(SuspendStub.argumentReg, nullReg);
+      _asm.callVmStub(StubCode.SuspendSyncStarAtStart);
+    }
   }
 
   @override
   void visitSuspend(Suspend instr) {
-    _asm.unimplemented('Unimplemented: code generation for Suspend');
+    void loadFunctionData(Register dst) {
+      _asm.ldr(tempReg, _asm.address(FP, stackFrame.suspendStateOffsetFromFP));
+      _asm.ldr(
+        dst,
+        _asm.fieldAddress(tempReg, vmOffsets.SuspendState_function_data_offset),
+      );
+    }
+
+    switch (instr.op) {
+      case .await:
+        _asm.callVmStub(StubCode.Await);
+        break;
+      case .awaitWithTypeCheck:
+        _asm.callVmStub(StubCode.AwaitWithTypeCheck);
+        break;
+      case .asyncYield || .asyncYieldStar:
+        // Load controller from suspend state.
+        loadFunctionData(tempReg);
+        // Call controller.add or addStream.
+        assert(stackFrame.maxArgumentsStackSlots >= 2);
+        _asm.stp(
+          SuspendStub.argumentReg,
+          tempReg,
+          RegOffsetAddress(stackPointerReg, 0),
+        );
+        _callFunction(
+          instr.op == .asyncYield
+              ? _asyncStarStreamControllerAdd
+              : _asyncStarStreamControllerAddStream,
+        );
+        // It returns true if subscription was canceled.
+        final done = Label();
+        _asm.branchIfBoolIs(returnReg, true, done);
+        // Suspend.
+        _asm.mov(SuspendStub.argumentReg, nullReg);
+        _asm.callVmStub(StubCode.YieldAsyncStar);
+        _asm.bind(done);
+        break;
+      case .syncYield || .syncYieldStar:
+        // Load iterator from suspend state.
+        final iteratorReg = temporaryReg(instr, 0);
+        final scratch1Reg = temporaryReg(instr, 1);
+        final scratch2Reg = temporaryReg(instr, 2);
+        loadFunctionData(iteratorReg);
+        // Set _SyncStarIterator._current or _yieldStarIterable.
+        _asm.str(
+          SuspendStub.argumentReg,
+          _asm.fieldAddress(
+            iteratorReg,
+            objectLayout.getFieldOffset(
+              instr.op == .syncYield
+                  ? _syncStarIteratorCurrent
+                  : _syncStarIteratorYieldStarIterable,
+            ),
+          ),
+        );
+        _writeBarrier(
+          iteratorReg,
+          SuspendStub.argumentReg,
+          scratch1Reg,
+          scratch2Reg,
+          valueCanBeSmi: _canBeSmi(instr.operand),
+        );
+        // Suspend.
+        _asm.mov(SuspendStub.argumentReg, nullReg);
+        _asm.callVmStub(StubCode.SuspendSyncStarAtYield);
+        break;
+    }
   }
 
   @override

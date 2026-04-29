@@ -40,6 +40,15 @@ class ElementUsageDetector<TagInfo extends Object> {
     }
   }
 
+  void annotation(Annotation node) {
+    var element = node.elementAnnotation?.element;
+    checkUsage(element, node.name);
+    var arguments = node.arguments;
+    if (arguments != null) {
+      _invocationArguments(element, arguments);
+    }
+  }
+
   void assignmentExpression(AssignmentExpression node) {
     checkUsage(node.readElement, node.leftHandSide);
     checkUsage(node.writeElement, node.leftHandSide);

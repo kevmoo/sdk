@@ -11,6 +11,7 @@ import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/type_provider.dart';
 import 'package:analyzer/src/dart/element/type_system.dart';
+import 'package:analyzer/src/dart/error/lint_codes.dart';
 import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
 import 'package:analyzer/src/error/listener.dart';
 import 'package:analyzer/src/error/return_type_verifier.dart';
@@ -92,25 +93,8 @@ class ErrorHandlerVerifier {
       if (callback == null) {
         return;
       }
-      var callbackType = callback.argumentExpression.staticType;
-      if (callbackType == null) {
-        return;
-      }
-      if (callbackType is FunctionTypeImpl) {
-        // TODO(srawlins): Also check return type of the 'onError' named
-        // argument to [Future<T>.then].
-        _checkErrorHandlerFunctionType(
-          callback,
-          callback.argumentExpression,
-          callbackType,
-          _typeProvider.voidType,
-          checkFirstParameterType:
-              callback.argumentExpression is FunctionExpression,
-        );
-        return;
-      }
-      // [callbackType] might be dart:core's Function, or something not
-      // assignable to Function, in which case an error is reported elsewhere.
+      _checkFutureThenOnError(node, callback.argumentExpression);
+      return;
     }
 
     if (methodName == 'handleError' &&
@@ -254,7 +238,6 @@ class ErrorHandlerVerifier {
     var targetFutureType = targetType.typeArguments.first;
     var expectedReturnType = _typeProvider.futureOrType(targetFutureType);
     if (callback is FunctionExpressionImpl) {
-      // TODO(migration): should be FunctionType, not nullable
       var callbackType = callback.staticType as FunctionTypeImpl;
       _checkErrorHandlerFunctionType(
         callback,
@@ -262,6 +245,18 @@ class ErrorHandlerVerifier {
         callbackType,
         expectedReturnType,
       );
+
+      if (targetFutureType is VoidType) {
+        return;
+      }
+
+      if (callbackType.returnType is VoidType &&
+          _isVoidOrDynamic(targetFutureType)) {
+        // Special case for `void`: A function returning `void` is allowed for the
+        // cases where the expected type is `void`, `dynamic`, or `Null`.
+        return;
+      }
+
       var catchErrorOnErrorExecutable = EnclosingExecutableContext(
         callback.declaredFragment!.element,
         isAsynchronous: true,
@@ -276,7 +271,12 @@ class ErrorHandlerVerifier {
     } else {
       var callbackType = callback.staticType;
       if (callbackType is FunctionTypeImpl) {
-        _checkReturnType(expectedReturnType, callbackType.returnType, callback);
+        _checkReturnType(
+          targetFutureType,
+          callbackType.returnType,
+          callback,
+          diag.returnTypeInvalidForCatchError,
+        );
         _checkErrorHandlerFunctionType(
           callback,
           callback,
@@ -290,18 +290,89 @@ class ErrorHandlerVerifier {
     }
   }
 
+  void _checkFutureThenOnError(MethodInvocation node, Expression callback) {
+    var nodeType = node.staticType as InterfaceTypeImpl;
+    var targetFutureType = nodeType.typeArguments.first;
+    var expectedReturnType = _typeProvider.futureOrType(targetFutureType);
+
+    if (callback is FunctionExpressionImpl) {
+      var callbackType = callback.staticType as FunctionTypeImpl;
+      _checkErrorHandlerFunctionType(
+        callback,
+        callback,
+        callbackType,
+        expectedReturnType,
+      );
+
+      if (targetFutureType is VoidType) {
+        return;
+      }
+
+      if (callbackType.returnType is VoidType &&
+          _isVoidOrDynamic(targetFutureType)) {
+        // Special case for `void`: A function returning `void` is allowed for the
+        // cases where the expected type is `void`, `dynamic`, or `Null`.
+        return;
+      }
+
+      var thenOnErrorExecutable = EnclosingExecutableContext(
+        callback.declaredFragment!.element,
+        isAsynchronous: true,
+        isGenerator: false,
+        thenOnErrorReturnType: expectedReturnType,
+      );
+      var returnStatementVerifier = _ReturnStatementVerifier(
+        _returnTypeVerifier,
+      );
+      _returnTypeVerifier.enclosingExecutable = thenOnErrorExecutable;
+
+      callback.body.accept(returnStatementVerifier);
+    } else {
+      if (callback.staticType case FunctionTypeImpl callbackType) {
+        _checkReturnType(
+          targetFutureType,
+          callbackType.returnType,
+          callback,
+          diag.returnTypeInvalidForThen,
+        );
+        _checkErrorHandlerFunctionType(
+          callback,
+          callback,
+          callbackType,
+          expectedReturnType,
+          checkFirstParameterType: false,
+        );
+      }
+    }
+  }
+
   void _checkReturnType(
-    TypeImpl expectedType,
+    TypeImpl targetType,
     TypeImpl functionReturnType,
     Expression callback,
+    DiagnosticWithArguments<
+      LocatableDiagnostic Function({
+        required DartType actualType,
+        required DartType expectedType,
+      })
+    >
+    diagnostic,
   ) {
+    if (functionReturnType is VoidType) {
+      if (_isVoidOrDynamic(targetType) || _typeSystem.isNullable(targetType)) {
+        // Special case for `void`: A function returning `void` is allowed for the
+        // cases where the expected type is `void`, `dynamic`, or a nullable type.
+        return;
+      }
+    }
+    var expectedType = _typeProvider.futureOrType(targetType);
     if (!_typeSystem.isAssignableTo(
       functionReturnType,
       expectedType,
       strictCasts: _strictCasts,
     )) {
       _diagnosticReporter.report(
-        diag.returnTypeInvalidForCatchError
+        diagnostic
             .withArguments(
               actualType: functionReturnType,
               expectedType: expectedType,
@@ -317,6 +388,13 @@ class ErrorHandlerVerifier {
       type is InterfaceType &&
       type.element.name == typeName &&
       type.element.library.isDartAsync;
+
+  static bool _isVoidOrDynamic(DartType type) {
+    return type is VoidType ||
+        type is DynamicType ||
+        type is InvalidType ||
+        type.isDartCoreNull;
+  }
 }
 
 /// Visits a function body, looking for return statements.

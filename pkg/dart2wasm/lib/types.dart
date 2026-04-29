@@ -840,25 +840,29 @@ class IsCheckerCallTarget extends CallTarget {
   bool get supportsInlining => true;
 
   @override
-  bool get shouldInline {
-    if (checkArguments) return false;
+  InliningDecision get shouldInline {
+    if (checkArguments) return InliningDecision(false, 'checkArguments');
 
     final interfaceClass = testedAgainstType.classNode;
     // Can emit a single class-id range check for those, so we prefer to inline
     // them.
-    if (interfaceClass == translator.coreTypes.objectClass) return true;
-    if (interfaceClass == translator.coreTypes.functionClass) return true;
+    if (interfaceClass == translator.coreTypes.objectClass) {
+      return InliningDecision(true, 'is Object');
+    }
+    if (interfaceClass == translator.coreTypes.functionClass) {
+      return InliningDecision(true, 'is Function');
+    }
 
     // Checking the receiver for null emits more code (block, save receiver to
     // local, conditional branch) - so it's likely to regress size.
-    if (operandIsNullable) return false;
+    if (operandIsNullable) return InliningDecision(false, 'operandIsNullable');
 
     // Always inline single class-id range checks (no branching, simply loads,
     // arithmetic and unsigned compare).
     final ranges = translator.classIdNumbering.getConcreteClassIdRange(
       interfaceClass,
     );
-    return ranges.length <= 1;
+    return InliningDecision(ranges.length <= 1, 'ranges <= 1');
   }
 
   @override

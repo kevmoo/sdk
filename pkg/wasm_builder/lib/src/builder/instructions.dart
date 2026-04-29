@@ -204,6 +204,7 @@ class InstructionsBuilder with Builder<ir.Instructions> {
   final List<SourceMapping>? _sourceMappings;
 
   int _indent = 1;
+  final List<String> _inlinedFrames = [];
   final List<String> _traceLines = [];
 
   int _labelCount = 0;
@@ -648,6 +649,25 @@ class InstructionsBuilder with Builder<ir.Instructions> {
   /// Emit a comment.
   void comment(String text) {
     assert(_comment(text));
+  }
+
+  /// Pushes `name` to inlining stack and emit the current inlining stack as
+  /// a comment.
+  T withInlinedFrame<T>(String name, T Function() fun) {
+    bool assertsEnabled = false;
+    assert(assertsEnabled = true);
+    if (!assertsEnabled) {
+      return fun();
+    }
+
+    _inlinedFrames.add(name);
+    try {
+      final inliningStack = _inlinedFrames.map((p) => '[$p]').join(' ');
+      comment(inliningStack);
+      return fun();
+    } finally {
+      _inlinedFrames.removeLast();
+    }
   }
 
   // Control instructions

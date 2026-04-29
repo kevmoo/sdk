@@ -14,7 +14,6 @@ import 'package:wasm_builder/wasm_builder.dart' as w;
 import 'async.dart';
 import 'class_info.dart';
 import 'closures.dart';
-import 'dispatch_table.dart';
 import 'functions.dart';
 import 'globals.dart';
 import 'intrinsics.dart';
@@ -1820,12 +1819,18 @@ abstract class AstCodeGenerator
     DynamicInvocation node,
     w.ValueType expectedType,
   ) {
+    return _handleDynamicInvocation(node.receiver, node.arguments, node.name);
+  }
+
+  w.ValueType _handleDynamicInvocation(
+    Expression receiver,
+    Arguments arguments,
+    Name memberName,
+  ) {
     // Call dynamic invocation forwarder
-    final receiver = node.receiver;
-    final typeArguments = node.arguments.types;
-    final positionalArguments = node.arguments.positional;
-    final namedArguments = node.arguments.named;
-    final memberName = node.name;
+    final typeArguments = arguments.types;
+    final positionalArguments = arguments.positional;
+    final namedArguments = arguments.named;
     final callShape = MethodCallShape(
       memberName,
       typeArguments.length,
@@ -1987,8 +1992,7 @@ abstract class AstCodeGenerator
       getter: kind.isGetter,
       setter: kind.isSetter,
     );
-    final dispatchTable = translator.dispatchTable;
-    SelectorInfo selector = dispatchTable.selectorForTarget(reference);
+    final selector = translator.dispatchTable.selectorForTarget(reference);
     final signature = selector.signature;
     final name = selector.entryPointName(useUncheckedEntry);
     assert(selector.name == interfaceTarget.name.text);
@@ -2062,8 +2066,12 @@ abstract class AstCodeGenerator
         selector,
         interfaceTarget: reference,
         useUncheckedEntry: useUncheckedEntry,
-        table: dispatchTable,
       );
+    }
+    if (selector.synthesizeNullReturnValue) {
+      assert(selector.signature.outputs.isEmpty);
+      b.ref_null(w.HeapType.none);
+      return w.RefType(w.HeapType.none, nullable: true);
     }
 
     return translator.outputOrVoid(signature.outputs);
@@ -2548,15 +2556,7 @@ abstract class AstCodeGenerator
 
     if (node.kind == FunctionAccessKind.Function) {
       // Type of function is `Function`, without the argument types.
-      return visitDynamicInvocation(
-        DynamicInvocation(
-          DynamicAccessKind.Dynamic,
-          node.receiver,
-          node.name,
-          node.arguments,
-        ),
-        expectedType,
-      );
+      return _handleDynamicInvocation(node.receiver, node.arguments, node.name);
     }
 
     List<String> argNames = node.arguments.named.map((a) => a.name).toList()
@@ -3546,6 +3546,7 @@ CodeGenerator? getInlinableMemberCodeGenerator(
       translator,
       functionType,
       member,
+      reference,
       reference.entryKind,
     );
   }
@@ -3558,12 +3559,14 @@ CodeGenerator? getInlinableMemberCodeGenerator(
 
 class SynchronousProcedureCodeGenerator extends AstCodeGenerator {
   final Procedure member;
+  final Reference reference;
   final EntryPoint kind;
 
   SynchronousProcedureCodeGenerator(
     Translator translator,
     w.FunctionType functionType,
     this.member,
+    this.reference,
     this.kind,
   ) : super(translator, functionType, member) {
     assert(
@@ -3639,7 +3642,7 @@ class SynchronousProcedureCodeGenerator extends AstCodeGenerator {
 
     final outputs = call(member.bodyReference);
     if (outputs.isNotEmpty) {
-      translator.convertType(b, outputs.single, functionType.outputs.single);
+      translator.convertType(b, outputs.single, returnType);
     }
     _returnFromFunction();
     b.end();
@@ -5989,8 +5992,18 @@ extension MacroAssembler on w.InstructionsBuilder {
   }
 
   List<w.ValueType> invoke(CallTarget target, {bool forceInline = false}) {
-    if (target.supportsInlining && (target.shouldInline || forceInline)) {
-      return inlineCallTo(target);
+    if (target.supportsInlining) {
+      if (forceInline) {
+        comment('Inlining ${target.name}, reason: forced');
+        return inlineCallTo(target);
+      }
+      final decision = target.shouldInline;
+      if (decision.shouldInline) {
+        comment('Inlining ${target.name}, reason: ${decision.reason}');
+        return inlineCallTo(target);
+      } else {
+        comment('Not inlining, reason: ${decision.reason}');
+      }
     }
     comment('Direct call to ${target.name}');
     call(target.function);
@@ -6006,9 +6019,10 @@ extension MacroAssembler on w.InstructionsBuilder {
       local_set(local);
     }
     final w.Label callBlock = block(const [], target.signature.outputs);
-    comment('Inlined ${target.name}');
-    target.inliningCodeGen.generate(this, inlinedLocals, callBlock);
-    return emitUnreachableIfNoResult(target.signature.outputs);
+    return withInlinedFrame(target.name, () {
+      target.inliningCodeGen.generate(this, inlinedLocals, callBlock);
+      return emitUnreachableIfNoResult(target.signature.outputs);
+    });
   }
 
   /// Pushes fields common to all Dart objects (class id, id hash).
@@ -6094,13 +6108,17 @@ abstract class CallTarget {
 
   CallTarget(this.signature);
 
+  /// Whether callers should synthesize a `null` return value.
+  bool get synthesizeNullReturnValue => false;
+
   /// Whether this call target supports inlining.
   bool get supportsInlining => false;
 
   /// Whether we should inline (different call targets may have semantic
   /// knowledge about how big the body would be and whether we should inline or
   /// not).
-  bool get shouldInline => false;
+  InliningDecision get shouldInline =>
+      InliningDecision(false, 'no CallTarget support');
 
   /// The code generator to use for inlining the body.
   CodeGenerator get inliningCodeGen => throw 'No inlining support (yet).';
@@ -6124,13 +6142,18 @@ class AstCallTarget extends CallTarget {
   AstCallTarget(super.signature, this._translator, this._reference);
 
   @override
+  bool get synthesizeNullReturnValue =>
+      _translator.synthesizeNullReturnValue(_reference);
+
+  @override
   String get name => _translator.functions.getFunctionName(_reference);
 
   @override
   bool get supportsInlining => _translator.supportsInlining(_reference);
 
   @override
-  bool get shouldInline => _translator.shouldInline(_reference, signature);
+  InliningDecision get shouldInline =>
+      _translator.shouldInline(_reference, signature);
 
   @override
   CodeGenerator get inliningCodeGen => getInlinableMemberCodeGenerator(

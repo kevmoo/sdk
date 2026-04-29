@@ -222,7 +222,7 @@ class CreateExtensionMethod extends _CreateExtensionMember {
     if (returnType is InterfaceType && returnType.isDartCoreFunction) {
       returnType = FunctionTypeImpl(
         typeParameters: const [],
-        parameters: const [],
+        formalParameters: const [],
         returnType: DynamicTypeImpl.instance,
         nullabilitySuffix: NullabilitySuffix.none,
       );

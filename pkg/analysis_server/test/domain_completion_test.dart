@@ -2140,6 +2140,8 @@ suggestions
     kind: identifier
   |linter: |
     kind: identifier
+  |plugins: |
+    kind: identifier
 ''');
   }
 

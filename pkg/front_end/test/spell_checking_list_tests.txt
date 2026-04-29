@@ -515,7 +515,6 @@ llc
 ln
 locale
 locating
-logd
 logs
 loo
 lookahead

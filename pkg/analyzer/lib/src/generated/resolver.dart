@@ -2912,7 +2912,7 @@ class ResolverVisitor extends ThrowingAstVisitor<void>
     if (receiverContextType != null) {
       target = InvocationTargetExtensionOverride(
         element: node.element,
-        type: FunctionTypeImpl.v2(
+        type: FunctionTypeImpl(
           typeParameters: const [],
           formalParameters: [
             FormalParameterElementImpl.synthetic(

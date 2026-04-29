@@ -109,7 +109,7 @@
   (func $Foo (result (ref $Object)) <...>)
   (func $Object._invokeNoSuchMethod (param $receiver (ref null $#Top)) (param $invocation (ref $_Invocation)) (result (ref null $#Top)) <...>)
   (func $confuse (param $a (ref null $#Top)) (result (ref null $#Top)) <...>)
-  (func $main (result (ref null $#Top))
+  (func $main
     (local $var0 (ref null $#Top))
     (local $var1 (ref null $#Top))
     call $Foo
@@ -119,6 +119,7 @@
     local.get $var0
     call $"Dynamic dispatcher for MethodCallShape(toString names:a)"
     call $print
+    ref.null none
     drop
     call $Bar
     call $confuse
@@ -127,8 +128,8 @@
     local.get $var1
     call $"Dynamic dispatcher for MethodCallShape(toString names:a)"
     call $print
-    drop
     ref.null none
+    drop
   )
-  (func $print (param $object (ref null $#Top)) (result (ref null $#Top)) <...>)
+  (func $print (param $object (ref null $#Top)) <...>)
 )

@@ -451,11 +451,6 @@ final class ConstantPropagation extends Pass
   void visitEnterSuspendableFunction(EnterSuspendableFunction instr) {}
 
   @override
-  void visitLeaveSuspendableFunction(LeaveSuspendableFunction instr) {
-    _setNonConstant(instr);
-  }
-
-  @override
   void visitSuspend(Suspend instr) {
     _setNonConstant(instr);
   }

@@ -1942,7 +1942,7 @@ class ElementAnnotationImpl
       'Exactly one of libraryName/libraryUri should be provided',
     );
     var element = this.element;
-    return element is PropertyAccessorElement &&
+    return element is GetterElement &&
         element.name == name &&
         (libraryName == null || element.library.name == libraryName) &&
         (libraryUri == null || element.library.uri == libraryUri);
@@ -2603,7 +2603,7 @@ abstract class ExecutableElementImpl extends FunctionTypedElementImpl
   FunctionTypeImpl get type {
     return _type ??= FunctionTypeImpl(
       typeParameters: typeParameters,
-      parameters: formalParameters,
+      formalParameters: formalParameters,
       returnType: returnType,
       nullabilitySuffix: NullabilitySuffix.none,
     );
@@ -4616,7 +4616,7 @@ class GenericFunctionTypeElementImpl extends FunctionTypedElementImpl
   FunctionTypeImpl get type {
     return _type ??= FunctionTypeImpl(
       typeParameters: typeParameters,
-      parameters: formalParameters,
+      formalParameters: formalParameters,
       returnType: returnType,
       nullabilitySuffix: _firstFragment.isNullable
           ? NullabilitySuffix.question
@@ -11064,7 +11064,7 @@ class TypeAliasElementImpl extends ElementImpl
   FunctionTypeImpl _errorFunctionType(NullabilitySuffix nullabilitySuffix) {
     return FunctionTypeImpl(
       typeParameters: const [],
-      parameters: const [],
+      formalParameters: const [],
       returnType: DynamicTypeImpl.instance,
       nullabilitySuffix: nullabilitySuffix,
     );

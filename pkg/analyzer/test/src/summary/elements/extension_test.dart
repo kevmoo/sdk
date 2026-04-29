@@ -12,17 +12,22 @@ main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(ExtensionElementTest_keepLinking);
     defineReflectiveTests(ExtensionElementTest_fromBytes);
-    defineReflectiveTests(ExtensionElementTest_augmentation_keepLinking);
-    defineReflectiveTests(ExtensionElementTest_augmentation_fromBytes);
     defineReflectiveTests(UpdateNodeTextExpectations);
   });
 }
 
 abstract class ExtensionElementTest extends ElementsBaseTest {
-  test_emptyBody() async {
+  test_extension_augmentation_chain_noIntroductoryDeclaration() async {
     var library = await buildLibrary(r'''
-extension E on int;
+augment extension A {
+  void foo1() {}
+}
+
+augment extension A {
+  void foo2() {}
+}
 ''');
+
     checkElementText(library, r'''
 library
   reference: <testLibrary>
@@ -30,58 +35,157 @@ library
     #F0 <testLibraryFragment>
       element: <testLibrary>
       extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
+        #F1 isAugmentation extension A (nameOffset:18) (firstTokenOffset:0) (offset:18)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          methods
+            #F3 isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:29) (firstTokenOffset:24) (offset:29)
+              element: <testLibrary>::@extension::A::@method::foo1
+        #F2 isAugmentation extension A (nameOffset:60) (firstTokenOffset:42) (offset:60)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          methods
+            #F4 isCompleteDeclaration isOriginDeclaration foo2 (nameOffset:71) (firstTokenOffset:66) (offset:71)
+              element: <testLibrary>::@extension::A::@method::foo2
   extensions
-    extension E
-      reference: <testLibrary>::@extension::E
+    extension A
+      reference: <testLibrary>::@extension::A
       firstFragment: #F1
+      extendedType: InvalidType
+      onDeclaration: <null>
+      methods
+        isOriginDeclaration foo1
+          reference: <testLibrary>::@extension::A::@method::foo1
+          firstFragment: #F3
+          returnType: void
+        isOriginDeclaration foo2
+          reference: <testLibrary>::@extension::A::@method::foo2
+          firstFragment: #F4
+          returnType: void
+''');
+  }
+
+  test_extension_augmentation_chain_twoDeclarations() async {
+    var library = await buildLibrary(r'''
+extension A on int {}
+
+augment extension A {}
+
+augment extension A {}
+''');
+
+    configuration.withExportScope = true;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+        #F2 isAugmentation extension A (nameOffset:41) (firstTokenOffset:23) (offset:41)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          nextFragment: #F3
+        #F3 isAugmentation extension A (nameOffset:65) (firstTokenOffset:47) (offset:65)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+  exportEntries
+    declared <testLibrary>::@extension::A
+  exportNamespace
+    A: <testLibrary>::@extension::A
+''');
+  }
+
+  test_extension_augmentation_sameName_class_class() async {
+    var library = await buildLibrary(r'''
+extension A on int {}
+
+augment class A {}
+
+augment class A {}
+
+''');
+
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      classes
+        #F1 isAugmentation class A (nameOffset:37) (firstTokenOffset:23) (offset:37)
+          element: <testLibrary>::@class::A
+          nextFragment: #F2
+        #F2 isAugmentation class A (nameOffset:57) (firstTokenOffset:43) (offset:57)
+          element: <testLibrary>::@class::A
+          previousFragment: #F1
+      extensions
+        #F3 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+  classes
+    isSimplyBounded class A
+      reference: <testLibrary>::@class::A
+      firstFragment: #F1
+      previousFragmentOfDifferentKind: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F3
       extendedType: int
       onDeclaration: dart:core::@class::int
 ''');
   }
 
-  test_emptyBody_language310() async {
+  test_extension_augmentation_sameName_class_extension() async {
     var library = await buildLibrary(r'''
-// @dart = 3.10
-extension E on int;
+extension A on int {}
+
+augment class A {}
+
+augment extension A {}
 ''');
+
+    configuration.withConstructors = false;
     checkElementText(library, r'''
 library
   reference: <testLibrary>
   fragments
     #F0 <testLibraryFragment>
       element: <testLibrary>
+      classes
+        #F1 isAugmentation class A (nameOffset:37) (firstTokenOffset:23) (offset:37)
+          element: <testLibrary>::@class::A
       extensions
-        #F1 extension E (nameOffset:26) (firstTokenOffset:16) (offset:26)
-          element: <testLibrary>::@extension::E
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
+        #F2 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+        #F3 isAugmentation extension A (nameOffset:61) (firstTokenOffset:43) (offset:61)
+          element: <testLibrary>::@extension::A#1
+  classes
+    isSimplyBounded class A
+      reference: <testLibrary>::@class::A
       firstFragment: #F1
+      previousFragmentOfDifferentKind: #F2
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F2
       extendedType: int
       onDeclaration: dart:core::@class::int
-''');
-  }
-
-  test_extendedType_recordType() async {
-    var library = await buildLibrary('''
-extension E on (int, String) {}
-''');
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      extendedType: (int, String)
+    extension A
+      reference: <testLibrary>::@extension::A#1
+      firstFragment: #F3
+      previousFragmentOfDifferentKind: #F1
+      extendedType: InvalidType
       onDeclaration: <null>
 ''');
   }
@@ -111,11 +215,10 @@ library
 ''');
   }
 
-  test_extension_field_inferredType_const() async {
-    var library = await buildLibrary('''
-extension E on int {
-  static const x = 0;
-}''');
+  test_extension_emptyBody() async {
+    var library = await buildLibrary(r'''
+extension E on int;
+''');
     checkElementText(library, r'''
 library
   reference: <testLibrary>
@@ -125,37 +228,57 @@ library
       extensions
         #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
           element: <testLibrary>::@extension::E
-          fields
-            #F2 hasImplicitType hasInitializer isConst isOriginDeclaration isStatic x (nameOffset:36) (firstTokenOffset:36) (offset:36)
-              element: <testLibrary>::@extension::E::@field::x
-              initializer: expression_0
-                IntegerLiteral
-                  literal: 0 @40
-                  staticType: int
-          getters
-            #F3 isCompleteDeclaration isOriginVariable isStatic x (nameOffset:<null>) (firstTokenOffset:<null>) (offset:36)
-              element: <testLibrary>::@extension::E::@getter::x
   extensions
     extension E
       reference: <testLibrary>::@extension::E
       firstFragment: #F1
       extendedType: int
       onDeclaration: dart:core::@class::int
-      fields
-        hasImplicitType hasInitializer isConst isOriginDeclaration isStatic isTypeInferredFromInitializer x
-          reference: <testLibrary>::@extension::E::@field::x
-          firstFragment: #F2
-          type: int
-          constantInitializer
-            fragment: #F2
-            expression: expression_0
-          getter: <testLibrary>::@extension::E::@getter::x
-      getters
-        isOriginVariable isStatic x
-          reference: <testLibrary>::@extension::E::@getter::x
-          firstFragment: #F3
-          returnType: int
-          variable: <testLibrary>::@extension::E::@field::x
+''');
+  }
+
+  test_extension_emptyBody_language310() async {
+    var library = await buildLibrary(r'''
+// @dart = 3.10
+extension E on int;
+''');
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:26) (firstTokenOffset:16) (offset:26)
+          element: <testLibrary>::@extension::E
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+''');
+  }
+
+  test_extension_extendedType_recordType() async {
+    var library = await buildLibrary('''
+extension E on (int, String) {}
+''');
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      extendedType: (int, String)
+      onDeclaration: <null>
 ''');
   }
 
@@ -251,162 +374,72 @@ extension E on int {
     expect(foo.name, 'foo');
   }
 
-  test_extension_typeParameters_hasBound() async {
-    var library = await buildLibrary('''
-extension E<T extends num> on int {}
-''');
+  test_extension_metadata() async {
+    var library = await buildLibrary(r'''
+const a = null;
+class A {}
+@a
+@Object()
+extension E on A {}''');
     checkElementText(library, r'''
 library
   reference: <testLibrary>
   fragments
     #F0 <testLibraryFragment>
       element: <testLibrary>
+      classes
+        #F1 class A (nameOffset:22) (firstTokenOffset:16) (offset:22)
+          element: <testLibrary>::@class::A
+          constructors
+            #F2 isOriginImplicitDefault new (nameOffset:<null>) (firstTokenOffset:<null>) (offset:22)
+              element: <testLibrary>::@class::A::@constructor::new
+              typeName: A
       extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+        #F3 extension E (nameOffset:50) (firstTokenOffset:27) (offset:50)
           element: <testLibrary>::@extension::E
-          typeParameters
-            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F2
-          bound: num
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-''');
-  }
-
-  test_extension_typeParameters_noBound() async {
-    var library = await buildLibrary('''
-extension E<T> on int {}
-''');
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          typeParameters
-            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F2
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-''');
-  }
-
-  test_getter_ofGeneric_refEnclosingTypeParameter_false() async {
-    var library = await buildLibrary('''
-extension E<T> on List<T> {
-  int get foo {}
-}
-''');
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          typeParameters
-            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-          fields
-            #F3 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
-              element: <testLibrary>::@extension::E::@field::foo
-          getters
-            #F4 isCompleteDeclaration isOriginDeclaration foo (nameOffset:38) (firstTokenOffset:30) (offset:38)
-              element: <testLibrary>::@extension::E::@getter::foo
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F2
-      extendedType: List<T>
-      onDeclaration: dart:core::@class::List
-      fields
-        isOriginGetterSetter foo
-          reference: <testLibrary>::@extension::E::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::E::@getter::foo
+      topLevelVariables
+        #F4 hasImplicitType hasInitializer isConst isOriginDeclaration isStatic a (nameOffset:6) (firstTokenOffset:6) (offset:6)
+          element: <testLibrary>::@topLevelVariable::a
+          initializer: expression_0
+            NullLiteral
+              literal: null @10
+              staticType: Null
       getters
-        isOriginDeclaration foo
-          reference: <testLibrary>::@extension::E::@getter::foo
-          firstFragment: #F4
-          returnType: int
-          variable: <testLibrary>::@extension::E::@field::foo
-''');
-  }
-
-  test_getter_ofGeneric_refEnclosingTypeParameter_true() async {
-    var library = await buildLibrary('''
-extension E<T> on List<T> {
-  T get foo {}
-}
-''');
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          typeParameters
-            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-          fields
-            #F3 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
-              element: <testLibrary>::@extension::E::@field::foo
-          getters
-            #F4 isCompleteDeclaration isOriginDeclaration foo (nameOffset:36) (firstTokenOffset:30) (offset:36)
-              element: <testLibrary>::@extension::E::@getter::foo
+        #F5 isCompleteDeclaration isOriginVariable isStatic a (nameOffset:<null>) (firstTokenOffset:<null>) (offset:6)
+          element: <testLibrary>::@getter::a
+  classes
+    isSimplyBounded class A
+      reference: <testLibrary>::@class::A
+      firstFragment: #F1
+      constructors
+        isOriginImplicitDefault new
+          reference: <testLibrary>::@class::A::@constructor::new
+          firstFragment: #F2
   extensions
     extension E
       reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F2
-      extendedType: List<T>
-      onDeclaration: dart:core::@class::List
-      fields
-        hasEnclosingTypeParameterReference isOriginGetterSetter foo
-          reference: <testLibrary>::@extension::E::@field::foo
-          firstFragment: #F3
-          type: T
-          getter: <testLibrary>::@extension::E::@getter::foo
-      getters
-        hasEnclosingTypeParameterReference isOriginDeclaration foo
-          reference: <testLibrary>::@extension::E::@getter::foo
-          firstFragment: #F4
-          returnType: T
-          variable: <testLibrary>::@extension::E::@field::foo
+      firstFragment: #F3
+      extendedType: A
+      onDeclaration: <testLibrary>::@class::A
+  topLevelVariables
+    hasImplicitType hasInitializer isConst isOriginDeclaration isStatic isTypeInferredFromInitializer a
+      reference: <testLibrary>::@topLevelVariable::a
+      firstFragment: #F4
+      type: dynamic
+      constantInitializer
+        fragment: #F4
+        expression: expression_0
+      getter: <testLibrary>::@getter::a
+  getters
+    isOriginVariable isStatic a
+      reference: <testLibrary>::@getter::a
+      firstFragment: #F5
+      returnType: dynamic
+      variable: <testLibrary>::@topLevelVariable::a
 ''');
   }
 
-  test_metadata_extension_scope() async {
+  test_extension_metadata_scope() async {
     var library = await buildLibrary(r'''
 const foo = 0;
 
@@ -531,77 +564,14 @@ library
 ''');
   }
 
-  test_metadata_extensionDeclaration() async {
+  test_extension_onClause_augmentation() async {
     var library = await buildLibrary(r'''
-const a = null;
-class A {}
-@a
-@Object()
-extension E on A {}''');
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      classes
-        #F1 class A (nameOffset:22) (firstTokenOffset:16) (offset:22)
-          element: <testLibrary>::@class::A
-          constructors
-            #F2 isOriginImplicitDefault new (nameOffset:<null>) (firstTokenOffset:<null>) (offset:22)
-              element: <testLibrary>::@class::A::@constructor::new
-              typeName: A
-      extensions
-        #F3 extension E (nameOffset:50) (firstTokenOffset:27) (offset:50)
-          element: <testLibrary>::@extension::E
-      topLevelVariables
-        #F4 hasImplicitType hasInitializer isConst isOriginDeclaration isStatic a (nameOffset:6) (firstTokenOffset:6) (offset:6)
-          element: <testLibrary>::@topLevelVariable::a
-          initializer: expression_0
-            NullLiteral
-              literal: null @10
-              staticType: Null
-      getters
-        #F5 isCompleteDeclaration isOriginVariable isStatic a (nameOffset:<null>) (firstTokenOffset:<null>) (offset:6)
-          element: <testLibrary>::@getter::a
-  classes
-    isSimplyBounded class A
-      reference: <testLibrary>::@class::A
-      firstFragment: #F1
-      constructors
-        isOriginImplicitDefault new
-          reference: <testLibrary>::@class::A::@constructor::new
-          firstFragment: #F2
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F3
-      extendedType: A
-      onDeclaration: <testLibrary>::@class::A
-  topLevelVariables
-    hasImplicitType hasInitializer isConst isOriginDeclaration isStatic isTypeInferredFromInitializer a
-      reference: <testLibrary>::@topLevelVariable::a
-      firstFragment: #F4
-      type: dynamic
-      constantInitializer
-        fragment: #F4
-        expression: expression_0
-      getter: <testLibrary>::@getter::a
-  getters
-    isOriginVariable isStatic a
-      reference: <testLibrary>::@getter::a
-      firstFragment: #F5
-      returnType: dynamic
-      variable: <testLibrary>::@topLevelVariable::a
-''');
-  }
+extension A on int {}
 
-  test_method() async {
-    var library = await buildLibrary('''
-extension E on int {
-  void foo() {}
-}
+augment extension A on double {}
 ''');
+
+    configuration.withExportScope = true;
     checkElementText(library, r'''
 library
   reference: <testLibrary>
@@ -609,204 +579,26 @@ library
     #F0 <testLibraryFragment>
       element: <testLibrary>
       extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          methods
-            #F2 isCompleteDeclaration isOriginDeclaration foo (nameOffset:28) (firstTokenOffset:23) (offset:28)
-              element: <testLibrary>::@extension::E::@method::foo
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+        #F2 isAugmentation extension A (nameOffset:41) (firstTokenOffset:23) (offset:41)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
   extensions
-    extension E
-      reference: <testLibrary>::@extension::E
+    extension A
+      reference: <testLibrary>::@extension::A
       firstFragment: #F1
       extendedType: int
       onDeclaration: dart:core::@class::int
-      methods
-        isOriginDeclaration foo
-          reference: <testLibrary>::@extension::E::@method::foo
-          firstFragment: #F2
-          returnType: void
+  exportEntries
+    declared <testLibrary>::@extension::A
+  exportNamespace
+    A: <testLibrary>::@extension::A
 ''');
   }
 
-  test_method_ofGeneric_refEnclosingTypeParameter_false() async {
-    var library = await buildLibrary('''
-extension E<T> on List<T> {
-  void foo() {}
-}
-''');
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          typeParameters
-            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-          methods
-            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:35) (firstTokenOffset:30) (offset:35)
-              element: <testLibrary>::@extension::E::@method::foo
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F2
-      extendedType: List<T>
-      onDeclaration: dart:core::@class::List
-      methods
-        isOriginDeclaration foo
-          reference: <testLibrary>::@extension::E::@method::foo
-          firstFragment: #F3
-          returnType: void
-''');
-  }
-
-  test_method_ofGeneric_refEnclosingTypeParameter_true() async {
-    var library = await buildLibrary('''
-extension E<T> on List<T> {
-  void foo(T _) {}
-}
-''');
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          typeParameters
-            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-          methods
-            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:35) (firstTokenOffset:30) (offset:35)
-              element: <testLibrary>::@extension::E::@method::foo
-              formalParameters
-                #F4 requiredPositional isOriginDeclaration _ (nameOffset:41) (firstTokenOffset:39) (offset:41)
-                  element: <testLibrary>::@extension::E::@method::foo::@formalParameter::_
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F2
-      extendedType: List<T>
-      onDeclaration: dart:core::@class::List
-      methods
-        hasEnclosingTypeParameterReference isOriginDeclaration foo
-          reference: <testLibrary>::@extension::E::@method::foo
-          firstFragment: #F3
-          formalParameters
-            #E1 requiredPositional _
-              firstFragment: #F4
-              type: T
-          returnType: void
-''');
-  }
-
-  test_nonSynthetic_extension_getter() async {
-    var library = await buildLibrary(r'''
-extension E on int {
-  int get foo => 0;
-}
-''');
-    configuration.withNonSynthetic = true;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          fields
-            #F2 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
-              element: <testLibrary>::@extension::E::@field::foo
-          getters
-            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:31) (firstTokenOffset:23) (offset:31)
-              element: <testLibrary>::@extension::E::@getter::foo
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        isOriginGetterSetter foo
-          reference: <testLibrary>::@extension::E::@field::foo
-          firstFragment: #F2
-          type: int
-          getter: <testLibrary>::@extension::E::@getter::foo
-      getters
-        isOriginDeclaration foo
-          reference: <testLibrary>::@extension::E::@getter::foo
-          firstFragment: #F3
-          returnType: int
-          variable: <testLibrary>::@extension::E::@field::foo
-''');
-  }
-
-  test_nonSynthetic_extension_setter() async {
-    var library = await buildLibrary(r'''
-extension E on int {
-  set foo(int value) {}
-}
-''');
-    configuration.withNonSynthetic = true;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::E
-          fields
-            #F2 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
-              element: <testLibrary>::@extension::E::@field::foo
-          setters
-            #F3 hasImplicitReturnType isCompleteDeclaration isOriginDeclaration foo (nameOffset:27) (firstTokenOffset:23) (offset:27)
-              element: <testLibrary>::@extension::E::@setter::foo
-              formalParameters
-                #F4 requiredPositional isOriginDeclaration value (nameOffset:35) (firstTokenOffset:31) (offset:35)
-                  element: <testLibrary>::@extension::E::@setter::foo::@formalParameter::value
-  extensions
-    extension E
-      reference: <testLibrary>::@extension::E
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        isOriginGetterSetter foo
-          reference: <testLibrary>::@extension::E::@field::foo
-          firstFragment: #F2
-          type: int
-          setter: <testLibrary>::@extension::E::@setter::foo
-      setters
-        isOriginDeclaration foo
-          reference: <testLibrary>::@extension::E::@setter::foo
-          firstFragment: #F3
-          formalParameters
-            #E0 requiredPositional value
-              firstFragment: #F4
-              type: int
-          returnType: void
-          variable: <testLibrary>::@extension::E::@field::foo
-''');
-  }
-
-  test_onDeclaration_class() async {
+  test_extension_onDeclaration_class() async {
     var library = await buildLibrary('''
 class A {}
 extension E on A {}
@@ -844,7 +636,7 @@ library
 ''');
   }
 
-  test_onDeclaration_dynamic() async {
+  test_extension_onDeclaration_dynamic() async {
     var library = await buildLibrary('''
 extension E on dynamic {}
 ''');
@@ -866,7 +658,7 @@ library
 ''');
   }
 
-  test_onDeclaration_enum() async {
+  test_extension_onDeclaration_enum() async {
     var library = await buildLibrary('''
 enum A { foo; }
 extension E on A {}
@@ -966,7 +758,7 @@ library
 ''');
   }
 
-  test_onDeclaration_extensionType() async {
+  test_extension_onDeclaration_extensionType() async {
     var library = await buildLibrary('''
 extension type A(Object? it) {}
 extension E on A {}
@@ -1035,7 +827,7 @@ library
 ''');
   }
 
-  test_onDeclaration_futureOr() async {
+  test_extension_onDeclaration_futureOr() async {
     var library = await buildLibrary('''
 import 'dart:async';
 extension E on FutureOr<int> {}
@@ -1060,7 +852,7 @@ library
 ''');
   }
 
-  test_onDeclaration_mixin() async {
+  test_extension_onDeclaration_mixin() async {
     var library = await buildLibrary('''
 mixin A {}
 extension E on A {}
@@ -1092,7 +884,7 @@ library
 ''');
   }
 
-  test_onDeclaration_Never() async {
+  test_extension_onDeclaration_Never() async {
     var library = await buildLibrary('''
 extension E on Never {}
 ''');
@@ -1114,7 +906,7 @@ library
 ''');
   }
 
-  test_onDeclaration_nullable() async {
+  test_extension_onDeclaration_nullable() async {
     var library = await buildLibrary('''
 extension E on int? {}
 ''');
@@ -1136,7 +928,7 @@ library
 ''');
   }
 
-  test_onDeclaration_typedef() async {
+  test_extension_onDeclaration_typedef() async {
     var library = await buildLibrary('''
 typedef A = int;
 extension E on A {}
@@ -1168,7 +960,7 @@ library
 ''');
   }
 
-  test_onDeclaration_typeParameter() async {
+  test_extension_onDeclaration_typeParameter() async {
     var library = await buildLibrary('''
 extension E<X> on X {}
 ''');
@@ -1196,7 +988,7 @@ library
 ''');
   }
 
-  test_onDeclaration_void() async {
+  test_extension_onDeclaration_void() async {
     var library = await buildLibrary('''
 extension E on void {}
 ''');
@@ -1218,7 +1010,226 @@ library
 ''');
   }
 
-  test_unnamed() async {
+  test_extension_typeParameters() async {
+    var library = await buildLibrary('''
+extension E<T> on int {}
+''');
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          typeParameters
+            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F2
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+''');
+  }
+
+  test_extension_typeParameters_augmentation_chain_count_111() async {
+    var library = await buildLibrary(r'''
+extension A<T> on int {}
+augment extension A<T> {}
+augment extension A<T> {}
+''');
+
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          typeParameters
+            #F3 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+              nextFragment: #F4
+        #F2 isAugmentation extension A (nameOffset:43) (firstTokenOffset:25) (offset:43)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          nextFragment: #F5
+          typeParameters
+            #F4 T (nameOffset:45) (firstTokenOffset:45) (offset:45)
+              element: #E0 T
+              previousFragment: #F3
+              nextFragment: #F6
+        #F5 isAugmentation extension A (nameOffset:69) (firstTokenOffset:51) (offset:69)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+          typeParameters
+            #F6 T (nameOffset:71) (firstTokenOffset:71) (offset:71)
+              element: #E0 T
+              previousFragment: #F4
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F3
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+''');
+  }
+
+  test_extension_typeParameters_augmentation_chain_count_121() async {
+    var library = await buildLibrary(r'''
+extension A<T> on int {}
+augment extension A<T, U> {}
+augment extension A<T> {}
+''');
+
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          typeParameters
+            #F3 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+              nextFragment: #F4
+        #F2 isAugmentation extension A (nameOffset:43) (firstTokenOffset:25) (offset:43)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          nextFragment: #F5
+          typeParameters
+            #F4 T (nameOffset:45) (firstTokenOffset:45) (offset:45)
+              element: #E0 T
+              previousFragment: #F3
+              nextFragment: #F6
+        #F5 isAugmentation extension A (nameOffset:72) (firstTokenOffset:54) (offset:72)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+          typeParameters
+            #F6 T (nameOffset:74) (firstTokenOffset:74) (offset:74)
+              element: #E0 T
+              previousFragment: #F4
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F3
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+''');
+  }
+
+  test_extension_typeParameters_augmentation_chain_count_212() async {
+    var library = await buildLibrary(r'''
+extension A<T, U> on int {}
+augment extension A<T> {}
+augment extension A<T, U> {}
+''');
+
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          typeParameters
+            #F3 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+              nextFragment: #F4
+            #F5 U (nameOffset:15) (firstTokenOffset:15) (offset:15)
+              element: #E1 U
+              nextFragment: #F6
+        #F2 isAugmentation extension A (nameOffset:46) (firstTokenOffset:28) (offset:46)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          nextFragment: #F7
+          typeParameters
+            #F4 T (nameOffset:48) (firstTokenOffset:48) (offset:48)
+              element: #E0 T
+              previousFragment: #F3
+              nextFragment: #F8
+            #F6 isOriginPreviousFragmentOfEnclosing U (nameOffset:<null>) (firstTokenOffset:<null>) (offset:46)
+              element: #E1 U
+              previousFragment: #F5
+              nextFragment: #F9
+        #F7 isAugmentation extension A (nameOffset:72) (firstTokenOffset:54) (offset:72)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+          typeParameters
+            #F8 T (nameOffset:74) (firstTokenOffset:74) (offset:74)
+              element: #E0 T
+              previousFragment: #F4
+            #F9 U (nameOffset:77) (firstTokenOffset:77) (offset:77)
+              element: #E1 U
+              previousFragment: #F6
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F3
+        #E1 U
+          firstFragment: #F5
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+''');
+  }
+
+  test_extension_typeParameters_bound() async {
+    var library = await buildLibrary('''
+extension E<T extends num> on int {}
+''');
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          typeParameters
+            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F2
+          bound: num
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+''');
+  }
+
+  test_extension_unnamed() async {
     var library = await buildLibrary('''
 extension on int {}
 ''');
@@ -1239,561 +1250,8 @@ library
       onDeclaration: dart:core::@class::int
 ''');
   }
-}
 
-abstract class ExtensionElementTest_augmentation extends ElementsBaseTest {
-  test_augmentationTarget() async {
-    var library = await buildLibrary(r'''
-extension A on int {}
-
-augment extension A {}
-
-augment extension A {}
-''');
-
-    configuration.withExportScope = true;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-        #F2 isAugmentation extension A (nameOffset:41) (firstTokenOffset:23) (offset:41)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F3
-        #F3 isAugmentation extension A (nameOffset:65) (firstTokenOffset:47) (offset:65)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-  exportEntries
-    declared <testLibrary>::@extension::A
-  exportNamespace
-    A: <testLibrary>::@extension::A
-''');
-  }
-
-  test_augmentationTarget_no2() async {
-    var library = await buildLibrary(r'''
-augment extension A {
-  void foo1() {}
-}
-
-augment extension A {
-  void foo2() {}
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 isAugmentation extension A (nameOffset:18) (firstTokenOffset:0) (offset:18)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          methods
-            #F3 isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:29) (firstTokenOffset:24) (offset:29)
-              element: <testLibrary>::@extension::A::@method::foo1
-        #F2 isAugmentation extension A (nameOffset:60) (firstTokenOffset:42) (offset:60)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          methods
-            #F4 isCompleteDeclaration isOriginDeclaration foo2 (nameOffset:71) (firstTokenOffset:66) (offset:71)
-              element: <testLibrary>::@extension::A::@method::foo2
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: InvalidType
-      onDeclaration: <null>
-      methods
-        isOriginDeclaration foo1
-          reference: <testLibrary>::@extension::A::@method::foo1
-          firstFragment: #F3
-          returnType: void
-        isOriginDeclaration foo2
-          reference: <testLibrary>::@extension::A::@method::foo2
-          firstFragment: #F4
-          returnType: void
-''');
-  }
-
-  test_augmented_field_augment_field() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  static int foo = 0;
-}
-
-augment extension A {
-  augment static int foo = 1;
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
-              element: <testLibrary>::@extension::A::@field::foo
-              nextFragment: #F4
-          getters
-            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@getter::foo
-          setters
-            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
-        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          fields
-            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:89) (offset:89)
-              element: <testLibrary>::@extension::A::@field::foo
-              previousFragment: #F3
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        hasInitializer isOriginDeclaration isStatic foo
-          reference: <testLibrary>::@extension::A::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo
-          setter: <testLibrary>::@extension::A::@setter::foo
-      getters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@getter::foo
-          firstFragment: #F5
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo
-      setters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@setter::foo
-          firstFragment: #F6
-          formalParameters
-            #E0 requiredPositional value
-              firstFragment: #F7
-              type: int
-          returnType: void
-          variable: <testLibrary>::@extension::A::@field::foo
-''');
-  }
-
-  test_augmented_field_augment_field2() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  static int foo = 0;
-}
-
-augment extension A {
-  augment static int foo = 1;
-}
-
-augment extension A {
-  augment static int foo = 2;
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
-              element: <testLibrary>::@extension::A::@field::foo
-              nextFragment: #F4
-          getters
-            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@getter::foo
-          setters
-            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
-        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F8
-          fields
-            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:89) (offset:89)
-              element: <testLibrary>::@extension::A::@field::foo
-              previousFragment: #F3
-              nextFragment: #F9
-        #F8 isAugmentation extension A (nameOffset:119) (firstTokenOffset:101) (offset:119)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-          fields
-            #F9 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:144) (firstTokenOffset:144) (offset:144)
-              element: <testLibrary>::@extension::A::@field::foo
-              previousFragment: #F4
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        hasInitializer isOriginDeclaration isStatic foo
-          reference: <testLibrary>::@extension::A::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo
-          setter: <testLibrary>::@extension::A::@setter::foo
-      getters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@getter::foo
-          firstFragment: #F5
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo
-      setters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@setter::foo
-          firstFragment: #F6
-          formalParameters
-            #E0 requiredPositional value
-              firstFragment: #F7
-              type: int
-          returnType: void
-          variable: <testLibrary>::@extension::A::@field::foo
-''');
-  }
-
-  test_augmented_field_augment_field_afterGetter() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  static int foo = 0;
-}
-
-augment extension A {
-  augment static int get foo => 1;
-}
-
-augment extension A {
-  augment static int foo = 2;
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
-              element: <testLibrary>::@extension::A::@field::foo
-              nextFragment: #F4
-          getters
-            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@getter::foo
-              nextFragment: #F6
-          setters
-            #F7 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F8 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
-        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F9
-          getters
-            #F6 isAugmentation isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:93) (firstTokenOffset:70) (offset:93)
-              element: <testLibrary>::@extension::A::@getter::foo
-              previousFragment: #F5
-        #F9 isAugmentation extension A (nameOffset:124) (firstTokenOffset:106) (offset:124)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-          fields
-            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:149) (firstTokenOffset:149) (offset:149)
-              element: <testLibrary>::@extension::A::@field::foo
-              previousFragment: #F3
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        hasInitializer isOriginDeclaration isStatic foo
-          reference: <testLibrary>::@extension::A::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo
-          setter: <testLibrary>::@extension::A::@setter::foo
-      getters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@getter::foo
-          firstFragment: #F5
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo
-      setters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@setter::foo
-          firstFragment: #F7
-          formalParameters
-            #E0 requiredPositional value
-              firstFragment: #F8
-              type: int
-          returnType: void
-          variable: <testLibrary>::@extension::A::@field::foo
-''');
-  }
-
-  test_augmented_field_augment_field_afterSetter() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  static int foo = 0;
-}
-
-augment extension A {
-  augment static set foo(int _) {}
-}
-
-augment extension A {
-  augment static int foo = 2;
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
-              element: <testLibrary>::@extension::A::@field::foo
-              nextFragment: #F4
-          getters
-            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@getter::foo
-          setters
-            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
-              nextFragment: #F8
-        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F9
-          setters
-            #F8 hasImplicitReturnType isAugmentation isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:70) (offset:89)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F10 requiredPositional isOriginDeclaration _ (nameOffset:97) (firstTokenOffset:93) (offset:97)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::_
-              previousFragment: #F6
-        #F9 isAugmentation extension A (nameOffset:124) (firstTokenOffset:106) (offset:124)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-          fields
-            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:149) (firstTokenOffset:149) (offset:149)
-              element: <testLibrary>::@extension::A::@field::foo
-              previousFragment: #F3
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        hasInitializer isOriginDeclaration isStatic foo
-          reference: <testLibrary>::@extension::A::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo
-          setter: <testLibrary>::@extension::A::@setter::foo
-      getters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@getter::foo
-          firstFragment: #F5
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo
-      setters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@setter::foo
-          firstFragment: #F6
-          formalParameters
-            #E0 requiredPositional value
-              firstFragment: #F7
-              type: int
-          returnType: void
-          variable: <testLibrary>::@extension::A::@field::foo
-''');
-  }
-
-  test_augmented_field_augment_field_differentTypes() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  static int foo = 0;
-}
-
-augment extension A {
-  augment static double foo = 1.2;
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
-              element: <testLibrary>::@extension::A::@field::foo
-              nextFragment: #F4
-          getters
-            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@getter::foo
-          setters
-            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
-        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          fields
-            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:92) (firstTokenOffset:92) (offset:92)
-              element: <testLibrary>::@extension::A::@field::foo
-              previousFragment: #F3
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        hasInitializer isOriginDeclaration isStatic foo
-          reference: <testLibrary>::@extension::A::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo
-          setter: <testLibrary>::@extension::A::@setter::foo
-      getters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@getter::foo
-          firstFragment: #F5
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo
-      setters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@setter::foo
-          firstFragment: #F6
-          formalParameters
-            #E0 requiredPositional value
-              firstFragment: #F7
-              type: int
-          returnType: void
-          variable: <testLibrary>::@extension::A::@field::foo
-''');
-  }
-
-  test_augmented_field_augment_getter() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  static int get foo => 0;
-}
-
-augment extension A {
-  augment static int foo = 1;
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 isOriginGetterSetter isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
-              element: <testLibrary>::@extension::A::@field::foo
-              nextFragment: #F4
-          getters
-            #F5 isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:38) (firstTokenOffset:23) (offset:38)
-              element: <testLibrary>::@extension::A::@getter::foo
-        #F2 isAugmentation extension A (nameOffset:69) (firstTokenOffset:51) (offset:69)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          fields
-            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:94) (firstTokenOffset:94) (offset:94)
-              element: <testLibrary>::@extension::A::@field::foo
-              previousFragment: #F3
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        hasInitializer isOriginGetterSetter isStatic foo
-          reference: <testLibrary>::@extension::A::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo
-      getters
-        isOriginDeclaration isStatic foo
-          reference: <testLibrary>::@extension::A::@getter::foo
-          firstFragment: #F5
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo
-''');
-  }
-
-  test_augmented_fields_add() async {
+  test_field_augmentation_add() async {
     var library = await buildLibrary(r'''
 extension A on int {
   static int foo1 = 0;
@@ -1893,7 +1351,518 @@ library
 ''');
   }
 
-  test_augmented_getters_add() async {
+  test_field_augmentation_chain() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  static int foo = 0;
+}
+
+augment extension A {
+  augment static int foo = 1;
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          fields
+            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
+              element: <testLibrary>::@extension::A::@field::foo
+              nextFragment: #F4
+          getters
+            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@getter::foo
+          setters
+            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
+        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          fields
+            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:89) (offset:89)
+              element: <testLibrary>::@extension::A::@field::foo
+              previousFragment: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        hasInitializer isOriginDeclaration isStatic foo
+          reference: <testLibrary>::@extension::A::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo
+          setter: <testLibrary>::@extension::A::@setter::foo
+      getters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@getter::foo
+          firstFragment: #F5
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo
+      setters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@setter::foo
+          firstFragment: #F6
+          formalParameters
+            #E0 requiredPositional value
+              firstFragment: #F7
+              type: int
+          returnType: void
+          variable: <testLibrary>::@extension::A::@field::foo
+''');
+  }
+
+  test_field_augmentation_chain_afterGetter() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  static int foo = 0;
+}
+
+augment extension A {
+  augment static int get foo => 1;
+}
+
+augment extension A {
+  augment static int foo = 2;
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          fields
+            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
+              element: <testLibrary>::@extension::A::@field::foo
+              nextFragment: #F4
+          getters
+            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@getter::foo
+              nextFragment: #F6
+          setters
+            #F7 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F8 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
+        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          nextFragment: #F9
+          getters
+            #F6 isAugmentation isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:93) (firstTokenOffset:70) (offset:93)
+              element: <testLibrary>::@extension::A::@getter::foo
+              previousFragment: #F5
+        #F9 isAugmentation extension A (nameOffset:124) (firstTokenOffset:106) (offset:124)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+          fields
+            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:149) (firstTokenOffset:149) (offset:149)
+              element: <testLibrary>::@extension::A::@field::foo
+              previousFragment: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        hasInitializer isOriginDeclaration isStatic foo
+          reference: <testLibrary>::@extension::A::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo
+          setter: <testLibrary>::@extension::A::@setter::foo
+      getters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@getter::foo
+          firstFragment: #F5
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo
+      setters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@setter::foo
+          firstFragment: #F7
+          formalParameters
+            #E0 requiredPositional value
+              firstFragment: #F8
+              type: int
+          returnType: void
+          variable: <testLibrary>::@extension::A::@field::foo
+''');
+  }
+
+  test_field_augmentation_chain_afterSetter() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  static int foo = 0;
+}
+
+augment extension A {
+  augment static set foo(int _) {}
+}
+
+augment extension A {
+  augment static int foo = 2;
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          fields
+            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
+              element: <testLibrary>::@extension::A::@field::foo
+              nextFragment: #F4
+          getters
+            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@getter::foo
+          setters
+            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
+              nextFragment: #F8
+        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          nextFragment: #F9
+          setters
+            #F8 hasImplicitReturnType isAugmentation isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:70) (offset:89)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F10 requiredPositional isOriginDeclaration _ (nameOffset:97) (firstTokenOffset:93) (offset:97)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::_
+              previousFragment: #F6
+        #F9 isAugmentation extension A (nameOffset:124) (firstTokenOffset:106) (offset:124)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+          fields
+            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:149) (firstTokenOffset:149) (offset:149)
+              element: <testLibrary>::@extension::A::@field::foo
+              previousFragment: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        hasInitializer isOriginDeclaration isStatic foo
+          reference: <testLibrary>::@extension::A::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo
+          setter: <testLibrary>::@extension::A::@setter::foo
+      getters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@getter::foo
+          firstFragment: #F5
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo
+      setters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@setter::foo
+          firstFragment: #F6
+          formalParameters
+            #E0 requiredPositional value
+              firstFragment: #F7
+              type: int
+          returnType: void
+          variable: <testLibrary>::@extension::A::@field::foo
+''');
+  }
+
+  test_field_augmentation_chain_differentType() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  static int foo = 0;
+}
+
+augment extension A {
+  augment static double foo = 1.2;
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          fields
+            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
+              element: <testLibrary>::@extension::A::@field::foo
+              nextFragment: #F4
+          getters
+            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@getter::foo
+          setters
+            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
+        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          fields
+            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:92) (firstTokenOffset:92) (offset:92)
+              element: <testLibrary>::@extension::A::@field::foo
+              previousFragment: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        hasInitializer isOriginDeclaration isStatic foo
+          reference: <testLibrary>::@extension::A::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo
+          setter: <testLibrary>::@extension::A::@setter::foo
+      getters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@getter::foo
+          firstFragment: #F5
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo
+      setters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@setter::foo
+          firstFragment: #F6
+          formalParameters
+            #E0 requiredPositional value
+              firstFragment: #F7
+              type: int
+          returnType: void
+          variable: <testLibrary>::@extension::A::@field::foo
+''');
+  }
+
+  test_field_augmentation_chain_fromGetter() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  static int get foo => 0;
+}
+
+augment extension A {
+  augment static int foo = 1;
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          fields
+            #F3 isOriginGetterSetter isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
+              element: <testLibrary>::@extension::A::@field::foo
+              nextFragment: #F4
+          getters
+            #F5 isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:38) (firstTokenOffset:23) (offset:38)
+              element: <testLibrary>::@extension::A::@getter::foo
+        #F2 isAugmentation extension A (nameOffset:69) (firstTokenOffset:51) (offset:69)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          fields
+            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:94) (firstTokenOffset:94) (offset:94)
+              element: <testLibrary>::@extension::A::@field::foo
+              previousFragment: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        hasInitializer isOriginGetterSetter isStatic foo
+          reference: <testLibrary>::@extension::A::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo
+      getters
+        isOriginDeclaration isStatic foo
+          reference: <testLibrary>::@extension::A::@getter::foo
+          firstFragment: #F5
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo
+''');
+  }
+
+  test_field_augmentation_chain_twoDeclarations() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  static int foo = 0;
+}
+
+augment extension A {
+  augment static int foo = 1;
+}
+
+augment extension A {
+  augment static int foo = 2;
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          fields
+            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
+              element: <testLibrary>::@extension::A::@field::foo
+              nextFragment: #F4
+          getters
+            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@getter::foo
+          setters
+            #F6 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F7 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
+        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          nextFragment: #F8
+          fields
+            #F4 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:89) (offset:89)
+              element: <testLibrary>::@extension::A::@field::foo
+              previousFragment: #F3
+              nextFragment: #F9
+        #F8 isAugmentation extension A (nameOffset:119) (firstTokenOffset:101) (offset:119)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+          fields
+            #F9 hasInitializer isAugmentation isOriginDeclaration isStatic foo (nameOffset:144) (firstTokenOffset:144) (offset:144)
+              element: <testLibrary>::@extension::A::@field::foo
+              previousFragment: #F4
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        hasInitializer isOriginDeclaration isStatic foo
+          reference: <testLibrary>::@extension::A::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo
+          setter: <testLibrary>::@extension::A::@setter::foo
+      getters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@getter::foo
+          firstFragment: #F5
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo
+      setters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@setter::foo
+          firstFragment: #F6
+          formalParameters
+            #E0 requiredPositional value
+              firstFragment: #F7
+              type: int
+          returnType: void
+          variable: <testLibrary>::@extension::A::@field::foo
+''');
+  }
+
+  test_field_static_const_inferredType() async {
+    var library = await buildLibrary('''
+extension E on int {
+  static const x = 0;
+}''');
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          fields
+            #F2 hasImplicitType hasInitializer isConst isOriginDeclaration isStatic x (nameOffset:36) (firstTokenOffset:36) (offset:36)
+              element: <testLibrary>::@extension::E::@field::x
+              initializer: expression_0
+                IntegerLiteral
+                  literal: 0 @40
+                  staticType: int
+          getters
+            #F3 isCompleteDeclaration isOriginVariable isStatic x (nameOffset:<null>) (firstTokenOffset:<null>) (offset:36)
+              element: <testLibrary>::@extension::E::@getter::x
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        hasImplicitType hasInitializer isConst isOriginDeclaration isStatic isTypeInferredFromInitializer x
+          reference: <testLibrary>::@extension::E::@field::x
+          firstFragment: #F2
+          type: int
+          constantInitializer
+            fragment: #F2
+            expression: expression_0
+          getter: <testLibrary>::@extension::E::@getter::x
+      getters
+        isOriginVariable isStatic x
+          reference: <testLibrary>::@extension::E::@getter::x
+          firstFragment: #F3
+          returnType: int
+          variable: <testLibrary>::@extension::E::@field::x
+''');
+  }
+
+  test_getter_augmentation_add() async {
     var library = await buildLibrary(r'''
 extension A on int {
   int get foo1 => 0;
@@ -1960,7 +1929,7 @@ library
 ''');
   }
 
-  test_augmented_getters_add_generic() async {
+  test_getter_augmentation_add_generic() async {
     var library = await buildLibrary(r'''
 extension A<T> on int {
   T get foo1;
@@ -2038,7 +2007,78 @@ library
 ''');
   }
 
-  test_augmented_getters_augment_field() async {
+  test_getter_augmentation_chain() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  int get foo1 => 0;
+  int get foo2 => 0;
+}
+
+augment extension A {
+  augment int get foo1 => 0;
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          fields
+            #F3 isOriginGetterSetter foo1 (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
+              element: <testLibrary>::@extension::A::@field::foo1
+            #F4 isOriginGetterSetter foo2 (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
+              element: <testLibrary>::@extension::A::@field::foo2
+          getters
+            #F5 isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:31) (firstTokenOffset:23) (offset:31)
+              element: <testLibrary>::@extension::A::@getter::foo1
+              nextFragment: #F6
+            #F7 isCompleteDeclaration isOriginDeclaration foo2 (nameOffset:52) (firstTokenOffset:44) (offset:52)
+              element: <testLibrary>::@extension::A::@getter::foo2
+        #F2 isAugmentation extension A (nameOffset:84) (firstTokenOffset:66) (offset:84)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          getters
+            #F6 isAugmentation isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:106) (firstTokenOffset:90) (offset:106)
+              element: <testLibrary>::@extension::A::@getter::foo1
+              previousFragment: #F5
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        isOriginGetterSetter foo1
+          reference: <testLibrary>::@extension::A::@field::foo1
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo1
+        isOriginGetterSetter foo2
+          reference: <testLibrary>::@extension::A::@field::foo2
+          firstFragment: #F4
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo2
+      getters
+        isOriginDeclaration foo1
+          reference: <testLibrary>::@extension::A::@getter::foo1
+          firstFragment: #F5
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo1
+        isOriginDeclaration foo2
+          reference: <testLibrary>::@extension::A::@getter::foo2
+          firstFragment: #F7
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo2
+''');
+  }
+
+  test_getter_augmentation_chain_fromField() async {
     var library = await buildLibrary(r'''
 extension A on int {
   static int foo = 0;
@@ -2111,7 +2151,7 @@ library
 ''');
   }
 
-  test_augmented_getters_augment_field2() async {
+  test_getter_augmentation_chain_fromField_twoDeclarations() async {
     var library = await buildLibrary(r'''
 extension A on int {
   static int foo = 0;
@@ -2197,78 +2237,7 @@ library
 ''');
   }
 
-  test_augmented_getters_augment_getter() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  int get foo1 => 0;
-  int get foo2 => 0;
-}
-
-augment extension A {
-  augment int get foo1 => 0;
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 isOriginGetterSetter foo1 (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
-              element: <testLibrary>::@extension::A::@field::foo1
-            #F4 isOriginGetterSetter foo2 (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
-              element: <testLibrary>::@extension::A::@field::foo2
-          getters
-            #F5 isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:31) (firstTokenOffset:23) (offset:31)
-              element: <testLibrary>::@extension::A::@getter::foo1
-              nextFragment: #F6
-            #F7 isCompleteDeclaration isOriginDeclaration foo2 (nameOffset:52) (firstTokenOffset:44) (offset:52)
-              element: <testLibrary>::@extension::A::@getter::foo2
-        #F2 isAugmentation extension A (nameOffset:84) (firstTokenOffset:66) (offset:84)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          getters
-            #F6 isAugmentation isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:106) (firstTokenOffset:90) (offset:106)
-              element: <testLibrary>::@extension::A::@getter::foo1
-              previousFragment: #F5
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        isOriginGetterSetter foo1
-          reference: <testLibrary>::@extension::A::@field::foo1
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo1
-        isOriginGetterSetter foo2
-          reference: <testLibrary>::@extension::A::@field::foo2
-          firstFragment: #F4
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo2
-      getters
-        isOriginDeclaration foo1
-          reference: <testLibrary>::@extension::A::@getter::foo1
-          firstFragment: #F5
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo1
-        isOriginDeclaration foo2
-          reference: <testLibrary>::@extension::A::@getter::foo2
-          firstFragment: #F7
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo2
-''');
-  }
-
-  test_augmented_getters_augment_getter2() async {
+  test_getter_augmentation_chain_twoDeclarations() async {
     var library = await buildLibrary(r'''
 extension A on int {
   int get foo => 0;
@@ -2337,7 +2306,180 @@ library
 ''');
   }
 
-  test_augmented_methods() async {
+  test_getter_nonSynthetic() async {
+    var library = await buildLibrary(r'''
+extension E on int {
+  int get foo => 0;
+}
+''');
+    configuration.withNonSynthetic = true;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          fields
+            #F2 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
+              element: <testLibrary>::@extension::E::@field::foo
+          getters
+            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:31) (firstTokenOffset:23) (offset:31)
+              element: <testLibrary>::@extension::E::@getter::foo
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        isOriginGetterSetter foo
+          reference: <testLibrary>::@extension::E::@field::foo
+          firstFragment: #F2
+          type: int
+          getter: <testLibrary>::@extension::E::@getter::foo
+      getters
+        isOriginDeclaration foo
+          reference: <testLibrary>::@extension::E::@getter::foo
+          firstFragment: #F3
+          returnType: int
+          variable: <testLibrary>::@extension::E::@field::foo
+''');
+  }
+
+  test_getter_ofGeneric_refEnclosingTypeParameter_false() async {
+    var library = await buildLibrary('''
+extension E<T> on List<T> {
+  int get foo {}
+}
+''');
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          typeParameters
+            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+          fields
+            #F3 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
+              element: <testLibrary>::@extension::E::@field::foo
+          getters
+            #F4 isCompleteDeclaration isOriginDeclaration foo (nameOffset:38) (firstTokenOffset:30) (offset:38)
+              element: <testLibrary>::@extension::E::@getter::foo
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F2
+      extendedType: List<T>
+      onDeclaration: dart:core::@class::List
+      fields
+        isOriginGetterSetter foo
+          reference: <testLibrary>::@extension::E::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::E::@getter::foo
+      getters
+        isOriginDeclaration foo
+          reference: <testLibrary>::@extension::E::@getter::foo
+          firstFragment: #F4
+          returnType: int
+          variable: <testLibrary>::@extension::E::@field::foo
+''');
+  }
+
+  test_getter_ofGeneric_refEnclosingTypeParameter_true() async {
+    var library = await buildLibrary('''
+extension E<T> on List<T> {
+  T get foo {}
+}
+''');
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          typeParameters
+            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+          fields
+            #F3 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
+              element: <testLibrary>::@extension::E::@field::foo
+          getters
+            #F4 isCompleteDeclaration isOriginDeclaration foo (nameOffset:36) (firstTokenOffset:30) (offset:36)
+              element: <testLibrary>::@extension::E::@getter::foo
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F2
+      extendedType: List<T>
+      onDeclaration: dart:core::@class::List
+      fields
+        hasEnclosingTypeParameterReference isOriginGetterSetter foo
+          reference: <testLibrary>::@extension::E::@field::foo
+          firstFragment: #F3
+          type: T
+          getter: <testLibrary>::@extension::E::@getter::foo
+      getters
+        hasEnclosingTypeParameterReference isOriginDeclaration foo
+          reference: <testLibrary>::@extension::E::@getter::foo
+          firstFragment: #F4
+          returnType: T
+          variable: <testLibrary>::@extension::E::@field::foo
+''');
+  }
+
+  test_method() async {
+    var library = await buildLibrary('''
+extension E on int {
+  void foo() {}
+}
+''');
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          methods
+            #F2 isCompleteDeclaration isOriginDeclaration foo (nameOffset:28) (firstTokenOffset:23) (offset:28)
+              element: <testLibrary>::@extension::E::@method::foo
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      methods
+        isOriginDeclaration foo
+          reference: <testLibrary>::@extension::E::@method::foo
+          firstFragment: #F2
+          returnType: void
+''');
+  }
+
+  test_method_augmentation_add() async {
     var library = await buildLibrary(r'''
 extension A on int {
   void foo() {}
@@ -2385,119 +2527,7 @@ library
 ''');
   }
 
-  test_augmented_methods_augment() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  void foo1() {}
-  void foo2() {}
-}
-
-augment extension A {
-  augment void foo1() {}
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          methods
-            #F3 isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:28) (firstTokenOffset:23) (offset:28)
-              element: <testLibrary>::@extension::A::@method::foo1
-              nextFragment: #F4
-            #F5 isCompleteDeclaration isOriginDeclaration foo2 (nameOffset:45) (firstTokenOffset:40) (offset:45)
-              element: <testLibrary>::@extension::A::@method::foo2
-        #F2 isAugmentation extension A (nameOffset:76) (firstTokenOffset:58) (offset:76)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          methods
-            #F4 isAugmentation isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:95) (firstTokenOffset:82) (offset:95)
-              element: <testLibrary>::@extension::A::@method::foo1
-              previousFragment: #F3
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      methods
-        isOriginDeclaration foo1
-          reference: <testLibrary>::@extension::A::@method::foo1
-          firstFragment: #F3
-          returnType: void
-        isOriginDeclaration foo2
-          reference: <testLibrary>::@extension::A::@method::foo2
-          firstFragment: #F5
-          returnType: void
-''');
-  }
-
-  test_augmented_methods_augment2() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  void foo() {}
-}
-
-augment extension A {
-  augment void foo() {}
-}
-
-augment extension A {
-  augment void foo() {}
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          methods
-            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:28) (firstTokenOffset:23) (offset:28)
-              element: <testLibrary>::@extension::A::@method::foo
-              nextFragment: #F4
-        #F2 isAugmentation extension A (nameOffset:58) (firstTokenOffset:40) (offset:58)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F5
-          methods
-            #F4 isAugmentation isCompleteDeclaration isOriginDeclaration foo (nameOffset:77) (firstTokenOffset:64) (offset:77)
-              element: <testLibrary>::@extension::A::@method::foo
-              previousFragment: #F3
-              nextFragment: #F6
-        #F5 isAugmentation extension A (nameOffset:107) (firstTokenOffset:89) (offset:107)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-          methods
-            #F6 isAugmentation isCompleteDeclaration isOriginDeclaration foo (nameOffset:126) (firstTokenOffset:113) (offset:126)
-              element: <testLibrary>::@extension::A::@method::foo
-              previousFragment: #F4
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      methods
-        isOriginDeclaration foo
-          reference: <testLibrary>::@extension::A::@method::foo
-          firstFragment: #F3
-          returnType: void
-''');
-  }
-
-  test_augmented_methods_generic() async {
+  test_method_augmentation_add_generic() async {
     var library = await buildLibrary(r'''
 extension A<T> on int {
   T foo() => throw 0;
@@ -2556,7 +2586,113 @@ library
 ''');
   }
 
-  test_augmented_methods_generic_augment() async {
+  test_method_augmentation_chain() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  void foo1() {}
+  void foo2() {}
+}
+
+augment extension A {
+  augment void foo1() {}
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          methods
+            #F3 isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:28) (firstTokenOffset:23) (offset:28)
+              element: <testLibrary>::@extension::A::@method::foo1
+              nextFragment: #F4
+            #F5 isCompleteDeclaration isOriginDeclaration foo2 (nameOffset:45) (firstTokenOffset:40) (offset:45)
+              element: <testLibrary>::@extension::A::@method::foo2
+        #F2 isAugmentation extension A (nameOffset:76) (firstTokenOffset:58) (offset:76)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          methods
+            #F4 isAugmentation isCompleteDeclaration isOriginDeclaration foo1 (nameOffset:95) (firstTokenOffset:82) (offset:95)
+              element: <testLibrary>::@extension::A::@method::foo1
+              previousFragment: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      methods
+        isOriginDeclaration foo1
+          reference: <testLibrary>::@extension::A::@method::foo1
+          firstFragment: #F3
+          returnType: void
+        isOriginDeclaration foo2
+          reference: <testLibrary>::@extension::A::@method::foo2
+          firstFragment: #F5
+          returnType: void
+''');
+  }
+
+  test_method_augmentation_chain_enclosingTypeParameters_countMismatch() async {
+    var library = await buildLibrary(r'''
+extension A on int {
+  void foo() {}
+  void bar() {}
+}
+
+augment extension A<T> {
+  augment void foo() {}
+}
+''');
+
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::A
+          nextFragment: #F2
+          methods
+            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:28) (firstTokenOffset:23) (offset:28)
+              element: <testLibrary>::@extension::A::@method::foo
+              nextFragment: #F4
+            #F5 isCompleteDeclaration isOriginDeclaration bar (nameOffset:44) (firstTokenOffset:39) (offset:44)
+              element: <testLibrary>::@extension::A::@method::bar
+        #F2 isAugmentation extension A (nameOffset:74) (firstTokenOffset:56) (offset:74)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F1
+          methods
+            #F4 isAugmentation isCompleteDeclaration isOriginDeclaration foo (nameOffset:96) (firstTokenOffset:83) (offset:96)
+              element: <testLibrary>::@extension::A::@method::foo
+              previousFragment: #F3
+  extensions
+    extension A
+      reference: <testLibrary>::@extension::A
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      methods
+        isOriginDeclaration foo
+          reference: <testLibrary>::@extension::A::@method::foo
+          firstFragment: #F3
+          returnType: void
+        isOriginDeclaration bar
+          reference: <testLibrary>::@extension::A::@method::bar
+          firstFragment: #F5
+          returnType: void
+''');
+  }
+
+  test_method_augmentation_chain_generic() async {
     var library = await buildLibrary(r'''
 extension A<T> on int {
   T foo() => throw 0;
@@ -2613,14 +2749,17 @@ library
 ''');
   }
 
-  test_augmented_methods_typeParameterCountMismatch() async {
+  test_method_augmentation_chain_twoDeclarations() async {
     var library = await buildLibrary(r'''
 extension A on int {
   void foo() {}
-  void bar() {}
 }
 
-augment extension A<T> {
+augment extension A {
+  augment void foo() {}
+}
+
+augment extension A {
   augment void foo() {}
 }
 ''');
@@ -2639,15 +2778,22 @@ library
             #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:28) (firstTokenOffset:23) (offset:28)
               element: <testLibrary>::@extension::A::@method::foo
               nextFragment: #F4
-            #F5 isCompleteDeclaration isOriginDeclaration bar (nameOffset:44) (firstTokenOffset:39) (offset:44)
-              element: <testLibrary>::@extension::A::@method::bar
-        #F2 isAugmentation extension A (nameOffset:74) (firstTokenOffset:56) (offset:74)
+        #F2 isAugmentation extension A (nameOffset:58) (firstTokenOffset:40) (offset:58)
           element: <testLibrary>::@extension::A
           previousFragment: #F1
+          nextFragment: #F5
           methods
-            #F4 isAugmentation isCompleteDeclaration isOriginDeclaration foo (nameOffset:96) (firstTokenOffset:83) (offset:96)
+            #F4 isAugmentation isCompleteDeclaration isOriginDeclaration foo (nameOffset:77) (firstTokenOffset:64) (offset:77)
               element: <testLibrary>::@extension::A::@method::foo
               previousFragment: #F3
+              nextFragment: #F6
+        #F5 isAugmentation extension A (nameOffset:107) (firstTokenOffset:89) (offset:107)
+          element: <testLibrary>::@extension::A
+          previousFragment: #F2
+          methods
+            #F6 isAugmentation isCompleteDeclaration isOriginDeclaration foo (nameOffset:126) (firstTokenOffset:113) (offset:126)
+              element: <testLibrary>::@extension::A::@method::foo
+              previousFragment: #F4
   extensions
     extension A
       reference: <testLibrary>::@extension::A
@@ -2659,14 +2805,95 @@ library
           reference: <testLibrary>::@extension::A::@method::foo
           firstFragment: #F3
           returnType: void
-        isOriginDeclaration bar
-          reference: <testLibrary>::@extension::A::@method::bar
-          firstFragment: #F5
+''');
+  }
+
+  test_method_ofGeneric_refEnclosingTypeParameter_false() async {
+    var library = await buildLibrary('''
+extension E<T> on List<T> {
+  void foo() {}
+}
+''');
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          typeParameters
+            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+          methods
+            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:35) (firstTokenOffset:30) (offset:35)
+              element: <testLibrary>::@extension::E::@method::foo
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F2
+      extendedType: List<T>
+      onDeclaration: dart:core::@class::List
+      methods
+        isOriginDeclaration foo
+          reference: <testLibrary>::@extension::E::@method::foo
+          firstFragment: #F3
           returnType: void
 ''');
   }
 
-  test_augmented_setters_add() async {
+  test_method_ofGeneric_refEnclosingTypeParameter_true() async {
+    var library = await buildLibrary('''
+extension E<T> on List<T> {
+  void foo(T _) {}
+}
+''');
+    configuration.withConstructors = false;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          typeParameters
+            #F2 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
+              element: #E0 T
+          methods
+            #F3 isCompleteDeclaration isOriginDeclaration foo (nameOffset:35) (firstTokenOffset:30) (offset:35)
+              element: <testLibrary>::@extension::E::@method::foo
+              formalParameters
+                #F4 requiredPositional isOriginDeclaration _ (nameOffset:41) (firstTokenOffset:39) (offset:41)
+                  element: <testLibrary>::@extension::E::@method::foo::@formalParameter::_
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      typeParameters
+        #E0 T
+          firstFragment: #F2
+      extendedType: List<T>
+      onDeclaration: dart:core::@class::List
+      methods
+        hasEnclosingTypeParameterReference isOriginDeclaration foo
+          reference: <testLibrary>::@extension::E::@method::foo
+          firstFragment: #F3
+          formalParameters
+            #E1 requiredPositional _
+              firstFragment: #F4
+              type: T
+          returnType: void
+''');
+  }
+
+  test_setter_augmentation_add() async {
     var library = await buildLibrary(r'''
 extension A on int {
   set foo1(int _) {}
@@ -2747,83 +2974,7 @@ library
 ''');
   }
 
-  test_augmented_setters_augment_field() async {
-    var library = await buildLibrary(r'''
-extension A on int {
-  static int foo = 0;
-}
-
-augment extension A {
-  augment static set foo(int _) {}
-}
-''');
-
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          fields
-            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
-              element: <testLibrary>::@extension::A::@field::foo
-          getters
-            #F4 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@getter::foo
-          setters
-            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F6 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
-              nextFragment: #F7
-        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          setters
-            #F7 hasImplicitReturnType isAugmentation isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:70) (offset:89)
-              element: <testLibrary>::@extension::A::@setter::foo
-              formalParameters
-                #F8 requiredPositional isOriginDeclaration _ (nameOffset:97) (firstTokenOffset:93) (offset:97)
-                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::_
-              previousFragment: #F5
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-      fields
-        hasInitializer isOriginDeclaration isStatic foo
-          reference: <testLibrary>::@extension::A::@field::foo
-          firstFragment: #F3
-          type: int
-          getter: <testLibrary>::@extension::A::@getter::foo
-          setter: <testLibrary>::@extension::A::@setter::foo
-      getters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@getter::foo
-          firstFragment: #F4
-          returnType: int
-          variable: <testLibrary>::@extension::A::@field::foo
-      setters
-        isOriginVariable isStatic foo
-          reference: <testLibrary>::@extension::A::@setter::foo
-          firstFragment: #F5
-          formalParameters
-            #E0 requiredPositional value
-              firstFragment: #F6
-              type: int
-          returnType: void
-          variable: <testLibrary>::@extension::A::@field::foo
-''');
-  }
-
-  test_augmented_setters_augment_setter() async {
+  test_setter_augmentation_chain() async {
     var library = await buildLibrary(r'''
 extension A on int {
   set foo1(int _) {}
@@ -2911,99 +3062,17 @@ library
 ''');
   }
 
-  test_augmentedBy_class2() async {
+  test_setter_augmentation_chain_fromField() async {
     var library = await buildLibrary(r'''
-extension A on int {}
+extension A on int {
+  static int foo = 0;
+}
 
-augment class A {}
-
-augment class A {}
-
+augment extension A {
+  augment static set foo(int _) {}
+}
 ''');
 
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      classes
-        #F1 isAugmentation class A (nameOffset:37) (firstTokenOffset:23) (offset:37)
-          element: <testLibrary>::@class::A
-          nextFragment: #F2
-        #F2 isAugmentation class A (nameOffset:57) (firstTokenOffset:43) (offset:57)
-          element: <testLibrary>::@class::A
-          previousFragment: #F1
-      extensions
-        #F3 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-  classes
-    isSimplyBounded class A
-      reference: <testLibrary>::@class::A
-      firstFragment: #F1
-      previousFragmentOfDifferentKind: #F3
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F3
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-''');
-  }
-
-  test_augmentedBy_class_extension() async {
-    var library = await buildLibrary(r'''
-extension A on int {}
-
-augment class A {}
-
-augment extension A {}
-''');
-
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      classes
-        #F1 isAugmentation class A (nameOffset:37) (firstTokenOffset:23) (offset:37)
-          element: <testLibrary>::@class::A
-      extensions
-        #F2 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-        #F3 isAugmentation extension A (nameOffset:61) (firstTokenOffset:43) (offset:61)
-          element: <testLibrary>::@extension::A#1
-  classes
-    isSimplyBounded class A
-      reference: <testLibrary>::@class::A
-      firstFragment: #F1
-      previousFragmentOfDifferentKind: #F2
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F2
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-    extension A
-      reference: <testLibrary>::@extension::A#1
-      firstFragment: #F3
-      previousFragmentOfDifferentKind: #F1
-      extendedType: InvalidType
-      onDeclaration: <null>
-''');
-  }
-
-  test_onClause_augmentation() async {
-    var library = await buildLibrary(r'''
-extension A on int {}
-
-augment extension A on double {}
-''');
-
-    configuration.withExportScope = true;
     checkElementText(library, r'''
 library
   reference: <testLibrary>
@@ -3014,197 +3083,110 @@ library
         #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
           element: <testLibrary>::@extension::A
           nextFragment: #F2
-        #F2 isAugmentation extension A (nameOffset:41) (firstTokenOffset:23) (offset:41)
+          fields
+            #F3 hasInitializer isOriginDeclaration isStatic foo (nameOffset:34) (firstTokenOffset:34) (offset:34)
+              element: <testLibrary>::@extension::A::@field::foo
+          getters
+            #F4 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@getter::foo
+          setters
+            #F5 isCompleteDeclaration isOriginVariable isStatic foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F6 requiredPositional value (nameOffset:<null>) (firstTokenOffset:<null>) (offset:34)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::value
+              nextFragment: #F7
+        #F2 isAugmentation extension A (nameOffset:64) (firstTokenOffset:46) (offset:64)
           element: <testLibrary>::@extension::A
           previousFragment: #F1
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-  exportEntries
-    declared <testLibrary>::@extension::A
-  exportNamespace
-    A: <testLibrary>::@extension::A
-''');
-  }
-
-  test_typeParameters_111() async {
-    var library = await buildLibrary(r'''
-extension A<T> on int {}
-augment extension A<T> {}
-augment extension A<T> {}
-''');
-
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          typeParameters
-            #F3 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-              nextFragment: #F4
-        #F2 isAugmentation extension A (nameOffset:43) (firstTokenOffset:25) (offset:43)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F5
-          typeParameters
-            #F4 T (nameOffset:45) (firstTokenOffset:45) (offset:45)
-              element: #E0 T
-              previousFragment: #F3
-              nextFragment: #F6
-        #F5 isAugmentation extension A (nameOffset:69) (firstTokenOffset:51) (offset:69)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-          typeParameters
-            #F6 T (nameOffset:71) (firstTokenOffset:71) (offset:71)
-              element: #E0 T
-              previousFragment: #F4
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F3
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-''');
-  }
-
-  test_typeParameters_121() async {
-    var library = await buildLibrary(r'''
-extension A<T> on int {}
-augment extension A<T, U> {}
-augment extension A<T> {}
-''');
-
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          typeParameters
-            #F3 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-              nextFragment: #F4
-        #F2 isAugmentation extension A (nameOffset:43) (firstTokenOffset:25) (offset:43)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F5
-          typeParameters
-            #F4 T (nameOffset:45) (firstTokenOffset:45) (offset:45)
-              element: #E0 T
-              previousFragment: #F3
-              nextFragment: #F6
-        #F5 isAugmentation extension A (nameOffset:72) (firstTokenOffset:54) (offset:72)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-          typeParameters
-            #F6 T (nameOffset:74) (firstTokenOffset:74) (offset:74)
-              element: #E0 T
-              previousFragment: #F4
-  extensions
-    extension A
-      reference: <testLibrary>::@extension::A
-      firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F3
-      extendedType: int
-      onDeclaration: dart:core::@class::int
-''');
-  }
-
-  test_typeParameters_212() async {
-    var library = await buildLibrary(r'''
-extension A<T, U> on int {}
-augment extension A<T> {}
-augment extension A<T, U> {}
-''');
-
-    configuration.withConstructors = false;
-    checkElementText(library, r'''
-library
-  reference: <testLibrary>
-  fragments
-    #F0 <testLibraryFragment>
-      element: <testLibrary>
-      extensions
-        #F1 extension A (nameOffset:10) (firstTokenOffset:0) (offset:10)
-          element: <testLibrary>::@extension::A
-          nextFragment: #F2
-          typeParameters
-            #F3 T (nameOffset:12) (firstTokenOffset:12) (offset:12)
-              element: #E0 T
-              nextFragment: #F4
-            #F5 U (nameOffset:15) (firstTokenOffset:15) (offset:15)
-              element: #E1 U
-              nextFragment: #F6
-        #F2 isAugmentation extension A (nameOffset:46) (firstTokenOffset:28) (offset:46)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F1
-          nextFragment: #F7
-          typeParameters
-            #F4 T (nameOffset:48) (firstTokenOffset:48) (offset:48)
-              element: #E0 T
-              previousFragment: #F3
-              nextFragment: #F8
-            #F6 isOriginPreviousFragmentOfEnclosing U (nameOffset:<null>) (firstTokenOffset:<null>) (offset:46)
-              element: #E1 U
+          setters
+            #F7 hasImplicitReturnType isAugmentation isCompleteDeclaration isOriginDeclaration isStatic foo (nameOffset:89) (firstTokenOffset:70) (offset:89)
+              element: <testLibrary>::@extension::A::@setter::foo
+              formalParameters
+                #F8 requiredPositional isOriginDeclaration _ (nameOffset:97) (firstTokenOffset:93) (offset:97)
+                  element: <testLibrary>::@extension::A::@setter::foo::@formalParameter::_
               previousFragment: #F5
-              nextFragment: #F9
-        #F7 isAugmentation extension A (nameOffset:72) (firstTokenOffset:54) (offset:72)
-          element: <testLibrary>::@extension::A
-          previousFragment: #F2
-          typeParameters
-            #F8 T (nameOffset:74) (firstTokenOffset:74) (offset:74)
-              element: #E0 T
-              previousFragment: #F4
-            #F9 U (nameOffset:77) (firstTokenOffset:77) (offset:77)
-              element: #E1 U
-              previousFragment: #F6
   extensions
     extension A
       reference: <testLibrary>::@extension::A
       firstFragment: #F1
-      typeParameters
-        #E0 T
-          firstFragment: #F3
-        #E1 U
-          firstFragment: #F5
       extendedType: int
       onDeclaration: dart:core::@class::int
+      fields
+        hasInitializer isOriginDeclaration isStatic foo
+          reference: <testLibrary>::@extension::A::@field::foo
+          firstFragment: #F3
+          type: int
+          getter: <testLibrary>::@extension::A::@getter::foo
+          setter: <testLibrary>::@extension::A::@setter::foo
+      getters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@getter::foo
+          firstFragment: #F4
+          returnType: int
+          variable: <testLibrary>::@extension::A::@field::foo
+      setters
+        isOriginVariable isStatic foo
+          reference: <testLibrary>::@extension::A::@setter::foo
+          firstFragment: #F5
+          formalParameters
+            #E0 requiredPositional value
+              firstFragment: #F6
+              type: int
+          returnType: void
+          variable: <testLibrary>::@extension::A::@field::foo
 ''');
   }
-}
 
-@reflectiveTest
-class ExtensionElementTest_augmentation_fromBytes
-    extends ExtensionElementTest_augmentation {
-  @override
-  bool get keepLinkingLibraries => false;
+  test_setter_nonSynthetic() async {
+    var library = await buildLibrary(r'''
+extension E on int {
+  set foo(int value) {}
 }
-
-@reflectiveTest
-class ExtensionElementTest_augmentation_keepLinking
-    extends ExtensionElementTest_augmentation {
-  @override
-  bool get keepLinkingLibraries => true;
+''');
+    configuration.withNonSynthetic = true;
+    checkElementText(library, r'''
+library
+  reference: <testLibrary>
+  fragments
+    #F0 <testLibraryFragment>
+      element: <testLibrary>
+      extensions
+        #F1 extension E (nameOffset:10) (firstTokenOffset:0) (offset:10)
+          element: <testLibrary>::@extension::E
+          fields
+            #F2 isOriginGetterSetter foo (nameOffset:<null>) (firstTokenOffset:<null>) (offset:10)
+              element: <testLibrary>::@extension::E::@field::foo
+          setters
+            #F3 hasImplicitReturnType isCompleteDeclaration isOriginDeclaration foo (nameOffset:27) (firstTokenOffset:23) (offset:27)
+              element: <testLibrary>::@extension::E::@setter::foo
+              formalParameters
+                #F4 requiredPositional isOriginDeclaration value (nameOffset:35) (firstTokenOffset:31) (offset:35)
+                  element: <testLibrary>::@extension::E::@setter::foo::@formalParameter::value
+  extensions
+    extension E
+      reference: <testLibrary>::@extension::E
+      firstFragment: #F1
+      extendedType: int
+      onDeclaration: dart:core::@class::int
+      fields
+        isOriginGetterSetter foo
+          reference: <testLibrary>::@extension::E::@field::foo
+          firstFragment: #F2
+          type: int
+          setter: <testLibrary>::@extension::E::@setter::foo
+      setters
+        isOriginDeclaration foo
+          reference: <testLibrary>::@extension::E::@setter::foo
+          firstFragment: #F3
+          formalParameters
+            #E0 requiredPositional value
+              firstFragment: #F4
+              type: int
+          returnType: void
+          variable: <testLibrary>::@extension::E::@field::foo
+''');
+  }
 }
 
 @reflectiveTest

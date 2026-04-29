@@ -622,19 +622,6 @@ class FlowGraphBuilder {
     appendInstruction(instr);
   }
 
-  /// Append [LeaveSuspendableFunction] to the graph.
-  void addLeaveSuspendableFunction(CType type) {
-    final returnValue = pop();
-    final instr = LeaveSuspendableFunction(
-      graph,
-      currentSourcePosition,
-      type,
-      returnValue,
-    );
-    push(instr);
-    appendInstruction(instr);
-  }
-
   /// Append [Suspend] to the graph.
   Suspend addSuspend(SuspendOpcode op, CType type) {
     final typeArguments = (op == .awaitWithTypeCheck) ? pop() : null;

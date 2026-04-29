@@ -250,7 +250,7 @@ class GenericInferrer {
     // formals as we check the parameters and return type.
     var inferFnType = FunctionTypeImpl(
       typeParameters: const [],
-      parameters: fnType.parameters,
+      formalParameters: fnType.parameters,
       returnType: fnType.returnType,
       nullabilitySuffix: fnType.nullabilitySuffix,
     );

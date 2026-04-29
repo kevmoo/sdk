@@ -17,14 +17,13 @@
   (global $_InterfaceType (ref $_InterfaceType) <...>)
   (elem $module0.cross-module-funcs-0
     (set 0 (ref.func $"useFoo <noInline>")))
-  (func $"useFoo <noInline>" (result (ref null $#Top))
+  (func $"useFoo <noInline>"
     call $"useFooAsType <noInline>"
     i64.const 0
     i32.const 1
     call_indirect (param i64) (result i32)
     drop
     call $"useFooAsObject <noInline>"
-    ref.null none
   )
   (func $"useFooAsObject <noInline>"
     (local $var0 (ref $Foo))
@@ -40,8 +39,7 @@
   (func $"useFooAsType <noInline>"
     global.get $_InterfaceType
     i32.const 3
-    call_indirect (param (ref null $#Top)) (result (ref null $#Top))
-    drop
+    call_indirect (param (ref null $#Top))
   )
   (func $Foo.printFoo (param $var0 (ref $Foo)) <...>)
 )

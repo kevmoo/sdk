@@ -1738,7 +1738,7 @@ class ResolutionReader {
 
     return FunctionTypeImpl(
       typeParameters: typeParameters.map((f) => f.asElement2).toList(),
-      parameters: formalParameters.map((f) => f.asElement2).toList(),
+      formalParameters: formalParameters.map((f) => f.asElement2).toList(),
       returnType: returnType,
       nullabilitySuffix: nullability,
     );

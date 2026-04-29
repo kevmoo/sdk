@@ -16,17 +16,19 @@ final class Arm64Constraints extends Constraints {
   // TODO: enable returning unboxed FP values on FP register.
   static const bool returnFPValuesOnFPRegister = false;
 
-  late final volatileRegisters = <Constraint>[
+  late final allRegisters = <Constraint>[
     ...getAllocatableRegisters(),
     ...getAllocatableFPRegisters(),
   ];
+  // TODO:add callee-save registers
+  late final volatileRegisters = allRegisters;
 
-  late final volatileRegistersExceptReturnReg = volatileRegisters
-      .where((r) => r != returnReg)
-      .toList();
-  late final volatileRegistersExceptFPReturnReg = volatileRegisters
-      .where((r) => r != returnFPReg)
-      .toList();
+  late final volatileRegistersExceptReturnReg = volatileRegistersExcept(
+    returnReg,
+  );
+  late final volatileRegistersExceptFPReturnReg = volatileRegistersExcept(
+    returnFPReg,
+  );
 
   List<Constraint?>? _parameters;
 
@@ -43,6 +45,19 @@ final class Arm64Constraints extends Constraints {
 
   @override
   List<FPRegister> getAllocatableFPRegisters() => allocatableFPRegisters;
+
+  List<Constraint> volatileRegistersExcept(PhysicalRegister reg) => [
+    for (final r in volatileRegisters)
+      if (r != reg) r,
+  ];
+
+  List<Constraint> allRegistersExcept(
+    Constraint? result,
+    List<Constraint?> inputs,
+  ) => [
+    for (final r in allRegisters)
+      if (r != result && !inputs.contains(r)) r,
+  ];
 
   // TODO: pass arguments on registers
   // TODO: add callee-save registers
@@ -404,14 +419,25 @@ final class Arm64Constraints extends Constraints {
   @override
   InstructionConstraints? visitEnterSuspendableFunction(
     EnterSuspendableFunction instr,
-  ) => const InstructionConstraints(null, [anyCpuRegister]);
+  ) {
+    final inputs = [InitSuspendableFunctionStub.typeArgsReg];
+    return InstructionConstraints(
+      null,
+      inputs,
+      allRegistersExcept(null, inputs),
+    );
+  }
 
   @override
-  InstructionConstraints? visitLeaveSuspendableFunction(
-    LeaveSuspendableFunction instr,
-  ) => const InstructionConstraints(anyCpuRegister, [anyCpuRegister]);
-
-  @override
-  InstructionConstraints? visitSuspend(Suspend instr) =>
-      const InstructionConstraints(anyCpuRegister, [anyCpuRegister]);
+  InstructionConstraints? visitSuspend(Suspend instr) {
+    final inputs = [
+      SuspendStub.argumentReg,
+      if (instr.op == .awaitWithTypeCheck) SuspendStub.typeArgsReg,
+    ];
+    return InstructionConstraints(
+      returnReg,
+      inputs,
+      allRegistersExcept(returnReg, inputs),
+    );
+  }
 }

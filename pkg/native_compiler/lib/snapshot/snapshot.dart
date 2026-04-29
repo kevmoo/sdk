@@ -162,12 +162,23 @@ class SnapshotSerializer {
     addBaseObject(const ast.NullType());
     addBaseObject(const ast.NeverType.nonNullable());
     addBaseObject(ast.ListConstant(const ast.DynamicType(), const []));
-    // TODO: generate these stubs instead of referencig them from the VM.
+    // TODO: generate these stubs instead of referencing them from the VM.
     addBaseObject(StubCode.Subtype1TestCache);
     addBaseObject(StubCode.Subtype2TestCache);
     addBaseObject(StubCode.Subtype3TestCache);
     addBaseObject(StubCode.Subtype4TestCache);
     addBaseObject(StubCode.Subtype6TestCache);
+    addBaseObject(StubCode.InitAsync);
+    addBaseObject(StubCode.InitAsyncStar);
+    addBaseObject(StubCode.InitSyncStar);
+    addBaseObject(StubCode.Await);
+    addBaseObject(StubCode.AwaitWithTypeCheck);
+    addBaseObject(StubCode.YieldAsyncStar);
+    addBaseObject(StubCode.SuspendSyncStarAtStart);
+    addBaseObject(StubCode.SuspendSyncStarAtYield);
+    addBaseObject(StubCode.ReturnAsync);
+    addBaseObject(StubCode.ReturnAsyncNotFuture);
+    addBaseObject(StubCode.ReturnAsyncStar);
     numObjects = numBaseObjects;
   }
 

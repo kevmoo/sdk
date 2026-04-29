@@ -1203,7 +1203,7 @@ class DeclarationHelper {
       } else {
         functionType = FunctionTypeImpl(
           typeParameters: const [],
-          parameters: const [],
+          formalParameters: const [],
           returnType: DynamicTypeImpl.instance,
           nullabilitySuffix: NullabilitySuffix.none,
         );

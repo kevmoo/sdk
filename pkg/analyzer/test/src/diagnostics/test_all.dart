@@ -793,9 +793,12 @@ import 'return_in_generator_test.dart' as return_in_generator;
 import 'return_of_do_not_store_test.dart' as return_of_do_not_store;
 import 'return_of_invalid_type_from_catch_error_test.dart'
     as return_of_invalid_type_from_catch_error;
+import 'return_of_invalid_type_from_then_test.dart'
+    as return_of_invalid_type_from_then;
 import 'return_of_invalid_type_test.dart' as return_of_invalid_type;
 import 'return_type_invalid_for_catch_error_test.dart'
     as return_type_invalid_for_catch_error;
+import 'return_type_invalid_for_then_test.dart' as return_type_invalid_for_then;
 import 'return_without_value_test.dart' as return_without_value;
 import 'sdk_version_gt_gt_gt_operator_test.dart'
     as sdk_version_gt_gt_gt_operator;
@@ -1459,8 +1462,10 @@ main() {
     return_in_generator.main();
     return_of_do_not_store.main();
     return_of_invalid_type_from_catch_error.main();
+    return_of_invalid_type_from_then.main();
     return_of_invalid_type.main();
     return_type_invalid_for_catch_error.main();
+    return_type_invalid_for_then.main();
     return_without_value.main();
     set_element_from_deferred_library.main();
     sdk_version_gt_gt_gt_operator.main();

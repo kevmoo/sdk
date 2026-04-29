@@ -40,11 +40,6 @@ void ObjectPtr::Validate(IsolateGroup* isolate_group) const {
 }
 
 void UntaggedObject::Validate(IsolateGroup* isolate_group) const {
-  if (static_cast<uword>(Roots::void_class()) == kHeapObjectTag) {
-    // Validation relies on properly initialized class classes. Skip if the
-    // VM is still being initialized.
-    return;
-  }
   // Validate that the tags_ field is sensible.
   uword tags = tags_;
   if (IsNewObject()) {

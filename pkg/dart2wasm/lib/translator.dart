@@ -140,7 +140,6 @@ class Translator with KernelNodes {
   late final TableBasedGlobals tableBasedGlobals;
   late final DispatchTable dispatchTable;
   late final DynamicDispatchTable dynamicDispatchTable;
-  DispatchTable? dynamicMainModuleDispatchTable;
   late final Globals globals;
   late final DartGlobals dartGlobals;
   late final Constants constants;
@@ -545,7 +544,6 @@ class Translator with KernelNodes {
 
     dispatchTable.build();
     dynamicDispatchTable.build(dynamicCallShapes);
-    dynamicMainModuleDispatchTable?.build();
     functions.initialize();
 
     drainCompletionQueue();
@@ -759,10 +757,25 @@ class Translator with KernelNodes {
     w.InstructionsBuilder b,
   ) {
     final callTarget = directCallTarget(reference);
-    if (callTarget.supportsInlining && callTarget.shouldInline) {
-      return b.inlineCallTo(callTarget);
+    late final List<w.ValueType> outputs;
+    if (callTarget.supportsInlining) {
+      final decision = callTarget.shouldInline;
+      if (decision.shouldInline) {
+        b.comment('Inlining ${callTarget.name}, reason: ${decision.reason}');
+        outputs = b.inlineCallTo(callTarget);
+      } else {
+        b.comment('Not inlining, reason: ${decision.reason}');
+        outputs = callFunction(callTarget.function, b);
+      }
+    } else {
+      outputs = callFunction(callTarget.function, b);
     }
-    return callFunction(functions.getFunction(reference), b);
+    if (callTarget.synthesizeNullReturnValue) {
+      assert(outputs.isEmpty);
+      b.ref_null(w.HeapType.none);
+      return [w.RefType(w.HeapType.none, nullable: true)];
+    }
+    return outputs;
   }
 
   late final WasmMemoryImporter _importedMemories = WasmMemoryImporter(
@@ -796,9 +809,7 @@ class Translator with KernelNodes {
     SelectorInfo selector, {
     Reference? interfaceTarget,
     required bool useUncheckedEntry,
-    DispatchTable? table,
   }) {
-    table ??= dispatchTable;
     functions.recordSelectorUse(selector, useUncheckedEntry);
 
     final offset = selector.targets(unchecked: useUncheckedEntry).offset;
@@ -814,7 +825,7 @@ class Translator with KernelNodes {
       b.i32_add();
     }
     final signature = selector.signature;
-    b.call_indirect(signature, table.getWasmTable(b.moduleBuilder));
+    b.call_indirect(signature, dispatchTable.getWasmTable(b.moduleBuilder));
     b.emitUnreachableIfNoResult(signature.outputs);
   }
 
@@ -943,6 +954,10 @@ class Translator with KernelNodes {
     bool nullable = type.isPotentiallyNullable;
     if (type is InterfaceType) {
       Class cls = type.classNode;
+
+      if (cls == coreTypes.deprecatedNullClass) {
+        return const w.RefType.none(nullable: true);
+      }
 
       // Abstract `Function`?
       if (cls == coreTypes.functionClass) {
@@ -1729,22 +1744,8 @@ class Translator with KernelNodes {
   }
 
   w.FunctionType signatureForDirectCall(Reference target) {
-    return _signatureForModule(
-      target,
-      target.asMember.isInstanceMember ? dispatchTable : null,
-    );
-  }
-
-  w.FunctionType signatureForMainModule(Reference target) {
-    return _signatureForModule(
-      target,
-      target.asMember.isInstanceMember ? dynamicMainModuleDispatchTable! : null,
-    );
-  }
-
-  w.FunctionType _signatureForModule(Reference target, DispatchTable? table) {
-    if (table != null && !target.isBodyReference) {
-      final selector = table.selectorForTarget(target);
+    if (target.asMember.isInstanceMember && !target.isBodyReference) {
+      final selector = dispatchTable.selectorForTarget(target);
       if (selector.containsTarget(target)) {
         return selector.signature;
       }
@@ -1752,10 +1753,25 @@ class Translator with KernelNodes {
     return functions.getFunctionType(target);
   }
 
-  ParameterInfo paramInfoForDirectCall(Reference target) {
-    if (target.asMember.isInstanceMember) {
+  bool synthesizeNullReturnValue(Reference target) {
+    final member = target.asMember;
+    if (member.isInstanceMember) {
       final table = dispatchTable;
       final selector = table.selectorForTarget(target);
+      if (selector.containsTarget(target)) {
+        assert(
+          !selector.synthesizeNullReturnValue ||
+              selector.signature.outputs.isEmpty,
+        );
+        return selector.synthesizeNullReturnValue;
+      }
+    }
+    return functions.synthesizeNullReturnValue(target);
+  }
+
+  ParameterInfo paramInfoForDirectCall(Reference target) {
+    if (target.asMember.isInstanceMember) {
+      final selector = dispatchTable.selectorForTarget(target);
       if (selector.containsTarget(target)) {
         return selector.paramInfo;
       }
@@ -2012,6 +2028,10 @@ class Translator with KernelNodes {
   ) {
     if (inferredType == null) return null;
 
+    if (defaultType is VoidType) {
+      defaultType = coreTypes.objectNullableRawType;
+    }
+
     // To check whether [inferredType] is more precise than [defaultType] we
     // require it (for now) to be an interface type.
     if (defaultType is! InterfaceType) return null;
@@ -2037,6 +2057,8 @@ class Translator with KernelNodes {
       return null;
     }
 
+    if (concreteClass == coreTypes.deprecatedNullClass) return const NullType();
+
     final typeParameters = concreteClass.typeParameters;
     final typeArguments = typeParameters.isEmpty
         ? const <DartType>[]
@@ -2047,85 +2069,189 @@ class Translator with KernelNodes {
     return InterfaceType(concreteClass, nullability, typeArguments);
   }
 
-  bool shouldInline(Reference target, w.FunctionType signature) {
-    if (!options.inlining) return false;
+  InliningDecision shouldInline(Reference target, w.FunctionType signature) {
+    if (!options.inlining) return InliningDecision(false, 'inlining disabled');
 
     // Unchecked entry point functions perform very little, mainly optional
     // parameter handling and then call the real body function.
     //
     // By inlining them we can often avoid downcasts and sometimes boxing. The
     // force inlining here seem to even lead to overall size decreases.
-    if (target.isUncheckedEntryReference) return true;
+    if (target.isUncheckedEntryReference) {
+      return InliningDecision(true, 'unchecked entry');
+    }
 
     final member = target.asMember;
+    if (member.isExternal) return InliningDecision(false, 'external');
     if (getPragma<bool>(member, "wasm:never-inline", true) == true) {
-      return false;
+      return InliningDecision(false, '@pragma("wasm:never-inline")');
     }
     if (getPragma<bool>(member, "wasm:prefer-inline", true) == true) {
-      return true;
+      return InliningDecision(true, '@pragma("wasm:prefer-inline")');
     }
     if (member is Field) {
-      // Implicit getter/setter for instance fields are just loads/stores.
-      if (member.isInstanceMember) return true;
+      return _shouldInlineFieldAccessor(target, signature, member);
+    }
+    if (member is Constructor) {
+      return _shouldInlineConstructorCall(target, signature, member);
+    }
+    return _shouldInlineProcedureCall(target, signature, member as Procedure);
+  }
 
-      // Implicit setter for static fields are just stores.
-      if (target == member.setterReference) return true;
+  InliningDecision _shouldInlineFieldAccessor(
+    Reference target,
+    w.FunctionType signature,
+    Field field,
+  ) {
+    if (field.isInstanceMember) {
+      // Implicit instance getters are just loads.
+      if (target.isImplicitGetter) {
+        return InliningDecision(true, 'Implicit getter.');
+      }
 
+      // Implicit instance setters are just stores, except if the value needs
+      // to be type checked.
+      assert(target.isImplicitSetter);
+      if (target == field.checkedEntryReference) {
+        return InliningDecision(false, 'Implicit setter with type check.');
+      }
+      return InliningDecision(true, 'Implicit setter without type check.');
+    }
+
+    // Implicit setter for static fields are just stores.
+    if (target == field.setterReference) {
+      return InliningDecision(true, 'Implicit static setter');
+    }
+
+    if (target == field.getterReference) {
       // Implicit getter for static fields may invoke lazy static initializer.
-      if (dartGlobals.getConstantInitializer(member) != null) {
+      if (dartGlobals.getConstantInitializer(field) != null) {
         // This global will get it's initializer eagerly set, so no lazy init
         // function to be called.
-        return true;
+        return InliningDecision(
+          true,
+          'Implicit static getter without initializer',
+        );
       }
-      return false;
+      return InliningDecision(false, 'static getter with initializer');
     }
-    if (target.isInitializerReference) return true;
+    throw UnimplementedError();
+  }
 
-    final function = member.function!;
-    if (function.body == null) return false;
-
-    // We never want to inline throwing functions (as they are slow paths).
-    if (member is Procedure && member.function.returnType is NeverType) {
-      return false;
+  InliningDecision _shouldInlineConstructorCall(
+    Reference target,
+    w.FunctionType signature,
+    Constructor constructor,
+  ) {
+    final callOverhead = signature.inputs.length + /* call instruction = */ 1;
+    if (target.isInitializerReference) {
+      return InliningDecision(true, 'Initializer');
+    }
+    if (target.isConstructorBodyReference) {
+      final nodeCounter = NodeCounter(this);
+      for (final init in constructor.initializers) {
+        // The body will have to call the super body with evaluated arguments
+        // supplied as to the body function.
+        if (init is SuperInitializer) {
+          nodeCounter.count += getConstructorInfo(
+            init.target,
+          ).bodyParameters.length;
+          break;
+        }
+        if (init is RedirectingInitializer) {
+          nodeCounter.count += getConstructorInfo(
+            init.target,
+          ).bodyParameters.length;
+          break;
+        }
+      }
+      // If we think the overhead of pushing arguments is around the same as the
+      // body itself, we always inline.
+      constructor.function.body?.accept(nodeCounter);
+      return InliningDecision(
+        nodeCounter.count < callOverhead,
+        'SizeEstimate=${nodeCounter.count} < CallOverhead=$callOverhead',
+      );
     }
 
-    final nodeCount = NodeCounter(
-      options.omitImplicitTypeChecks || target.isUncheckedEntryReference,
-    ).countNodes(member);
+    // The size of the constructor allocator is always guaranteed to be
+    // larger than the caller as it comes with this base cost:
+    //
+    //   i32.const <classid>
+    //   i32.const 0
+    //   <N fields>
+    //   struct.new
+    assert(constructor.reference == target);
+    return InliningDecision(false, 'Constructor allocator');
+  }
+
+  InliningDecision _shouldInlineProcedureCall(
+    Reference target,
+    w.FunctionType signature,
+    Procedure member,
+  ) {
+    final callOverhead = signature.inputs.length + /* call instruction = */ 1;
+    final function = member.function;
+    if (function.returnType is NeverType) {
+      // Procedure always throws.
+      return InliningDecision(false, 'Throwing function');
+    }
+
+    if (target.isUncheckedEntryReference) {
+      // Unchecked entry point functions perform very little, mainly optional
+      // parameter handling and then call the real body function.
+      //
+      // By inlining them we can often avoid downcasts and sometimes boxing. The
+      // force inlining here seem to even lead to overall size decreases.
+      return InliningDecision(true, 'Unchecked entry');
+    }
+
+    if (target.isCheckedEntryReference) {
+      // Checked entry point functions have to perform extra type checks on
+      // parameters.
+      return InliningDecision(false, 'Checked entry');
+    }
+    if (target.isTearOffReference) {
+      // This has to perform closure allocation.
+      return InliningDecision(false, 'TearOff');
+    }
+
+    assert(target.isBodyReference || target == member.reference);
+
+    final nodeCounter = NodeCounter(this);
+    function.body?.accept(nodeCounter);
+    int nodeCount = nodeCounter.count;
 
     // Special cases for iterator inlining:
     //   class ... implements Iterable<T> {
     //     Iterator<T> get iterator => FooIterator(...)
     //   }
-    //   class ... implements Iterator<T> {
-    //     T get current => _current as E;
-    //   }
     final klass = member.enclosingClass;
     if (klass != null) {
       final name = member.name.text;
-      if (name == 'iterator' && nodeCount <= 20) {
+      if (name == 'iterator') {
         if (typeEnvironment.isSubtypeOf(
           klass.getThisType(coreTypes, Nullability.nonNullable),
           coreTypes.iterableRawType(Nullability.nonNullable),
         )) {
-          return true;
-        }
-      }
-      if (name == 'current' && nodeCount <= 5) {
-        if (typeEnvironment.isSubtypeOf(
-          klass.getThisType(coreTypes, Nullability.nonNullable),
-          coreTypes.iteratorRawType(Nullability.nonNullable),
-        )) {
-          return true;
+          nodeCount--; // Give slightly more budget.
         }
       }
     }
 
     // If we think the overhead of pushing arguments is around the same as the
     // body itself, we always inline.
-    if (nodeCount <= signature.inputs.length) return true;
+    if (nodeCount <= callOverhead) {
+      return InliningDecision(
+        true,
+        'SizeEstimate=$nodeCount <= CallOverhead=$callOverhead',
+      );
+    }
 
-    return nodeCount <= options.inliningLimit;
+    return InliningDecision(
+      nodeCount <= options.inliningLimit,
+      '$nodeCount <= inliningLimit=${options.inliningLimit}',
+    );
   }
 
   bool supportsInlining(Reference target) {
@@ -3130,45 +3256,12 @@ class _ClosureArgumentsToVtableEntryDispatcherGenerator
 }
 
 class NodeCounter extends VisitorDefault<void> with VisitorVoidMixin {
-  final bool omitCovarianceChecks;
+  final Translator translator;
+
+  NodeCounter(this.translator);
+
+  bool hadReturn = false;
   int count = 0;
-
-  NodeCounter(this.omitCovarianceChecks);
-
-  int countNodes(Member member) {
-    count = 0;
-    if (member is Constructor) {
-      count += 2; // object creation overhead
-      for (final init in member.initializers) {
-        init.accept(this);
-      }
-      for (final field in member.enclosingClass.fields) {
-        field.initializer?.accept(this);
-      }
-    }
-
-    final function = member.function!;
-    if (!omitCovarianceChecks) {
-      for (final parameter in function.positionalParameters) {
-        if (parameter.isCovariantByDeclaration ||
-            parameter.isCovariantByClass) {
-          count++;
-        }
-      }
-    }
-    for (final parameter in function.positionalParameters) {
-      if (!omitCovarianceChecks) {
-        if (parameter.isCovariantByDeclaration ||
-            parameter.isCovariantByClass) {
-          count++;
-        }
-      }
-      if (!parameter.isRequired) count++;
-    }
-
-    function.body?.accept(this);
-    return count;
-  }
 
   // We only count tree nodes and do not recurse into things that aren't part of
   // the tree (e.g. constants, variable types, ...)
@@ -3177,6 +3270,35 @@ class NodeCounter extends VisitorDefault<void> with VisitorVoidMixin {
   void defaultTreeNode(TreeNode node) {
     count++;
     node.visitChildren(this);
+  }
+
+  // Constructor initializers
+  @override
+  void visitFieldInitializer(FieldInitializer node) {
+    handleFieldInitializerValue(node.value);
+  }
+
+  @override
+  void visitLocalInitializer(LocalInitializer node) {
+    node.variable.initializer!.accept(this);
+  }
+
+  @override
+  void visitSuperInitializer(SuperInitializer node) {
+    node.arguments.accept(this);
+  }
+
+  @override
+  void visitRedirectingInitializer(RedirectingInitializer node) {
+    node.arguments.accept(this);
+  }
+
+  void handleFieldInitializerValue(Expression? value) {
+    // These compress very well, let's not count those field initializer
+    // expressions for the size of the initializer function.
+    if (value == null || value is NullLiteral || value is NullConstant) return;
+    if (value is BoolLiteral || value is BoolConstant) return;
+    value.accept(this);
   }
 
   // The following AST nodes do not actually emit any code, so we don't count
@@ -3191,6 +3313,17 @@ class NodeCounter extends VisitorDefault<void> with VisitorVoidMixin {
   @override
   void visitEmptyStatement(EmptyStatement node) {
     node.visitChildren(this);
+  }
+
+  @override
+  void visitReturnStatement(ReturnStatement node) {
+    node.expression?.accept(this);
+    if (!hadReturn) {
+      // The first return is free.
+      hadReturn = true;
+      return;
+    }
+    count++;
   }
 
   @override
@@ -3209,6 +3342,11 @@ class NodeCounter extends VisitorDefault<void> with VisitorVoidMixin {
   }
 
   @override
+  void visitLet(Let node) {
+    node.visitChildren(this);
+  }
+
+  @override
   void visitArguments(Arguments node) {
     count += node.types.length;
     node.visitChildren(this);
@@ -3218,6 +3356,65 @@ class NodeCounter extends VisitorDefault<void> with VisitorVoidMixin {
   void visitNamedExpression(NamedExpression node) {
     node.visitChildren(this);
   }
+
+  @override
+  void visitIsExpression(IsExpression node) {
+    node.operand.accept(this);
+    count += 2;
+  }
+
+  @override
+  void visitAsExpression(AsExpression node) {
+    node.operand.accept(this);
+    count += 3;
+  }
+
+  @override
+  void defaultDartType(DartType node) {
+    // The only [DartType]s we care about are those passed in calls and they are
+    // handled already in [visitArguments].
+    return;
+  }
+
+  // Some nodes are more costly.
+  @override
+  void visitInstanceGet(InstanceGet node) {
+    node.visitChildren(this);
+    _countInstanceCallCost(node);
+  }
+
+  @override
+  void visitInstanceSet(InstanceSet node) {
+    node.visitChildren(this);
+    _countInstanceCallCost(node);
+  }
+
+  @override
+  void visitInstanceInvocation(InstanceInvocation node) {
+    node.visitChildren(this);
+    _countInstanceCallCost(node);
+  }
+
+  @override
+  void visitEqualsCall(EqualsCall node) {
+    node.visitChildren(this);
+    _countInstanceCallCost(node);
+  }
+
+  void _countInstanceCallCost(TreeNode node) {
+    count++; // Call cost.
+
+    // Indirect calls are more costly.
+    if (translator.singleTarget(node) == null) {
+      count += 2; // Additional cost for indirect calls.
+    }
+  }
+}
+
+class InliningDecision {
+  final bool shouldInline;
+  final String? reason;
+  InliningDecision(this.shouldInline, this.reason);
 }
 
 /// Creates forwarders for generic functions where the caller passes a constant
@@ -3381,12 +3578,14 @@ class PolymorphicDispatcherCallTarget extends CallTarget {
   bool get supportsInlining => true;
 
   @override
-  bool get shouldInline =>
-      selector
-          .targets(unchecked: useUncheckedEntry)
-          .staticDispatchRanges
-          .length <=
-      1;
+  InliningDecision get shouldInline => InliningDecision(
+    selector
+            .targets(unchecked: useUncheckedEntry)
+            .staticDispatchRanges
+            .length <=
+        1,
+    'staticDispatchRanges <= 1',
+  );
 
   @override
   CodeGenerator get inliningCodeGen => PolymorphicDispatcherCodeGenerator(

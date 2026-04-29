@@ -4523,7 +4523,7 @@ class InScopeCompletionPass extends SimpleAstVisitor<void> {
         .ifTypeOrNull<TypeProviderImpl>();
     return FunctionTypeImpl(
       typeParameters: const [],
-      parameters: const [],
+      formalParameters: const [],
       returnType: typeProvider?.voidType ?? DynamicTypeImpl.instance,
       nullabilitySuffix: NullabilitySuffix.none,
     );

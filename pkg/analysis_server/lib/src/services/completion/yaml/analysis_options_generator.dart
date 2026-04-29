@@ -51,6 +51,7 @@ class AnalysisOptionsGenerator extends YamlCompletionGenerator {
     AnalysisOptionsFileKeys.include: EmptyProducer(),
     // TODO(brianwilkerson): Create constants for 'linter' and 'rules'.
     'linter': MapProducer({'rules': ListProducer(_LintRuleProducer())}),
+    AnalysisOptionsFileKeys.plugins: _PluginsProducer(),
   });
 
   /// Initialize a newly created suggestion generator for analysis options
@@ -113,4 +114,27 @@ class _LintRuleProducer extends Producer {
           identifier(rule.name, docComplete: rule.description),
     ];
   }
+}
+
+class _PluginsProducer extends KeyValueProducer {
+  @override
+  Producer producerForKey(String key) => MapProducer({
+    // TODO(srawlins): It's possible that, if the plugin in question is
+    // already running, we could determine the possible warning / lint rule
+    // names and suggest them.
+    AnalysisOptionsFileKeys.diagnostics: EmptyProducer(),
+    AnalysisOptionsFileKeys.git: MapProducer({
+      AnalysisOptionsFileKeys.url: EmptyProducer(),
+      AnalysisOptionsFileKeys.ref: EmptyProducer(),
+      AnalysisOptionsFileKeys.path: EmptyProducer(),
+      AnalysisOptionsFileKeys.tagPattern: EmptyProducer(),
+    }),
+    AnalysisOptionsFileKeys.path: EmptyProducer(),
+    AnalysisOptionsFileKeys.version: EmptyProducer(),
+    AnalysisOptionsFileKeys.hosted: EmptyProducer(),
+  });
+
+  @override
+  Iterable<CompletionSuggestion> suggestions(YamlCompletionRequest request) =>
+      const [];
 }

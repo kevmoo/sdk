@@ -3786,7 +3786,11 @@ return_of_do_not_store:
     The fix is to add the annotation to the enclosing function.
 return_of_invalid_type_from_catch_error:
   status: noFix
+return_of_invalid_type_from_then:
+  status: noFix
 return_type_invalid_for_catch_error:
+  status: noFix
+return_type_invalid_for_then:
   status: noFix
 sdk_version_constructor_tearoffs:
   status: needsFix

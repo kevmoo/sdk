@@ -359,8 +359,13 @@ final class LinearScanRegisterAllocator extends RegisterAllocator {
         );
       }
     } else if (constr is ParameterStackLocation) {
-      assert(liveRange.splitFrom == null);
-      liveRange.spillSlot = constr;
+      if (!graph.function.isSuspendable) {
+        // Lock spill slot to the parameter location on the stack,
+        // unless the current function is suspendable
+        // (suspend/resume does not preserve parameters on the stack).
+        assert(liveRange.splitFrom == null);
+        liveRange.spillSlot = constr;
+      }
       _operandLocations[operandId] = constr;
       if (instr.hasUses) {
         final loc = liveRange.addUse(pos + 1, constr);
