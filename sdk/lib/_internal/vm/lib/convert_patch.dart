@@ -1633,6 +1633,8 @@ class _JsonUtf8Parser extends _JsonParserWithListener
   Uint8List chunk = emptyChunk;
   int chunkEnd = 0;
 
+  final List<String?> _keyCache = List<String?>.filled(256, null);
+
   _JsonUtf8Parser(_JsonListener listener, bool allowMalformed)
     : decoder = _Utf8Decoder(allowMalformed),
       super(listener) {
@@ -1662,10 +1664,43 @@ class _JsonUtf8Parser extends _JsonParserWithListener
   @pragma('vm:unsafe:no-bounds-checks')
   int _getCharUnsafe(int position) => chunk[position];
 
+  int _hashBytes(Uint8List chunk, int start, int end) {
+    int hash = 0;
+    for (int i = start; i < end; i++) {
+      hash = (hash * 31) + chunk[i];
+    }
+    return hash;
+  }
+
+  bool _isMatch(String cached, Uint8List chunk, int start, int end) {
+    int len = end - start;
+    if (cached.length != len) return false;
+    for (int i = 0; i < len; i++) {
+      if (cached.codeUnitAt(i) != chunk[start + i]) return false;
+    }
+    return true;
+  }
+
+  String _canonicalizeAscii(int start, int end) {
+    int len = end - start;
+    if (len > 32) {
+      return createOneByteStringFromCharacters(chunk, start, end);
+    }
+    int hash = _hashBytes(chunk, start, end);
+    int index = hash & 255;
+    var cached = _keyCache[index];
+    if (cached != null && _isMatch(cached, chunk, start, end)) {
+      return cached;
+    }
+    var decoded = createOneByteStringFromCharacters(chunk, start, end);
+    _keyCache[index] = decoded;
+    return decoded;
+  }
+
   String getString(int start, int end, int bits) {
     const int maxAsciiChar = 0x7f;
     if (bits <= maxAsciiChar) {
-      return createOneByteStringFromCharacters(chunk, start, end);
+      return _canonicalizeAscii(start, end);
     }
     beginString();
     if (start < end) addSliceToString(start, end);
