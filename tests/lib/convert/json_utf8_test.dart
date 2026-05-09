@@ -8,8 +8,19 @@ library test;
 import "package:expect/expect.dart";
 import "dart:convert";
 
+Object? _revive(Object? key, Object? value) {
+  if (key == "x") return (value as int) + 1;
+  return value;
+}
+
 void main() {
-  for (var parse in [parseFuse, parseSequence, parseChunked]) {
+  for (var parse in [
+    parseFuse,
+    parseSequence,
+    parseChunked,
+    parseJsonUtf8,
+    parseJsonUtf8Chunked,
+  ]) {
     // Sanity checks.
     Expect.isTrue(parse('true'.codeUnits.toList()));
     Expect.isFalse(parse('false'.codeUnits.toList()));
@@ -62,6 +73,25 @@ void main() {
   // Regression test for dartbug.com/46205
   // Bug occurs in sound null safe mode only.
   Expect.isNull(parseFuse("null".codeUnits.toList()));
+
+  // Test JsonUtf8Decoder with reviver.
+  var revived =
+      const JsonUtf8Decoder(
+            reviver: _revive,
+          ).convert('{"x":42}'.codeUnits.toList())
+          as Map;
+  Expect.equals(43, revived["x"]);
+
+  // Test JsonUtf8Decoder with allowMalformed.
+  // Invalid UTF-8 sequence 0xFF without allowMalformed should throw.
+  Expect.throws<FormatException>(
+    () => const JsonUtf8Decoder().convert([0x22, 0xFF, 0x22]),
+  );
+  // With allowMalformed: true, it should convert to Unicode replacement char.
+  var malformedResult = const JsonUtf8Decoder(
+    allowMalformed: true,
+  ).convert([0x22, 0xFF, 0x22]);
+  Expect.equals("\uFFFD", malformedResult);
 }
 
 Object? parseFuse(List<int> text) {
@@ -81,6 +111,24 @@ Object? parseChunked(List<int> text) {
           result = values[0];
         }),
       );
+  for (var i = 0; i < text.length; i++) {
+    sink.add([text[i]]);
+  }
+  sink.close();
+  return result;
+}
+
+Object? parseJsonUtf8(List<int> text) {
+  return const JsonUtf8Decoder().convert(text);
+}
+
+Object? parseJsonUtf8Chunked(List<int> text) {
+  var result;
+  var sink = const JsonUtf8Decoder().startChunkedConversion(
+    new ChunkedConversionSink.withCallback((List<Object?> values) {
+      result = values[0];
+    }),
+  );
   for (var i = 0; i < text.length; i++) {
     sink.add([text[i]]);
   }

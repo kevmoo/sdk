@@ -42,9 +42,9 @@ class Utf8Decoder {
   @patch
   Converter<List<int>, T> fuse<T>(Converter<String, T> next) {
     if (next is JsonDecoder) {
-      return _JsonUtf8Decoder(
-            (next as JsonDecoder)._reviver,
-            this._allowMalformed,
+      return JsonUtf8Decoder(
+            reviver: (next as JsonDecoder)._reviver,
+            allowMalformed: this._allowMalformed,
           )
           as dynamic /*=Converter<List<int>, T>*/;
     }
@@ -52,12 +52,9 @@ class Utf8Decoder {
   }
 }
 
-class _JsonUtf8Decoder extends Converter<List<int>, Object?> {
-  final Object? Function(Object? key, Object? value)? _reviver;
-  final bool _allowMalformed;
-
-  _JsonUtf8Decoder(this._reviver, this._allowMalformed);
-
+@patch
+class JsonUtf8Decoder {
+  @patch
   Object? convert(List<int> input) {
     var parser = _JsonUtf8DecoderSink._createParser(_reviver, _allowMalformed);
     parser.parseChunk(input, 0, input.length);
@@ -65,6 +62,7 @@ class _JsonUtf8Decoder extends Converter<List<int>, Object?> {
     return parser.result;
   }
 
+  @patch
   ByteConversionSink startChunkedConversion(Sink<Object?> sink) {
     return _JsonUtf8DecoderSink(_reviver, sink, _allowMalformed);
   }

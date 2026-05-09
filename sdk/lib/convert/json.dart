@@ -648,6 +648,59 @@ final class JsonDecoder extends Converter<String, Object?> {
   Stream<Object?> bind(Stream<String> stream) => super.bind(stream);
 }
 
+/// A JSON UTF-8 decoder.
+///
+/// This converter works equivalently to first converting the UTF-8 encoded
+/// JSON bytes to a [String], and then decoding the string, but without
+/// creating an intermediate string on platforms where an optimized direct
+/// byte parser is available.
+@Since("3.13")
+final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
+  final Object? Function(Object? key, Object? value)? _reviver;
+  final bool _allowMalformed;
+
+  /// Constructs a new [JsonUtf8Decoder].
+  ///
+  /// The [reviver] function is called once for each object or list property
+  /// that has been parsed during decoding.
+  ///
+  /// If [allowMalformed] is `true`, the decoder replaces invalid (or
+  /// unterminated) character sequences with the Unicode Replacement character
+  /// `U+FFFD` (). Otherwise it throws a [FormatException].
+  const JsonUtf8Decoder({
+    Object? Function(Object? key, Object? value)? reviver,
+    bool allowMalformed = false,
+  }) : _reviver = reviver,
+       _allowMalformed = allowMalformed;
+
+  /// Converts the UTF-8 encoded JSON [input] to its corresponding object.
+  Object? convert(List<int> input) {
+    var decoder = _allowMalformed
+        ? const Utf8Decoder(allowMalformed: true)
+        : const Utf8Decoder(allowMalformed: false);
+    var jsonDecoder = _reviver == null
+        ? const JsonDecoder()
+        : JsonDecoder(_reviver);
+    return decoder.fuse(jsonDecoder).convert(input);
+  }
+
+  /// Starts a chunked conversion.
+  ByteConversionSink startChunkedConversion(Sink<Object?> sink) {
+    var decoder = _allowMalformed
+        ? const Utf8Decoder(allowMalformed: true)
+        : const Utf8Decoder(allowMalformed: false);
+    var jsonDecoder = _reviver == null
+        ? const JsonDecoder()
+        : JsonDecoder(_reviver);
+    return ByteConversionSink.from(
+      decoder.fuse(jsonDecoder).startChunkedConversion(sink),
+    );
+  }
+
+  // Override the base class's bind, to provide a better type.
+  Stream<Object?> bind(Stream<List<int>> stream) => super.bind(stream);
+}
+
 // Internal optimized JSON parsing implementation.
 external dynamic _parseJson(
   String source,

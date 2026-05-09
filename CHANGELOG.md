@@ -74,6 +74,10 @@ To learn more about the feature, check out the
 - Added `List.unmodifiableOf` with better typing than `List.unmodifiable`.
 - Added `Map.unmodifiableOf` with better typing than `Map.unmodifiable`.
 
+#### `dart:convert`
+
+- Added `JsonUtf8Decoder` to decode UTF-8 encoded JSON bytes directly.
+
 #### `dart:io`
 
 - The cookie-date parser now uses the correct algorithm again.
