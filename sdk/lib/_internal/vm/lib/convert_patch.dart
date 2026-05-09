@@ -29,12 +29,17 @@ dynamic _parseJson(
   Object? Function(Object? key, Object? value)? reviver,
 ) {
   _JsonListener listener = _JsonListener(reviver);
-  var parser = _JsonStringParser(listener);
+  _JsonStringParserBase parser;
+  if (ClassID.getID(source) == ClassID.cidOneByteString) {
+    parser = _JsonOneByteStringParser(listener);
+  } else {
+    parser = _JsonTwoByteStringParser(listener);
+  }
   parser.chunk = source;
   parser.chunkEnd = source.length;
   parser.parse(0);
   parser.close();
-  return listener.result;
+  return parser.result;
 }
 
 @patch
@@ -43,10 +48,9 @@ class Utf8Decoder {
   Converter<List<int>, T> fuse<T>(Converter<String, T> next) {
     if (next is JsonDecoder) {
       return JsonUtf8Decoder(
-            reviver: (next as JsonDecoder)._reviver,
-            allowMalformed: this._allowMalformed,
-          )
-          as dynamic /*=Converter<List<int>, T>*/;
+        reviver: (next as JsonDecoder)._reviver,
+        allowMalformed: this._allowMalformed,
+      ) as dynamic /*=Converter<List<int>, T>*/;
     }
     return super.fuse<T>(next);
   }
@@ -1467,21 +1471,17 @@ mixin _ChunkedJsonParser<T> on _JsonParserWithListener {
 }
 
 /**
- * Chunked JSON parser that parses [String] chunks.
+ * Base class for JSON string parsers.
  */
-class _JsonStringParser extends _JsonParserWithListener
-    with _ChunkedJsonParser<String> {
+abstract class _JsonStringParserBase extends _JsonParserWithListener {
   String chunk = '';
   int chunkEnd = 0;
+  dynamic buffer;
 
-  _JsonStringParser(_JsonListener listener) : super(listener);
+  _JsonStringParserBase(_JsonListener listener) : super(listener);
 
   @pragma('vm:prefer-inline')
   bool get isUtf16Input => true;
-
-  @pragma('vm:prefer-inline')
-  @pragma('vm:unsafe:no-bounds-checks')
-  int _getCharUnsafe(int position) => chunk.codeUnitAt(position);
 
   String getString(int start, int end, int bits) {
     return chunk.substring(start, end);
@@ -1517,6 +1517,41 @@ class _JsonStringParser extends _JsonParserWithListener
   double parseDouble(int start, int end) {
     return _parseDouble(chunk, start, end);
   }
+
+  // Abstract methods implemented by _ChunkedJsonParser mixin.
+  void parse(int start);
+  void close();
+  dynamic get result;
+  int get state;
+  set state(int val);
+  List<int> get states;
+  set states(List<int> val);
+  int get partialState;
+  set partialState(int val);
+}
+
+/**
+ * Chunked JSON parser specialized for OneByteString.
+ */
+class _JsonOneByteStringParser extends _JsonStringParserBase
+    with _ChunkedJsonParser<String> {
+  _JsonOneByteStringParser(_JsonListener listener) : super(listener);
+
+  @pragma('vm:prefer-inline')
+  @pragma('vm:unsafe:no-bounds-checks')
+  int _getCharUnsafe(int position) => chunk.codeUnitAt(position);
+}
+
+/**
+ * Chunked JSON parser specialized for TwoByteString.
+ */
+class _JsonTwoByteStringParser extends _JsonStringParserBase
+    with _ChunkedJsonParser<String> {
+  _JsonTwoByteStringParser(_JsonListener listener) : super(listener);
+
+  @pragma('vm:prefer-inline')
+  @pragma('vm:unsafe:no-bounds-checks')
+  int _getCharUnsafe(int position) => chunk.codeUnitAt(position);
 }
 
 @patch
@@ -1534,24 +1569,40 @@ class JsonDecoder {
  * The sink only creates one object, but its input can be chunked.
  */
 class _JsonStringDecoderSink extends StringConversionSinkBase {
-  _JsonStringParser _parser;
+  _JsonStringParserBase _parser;
   final Object? Function(Object? key, Object? value)? _reviver;
   final Sink<Object?> _sink;
 
   _JsonStringDecoderSink(this._reviver, this._sink)
-    : _parser = _createParser(_reviver);
-
-  static _JsonStringParser _createParser(
-    Object? Function(Object? key, Object? value)? reviver,
-  ) {
-    return _JsonStringParser(_JsonListener(reviver));
-  }
+    : _parser = _JsonOneByteStringParser(_JsonListener(_reviver));
 
   void addSlice(String chunk, int start, int end, bool isLast) {
+    final cid = ClassID.getID(chunk);
+    if (cid == ClassID.cidOneByteString) {
+      if (_parser is! _JsonOneByteStringParser) {
+        var oldParser = _parser;
+        _parser = _JsonOneByteStringParser(oldParser.listener);
+        _copyState(oldParser, _parser);
+      }
+    } else {
+      if (_parser is! _JsonTwoByteStringParser) {
+        var oldParser = _parser;
+        _parser = _JsonTwoByteStringParser(oldParser.listener);
+        _copyState(oldParser, _parser);
+      }
+    }
+
     _parser.chunk = chunk;
     _parser.chunkEnd = end;
     _parser.parse(start);
     if (isLast) _parser.close();
+  }
+
+  void _copyState(_JsonStringParserBase from, _JsonStringParserBase to) {
+    to.state = from.state;
+    to.states = from.states;
+    to.partialState = from.partialState;
+    to.buffer = from.buffer;
   }
 
   void add(String chunk) {
