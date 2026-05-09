@@ -507,4 +507,3 @@ By shifting the fine-grained search loop from a sequential scalar check to a
 single-cycle `matchUint16` vector operation, Dart collections can replicate the
 SIMD Quad speedups (2x faster than textbook binary search on modern Apple/Intel
 architectures).
-
