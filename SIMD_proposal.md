@@ -1,10 +1,10 @@
-# Proposal: High-Level Data-Centric Vector Primitives ("SIMD Atoms")
+Proposal: High-Level Data-Centric Vector Primitives ("SIMD Atoms")
 
 This proposal outlines a design for introducing high-level, data-centric vectorized primitives ("SIMD Atoms") to the Dart SDK. Instead of exposing low-level hardware vector registers (which are difficult to write, maintain, and optimize uniformly across Native, WebAssembly, and JavaScript), this approach introduces the concept of a low-level `MemoryBlock` and adds vectorized bulk operations directly onto standard Dart collection types and views.
 
 ---
 
-## 1. Background & Limitations of the Status Quo
+# 1. Background & Limitations of the Status Quo
 
 Exposing architectural-specific vector instructions (e.g., AVX2, NEON) in a high-level application language like Dart creates significant friction:
 *   **High Cognitive Load**: Framework and application developers must manage vector lanes, alignments, and target-specific feature checks.
@@ -19,14 +19,14 @@ Exposing architectural-specific vector instructions (e.g., AVX2, NEON) in a high
 
 ---
 
-## 2. Core Target Scenarios
+# 2. Core Target Scenarios
 
-### A. Text & JSON Parsing
+## A. Text & JSON Parsing
 When parsing text-based formats, the primary hotspot is scanning bytes for control/delimiter characters (quotes `"`, backslashes `\`, newlines `\n`, etc.) and validating ASCII/UTF-8 content boundaries.
 *   **Primitives**: `indexOfAny`, `isAscii`.
 *   **Benefit**: Bypasses slow byte-by-byte loop scans, moving through input buffers 16 or 32 bytes at a time in a single instruction.
 
-### B. High-Performance Data Structures (SwissTables)
+## B. High-Performance Data Structures (SwissTables)
 Modern high-performance hash maps (like Abseil's **SwissTable** or Rust's standard `HashMap`) track bucket states using a separate parallel **control metadata array** consisting of 1 byte per bucket:
 *   `0xFF` (empty bucket)
 *   `0xFE` (deleted/tombstone bucket)
@@ -36,16 +36,16 @@ During lookups, instead of iterating and comparing expensive key objects, the ma
 *   **Primitives**: `matchMetadata`, `tzcnt`.
 *   **Benefit**: Allows resolving collisions and searching empty buckets in constant time with zero branches.
 
-### C. 2D Graphics & Video (Flutter)
+## C. 2D Graphics & Video (Flutter)
 While core rasterization matrix transforms occur in C++ (Skia/Impeller), Flutter's framework layer performs extensive layout and coordinate transformations in pure Dart (gesture hit testing, layout clipping) using `package:vector_math`'s `Matrix4`. Furthermore, live video/camera frames streamed in Dart via `packages/camera` use YUV420 format, requiring high-overhead color space conversions to displayable RGBA.
 *   **Primitives**: `transformPoints2D`, `blendSrcOver`/`lerpFloat32`, `shuffleBytes`.
 *   **Benefit**: Offloads bulk layout math, pixel alpha compositing, and YUV-to-RGB interleaving to hardware vector units, enabling 60 FPS pipelines in pure Dart.
 
 ---
 
-## 3. Public (User-Facing) API Specification
+# 3. Public (User-Facing) API Specification
 
-### A. Memory Alignment Enum
+## A. Memory Alignment Enum
 Statically restricts memory boundaries to valid hardware power-of-two vector widths, preventing hardware faults and removing runtime verification overhead.
 
 ```dart
@@ -62,7 +62,7 @@ enum MemoryAlignment {
 }
 ```
 
-### B. The `MemoryBlock` Abstraction
+## B. The `MemoryBlock` Abstraction
 Represents a safe, size-bounded, contiguous chunk of aligned memory. It
 intentionally **does not implement `List<int>`** to protect devirtualization,
 preserve AOT compiler inlining, and prevent API bloat.
@@ -92,11 +92,10 @@ abstract class MemoryBlock implements Finalizable {
 
   int get length;
 
-  /// Returns a zero-copy standard Uint8List view of a slice of this block
-  /// from [offset] to [offset + length].
-  /// Maintains seamless composition interoperability with standard List APIs.
-  /// Standard byte-by-byte random access is performed via this view.
-  Uint8List asUint8List([int offset = 0, int? length]);
+  /// Returns the underlying ByteBuffer for this memory block.
+  /// Allows zero-overhead creation of standard Float32List, Uint32List,
+  /// or ByteData views using standard SDK view constructors.
+  ByteBuffer get buffer;
 
   /// Returns an immutable, unmodifiable zero-copy view of this block.
   /// Enables zero-overhead concurrent sharing across Dart Isolates.
@@ -132,7 +131,7 @@ abstract class MemoryBlock implements Finalizable {
   );
 
   /// Performs element-wise linear interpolation:
-  /// `dst[i] = a[i] * (1 - t[i]) + b[i] * t[i]`
+  /// dst[i] = a[i] * (1 - t[i]) + b[i] * t[i]
   /// for [count] elements starting at the respective byte offsets.
   /// Lowers to floating-point FMA instructions.
   ///
@@ -182,7 +181,7 @@ abstract class MemoryBlock implements Finalizable {
 }
 ```
 
-### C. The `VectorView` Extension Type
+## C. The `VectorView` Extension Type
 A zero-overhead wrapper type over standard `Uint8List` buffers.
 This provides complete zero-copy fallbacks for unaligned vectors
 (handling boundary padding with a minor runtime alignment-check setup cost in assembly).
@@ -206,7 +205,7 @@ extension type const VectorView(Uint8List bytes) {
 }
 ```
 
-### D. First-Class Bit-Manipulation Intrinsics
+## D. First-Class Bit-Manipulation Intrinsics
 
 To support high-performance index scanning and collision walks without relying
 on slow, branch-heavy Dart-level loop fallbacks, we align this proposal with
@@ -234,17 +233,15 @@ guarantee they translate directly to single-cycle hardware assembly instructions
 (`TZCNT` / `POPCNT` on x86, `CLZ` / `CNT` on ARM, and standard bit count
 operators on WebAssembly).
 
-
-
 ---
 
-## 4. Internal SDK Additions (`dart:_internal` & Patches)
+# 4. Internal SDK Additions (`dart:_internal` & Patches)
 
 To protect the core library APIs from domain-specific pollution, internal implementation details are kept private.
 
 Specifically, transcoding APIs are kept private to the SDK (as implementation details inside standard conversion libraries like `dart:convert` patches), while graphics, blending, and shuffling operations are made fully **public** on `MemoryBlock` to allow direct consumption by Flutter and other external packages.
 
-### A. Internal Transcoding Primitives
+## A. Internal Transcoding Primitives
 ```dart
 abstract class MemoryBlock {
   // ...
@@ -258,7 +255,7 @@ abstract class MemoryBlock {
 
 ---
 
-## 5. Detailed SwissTable Key Lookup Example
+# 5. Detailed SwissTable Key Lookup Example
 
 The following example shows how a high-performance hash map can use `matchMetadata` and the `trailingZeroBitCount` primitive (which compiles to single-cycle hardware instructions) to resolve lookups and scan empty buckets:
 
@@ -315,9 +312,9 @@ class SwissTable<K, V> {
 
 ---
 
-## 6. Compilation Lowering Matrix
+# 6. Compilation Lowering Matrix
 
-### A. x86_64 Lowering (SSE4.2 / AVX2)
+## A. x86_64 Lowering (SSE4.2 / AVX2)
 
 | Primitive / Atom | Compiler ASM Code Generation |
 | :--- | :--- |
@@ -328,7 +325,7 @@ class SwissTable<K, V> {
 | `lerpFloat32` | `vfmadd213ps` / `vfmadd231ps` (Fused Multiply-Add vector floats). |
 | `trailingZeroBitCount` | `tzcnt` (Trailing Zero Count, AVX/BMI1) or `bsfq` (Bit Scan Forward). |
 
-### B. ARM64 Lowering (NEON / SVE)
+## B. ARM64 Lowering (NEON / SVE)
 
 | Primitive / Atom | Compiler ASM Code Generation |
 | :--- | :--- |
@@ -339,7 +336,7 @@ class SwissTable<K, V> {
 | `lerpFloat32` | `fmla` (Vector Floating-Point Fused Multiply-Add). |
 | `trailingZeroBitCount` | `clz` (Count Leading Zeros, executed on bit-reversed register). |
 
-### C. WebAssembly Lowering (WasmGC SIMD)
+## C. WebAssembly Lowering (WasmGC SIMD)
 
 | Primitive / Atom | Compiler Wasm Instruction Generation |
 | :--- | :--- |
@@ -350,7 +347,7 @@ class SwissTable<K, V> {
 | `lerpFloat32` | Fused float multiply-add instruction sequence. |
 | `trailingZeroBitCount` | `i32.ctz` (Count Trailing Zeros). |
 
-### D. JavaScript Lowering (TypedArrays / Auto-Vectorization)
+## D. JavaScript Lowering (TypedArrays / Auto-Vectorization)
 
 | Primitive / Atom | Browser JS Engine Execution |
 | :--- | :--- |
@@ -361,7 +358,9 @@ class SwissTable<K, V> {
 | `lerpFloat32` | Optimizable TypedArray iteration mapped to hardware vector float instructions. |
 | `trailingZeroBitCount` | `Math.clz32` (Bitwise conversion fallback). |
 
-## 7. dart:io Socket2 Specification
+---
+
+# 7. dart:io Socket2 Specification
 
 In standard `dart:io`, the current `Socket` API is built around `List<int>` and
 `Stream<Uint8List>`. This model introduces substantial garbage collection (GC)
@@ -372,7 +371,7 @@ the heap and copies bytes into it from the OS socket.
 By utilizing `MemoryBlock`, we can specify a zero-copy, allocation-free I/O
 abstraction named `Socket2`.
 
-### A. Zero-Copy Reads & Buffer Reusability
+## A. Zero-Copy Reads & Buffer Reusability
 
 Instead of allocating and returning new buffers, `Socket2` allows developers to
 pass a mutable `MemoryBlock` directly to the socket, copying bytes from the OS
@@ -389,7 +388,7 @@ abstract class Socket2 {
 }
 ```
 
-### B. Recycled Ring-Buffer Event Loop
+## B. Recycled Ring-Buffer Event Loop
 
 To maintain an asynchronous event-driven model without heap allocation overhead,
 `Socket2` can offer a callback loop that recycles a fixed pool of `MemoryBlock`
@@ -410,7 +409,7 @@ abstract class Socket2 {
 ```
 *   **Developer Usage**: The parser (e.g., a fast JSON or HTTP parser) processes the incoming aligned `MemoryBlock` in place using SIMD primitives (`indexOfAny`, `matchMetadata`) inside the callback and returns. The memory is then immediately reused for the next network package without hitting the garbage collector.
 
-### C. Zero-Copy Writes
+## C. Zero-Copy Writes
 
 For writing data, `Socket2` accepts a `MemoryBlock` directly, passing its raw memory address directly to the OS `write`/`send` system call without copying:
 
@@ -422,4 +421,3 @@ abstract class Socket2 {
   void write(MemoryBlock buffer, [int offset = 0, int? length]);
 }
 ```
-
