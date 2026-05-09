@@ -92,15 +92,19 @@ abstract class MemoryBlock implements Finalizable {
 
   int get length;
 
-  /// Returns a zero-copy standard Uint8List view of this block.
+  /// Returns a zero-copy standard Uint8List view of a slice of this block
+  /// from [offset] to [offset + length].
   /// Maintains seamless composition interoperability with standard List APIs.
   /// Standard byte-by-byte random access is performed via this view.
-  Uint8List asUint8List();
+  Uint8List asUint8List([int offset = 0, int? length]);
 
   /// Returns an immutable, unmodifiable zero-copy view of this block.
   /// Enables zero-overhead concurrent sharing across Dart Isolates.
   MemoryBlock asReadOnly();
 
+  /// Decodes a slice of this block from [offset] to [offset + length] directly
+  /// into a Dart String. Bypasses standard validation if the slice is pure ASCII.
+  String decodeToString([int offset = 0, int? length]);
 
   /// Vector-scans for the first occurrence of any byte in [targets].
   /// Compiles to branchless vector assembly with zero alignment checks.
@@ -202,19 +206,7 @@ extension type const VectorView(Uint8List bytes) {
 }
 ```
 
-### D. High-Performance String Bypass
-```dart
-String decodePayload(Uint8List chunk) {
-  if (chunk.isAscii()) {
-    // Bypasses complex UTF-8 validation and generic char-code scans.
-    // Directly allocates a _OneByteString and copies bytes at native speed.
-    return String._createOneByteString(chunk, 0, chunk.length);
-  }
-  return utf8.decode(chunk);
-}
-```
-
-### E. First-Class Bit-Manipulation Intrinsics
+### D. First-Class Bit-Manipulation Intrinsics
 
 To support high-performance index scanning and collision walks without relying
 on slow, branch-heavy Dart-level loop fallbacks, we align this proposal with
@@ -368,3 +360,66 @@ class SwissTable<K, V> {
 | `shuffleBytes` | Direct byte swaps or standard JS loops designed for `pshufb` JIT translation. |
 | `lerpFloat32` | Optimizable TypedArray iteration mapped to hardware vector float instructions. |
 | `trailingZeroBitCount` | `Math.clz32` (Bitwise conversion fallback). |
+
+## 7. dart:io Socket2 Specification
+
+In standard `dart:io`, the current `Socket` API is built around `List<int>` and
+`Stream<Uint8List>`. This model introduces substantial garbage collection (GC)
+pressure during high-throughput I/O (such as gRPC, HTTP/2, or high-volume
+database connections) because every read event allocates a new `Uint8List` on
+the heap and copies bytes into it from the OS socket.
+
+By utilizing `MemoryBlock`, we can specify a zero-copy, allocation-free I/O
+abstraction named `Socket2`.
+
+### A. Zero-Copy Reads & Buffer Reusability
+
+Instead of allocating and returning new buffers, `Socket2` allows developers to
+pass a mutable `MemoryBlock` directly to the socket, copying bytes from the OS
+kernel buffer directly into the pre-allocated aligned block:
+
+```dart
+abstract class Socket2 {
+  /// Reads bytes from the socket directly into [buffer] starting at [offset].
+  ///
+  /// Returns the number of bytes read.
+  /// Since the VM passes the aligned MemoryBlock address directly to the OS
+  /// read/recv syscall, this operates as a zero-copy, zero-heap-allocation path.
+  int read(MemoryBlock buffer, [int offset = 0, int? length]);
+}
+```
+
+### B. Recycled Ring-Buffer Event Loop
+
+To maintain an asynchronous event-driven model without heap allocation overhead,
+`Socket2` can offer a callback loop that recycles a fixed pool of `MemoryBlock`
+ring buffers:
+
+```dart
+abstract class Socket2 {
+  /// Listens for incoming socket chunks using a pre-allocated pool of MemoryBlocks.
+  ///
+  /// Once the [onData] callback completes, the MemoryBlock is immediately
+  /// recycled back into the socket's internal ring-buffer pool.
+  void listen(
+    void onData(MemoryBlock chunk), {
+    Function? onError,
+    void onDone()?,
+  });
+}
+```
+*   **Developer Usage**: The parser (e.g., a fast JSON or HTTP parser) processes the incoming aligned `MemoryBlock` in place using SIMD primitives (`indexOfAny`, `matchMetadata`) inside the callback and returns. The memory is then immediately reused for the next network package without hitting the garbage collector.
+
+### C. Zero-Copy Writes
+
+For writing data, `Socket2` accepts a `MemoryBlock` directly, passing its raw memory address directly to the OS `write`/`send` system call without copying:
+
+```dart
+abstract class Socket2 {
+  /// Writes [length] bytes from [buffer] starting at [offset] directly to the socket.
+  ///
+  /// Bypasses standard VM collection wrapper and copy penalties.
+  void write(MemoryBlock buffer, [int offset = 0, int? length]);
+}
+```
+
