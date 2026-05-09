@@ -63,10 +63,19 @@ enum MemoryAlignment {
 ```
 
 ### B. The `MemoryBlock` Abstraction
-Represents a safe, size-bounded, contiguous chunk of aligned memory. It intentionally **does not implement `List<int>`** to protect devirtualization, preserve AOT compiler inlining, and prevent API bloat.
+Represents a safe, size-bounded, contiguous chunk of aligned memory. It
+intentionally **does not implement `List<int>`** to protect devirtualization,
+preserve AOT compiler inlining, and prevent API bloat.
+
+To prevent manual memory management bugs:
+- **GC-Managed**: Standard constructors (`MemoryBlock`, `fromList`) allocate
+  fully managed buffers tracked by the garbage collector.
+- **FFI Safe Lifetimes**: The `fromAddress` constructor implements
+  `Finalizable`, allowing unmanaged native memory to integrate with
+  `NativeFinalizer` or scoped FFI `Arena` allocation blocks.
 
 ```dart
-abstract class MemoryBlock {
+abstract class MemoryBlock implements Finalizable {
   /// Allocates a block of memory initialized to [initialValue] (standard zero-pass memset).
   external factory MemoryBlock(int length, {
     MemoryAlignment alignment = MemoryAlignment.sixteen,
@@ -83,19 +92,15 @@ abstract class MemoryBlock {
 
   int get length;
 
-  /// Access a single byte. Lowers to raw memory offsets on Native/Wasm.
-  int operator [](int index);
-
-  /// Writes a single byte to the block. Throws an UnsupportedError if the block is read-only.
-  void operator []=(int index, int value);
-
   /// Returns a zero-copy standard Uint8List view of this block.
-  /// Maintains seamless composition interoperability with standard APIs.
+  /// Maintains seamless composition interoperability with standard List APIs.
+  /// Standard byte-by-byte random access is performed via this view.
   Uint8List asUint8List();
 
   /// Returns an immutable, unmodifiable zero-copy view of this block.
   /// Enables zero-overhead concurrent sharing across Dart Isolates.
   MemoryBlock asReadOnly();
+
 
   /// Vector-scans for the first occurrence of any byte in [targets].
   /// Compiles to branchless vector assembly with zero alignment checks.
@@ -209,6 +214,36 @@ String decodePayload(Uint8List chunk) {
 }
 ```
 
+### E. First-Class Bit-Manipulation Intrinsics
+
+To support high-performance index scanning and collision walks without relying
+on slow, branch-heavy Dart-level loop fallbacks, we align this proposal with
+active core library development in Gerrit CL 498041, which introduces native,
+compiler-lowered properties directly on the `int` type:
+
+```dart
+extension BitIntrinsics on int {
+  /// Returns the number of trailing zero bits in the integer.
+  /// Lowers directly to compiler-recognized hardware instructions.
+  int get trailingZeroBitCount;
+
+  /// Returns the number of set bits (population count) in the integer.
+  /// Lowers directly to compiler-recognized hardware instructions.
+  int get oneBitCount;
+
+  /// [Proposed Future Extension]
+  /// Returns the number of leading zero bits in the integer.
+  int get leadingZeroBitCount;
+}
+```
+
+Under the hood, these methods are compiler-recognized (`asm-intrinsic`) to
+guarantee they translate directly to single-cycle hardware assembly instructions
+(`TZCNT` / `POPCNT` on x86, `CLZ` / `CNT` on ARM, and standard bit count
+operators on WebAssembly).
+
+
+
 ---
 
 ## 4. Internal SDK Additions (`dart:_internal` & Patches)
@@ -233,7 +268,7 @@ abstract class MemoryBlock {
 
 ## 5. Detailed SwissTable Key Lookup Example
 
-The following example shows how a high-performance hash map can use `matchMetadata` and a trailing zero count `tzcnt` primitive (which compiles to single-cycle hardware instructions) to resolve lookups and scan empty buckets:
+The following example shows how a high-performance hash map can use `matchMetadata` and the `trailingZeroBitCount` primitive (which compiles to single-cycle hardware instructions) to resolve lookups and scan empty buckets:
 
 ```dart
 class SwissTable<K, V> {
@@ -265,7 +300,7 @@ class SwissTable<K, V> {
 
       // Iterate over bit positions set in the matchMask
       while (matchMask != 0) {
-        final int offset = matchMask.tzcnt(); // Trailing zero count (single CPU instruction)
+        final int offset = matchMask.trailingZeroBitCount; // Single CPU instruction
         final int candidateIndex = (bucketIndex + offset) % _capacity;
 
         if (_keys[candidateIndex] == key) {
@@ -284,21 +319,6 @@ class SwissTable<K, V> {
     }
   }
 }
-
-extension on int {
-  // Trailing zero count primitive (lowers to TZCNT or CLZ assembly)
-  int tzcnt() {
-    if (this == 0) return 32;
-    int n = 0;
-    int val = this;
-    if ((val & 0x0000FFFF) == 0) { n += 16; val >>>= 16; }
-    if ((val & 0x000000FF) == 0) { n += 8;  val >>>= 8;  }
-    if ((val & 0x0000000F) == 0) { n += 4;  val >>>= 4;  }
-    if ((val & 0x00000003) == 0) { n += 2;  val >>>= 2;  }
-    if ((val & 0x00000001) == 0) { n += 1; }
-    return n;
-  }
-}
 ```
 
 ---
@@ -314,7 +334,7 @@ extension on int {
 | `matchMetadata` | `movaps` (aligned load) + `pcmpeqb` + `pmovmskb` mask extraction. |
 | `shuffleBytes` | `movdqu` (load source/mask) + `pshufb` (byte-level shuffle). |
 | `lerpFloat32` | `vfmadd213ps` / `vfmadd231ps` (Fused Multiply-Add vector floats). |
-| `tzcnt` | `tzcnt` (Trailing Zero Count, AVX/BMI1) or `bsfq` (Bit Scan Forward). |
+| `trailingZeroBitCount` | `tzcnt` (Trailing Zero Count, AVX/BMI1) or `bsfq` (Bit Scan Forward). |
 
 ### B. ARM64 Lowering (NEON / SVE)
 
@@ -325,7 +345,7 @@ extension on int {
 | `matchMetadata` | `ldr` (aligned load) + `cmeq` (compare vector) + `shrn` bit extraction. |
 | `shuffleBytes` | `ld1` + `vqtbl1q_u8` (Vector table byte shuffle). |
 | `lerpFloat32` | `fmla` (Vector Floating-Point Fused Multiply-Add). |
-| `tzcnt` | `clz` (Count Leading Zeros, executed on bit-reversed register). |
+| `trailingZeroBitCount` | `clz` (Count Leading Zeros, executed on bit-reversed register). |
 
 ### C. WebAssembly Lowering (WasmGC SIMD)
 
@@ -336,7 +356,7 @@ extension on int {
 | `matchMetadata` | `v128.load` + `i8x16.eq` + `i8x16.bitmask`. |
 | `shuffleBytes` | `v128.load` + `i8x16.shuffle`. |
 | `lerpFloat32` | Fused float multiply-add instruction sequence. |
-| `tzcnt` | `i32.ctz` (Count Trailing Zeros). |
+| `trailingZeroBitCount` | `i32.ctz` (Count Trailing Zeros). |
 
 ### D. JavaScript Lowering (TypedArrays / Auto-Vectorization)
 
@@ -347,4 +367,4 @@ extension on int {
 | `matchMetadata` | Highly structured 16-byte comparison loop designed for JIT auto-vectorization. |
 | `shuffleBytes` | Direct byte swaps or standard JS loops designed for `pshufb` JIT translation. |
 | `lerpFloat32` | Optimizable TypedArray iteration mapped to hardware vector float instructions. |
-| `tzcnt` | `Math.clz32` (Bitwise conversion fallback). |
+| `trailingZeroBitCount` | `Math.clz32` (Bitwise conversion fallback). |
