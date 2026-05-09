@@ -429,3 +429,82 @@ abstract class Socket2 {
   void write(MemoryBlock buffer, [int offset = 0, int? length]);
 }
 ```
+
+# 8. Beating Binary Search (SIMD Quad Algorithm)
+
+Daniel Lemire's analysis in his article
+[*"You can beat the binary search"*](https://lemire.me/blog/2026/04/27/you-can-beat-the-binary-search/)
+presents a hybrid searching strategy designed to out-perform textbook binary search
+on sorted 16-bit integer arrays (such as those used in
+[**Roaring Bitmaps**](https://roaringbitmap.org/)):
+
+1.  **Base-4 (Quaternary) Interpolation**: Instead of dividing the search bounds
+    in halves (which causes high branching penalties and poor memory-level
+    parallelism), the algorithm divides the sorted array into blocks of 16
+    elements and performs a base-4 interpolation search over block boundaries.
+2.  **Vectorized Fine-Grained Scanning**: Once the target block is located, it
+    loads all 16 elements (32 bytes) into SIMD registers (using SSE2 on x86 or
+    NEON on ARM) and compares them against the target value in parallel.
+
+With the introduction of `MemoryBlock` and bit-manipulation intrinsics, we can
+fully implement this advanced algorithm in Dart.
+
+### Proposed Primitive: `matchUint16`
+
+To enable parallel comparisons over 16-bit sorted arrays, we add a 16-bit
+matching primitive directly to `MemoryBlock` (which compiles to SSE2/NEON
+vector equality comparisons):
+
+```dart
+abstract class MemoryBlock implements Finalizable {
+  // ... existing APIs ...
+
+  /// Compares [matchValue] against 8 contiguous 16-bit unsigned integers
+  /// starting at [start] (in bytes).
+  ///
+  /// Returns an 8-bit bitmask where the i-th bit is set if the 16-bit value matches.
+  /// Lowers directly to `_mm_cmpeq_epi16` (x86_64) or `vceqq_u16` (ARM64).
+  int matchUint16(int matchValue, [int start = 0]);
+}
+```
+
+### Implementing SIMD Quad in Dart
+
+By combining `MemoryBlock.matchUint16` with the native `trailingZeroBitCount`
+intrinsic, we can resolve the parallel matching segment of the SIMD Quad
+algorithm branchlessly in pure Dart:
+
+```dart
+bool simdQuadSearch(MemoryBlock carr, int cardinality, int target) {
+  const int blockByteSize = 16; // 8 elements * 2 bytes
+
+  if (cardinality < 8) {
+    // Fallback to standard scalar indexing view
+    final list = carr.buffer.asUint16List(0, cardinality);
+    for (int i = 0; i < cardinality; i++) {
+      if (list[i] == target) return true;
+    }
+    return false;
+  }
+
+  // 1. Perform quaternary block boundary interpolation search in Dart...
+  int targetBlockOffset = quaternaryInterpolationSearch(carr, cardinality, target);
+
+  // 2. Load and compare 8 elements (16 bytes) concurrently in a single instruction
+  int matchMask = carr.matchUint16(target, targetBlockOffset);
+
+  if (matchMask != 0) {
+    // 3. Instantly identify the matching element index using trailing zero count
+    final int elementOffset = matchMask.trailingZeroBitCount;
+    return true;
+  }
+
+  return false;
+}
+```
+
+By shifting the fine-grained search loop from a sequential scalar check to a
+single-cycle `matchUint16` vector operation, Dart collections can replicate the
+SIMD Quad speedups (2x faster than textbook binary search on modern Apple/Intel
+architectures).
+
