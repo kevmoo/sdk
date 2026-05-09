@@ -95,10 +95,18 @@ abstract class MemoryBlock implements Finalizable {
   /// Returns the underlying ByteBuffer for this memory block.
   /// Allows zero-overhead creation of standard Float32List, Uint32List,
   /// or ByteData views using standard SDK view constructors.
+  ///
+  /// NOTE: When a MemoryBlock is recycled, all active ByteBuffer views
+  /// generated from it are "neutered" / detached. Any subsequent index
+  /// access to a stale view will throw a StateError, preventing silent
+  /// use-after-recycle data corruption.
   ByteBuffer get buffer;
 
   /// Returns an immutable, unmodifiable zero-copy view of this block.
   /// Enables zero-overhead concurrent sharing across Dart Isolates.
+  ///
+  /// NOTE: Like the buffer view, this read-only view is "neutered" / detached
+  /// if the parent MemoryBlock is recycled.
   MemoryBlock asReadOnly();
 
   /// Decodes a slice of this block from [offset] to [offset + length] directly
