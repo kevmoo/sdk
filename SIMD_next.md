@@ -17,6 +17,113 @@ Exposing architectural-specific vector instructions (e.g. AVX2, NEON) in a high-
 
 ---
 
+## The `MemoryBlock` Abstraction
+
+To avoid the overhead of JS-centric collection views (like bounds checks, length fields, and heap objects) on Native and Wasm targets, we introduce the concept of a low-level `MemoryBlock`.
+
+A `MemoryBlock` represents a safe, size-bounded, contiguous chunk of memory designed specifically to meet alignment and padding constraints for hardware vector operations:
+
+```dart
+enum MemoryAlignment {
+  /// 16-byte alignment (SSE, NEON, Wasm SIMD).
+  sixteen(16),
+  /// 32-byte alignment (AVX2).
+  thirtyTwo(32),
+  /// 64-byte alignment (AVX-512, cache-line).
+  sixtyFour(64);
+
+  final int bytes;
+  const MemoryAlignment(this.bytes);
+}
+
+/// A safe, size-bounded contiguous chunk of aligned memory.
+abstract class MemoryBlock {
+  /// Allocates a block of memory initialized to [initialValue].
+  external factory MemoryBlock(int length, {
+    MemoryAlignment alignment = MemoryAlignment.sixteen,
+    int initialValue = 0,
+  });
+
+  /// Allocates a new aligned block of memory populated by copying [list].
+  external factory MemoryBlock.fromList(List<int> list, {
+    MemoryAlignment alignment = MemoryAlignment.sixteen,
+  });
+
+  /// Zero-copy constructor wrapping a raw pointer (Native FFI only).
+  external factory MemoryBlock.fromAddress(Pointer<Uint8> address, int length);
+
+  int get length;
+
+  /// Access a single byte. Lowers to raw memory offsets on Native/Wasm.
+  int operator [](int index);
+
+  /// Writes a single byte to the block. Throws an UnsupportedError
+  /// if the block is read-only/immutable.
+  void operator []=(int index, int value);
+
+  /// Returns a zero-copy standard Uint8List view of this block.
+  Uint8List asUint8List();
+
+  /// Returns an immutable, unmodifiable zero-copy view of this block.
+  /// Enables zero-overhead concurrent sharing across Dart Isolates.
+  MemoryBlock asReadOnly();
+
+  /// Vector-scans for the first occurrence of any byte in [targets].
+  /// Compiles to branchless vector assembly with zero alignment checks.
+  int indexOfAny(Uint8List targets, [int start = 0, int? end]);
+
+  /// Vector-checks if the block contains only 7-bit ASCII.
+  /// Compiles to branchless vector assembly with zero alignment checks.
+  bool isAscii([int start = 0, int? end]);
+
+  /// Vector-transcodes UTF-8 bytes directly into a UTF-16 buffer [dst].
+  int _transcodeUtf8ToUtf16(int srcStart, int srcEnd, Uint16List dst, int dstStart);
+
+  /// Compares [matchByte] against a 16-byte chunk of this block starting at [start].
+  /// Returns a 16-bit bitmask.
+  /// Lowers directly to hardware vector matching (e.g., SSE, NEON, Wasm SIMD).
+  int matchMetadata(int matchByte, [int start = 0]);
+}
+
+/// A zero-overhead extension type providing a zero-copy vector search, validation,
+/// and matching API over standard, potentially unaligned lists.
+extension type const VectorView(Uint8List bytes) {
+  /// Scans for targets using unaligned SIMD loads.
+  /// Pays a minor runtime setup cost to handle unaligned boundaries.
+  int indexOfAny(Uint8List targets, [int start = 0, int? end]) {
+    // Lowers to unaligned vector matching intrinsics
+  }
+
+  /// Checks for ASCII bytes using unaligned SIMD loads.
+  /// Pays a minor runtime setup cost to handle unaligned boundaries.
+  bool isAscii([int start = 0, int? end]) {
+    // Lowers to unaligned vector validation intrinsics
+  }
+
+  /// Compares [matchByte] against a 16-byte chunk of the list.
+  /// Pays a minor runtime setup/alignment check cost.
+  int matchMetadata(int matchByte, [int start = 0]) {
+    // Lowers to unaligned vector comparison intrinsics
+  }
+}
+```
+
+### Key Characteristics:
+1. **Platform-Safe Bounds Checks**: On JS, it is backed by a standard `Uint8Array` (ensuring sandbox safety). On Native and Wasm targets, JIT/AOT range analysis completely optimizes out bounds checks in loops, and memory bounds are safely managed by fast hardware-level traps or lightweight VM structures.
+2. **Alignment Guarantees**: SIMD instructions perform best when memory is 16-byte or 32-byte aligned. `MemoryBlock` guarantees this alignment upon allocation.
+3. **Ecosystem Interoperability**: Offers seamless interop via zero-copy views (`asUint8List()`) and zero-overhead wrapper extension types (`VectorView(Uint8List)`). This lets developers pass standard typed lists around while accessing vector performance inside critical hot paths.
+
+### Why `MemoryBlock` does not implement `List<int>`
+
+Exposing `List<int>` directly on `MemoryBlock` is intentionally avoided to prevent critical performance and compilation trade-offs:
+- **Protects Devirtualization & Inlining**: If `MemoryBlock` implements `List<int>`, generic operations accepting lists become polymorphic. This prevents JIT/AOT compilers from optimizing calls to raw `[]` accesses down to single-instruction offset loads.
+- **Prevents Interface Bloat**: Implementing `List<int>` forces the definition of dozens of standard APIs (`where()`, `map()`, `sort()`). This introduces binary size overhead and encourages high-overhead closure allocation patterns on a type built purely to avoid allocation.
+- **Clean Separation via Views**: Interoperability is maintained via composition. When passing data to standard collections APIs, developers use `.asUint8List()` to obtain a standard list view.
+
+---
+
+
+
 ## Key "Atom" Proposals
 
 ### 1. Parsing & Matching Atoms (For JSON, CSV, HTTP, XML)
@@ -100,13 +207,17 @@ High-performance hash maps (like Abseil's **SwissTable** or Rust's standard `Has
 - `0xFE` (deleted/tombstone bucket)
 - `0x00` to `0x7F` (a 7-bit hash signature of the key in that bucket)
 
-During a lookup, instead of iterating and comparing expensive key objects, the map calculates a 7-bit hash signature of the target key and compares it against a 16-byte block of the control metadata array simultaneously. 
+During a lookup, instead of iterating and comparing expensive key objects, the map calculates a 7-bit hash signature of the target key and compares it against a 16-byte block of the control metadata array simultaneously.
+
+Because `matchMetadata` requires strict 16-byte memory alignment and safety padding to execute vector loads safely without hardware faults, it is exposed directly as an instance method on `MemoryBlock`:
 
 ```dart
-extension VectorMetadata on Uint8List {
-  /// Compares [matchByte] against a 16-byte chunk of the receiver starting at [start].
+abstract class MemoryBlock {
+  // ... existing APIs ...
+
+  /// Compares [matchByte] against a 16-byte chunk of this block starting at [start].
   ///
-  /// Returns a 16-bit bitmask where the i-th bit is set if `this[start + i] == matchByte`.
+  /// Returns a 16-bit bitmask where the i-th bit is set if the byte matches.
   ///
   /// Under the hood, this lowers directly to vector comparisons and mask-extraction
   /// instructions:
@@ -118,19 +229,19 @@ extension VectorMetadata on Uint8List {
 ```
 
 #### Usage in a Fast SwissTable Key Lookup:
-The following example shows how a hash map can resolve lookups, scan for empty buckets (to terminate searches), and check for potential candidate matches in a single vectorized operation without branches:
+The following example shows how a hash map can resolve lookups, scan for empty buckets (to terminate searches), and check for potential candidate matches in a single vectorized operation using `MemoryBlock`:
 
 ```dart
 class SwissTable<K, V> {
-  // Control metadata bytes (1 byte per bucket)
-  final Uint8List _ctrl;
+  // Control metadata block (guaranteed 16-byte aligned)
+  final MemoryBlock _ctrl;
   final List<K?> _keys;
   final List<V?> _values;
   final int _capacity;
 
   SwissTable(int capacity)
       : _capacity = capacity,
-        _ctrl = Uint8List(capacity)..fillRange(0, capacity, 0xFF), // All empty
+        _ctrl = MemoryBlock(capacity, initialValue: 0xFF), // All empty
         _keys = List<K?>.filled(capacity, null),
         _values = List<V?>.filled(capacity, null);
 
