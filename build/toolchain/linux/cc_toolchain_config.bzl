@@ -32,6 +32,9 @@ def _impl(ctx):
         tool_path(name = "llvm-profdata", path = "/bin/false"),
     ]
 
+    # System include roots Bazel treats as toolchain-builtin (suppresses
+    # the "absolute path inclusion(s) found" error from strict-includes).
+    clang_root = CLANG_BIN.rstrip("/").rsplit("/", 1)[0]
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         toolchain_identifier = "clang_x64",
@@ -43,6 +46,12 @@ def _impl(ctx):
         abi_version = "unknown",
         abi_libc_version = "unknown",
         tool_paths = tool_paths,
+        cxx_builtin_include_directories = [
+            "/usr/include",
+            "/usr/local/include",
+            clang_root + "/include",
+            clang_root + "/lib/clang",
+        ],
     )
 
 cc_toolchain_config = rule(
