@@ -22,19 +22,12 @@ extern "C" {
 
 extern const uint8_t kDartCoreSnapshotData[];
 extern const uint8_t kDartCoreSnapshotText[];
-extern const uint8_t kKernelServiceDill[];
-extern const uint8_t kPlatformDill[];
 
 const uint8_t kDartCoreSnapshotData[1] = {0};
 const uint8_t kDartCoreSnapshotText[1] = {0};
 
-const uint8_t kKernelServiceDill[1] = {0};
-intptr_t kKernelServiceDillSize = 0;
-
-const uint8_t kPlatformDill[1] = {0};
-intptr_t kPlatformDillSize = 0;
-
-// kIcuData is now provided by the real genrule output (dart_icudata.S);
-// see runtime/bin/BUILD.bazel:icudtl_linkable.
+// kIcuData, kKernelServiceDill, kPlatformDill are now provided by real
+// genrule outputs; see runtime/bin/BUILD.bazel
+// :icudtl_linkable, :kernel_service_dill_linkable, :platform_dill_linkable.
 
 }  // extern "C"
