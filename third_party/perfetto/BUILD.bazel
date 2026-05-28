@@ -10,16 +10,37 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "libprotozero",
+    srcs = [
+        "src/src/protozero/field.cc",
+        "src/src/protozero/gen_field_helpers.cc",
+        "src/src/protozero/message.cc",
+        "src/src/protozero/message_arena.cc",
+        "src/src/protozero/packed_repeated_fields.cc",
+        "src/src/protozero/proto_decoder.cc",
+        "src/src/protozero/proto_ring_buffer.cc",
+        "src/src/protozero/scattered_heap_buffer.cc",
+        "src/src/protozero/scattered_stream_null_delegate.cc",
+        "src/src/protozero/scattered_stream_writer.cc",
+        "src/src/protozero/static_buffer.cc",
+        "src/src/protozero/virtual_destructors.cc",
+    ],
     hdrs = glob(
         [
             "src/include/**/*.h",
+            "src/src/protozero/**/*.h",  # protozero internal headers
             "src/build_config/*.h",  # M3 codegen-output copies
             "protos/**/*.pbzero.h",  # M3: checked-in protozero codegen
         ],
         allow_empty = True,
     ),
     includes = [
+        "src",
         "src/build_config",
         "src/include",
+    ],
+    copts = [
+        "-std=c++20",
+        "-fno-rtti",
+        "-fno-exceptions",
     ],
 )
