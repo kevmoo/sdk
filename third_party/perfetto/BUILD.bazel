@@ -14,6 +14,7 @@ cc_library(
         [
             "src/include/**/*.h",
             "src/build_config/*.h",  # M3 codegen-output copies
+            "protos/**/*.pbzero.h",  # M3: checked-in protozero codegen
         ],
         allow_empty = True,
     ),
