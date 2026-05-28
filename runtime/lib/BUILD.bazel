@@ -1,0 +1,21 @@
+# M3 hand-crafted shim. NOT translator output.
+#
+# runtime/lib has no BUILD.gn target of its own — its .cc files are pulled
+# into other targets via *_sources.gni, and the .h files are reached via
+# gn's implicit "-Iruntime" include dir. Bazel needs them declared so the
+# sandbox exposes them; this package mirrors the //runtime/include pattern.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(glob(
+    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
+     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    allow_empty = True,
+))
+
+cc_library(
+    name = "headers",
+    hdrs = glob(["**/*.h"], allow_empty = True),
+)
