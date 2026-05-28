@@ -68,9 +68,15 @@ def _attr_list(name, items, indent=4):
     return f"{pad}{name} = [\n{body}\n{pad}],\n"
 
 
+_HDR_EXTS = (".h", ".hpp", ".hh", ".inc")
+
+
 def emit_cc_library(name, t, pkg):
     """source_set / static_library -> cc_library."""
-    srcs = [src_label(s, pkg) for s in t.get("sources", [])]
+    hdrs, srcs = [], []
+    for s in t.get("sources", []):
+        lbl = src_label(s, pkg)
+        (hdrs if s.endswith(_HDR_EXTS) else srcs).append(lbl)
     deps = [f'"{d}"' for d in t.get("deps", [])]
     defines = [f'"{d}"' for d in t.get("defines", [])]
     copts = [f'"{c}"' for c in t.get("cflags", [])] + \
@@ -78,6 +84,7 @@ def emit_cc_library(name, t, pkg):
     linkopts = [f'"-l{l}"' for l in t.get("libs", [])]
     out = [f'cc_library(\n    name = "{name}",\n']
     out.append(_attr_list("srcs", srcs))
+    out.append(_attr_list("hdrs", hdrs))
     out.append(_attr_list("deps", deps))
     out.append(_attr_list("defines", defines))
     out.append(_attr_list("copts", copts))
