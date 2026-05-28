@@ -1,5 +1,8 @@
 # Issue 00003: tools/make_version.py is not hermetic
 
+> [!NOTE]
+> **Upstream Tracking Issue**: https://github.com/dart-lang/sdk/issues/63475
+
 ## Problem
 
 `tools/make_version.py` resolves several of its inputs implicitly:

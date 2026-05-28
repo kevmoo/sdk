@@ -1,5 +1,8 @@
 # Issue 00007: No GN target demarcates Dart's public VM embedding C API
 
+> [!NOTE]
+> **Upstream Tracking Issue**: https://github.com/dart-lang/sdk/issues/63474
+
 ## Problem
 
 Dart exposes a public C API for embedders (Flutter, jaspr, custom hosts)

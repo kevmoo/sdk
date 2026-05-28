@@ -1,5 +1,8 @@
 # Issue 00009: `icudtl_linkable` uses `path_exists()` to dual-source between Dart SDK and Flutter engine layouts
 
+> [!NOTE]
+> **Upstream Tracking Issue**: https://github.com/dart-lang/sdk/issues/63473
+
 ## Problem
 
 `runtime/bin/BUILD.gn:781` defines the `icudtl_linkable` target with a
