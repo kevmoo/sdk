@@ -5,3 +5,5 @@ bazel_dep(name = "platforms", version = "1.0.0")
 
 dart_clang = use_extension("//build/toolchain/linux:clang_repo.bzl", "dart_clang")
 use_repo(dart_clang, "dart_linux_x64_clang")
+
+register_toolchains("//build/toolchain/linux:clang_x64_toolchain")
