@@ -19,7 +19,10 @@ _CLANG_BIN = CLANG_BIN
 
 def _impl(ctx):
     tool_paths = [
-        tool_path(name = "gcc", path = _CLANG_BIN + "/clang"),
+        # Use clang++ as the "gcc" driver so cc_binary links auto-pull
+        # libc++/libm (libstdc++ implicit deps); clang++ still compiles
+        # .c files as C based on extension.
+        tool_path(name = "gcc", path = _CLANG_BIN + "/clang++"),
         tool_path(name = "ld", path = _CLANG_BIN + "/clang++"),
         tool_path(name = "ar", path = _CLANG_BIN + "/llvm-ar"),
         tool_path(name = "cpp", path = _CLANG_BIN + "/clang-cpp"),
