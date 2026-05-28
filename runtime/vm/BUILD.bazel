@@ -5207,10 +5207,15 @@ cc_library(
 
 cc_library(
     name = "libdart_vm_precompiler",
+    # M5 Path-2 hand-edit, parallel to libdart_vm_jit: gn propagates
+    # sibling headers via include_dirs and double-conversion via the
+    # implicit "exposed in headers but used inline" path; Bazel needs
+    # them as explicit deps so the sandbox exposes the headers.
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
