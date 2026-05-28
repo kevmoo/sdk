@@ -17,29 +17,22 @@ exports_files(glob(
 
 cc_library(
     name = "libdart_platform_aotruntime",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -114,29 +107,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_aotruntime_product",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -212,29 +198,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_jit",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -307,29 +286,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_jit_product",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -403,29 +375,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_libfuzzer",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -500,29 +465,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -597,29 +555,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_host_targeting_host",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -692,29 +643,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_product",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -790,29 +734,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_product_host_targeting_host",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -886,29 +823,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_product_linux_arm",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -984,29 +914,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_product_linux_arm64",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -1082,29 +1005,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_product_linux_riscv64",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -1180,29 +1096,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_product_linux_x64",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -1278,29 +1187,22 @@ cc_library(
 
 cc_library(
     name = "libdart_platform_precompiler_testing",
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
-        "floating_point_win.cc",
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "synchronization_win.cc",
-        "syslog_android.cc",
-        "syslog_fuchsia.cc",
         "syslog_linux.cc",
-        "syslog_macos.cc",
-        "syslog_win.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
-        "unwinding_records_win.cc",
         "utils.cc",
-        "utils_android.cc",
-        "utils_fuchsia.cc",
         "utils_linux.cc",
-        "utils_macos.cc",
-        "utils_win.cc",
     ],
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
@@ -1374,3 +1276,11 @@ cc_library(
     ],
 )
 
+
+# M3 hand-edit: header-only target for cross-package consumers that only need
+# platform/*.h via gn's implicit -Iruntime include path. Mirrors the
+# //runtime/lib:headers and //runtime/include:headers pattern.
+cc_library(
+    name = "headers",
+    hdrs = glob(["**/*.h"], allow_empty = True),
+)
