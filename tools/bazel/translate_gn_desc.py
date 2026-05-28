@@ -79,7 +79,16 @@ def emit_cc_library(name, t, pkg):
         (hdrs if s.endswith(_HDR_EXTS) else srcs).append(lbl)
     deps = [f'"{d}"' for d in t.get("deps", [])]
     defines = [f'"{d}"' for d in t.get("defines", [])]
-    copts = [f'"{c}"' for c in t.get("cflags", [])] + \
+    include_copts = []
+    for inc in t.get("include_dirs", []):
+        if inc.startswith("//out/"):
+            continue  # TODO(M3): generated include dir
+        path = inc[2:] if inc.startswith("//") else inc
+        path = path.rstrip("/")
+        if path:
+            include_copts.append(f'"-I{path}"')
+    copts = include_copts + \
+            [f'"{c}"' for c in t.get("cflags", [])] + \
             [f'"{c}"' for c in t.get("cflags_cc", [])]
     linkopts = [f'"-l{l}"' for l in t.get("libs", [])]
     out = [f'cc_library(\n    name = "{name}",\n']
