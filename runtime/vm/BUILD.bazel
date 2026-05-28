@@ -4118,7 +4118,9 @@ cc_library(
     # needs them declared so the sandbox exposes them.
     implementation_deps = [
         "//runtime/include:headers",
+        "//runtime/lib:headers",
         "//runtime/platform:libdart_platform_jit",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
