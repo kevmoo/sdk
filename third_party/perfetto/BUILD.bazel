@@ -23,6 +23,7 @@ cc_library(
         "src/src/protozero/scattered_stream_writer.cc",
         "src/src/protozero/static_buffer.cc",
         "src/src/protozero/virtual_destructors.cc",
+        "perfetto_log_stub.cc",
     ],
     hdrs = glob(
         [
