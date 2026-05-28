@@ -50,6 +50,9 @@ def split_label(label):
     return path, name
 
 
+_ROOT = "."  # set by main(); used by src_label for on-disk existence check
+
+
 def src_label(src_path, pkg, packages):
     """gn workspace path `//pkg/sub/foo.cc` -> Bazel src reference.
 
@@ -57,12 +60,15 @@ def src_label(src_path, pkg, packages):
     Bazel package (any dir that has GN targets and so will get a
     BUILD.bazel). That package owns the file; emit either a relative path
     (when owning pkg == current pkg) or an absolute cross-package label.
-    Generated outputs (under //out/...) get a TODO marker for M3 routing.
+    Returns None when the file is a generated output (under //out/...) or
+    missing from disk — caller drops it (codegen action wiring is M5).
     """
     if src_path.startswith("//out/"):
-        return f'# TODO(M3): generated {src_path}'
+        return None
     assert src_path.startswith("//"), src_path
     rel = src_path[2:]
+    if not os.path.exists(os.path.join(_ROOT, rel)):
+        return None
     cur = os.path.dirname(rel)
     owning_pkg = ""
     while cur:
@@ -92,6 +98,8 @@ def emit_cc_library(name, t, pkg, packages):
     hdrs, srcs = [], []
     for s in t.get("sources", []):
         lbl = src_label(s, pkg, packages)
+        if lbl is None:
+            continue
         (hdrs if s.endswith(_HDR_EXTS) else srcs).append(lbl)
     deps = [f'"{d}"' for d in t.get("deps", [])]
     defines = [f'"{d}"' for d in t.get("defines", [])]
@@ -103,9 +111,13 @@ def emit_cc_library(name, t, pkg, packages):
         path = path.rstrip("/")
         if path:
             include_copts.append(f'"-I{path}"')
-    copts = include_copts + \
-            [f'"{c}"' for c in t.get("cflags", [])] + \
-            [f'"{c}"' for c in t.get("cflags_cc", [])]
+    # Drop flags whose values are gn-relative paths we don't reproduce in
+    # Bazel yet — most prominently --sysroot=../../buildtools/sysroot/linux
+    # (handled later by a real toolchain feature). With it filtered, clang
+    # falls back to the host's system headers, which is fine for M3.
+    raw_flags = list(t.get("cflags", [])) + list(t.get("cflags_cc", []))
+    raw_flags = [f for f in raw_flags if not f.startswith("--sysroot=")]
+    copts = include_copts + [f'"{c}"' for c in raw_flags]
     linkopts = [f'"-l{l}"' for l in t.get("libs", [])]
     out = [f'cc_library(\n    name = "{name}",\n']
     out.append(_attr_list("srcs", srcs))
@@ -165,6 +177,9 @@ def main():
     ap.add_argument("--root", default=".", help="Repo root for BUILD.bazel output")
     args = ap.parse_args()
 
+    global _ROOT
+    _ROOT = args.root
+
     with open(args.desc_json) as f:
         desc = json.load(f)
 
@@ -196,9 +211,21 @@ def main():
                 foreign_packages.add(rel)
 
     packages = set(by_pkg.keys()) | existing_packages
+
+    def _has_foreign_ancestor(p):
+        cur = os.path.dirname(p)
+        while cur:
+            if cur in foreign_packages:
+                return True
+            cur = os.path.dirname(cur)
+        return False
+
     for pkg, targets in sorted(by_pkg.items()):
         if pkg in foreign_packages:
             print(f"skipping {pkg} (upstream BUILD.bazel)", file=sys.stderr)
+            continue
+        if _has_foreign_ancestor(pkg):
+            print(f"skipping {pkg} (foreign ancestor)", file=sys.stderr)
             continue
         out_path = os.path.join(args.root, pkg, "BUILD.bazel")
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
