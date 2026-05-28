@@ -15,6 +15,11 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+cc_library(
+    name = "headers",
+    hdrs = glob(["**/*.h"], allow_empty = True),
+)
+
 cc_binary(
     name = "gen_regexp_special_case",
     deps = [
