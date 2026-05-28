@@ -24,6 +24,15 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
 
 package(default_visibility = ["//visibility:public"])
 
+# GN lets one target's sources reach into other BUILD.gn dirs; Bazel
+# requires cross-package file refs to be explicitly exported. Bulk-export
+# every file in the package so the gn-shaped source lists keep working.
+exports_files(glob(
+    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
+     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    allow_empty = True,
+))
+
 """
 
 
@@ -39,25 +48,30 @@ def split_label(label):
     return path, name
 
 
-def src_label(src_path, pkg):
+def src_label(src_path, pkg, packages):
     """gn workspace path `//pkg/sub/foo.cc` -> Bazel src reference.
 
-    Sources within the package's directory tree (including subdirs without
-    their own BUILD.bazel) are emitted as package-relative paths — that's
-    Bazel's package containment model, matching GN's per-directory BUILD.gn.
-    Sources truly in another package use absolute labels.
+    Walks up `src_path`'s directory chain looking for the longest known
+    Bazel package (any dir that has GN targets and so will get a
+    BUILD.bazel). That package owns the file; emit either a relative path
+    (when owning pkg == current pkg) or an absolute cross-package label.
     Generated outputs (under //out/...) get a TODO marker for M3 routing.
     """
     if src_path.startswith("//out/"):
         return f'# TODO(M3): generated {src_path}'
     assert src_path.startswith("//"), src_path
     rel = src_path[2:]
-    if pkg and (rel == pkg or rel.startswith(pkg + "/")):
-        return f'"{rel[len(pkg) + 1:] if pkg else rel}"'
-    if not pkg:
-        return f'"{rel}"'
-    src_dir, basename = os.path.split(rel)
-    return f'"//{src_dir}:{basename}"'
+    cur = os.path.dirname(rel)
+    owning_pkg = ""
+    while cur:
+        if cur in packages:
+            owning_pkg = cur
+            break
+        cur = os.path.dirname(cur)
+    inner = rel[len(owning_pkg) + 1:] if owning_pkg else rel
+    if owning_pkg == pkg:
+        return f'"{inner}"'
+    return f'"//{owning_pkg}:{inner}"'
 
 
 def _attr_list(name, items, indent=4):
@@ -71,11 +85,11 @@ def _attr_list(name, items, indent=4):
 _HDR_EXTS = (".h", ".hpp", ".hh", ".inc")
 
 
-def emit_cc_library(name, t, pkg):
+def emit_cc_library(name, t, pkg, packages):
     """source_set / static_library -> cc_library."""
     hdrs, srcs = [], []
     for s in t.get("sources", []):
-        lbl = src_label(s, pkg)
+        lbl = src_label(s, pkg, packages)
         (hdrs if s.endswith(_HDR_EXTS) else srcs).append(lbl)
     deps = [f'"{d}"' for d in t.get("deps", [])]
     defines = [f'"{d}"' for d in t.get("defines", [])]
@@ -102,14 +116,31 @@ def emit_cc_library(name, t, pkg):
     return "".join(out)
 
 
-def emit_cc_binary(name, t, pkg):
-    body = emit_cc_library(name, t, pkg).replace("cc_library(", "cc_binary(", 1)
+def emit_cc_binary(name, t, pkg, packages):
+    body = emit_cc_library(name, t, pkg, packages).replace("cc_library(", "cc_binary(", 1)
     return body
 
 
+def emit_group(name, t, pkg, packages):
+    """gn group -> cc_library with deps only.
+
+    A gn group is a named bundle of dependencies (no sources). The closest
+    Bazel primitive that propagates cc deps is a cc_library with no srcs.
+    """
+    deps = [f'"{d}"' for d in t.get("deps", [])]
+    out = [f'cc_library(\n    name = "{name}",\n']
+    out.append(_attr_list("deps", deps))
+    out.append(")\n")
+    return "".join(out)
+
+
 def emit_stub(rule_kind):
-    def _emit(name, t, pkg):
-        return f'# TODO(M3): {rule_kind} for {name} (gn type={t["type"]})\n'
+    """Empty cc_library stub keeps the label resolvable at analysis time."""
+    def _emit(name, t, pkg, packages):
+        return (
+            f'# TODO(M3): {rule_kind} for {name} (gn type={t["type"]})\n'
+            f'cc_library(name = "{name}")\n'
+        )
     return _emit
 
 
@@ -121,7 +152,8 @@ EMITTERS = {
     "action":         emit_stub("genrule"),
     "action_foreach": emit_stub("genrule"),
     "copy":           emit_stub("copy"),
-    "group":          emit_stub("filegroup"),
+    "group":          emit_group,
+    "generated_file": emit_stub("genrule"),
 }
 
 
@@ -144,6 +176,7 @@ def main():
         pkg, name = split_label(label)
         by_pkg[pkg].append((name, target))
 
+    packages = set(by_pkg.keys())
     for pkg, targets in sorted(by_pkg.items()):
         out_path = os.path.join(args.root, pkg, "BUILD.bazel")
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -154,7 +187,7 @@ def main():
                 if emit is None:
                     f.write(f'# TODO(M3): unknown gn type {t["type"]} for {name}\n')
                     continue
-                f.write(emit(name, t, pkg))
+                f.write(emit(name, t, pkg, packages))
                 f.write("\n")
         print(f"wrote {out_path} ({len(targets)} targets)", file=sys.stderr)
 
