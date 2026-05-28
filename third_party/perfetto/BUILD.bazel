@@ -1,0 +1,24 @@
+# M3 hand-crafted shim. NOT translator output.
+#
+# Perfetto's libprotozero is header-only in Dart's GN build. We expose
+# every header under src/include as Bazel hdrs so runtime/vm and friends
+# can compile against perfetto API.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "libprotozero",
+    hdrs = glob(
+        [
+            "src/include/**/*.h",
+            "src/build_config/*.h",  # M3 codegen-output copies
+        ],
+        allow_empty = True,
+    ),
+    includes = [
+        "src/build_config",
+        "src/include",
+    ],
+)
