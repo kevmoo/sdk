@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -18,23 +19,32 @@ exports_files(glob(
 # TODO(M3): genrule for dartdevc (gn type=action)
 cc_library(name = "dartdevc")
 
-# TODO(M3): copy for dartdevc_aot (gn type=copy)
-cc_library(name = "dartdevc_aot")
+# rules_dart Step 4: real DDC (dev_compiler) AOT snapshots over
+# pkg/dev_compiler/bin/dartdevc.dart. Ports utils/ddc/BUILD.gn:aot_snapshot.
+# //:ddc references dartdevc_aot directly via cc_library deps (bare genrule OK).
+# The ddc_platform compile_platform target (a non-VM platform dill) is NOT yet
+# ported — it needs a generalized compile_platform; left as a stub.
+dart_aot_snapshot(
+    name = "dartdevc_aot",
+    main = "//:pkg/dev_compiler/bin/dartdevc.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "dartdevc_aot.dart.snapshot",
+)
 
-# TODO(M3): genrule for dartdevc_aot_dill (gn type=action)
-cc_library(name = "dartdevc_aot_dill")
-
-# TODO(M3): genrule for dartdevc_aot_gen_snapshot (gn type=action)
-cc_library(name = "dartdevc_aot_gen_snapshot")
-
-# TODO(M3): copy for dartdevc_aot_product (gn type=copy)
-cc_library(name = "dartdevc_aot_product")
-
-# TODO(M3): genrule for dartdevc_aot_product_dill (gn type=action)
-cc_library(name = "dartdevc_aot_product_dill")
-
-# TODO(M3): genrule for dartdevc_aot_product_gen_snapshot (gn type=action)
-cc_library(name = "dartdevc_aot_product_gen_snapshot")
+dart_aot_snapshot(
+    name = "dartdevc_aot_product",
+    main = "//:pkg/dev_compiler/bin/dartdevc.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "dartdevc_aot_product.dart.snapshot",
+)
 
 # TODO(M3): genrule for dartdevc_dill (gn type=action)
 cc_library(name = "dartdevc_dill")
