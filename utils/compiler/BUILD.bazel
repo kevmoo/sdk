@@ -24,7 +24,7 @@ exports_files(glob(
 # Consumed by the dart2js app-jit/AOT training run (training_inputs).
 dart_compile_platform(
     name = "compile_dart2js_platform",
-    sources = "//:dart_package_sources",
+    sources = "//:compile_platform_tool",
     sdk_sources = "//sdk:sdk_library_sources",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
     single_root_base = "sdk",
@@ -40,7 +40,7 @@ dart_compile_platform(
 
 dart_compile_platform(
     name = "compile_dart2js_server_platform",
-    sources = "//:dart_package_sources",
+    sources = "//:compile_platform_tool",
     sdk_sources = "//sdk:sdk_library_sources",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
     single_root_base = "sdk",

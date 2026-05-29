@@ -123,7 +123,7 @@ cc_library(name = "ddc_files_stamp")
 # dartdevc app-jit training run + the ddc_compile_sdk JS targets.
 dart_compile_platform(
     name = "ddc_platform",
-    sources = "//:dart_package_sources",
+    sources = "//:compile_platform_tool",
     sdk_sources = "//sdk:sdk_library_sources",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
     single_root_base = "sdk",

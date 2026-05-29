@@ -23,7 +23,7 @@ exports_files(glob(
 # filenames follow GN's tool naming. Consumed by //:dart2wasm_platform.
 dart_compile_platform(
     name = "compile_dart2wasm_platform",
-    sources = "//:dart_package_sources",
+    sources = "//:compile_platform_tool",
     sdk_sources = "//sdk:sdk_library_sources",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
     single_root_base = "sdk",
@@ -38,7 +38,7 @@ dart_compile_platform(
 
 dart_compile_platform(
     name = "compile_dart2wasm_js_compatibility_platform",
-    sources = "//:dart_package_sources",
+    sources = "//:compile_platform_tool",
     sdk_sources = "//sdk:sdk_library_sources",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
     single_root_base = "sdk",
@@ -54,7 +54,7 @@ dart_compile_platform(
 
 dart_compile_platform(
     name = "compile_dart2wasm_standalone_platform",
-    sources = "//:dart_package_sources",
+    sources = "//:compile_platform_tool",
     sdk_sources = "//sdk:sdk_library_sources",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
     single_root_base = "sdk",
