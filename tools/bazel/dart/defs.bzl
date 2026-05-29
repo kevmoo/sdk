@@ -174,6 +174,7 @@ def dart_app_jit_snapshot(
         sdk_hash = "0000000000",
         gen_kernel_args = None,
         vm_args = None,
+        training_srcs = None,
         out = None,
         **kwargs):
     """Build a Dart app-jit snapshot via a training run. Ports utils/application_snapshot.gni.
@@ -188,10 +189,17 @@ def dart_app_jit_snapshot(
          note it is the JIT VM doing a training run, NOT gen_snapshot. DFE is
          pinned to NEVER_LOADED so the VM doesn't pull in the kernel service
          (which would be a circular dep for kernel-service's own snapshot).
+
+    training_srcs: extra inputs the *training run* reads but that aren't in the
+    `sources` closure — GN's training_inputs/training_deps. GN's training runs
+    read these non-hermetically from the checkout (e.g. analysis_server reads
+    sdk/lib via --sdk); under the Bazel sandbox they must be declared, or the
+    training run can't open them and the genrule fails.
     """
     dill = name + ".dart.dill"
     gen_kernel_args = gen_kernel_args or []
     vm_args = list(vm_args or [])
+    training_srcs = training_srcs or []
 
     # GN injects --coverage=false (+ --ignore-unrecognized-flags, since
     # --coverage is unrecognized in product mode) unless --coverage is already
@@ -230,7 +238,7 @@ def dart_app_jit_snapshot(
     # filegroup) is materialized for --packages.
     native.genrule(
         name = name,
-        srcs = [dill, _SDK_FILES, sources],
+        srcs = [dill, _SDK_FILES, sources] + training_srcs,
         outs = [out or (name + ".dart.snapshot")],
         tools = [dart_vm],
         cmd = (

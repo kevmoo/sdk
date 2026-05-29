@@ -27,6 +27,11 @@ filegroup(
     ),
 )
 
+# The plain-text SDK version stamp (e.g. "3.12.0"). The analyzer's
+# FolderBasedDartSdk reads sdk/version alongside the lib/ sources when an app is
+# trained with --sdk=sdk/ (see utils/analysis_server app-jit training run).
+exports_files(["version"])
+
 cc_library(
     name = "_create_platform_sdk",
     deps = [

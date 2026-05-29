@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,15 +16,41 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for analysis_server (gn type=action)
-cc_library(name = "analysis_server")
+# rules_dart Step 4 (app-jit variant). Ports
+# utils/analysis_server/BUILD.gn:application_snapshot("analysis_server"). Keeps
+# the GN target name `analysis_server` (the snapshot itself); //:analysis_server
+# carries it via `data`. No force_product_mode → non-product training run via
+# //runtime/bin:dartvm. The training_args' --sdk / --train-using paths are the
+# repo-relative forms of GN's rebase_path("../../sdk/") / "../../pkg/compiler/lib"
+# (in the Bazel sandbox the source closure is materialized at the execroot root).
+# The macro emits both this target and analysis_server_dill.
+dart_app_jit_snapshot(
+    name = "analysis_server",
+    main = "//:pkg/analysis_server/bin/server.dart",
+    sources = "//:dart_package_sources",
+    training_args = [
+        "--sdk=sdk/",
+        "--train-using=pkg/compiler/lib",
+    ],
+    # The --sdk training run reads sdk/lib/** (libraries.dart, dart:core, …) plus
+    # the sdk/version stamp — all outside the pkg/ closure in `sources`; declare
+    # them explicitly so the sandboxed training run can open them.
+    training_srcs = [
+        "//sdk:sdk_library_sources",
+        "//sdk:version",
+    ],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    out = "analysis_server.dart.snapshot",
+)
 
 # rules_dart Step 4: real analysis_server AOT snapshots. Unblocked by the
 # session-13 refresh (the analyzer/linter stack now resolves). Ports the two
 # aot_snapshot() targets in utils/analysis_server/BUILD.gn over
 # pkg/analysis_server/bin/server.dart. Both pass -Dbuilt_as_aot=true (GN
-# invoker.args -> the gen_kernel define). The application_snapshot("analysis_server")
-# app-jit target stays a deferred stub. Output names match GN ($root_gen_dir).
+# invoker.args -> the gen_kernel define). Output names match GN ($root_gen_dir).
 
 # aot_snapshot("analysis_server_aot") -> product = false.
 dart_aot_snapshot(
@@ -52,7 +78,4 @@ dart_aot_snapshot(
     gen_kernel_args = ["-Dbuilt_as_aot=true"],
     out = "analysis_server_aot_product.dart.snapshot",
 )
-
-# TODO(M3): genrule for analysis_server_dill (gn type=action)
-cc_library(name = "analysis_server_dill")
 

@@ -53,7 +53,9 @@ exports_files([
 
 cc_library(
     name = "analysis_server",
-    deps = [
+    # //utils/analysis_server:analysis_server is now the real app-jit snapshot
+    # genrule (not a cc_library), so it rides via `data`, not `deps`.
+    data = [
         "//utils/analysis_server:analysis_server",
     ],
 )
