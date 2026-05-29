@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -25,21 +26,32 @@ cc_library(
     ],
 )
 
+# Group stays a cc_library (//:runtime deps on it -> needs CcInfo); carries the
+# snapshot via `data`, same pattern as utils/dtd:dtd_aot.
 cc_library(
     name = "dart_runtime_service_vm_aot",
-    deps = [
+    data = [
         "//utils/dart_runtime_service_vm:dart_runtime_service_vm_aot_snapshot",
     ],
 )
 
-# TODO(M3): copy for dart_runtime_service_vm_aot_snapshot (gn type=copy)
-cc_library(name = "dart_runtime_service_vm_aot_snapshot")
-
-# TODO(M3): genrule for dart_runtime_service_vm_aot_snapshot_dill (gn type=action)
-cc_library(name = "dart_runtime_service_vm_aot_snapshot_dill")
-
-# TODO(M3): genrule for dart_runtime_service_vm_aot_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart_runtime_service_vm_aot_snapshot_gen_snapshot")
+# rules_dart Step 4: real dart_runtime_service_vm AOT snapshot. Unblocked by the
+# session-13 refresh (package_config now carries this package). Ports
+# utils/dart_runtime_service_vm/BUILD.gn:aot_snapshot(
+# "dart_runtime_service_vm_aot_snapshot"). GN sets no force_product_mode and
+# dart_runtime_mode != "release" in this config, so product = false ->
+# //runtime/bin:gen_snapshot. The macro emits the <name>_dill + <name> genrules
+# that the GN _dill / _gen_snapshot action targets used to stub.
+dart_aot_snapshot(
+    name = "dart_runtime_service_vm_aot_snapshot",
+    main = "//:pkg/dart_runtime_service_vm/bin/vm_service_entrypoint.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "dart_runtime_service_vm_aot.dart.snapshot",
+)
 
 # TODO(M3): genrule for generate_dart_runtime_service_vm_snapshot (gn type=action)
 cc_library(name = "generate_dart_runtime_service_vm_snapshot")

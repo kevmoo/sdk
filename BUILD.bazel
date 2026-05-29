@@ -44,6 +44,10 @@ exports_files([
     "pkg/dds/bin/dds.dart",
     "pkg/frontend_server/bin/frontend_server_starter.dart",
     "pkg/dev_compiler/bin/dartdevc.dart",
+    "pkg/dart_runtime_service_vm/bin/vm_service_entrypoint.dart",
+    "pkg/dartdev/bin/dartdev.dart",
+    "pkg/dart2wasm/bin/dart2wasm.dart",
+    "pkg/analysis_server/bin/server.dart",
 ])
 
 cc_library(
