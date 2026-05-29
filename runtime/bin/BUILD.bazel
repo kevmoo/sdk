@@ -1820,13 +1820,28 @@ cc_library(
 
 cc_library(
     name = "entrypoints_verification_test",
-    deps = [
-        "//runtime/bin:entrypoints_verification_test_copy",
+    srcs = ["entrypoints_verification_test.cc"],
+    # gn include_dirs = [".."] -> -Iruntime (so "include/dart_api.h" resolves);
+    # -fPIC because the toolchain doesn't advertise supports_pic.
+    copts = [
+        "-Iruntime",
+        "-fPIC",
     ],
+    deps = ["//runtime/include:headers"],
+    alwayslink = True,
 )
 
-# TODO(M3): copy for entrypoints_verification_test_copy (gn type=copy)
-cc_library(name = "entrypoints_verification_test_copy")
+# GN: shared_library("entrypoints_verification_test"). The Dart_* embedder API
+# symbols it calls are left undefined in the .so and resolved at dlopen time
+# against the host dartvm (built -rdynamic) -- shared objects may carry
+# undefined symbols, so the gn deps=[":dartvm"] is not a link-time dep here.
+cc_binary(
+    name = "libentrypoints_verification_test.so",
+    copts = ["-Iruntime"],
+    linkshared = True,
+    linkopts = ["-rdynamic"],
+    deps = [":entrypoints_verification_test"],
+)
 
 # TODO(M3): genrule for ffi_callback_stub_bin (gn type=action)
 cc_library(name = "ffi_callback_stub_bin")
