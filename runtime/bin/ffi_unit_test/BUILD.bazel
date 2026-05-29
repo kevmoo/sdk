@@ -15,6 +15,20 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+# unit_test_custom_zone.cc textually #includes these impl .cc files (a
+# custom-zone unit-test pattern); they must be available on the include
+# path but NOT compiled separately (that would double-define symbols).
+# textual_hdrs is the Bazel mechanism for that.
+cc_library(
+    name = "ffi_unit_test_textual_includes",
+    textual_hdrs = [
+        "//runtime/vm:compiler/ffi/native_calling_convention.cc",
+        "//runtime/vm:compiler/ffi/native_location.cc",
+        "//runtime/vm:compiler/ffi/native_type.cc",
+        "//runtime/vm:zone_text_buffer.cc",
+    ],
+)
+
 cc_library(
     name = "run_ffi_unit_tests",
     deps = [
@@ -1633,6 +1647,8 @@ cc_binary(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/vm:headers",
+        "//runtime/bin/ffi_unit_test:ffi_unit_test_textual_includes",
         "//build/config/sanitizers:deps",
     ],
     defines = [
