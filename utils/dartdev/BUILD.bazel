@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,8 +16,14 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): copy for copy_dartdev_snapshot (gn type=copy)
-cc_library(name = "copy_dartdev_snapshot")
+# GN copy("copy_dartdev_snapshot") restages the app-jit snapshot into
+# $root_out_dir. Now a real dart_app_jit_snapshot genrule, carried via `data`.
+cc_library(
+    name = "copy_dartdev_snapshot",
+    data = [
+        "//utils/dartdev:generate_dartdev_snapshot",
+    ],
+)
 
 # TODO(M3): genrule for copy_prebuilt_devtools (gn type=action)
 cc_library(name = "copy_prebuilt_devtools")
@@ -73,9 +79,19 @@ dart_aot_snapshot(
     out = "dartdev_aot_profile.dart.snapshot",
 )
 
-# TODO(M3): genrule for generate_dartdev_snapshot (gn type=action)
-cc_library(name = "generate_dartdev_snapshot")
-
-# TODO(M3): genrule for generate_dartdev_snapshot_dill (gn type=action)
-cc_library(name = "generate_dartdev_snapshot_dill")
+# rules_dart Step 4 (app-jit variant). Ports
+# utils/dartdev/BUILD.gn:application_snapshot("generate_dartdev_snapshot"). No
+# force_product_mode → non-product training run via //runtime/bin:dartvm. The
+# macro emits both this target and generate_dartdev_snapshot_dill.
+dart_app_jit_snapshot(
+    name = "generate_dartdev_snapshot",
+    main = "//:pkg/dartdev/bin/dartdev.dart",
+    sources = "//:dart_package_sources",
+    training_args = ["--help"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    out = "dartdev.dart.snapshot",
+)
 

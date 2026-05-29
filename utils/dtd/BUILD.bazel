@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,8 +16,17 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): copy for copy_dtd_snapshot (gn type=copy)
-cc_library(name = "copy_dtd_snapshot")
+# GN copy("copy_dtd_snapshot") restages the app-jit snapshot from $root_gen_dir
+# into $root_out_dir. The snapshot is now a real dart_app_jit_snapshot genrule;
+# the group keeps its cc_library shape (so //:runtime's aggregate dep stays
+# CcInfo-valid) but carries the snapshot via `data` rather than `deps`, per the
+# dtd_aot / dartanalyzer pattern.
+cc_library(
+    name = "copy_dtd_snapshot",
+    data = [
+        "//utils/dtd:generate_dtd_snapshot",
+    ],
+)
 
 cc_library(
     name = "dtd",
@@ -65,9 +74,22 @@ dart_aot_snapshot(
     out = "dart_tooling_daemon_aot.dart.snapshot",
 )
 
-# TODO(M3): genrule for generate_dtd_snapshot (gn type=action)
-cc_library(name = "generate_dtd_snapshot")
-
-# TODO(M3): genrule for generate_dtd_snapshot_dill (gn type=action)
-cc_library(name = "generate_dtd_snapshot_dill")
+# rules_dart Step 4 (app-jit variant). Ports
+# utils/dtd/BUILD.gn:application_snapshot("generate_dtd_snapshot"). No
+# force_product_mode → non-product (this ReleaseX64 config), so the training run
+# uses the non-product //runtime/bin:dartvm. The macro emits both this target and
+# the generate_dtd_snapshot_dill genrule (the prior translator stubs for them are
+# dropped). training_args=["--train"] matches GN; output name matches GN's
+# $root_gen_dir/dart_tooling_daemon.dart.snapshot.
+dart_app_jit_snapshot(
+    name = "generate_dtd_snapshot",
+    main = "//:pkg/dtd_impl/bin/dtd.dart",
+    sources = "//:dart_package_sources",
+    training_args = ["--train"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    out = "dart_tooling_daemon.dart.snapshot",
+)
 
