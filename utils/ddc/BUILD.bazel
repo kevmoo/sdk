@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_compile_platform")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,8 +16,34 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for dartdevc (gn type=action)
-cc_library(name = "dartdevc")
+# rules_dart Step 4: real DDC app-jit snapshot. Ports
+# utils/ddc/BUILD.gn:application_snapshot("dartdevc"). Unblocked by the session-16
+# ddc_platform web variant: the training run compiles dartdevc.dart itself with
+# --dart-sdk-summary pointing at the in-Bazel ddc_outline.dill (GN's sdk_outline_dill,
+# = the :ddc_platform outline output). Mirrors GN training_deps=[:ddc_platform] +
+# training_inputs=[sdk_outline_dill] via training_srcs; the dill path is injected with
+# $(location) because it's a generated file under bazel-out. The macro emits the
+# `dartdevc` genrule (drop-in for the GN target name) + dartdevc_dill.
+dart_app_jit_snapshot(
+    name = "dartdevc",
+    main = "//:pkg/dev_compiler/bin/dartdevc.dart",
+    sources = "//:dart_package_sources",
+    training_args = [
+        "--packages",
+        ".dart_tool/package_config.json",
+        "--dart-sdk-summary",
+        "$(location :ddc_outline.dill)",
+        "-o",
+        "dartdevc.js",
+        "pkg/dev_compiler/bin/dartdevc.dart",
+    ],
+    training_srcs = [":ddc_outline.dill"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    out = "dartdevc.dart.snapshot",
+)
 
 # rules_dart Step 4: real DDC (dev_compiler) AOT snapshots over
 # pkg/dev_compiler/bin/dartdevc.dart. Ports utils/ddc/BUILD.gn:aot_snapshot.
@@ -44,8 +70,8 @@ dart_aot_snapshot(
     out = "dartdevc_aot_product.dart.snapshot",
 )
 
-# TODO(M3): genrule for dartdevc_dill (gn type=action)
-cc_library(name = "dartdevc_dill")
+# dartdevc_dill is emitted by the dart_app_jit_snapshot macro above (the stage-1
+# kernel dill). No stub here.
 
 # TODO(M3): genrule for ddc_canary_sdk (gn type=action)
 cc_library(name = "ddc_canary_sdk")
@@ -55,9 +81,10 @@ cc_library(name = "ddc_canary_sdk_ddc_module")
 
 cc_library(
     name = "ddc_canary_test",
+    # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
+    data = ["//utils/ddc:dartdevc"],
     deps = [
         "//:create_sdk",
-        "//utils/ddc:dartdevc",
         "//utils/ddc:ddc_canary_test_local",
     ],
 )
@@ -117,9 +144,10 @@ cc_library(name = "ddc_stable_sdk")
 
 cc_library(
     name = "ddc_stable_test",
+    # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
+    data = ["//utils/ddc:dartdevc"],
     deps = [
         "//:create_sdk",
-        "//utils/ddc:dartdevc",
         "//utils/ddc:ddc_stable_test_local",
     ],
 )

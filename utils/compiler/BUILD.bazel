@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_compile_platform")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -54,8 +54,40 @@ dart_compile_platform(
     outline = "dart2js_server_outline.dill",
 )
 
-# TODO(M3): genrule for dart2js (gn type=action)
-cc_library(name = "dart2js")
+# rules_dart Step 4: real dart2js app-jit snapshot. Ports
+# utils/compiler/BUILD.gn:application_snapshot("dart2js"). Unblocked by the
+# session-16 compile_dart2js_platform web variant. main_dart is the generated
+# entry-point (same dart2js.dart the AOT ports use, from dart2js_create_snapshot_entry).
+# The training run compiles pkg/compiler/lib/src/util/memory_compiler.dart with
+# --platform-binaries pointing at the dir holding the in-Bazel dart2js_platform.dill /
+# dart2js_outline.dill ($(RULEDIR) — :compile_dart2js_platform emits into the same
+# package output dir as this genrule), which elides re-running the CFE on sdk sources.
+# Mirrors GN training_deps=[:compile_dart2js_platform] + training_inputs via training_srcs
+# (the dills + libraries.json). The macro emits the `dart2js` genrule (drop-in for the
+# GN target name) + dart2js_dill.
+dart_app_jit_snapshot(
+    name = "dart2js",
+    main = "dart2js.dart",
+    sources = "//:dart_package_sources",
+    training_args = [
+        "--invoker=gn_build",
+        "--packages=.dart_tool/package_config.json",
+        "--libraries-spec=sdk/lib/libraries.json",
+        # Elides running the CFE on the sdk sources (GN comment).
+        "--platform-binaries=$(RULEDIR)/",
+        "pkg/compiler/lib/src/util/memory_compiler.dart",
+    ],
+    training_srcs = [
+        ":dart2js_platform.dill",
+        ":dart2js_outline.dill",
+        "//sdk:sdk_library_sources",
+    ],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    out = "dart2js.dart.snapshot",
+)
 
 # TODO(M3): copy for dart2js_aot (gn type=copy)
 cc_library(name = "dart2js_aot")
@@ -86,8 +118,8 @@ genrule(
           "--output_dir=$(RULEDIR) --no-git-hash",
 )
 
-# TODO(M3): genrule for dart2js_dill (gn type=action)
-cc_library(name = "dart2js_dill")
+# dart2js_dill is emitted by the dart_app_jit_snapshot macro above (the stage-1
+# kernel dill). No stub here.
 
 # TODO(M3): genrule for dart2js_files_stamp (gn type=action)
 cc_library(name = "dart2js_files_stamp")
