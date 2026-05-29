@@ -150,9 +150,9 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 |---|---|---|
 | **0 (first proof)** — ✅ **DONE (session 11)** | `dart_kernel_snapshot` + `dart_aot_snapshot` macros in `//tools/bazel/dart:defs.bzl`; opaque-filegroup deps (`//:dart_package_sources`); bootstrap dill built in-Bazel (the checked-in blob was stale). Target: **`//utils/bazel:kernel_worker_aot_product`**. | ✅ `bazel build` produces a 14M AOT ELF; runs under Bazel `dartaotruntime_product` (real CFE path: "No input file provided to the compiler"; `--persistent_worker` starts+exits clean). This is the §5 external contract. |
 | **1** — ✅ **DONE (session 12)** | `dart_compile_platform` macro in `//tools/bazel/dart:defs.bzl` + `//runtime/vm:vm_platform` produce `vm_platform.dill` (+ outline) in Bazel; both consumers (kPlatformDill embed, kernel_worker snapshot) dropped off the pre-staged blob. | ✅ `bazel-bin/runtime/vm/vm_platform.dill` is **byte-identical** to GN's `out/ReleaseX64/vm_platform.dill`. dartvm still runs raw `.dart`; snapshot still honors `--persistent_worker`. |
-| 2 | `bootstrap_gen_kernel.dill` produced by a Bazel rule (drop that pre-stage). | dartvm/snapshots still byte-match. |
+| **2** — ✅ **DONE (session 11)** | `bootstrap_gen_kernel.dill` produced in-Bazel by `dart_kernel_snapshot` at `//utils/gen_kernel:bootstrap_gen_kernel` (the checked-in `out/` blob was stale — wrong kernel format). Landed alongside Step 0. | ✅ dartvm/snapshots build against it; the stale pre-stage is gone. |
 | 3 | `dart_library` provider + gazelle-style pubspec→deps generator (recover incrementality). | Touching one pkg rebuilds only its dependents. |
-| 4 | Port the rest of `utils/` tool-by-tool (dartdev, analysis_server, ddc, dart2js, dart2wasm, dds, dtd, …). | Each tool's snapshot matches GN; `create_sdk` assembles. |
+| **4** — 🟡 **STARTED (session 12)** | Port the rest of `utils/` tool-by-tool (dartdev, analysis_server, ddc, dart2js, dart2wasm, dds, …). **dtd done** (both AOT snapshots over `pkg/dtd_impl/bin/dtd.dart`); `dart_aot_snapshot` was first made GN-target-faithful so cross-package refs (dds→dtd) resolve. | Each tool's snapshot matches GN; `create_sdk` assembles. dtd: both snapshots start a live Dart Tooling Daemon. |
 | 5 | `sdk/` assembly (Phase 2b) — mostly `copy`/`copy_tree` once snapshots exist. | `bazel build //sdk` produces a working SDK dir. |
 
 Step 0 is the de-risking move: if a Bazel rule can produce the kernel_worker
@@ -208,6 +208,32 @@ learned doing it:
 - **Scope kept to `vm_platform`** (postfix "", product false). `vm_platform_product`
   and `vm_platform_stripped` remain translator stubs; their consumers (the
   pre-staged core snapshot) have separate deferred concerns.
+
+### Step 4 kickoff (session 12) — dtd ported, reusable pattern established
+
+First `utils/` tool on the macro. The mechanical recipe for the remaining ~14
+`aot_snapshot()`/`application_snapshot()` tools:
+
+- **`dart_aot_snapshot` is GN-target-faithful now** (its final genrule is named
+  `<name>`, not `<name>_snapshot`), so the translator-stub names drop in directly
+  and cross-package refs (e.g. `dds_aot` → `//utils/dtd:dtd_aot_snapshot`) resolve.
+- **Two variants per tool:** `<tool>_aot_snapshot` (product follows
+  `dart_runtime_mode`, i.e. non-product here, `//runtime/bin:gen_snapshot`) and
+  `<tool>_aot_product_snapshot` (`force_product_mode=!dart_debug` → product,
+  `//runtime/bin:gen_snapshot_product`). All feed `vm_platform.dill` (non-product)
+  to gen_kernel regardless — see `aot_snapshot.gni:67`.
+- **The GN `<tool>_aot` group must stay a `cc_library`** (the `//:runtime`
+  aggregate `deps` on it), but carry the snapshots via **`data`**, not `deps` — a
+  `cc_library` can't depend on a genrule (no `CcInfo`). `data` keeps `CcInfo` and
+  still builds the snapshots.
+- **The `main_dart` entry-point** (if under `pkg/`) needs a root `exports_files`
+  entry, since `pkg/` has no sub-`BUILD.bazel`.
+- The opaque `//:dart_package_sources` closure was sufficient for dtd with zero
+  missing-source failures — the model holds beyond the CFE.
+
+`application_snapshot()` (app-jit, e.g. the non-AOT `dds.dart.snapshot`) is not
+yet ported — only the AOT groups the `runtime` aggregate consumes. That's the
+`dart_app_jit_snapshot` rule (§6 #5), still TODO.
 
 ## 9. Effort estimate (low confidence — flagged honestly)
 

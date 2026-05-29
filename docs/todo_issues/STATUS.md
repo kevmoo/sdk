@@ -11,7 +11,7 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-05-28 (session 12) — rules_dart Step 1 landed._
+_Last updated: 2026-05-28 (session 12) — rules_dart Step 1 + first Step 4 tool (dtd) landed._
 
 ## TL;DR
 
@@ -47,7 +47,7 @@ The reliable claim is the *ordering*: nothing in Phase 2+ moves until
 | 1a | `runtime/vm` core C++ | ✅ 100%¹ | `libdart_vm_jit` + 13 variants; ¹one config only |
 | 1b | `runtime/bin` executables | ✅ ~90%¹ | `dart`, `dartvm`, `dartaotruntime`, `gen_snapshot` family, `run_vm_tests`, all 14 host cc_binaries, 3 FFI test `.so`s, 43 FFI unit tests pass |
 | 1c | `runtime/platform`, observatory, … | 🟡 ~50% | platform done; observatory + remainder untouched |
-| 2a | `utils/` — Dart-builds-Dart | 🟡 ~8% | `rules_dart` Steps 0–1 landed: `dart_kernel_snapshot`+`dart_aot_snapshot`+`dart_compile_platform` macros (`//tools/bazel/dart`). Step 0 → working `kernel_worker_aot_product.dart.snapshot`; Step 1 → `//runtime/vm:vm_platform` builds `vm_platform.dill` in-Bazel (byte-identical to GN), pre-stage dropped. Remaining tools (dart2js, ddc, dart2wasm, dartdev, dds, analyzer, kernel-service) + deps generator still to do. See `rules_dart_scoping.md`. |
+| 2a | `utils/` — Dart-builds-Dart | 🟡 ~12% | `rules_dart` Steps 0–2 done + Step 4 started: `dart_kernel_snapshot`+`dart_aot_snapshot`+`dart_compile_platform` macros (`//tools/bazel/dart`). Step 0 → `kernel_worker_aot_product`; Step 1 → `//runtime/vm:vm_platform` builds `vm_platform.dill` in-Bazel (byte-identical to GN); Step 2 → `bootstrap_gen_kernel.dill` in-Bazel; Step 4 → **dtd ported** (both AOT snapshots run a live Tooling Daemon), reusable per-tool recipe documented. Remaining tools (dartdev, dds, ddc, dart2js, dart2wasm, analysis_server, kernel-service) + deps generator (Step 3) still to do. See `rules_dart_scoping.md`. |
 | 2b | `sdk/` assembly | 🔴 0% | gated on 2a |
 | 2c | `samples/` | 🟡 ~40% | all 20 `samples/embedder` + `ffi/http*` done; rest no |
 | 3 | `third_party/` | 🟡 partial | icu/boringssl/perfetto/zlib/double-conversion hand-shimmed & working; BCR `bazel_dep` migration not done |
@@ -59,10 +59,11 @@ The reliable claim is the *ordering*: nothing in Phase 2+ moves until
    precondition that stalled Flutter's Bazel adoption for 7+ years; the plan says
    solve it *as a precondition, not during* the migration. Gates all of Phase 2a
    and therefore 2b. Plausibly larger than everything done to date. **Scoped +
-   Steps 0–1 landed (sessions 11–12) — see `rules_dart_scoping.md`.** The first
-   proof (a working `kernel_worker_aot_product.dart.snapshot`, the external
-   contract) builds and runs via Bazel, and `vm_platform.dill` is now produced
-   in-Bazel (byte-identical to GN). Remaining: deps generator + all the other tools.
+   Steps 0–2 done + Step 4 started (sessions 11–12) — see `rules_dart_scoping.md`.**
+   The first proof (`kernel_worker_aot_product`, the external contract) builds and
+   runs; `vm_platform.dill` + `bootstrap_gen_kernel.dill` are produced in-Bazel
+   (the former byte-identical to GN); and the first real tool (dtd) is ported and
+   runs. Remaining: deps generator (Step 3) + the other ~14 tools.
 2. **Multi-config + overlay (M4).** Single-config today, and every translator
    regen trashes the hand-edits — which is the entire reason
    `tools/bazel/out_of_band/restore.sh` exists. No `select()` folding and no
