@@ -1,0 +1,101 @@
+# Out-of-band Bazel state
+
+The GN→Bazel migration depends on hand-authored working-tree state that the SDK
+git repo **cannot** track. `restore.sh` makes that state reproducible.
+
+## Why it can't be tracked
+
+| Location | Why git can't hold it |
+|---|---|
+| `third_party/icu/**` | depot_tools/gclient-managed nested clone; the outer SDK repo treats the whole dir as opaque and `git add -f` no-ops because git refuses to descend. |
+| `third_party/zlib/**` | same nested-clone situation. |
+| `third_party/boringssl/src/**` | nested clone (the *outer* `third_party/boringssl/BUILD.bazel` is tracked via `git add -f`, but `src/` is not). |
+| `third_party/perfetto/src/**` | nested clone. |
+| `third_party/pkg/native/**` | nested clone; the DEPS pin must be re-asserted after `gclient sync`. |
+| `out/ReleaseX64/**` | gitignored (`/out` in the root `.gitignore`). |
+
+## The two threats this defends against
+
+1. **`gclient sync`** — resets every nested subrepo above, discarding our edits.
+2. **Re-running the translator** (`tools/bazel/translate_gn_desc.py`) — regenerates
+   the SDK-side BUILD.bazel files; the nested-subrepo edits it never sees, and the
+   wholly-ours shims (`third_party/icu/BUILD.bazel`, `third_party/zlib/BUILD.bazel`)
+   would be overwritten.
+
+After either, run:
+
+```bash
+tools/bazel/out_of_band/restore.sh
+/home/linuxbrew/.linuxbrew/bin/bazelisk build //runtime/bin:dartvm
+```
+
+`restore.sh` is idempotent — safe to run anytime; each step is a no-op if already
+applied.
+
+## What `restore.sh` restores (source/config — tier 1)
+
+- **Verbatim files** (`snapshot/**/*.snap`) — wholly-ours files copied into place:
+  - `third_party/icu/BUILD.bazel` (SDK-level ICU shim; includes the load-bearing
+    `local_defines` flip — see below)
+  - `third_party/icu/flutter/BUILD.bazel` (package shim for `icudtl.dat`)
+  - `third_party/zlib/BUILD.bazel`
+  - `third_party/perfetto/src/build_config/perfetto_build_flags.h`
+  - `out/ReleaseX64/BUILD.bazel`, `out/ReleaseX64/gen/BUILD.bazel`,
+    `out/ReleaseX64/gen/runtime/bin/BUILD.bazel` (exports_files for dills/blobs)
+- **Append blocks** (`snapshot/**/*.append`) — `# Dart Bazel M5:`-marked
+  `exports_files` appended to upstream ICU files
+  (`source/{common,i18n,stubdata}/BUILD.bazel`); idempotent via the marker.
+- **Disabling renames** — blocking upstream `BUILD`/`WORKSPACE` files moved to
+  `*.disabled-for-dart-bazel-migration` (boringssl `src/BUILD.bazel`; perfetto
+  `src/{WORKSPACE,BUILD,bazel/BUILD,python/BUILD}`).
+- **`out/ReleaseX64/args.gn`** — `verify_sdk_hash = false` and
+  `dart_version_git_info = false` (SDK-hash determinism, see below).
+- **`third_party/pkg/native`** — checked out to the DEPS pin
+  `b814f5393753e0cd752ce3ad733f5e66dd5949ce`.
+
+### The ICU `local_defines` flip (why it's load-bearing)
+
+The icuuc/icui18n `cc_library` targets in `third_party/icu/BUILD.bazel` use
+`local_defines` (not `defines`) for `U_COMMON_IMPLEMENTATION` /
+`U_I18N_IMPLEMENTATION`. `defines` propagates to every transitive consumer;
+`local_defines` does not. With `defines`, `U_COMMON_IMPLEMENTATION` leaks into
+consumers and flips the ICU header's `UNISTR_FROM_STRING_EXPLICIT=explicit`
+branch, which deletes the implicit `const char* → UnicodeString` conversion and
+breaks e.g. `gen-regexp-special-case.cc`. The flip is baked into the snapshotted
+`BUILD.bazel`, so restoring that file restores the flip.
+
+### SDK hash discipline
+
+The bazel-built `dartvm`/`gen_snapshot` bake `sdk_hash = "0000000000"` (the
+runtime version genrule passes `--no-git-hash --no-sdk-hash`). Every dill and
+snapshot blob embedded into them must match. The two `args.gn` flips make
+ninja-produced dills carry `0000000000` too; without them, `dartvm` rejects the
+dills as a snapshot version mismatch (surfaces as `ApiError`).
+
+## What `restore.sh` does NOT produce (artifacts — tier 2)
+
+These are build outputs, not source. The script only verifies they exist and
+points here if not. Regen recipes:
+
+**Snapshot blobs** (`out/ReleaseX64/gen/runtime/bin/core_snapshot_{data,text}.bin`):
+
+```bash
+bazel build //runtime/bin:gen_snapshot
+bazel-bin/runtime/bin/gen_snapshot --snapshot_kind=core \
+  --snapshot_data=out/ReleaseX64/gen/runtime/bin/core_snapshot_data.bin \
+  --snapshot_text=out/ReleaseX64/gen/runtime/bin/core_snapshot_text.bin \
+  out/ReleaseX64/vm_platform_stripped.dill
+```
+
+**Dills** (`vm_platform.dill`, `vm_platform_stripped.dill`, `gen/kernel_service.dill`):
+rebuild with `-Dsdk_hash=0000000000` so the hash matches `dartvm`. Either
+`ninja -C out/ReleaseX64 gen/kernel_service.dill vm_platform.dill vm_platform_stripped.dill`
+(after the args.gn flips above), or via Flutter's `dart` driving
+`pkg/front_end/tool/compile_platform.dart` / `compile.dart`. Full recipes live in
+the migration hand-off notes.
+
+## Updating the snapshot
+
+When you intentionally change one of the tracked-here files (e.g. extend the ICU
+shim), re-copy it into `snapshot/` with the matching `.snap` / `.append` suffix so
+the next restore reproduces the new state, and commit.

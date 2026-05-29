@@ -1,0 +1,7 @@
+
+
+# Dart Bazel M5: exports for cross-package source-level mapping in //third_party/icu:icuuc.
+exports_files([
+    "stubdata.cpp",
+    "stubdata.h",
+])
