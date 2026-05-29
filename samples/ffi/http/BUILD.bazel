@@ -15,13 +15,31 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+# GN: shared_library("fake_http") { sources = ["lib/fake_http.cc"] }.
+# Compile the source into a normal cc_library (provides CcInfo, so aggregate
+# cc_library consumers like //:runtime keep working). alwayslink keeps the
+# DART_EXPORT FFI entry points (only reached via dlopen) from being dropped.
 cc_library(
     name = "fake_http",
-    deps = [
-        "//samples/ffi/http:fake_http_copy",
+    srcs = ["lib/fake_http.cc"],
+    # -fPIC: this custom toolchain doesn't advertise supports_pic, so Bazel
+    # emits only non-PIC objects by default; force PIC so the objects can link
+    # into libfake_http.so (gn shared_library compiles PIC implicitly).
+    copts = [
+        "-Isamples/ffi/http",
+        "-fPIC",
     ],
+    alwayslink = True,
 )
 
-# TODO(M3): copy for fake_http_copy (gn type=copy)
-cc_library(name = "fake_http_copy")
+# The real shared object FFI samples dlopen by name. This subsumes the gn
+# type=copy node (fake_http_copy): cc_binary(linkshared) already emits the
+# correctly-named .so directly.
+cc_binary(
+    name = "libfake_http.so",
+    copts = ["-Isamples/ffi/http"],
+    linkshared = True,
+    linkopts = ["-rdynamic"],
+    deps = [":fake_http"],
+)
 
