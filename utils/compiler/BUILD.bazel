@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,11 +16,43 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for compile_dart2js_platform (gn type=action)
-cc_library(name = "compile_dart2js_platform")
+# rules_dart Step 2a (compile_platform web variants). Port
+# utils/compiler/BUILD.gn:compile_platform("compile_dart2js_platform") and
+# ("compile_dart2js_server_platform"). Same web shape as ddc_platform
+# (--target=… + --no-defines, single_root_base=sdk, reads the VM outline); output
+# filenames follow GN's tool naming (dart2js{,_server}_{platform,outline}.dill).
+# Consumed by the dart2js app-jit/AOT training run (training_inputs).
+dart_compile_platform(
+    name = "compile_dart2js_platform",
+    sources = "//:dart_package_sources",
+    sdk_sources = "//sdk:sdk_library_sources",
+    libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
+    single_root_base = "sdk",
+    platform_args = [
+        "--target=dart2js",
+        "--no-defines",
+        "dart:core",
+    ],
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
+    platform_out = "dart2js_platform.dill",
+    outline = "dart2js_outline.dill",
+)
 
-# TODO(M3): genrule for compile_dart2js_server_platform (gn type=action)
-cc_library(name = "compile_dart2js_server_platform")
+dart_compile_platform(
+    name = "compile_dart2js_server_platform",
+    sources = "//:dart_package_sources",
+    sdk_sources = "//sdk:sdk_library_sources",
+    libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
+    single_root_base = "sdk",
+    platform_args = [
+        "--target=dart2js_server",
+        "--no-defines",
+        "dart:core",
+    ],
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
+    platform_out = "dart2js_server_platform.dill",
+    outline = "dart2js_server_outline.dill",
+)
 
 # TODO(M3): genrule for dart2js (gn type=action)
 cc_library(name = "dart2js")

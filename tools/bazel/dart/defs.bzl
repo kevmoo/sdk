@@ -55,42 +55,87 @@ def dart_compile_platform(
         exclude_source = False,
         sdk_hash = "0000000000",
         outline = None,
+        platform_out = None,
+        platform_args = None,
+        single_root_base = None,
+        deps_outline = None,
         **kwargs):
-    """Compile the VM platform .dill + outline with the prebuilt SDK.
+    """Compile a platform .dill + outline with the prebuilt SDK.
 
-    Ports utils/compile_platform.gni (the prebuilt_dart_action branch) +
-    runtime/vm/BUILD.gn:gen_vm_platform. Runs the prebuilt `dart` on
-    pkg/front_end/tool/compile_platform.dart, which reads the SDK libraries
-    (dart:core et al., in `sdk_sources`) plus the CFE and its package closure
-    (in `sources`) and writes two outputs: the full platform `<name>.dill` and
-    the summary outline `<name>_outline.dill`.
+    Ports utils/compile_platform.gni (the prebuilt_dart_action branch). Runs the
+    prebuilt `dart` on pkg/front_end/tool/compile_platform.dart, which reads the
+    SDK libraries (dart:core et al., in `sdk_sources`) plus the CFE and its
+    package closure (in `sources`) and writes two outputs: the full platform dill
+    and the summary outline.
 
-    The trailing positional arg order — outline, platform, outline — is exactly
-    what GN passes (compile_platform.gni:90-91): restArguments[2] is the host
-    platform read for the deps file, restArguments[4] is the outline output, and
-    the platform output sits between them. sdk_hash must match the dartvm /
-    gen_snapshot that consume the dill, or the VM rejects it at load.
+    Default (no web params) = the VM platform (runtime/vm/BUILD.gn:gen_vm_platform),
+    proven byte-identical to GN. The trailing positional arg order — outline,
+    platform, outline — is exactly what GN passes (compile_platform.gni:90-91):
+    restArguments[2] is the host platform read for the deps file (Bazel drops the
+    undeclared .d, so it only needs to be readable), restArguments[4] is the
+    outline output, and the platform output sits between them. sdk_hash must match
+    the dartvm / gen_snapshot that consume the dill, or the VM rejects it at load.
+
+    Web/Wasm variants (ddc_platform, compile_dart2js{,_server}_platform,
+    compile_dart2wasm_*_platform) differ from the VM call in four ways, expressed
+    additively so the VM caller is untouched:
+      * `platform_args` — the leading args (e.g. `["--target=dartdevc", "dart:core"]`)
+        that REPLACE the VM's `dart:core -Ddart.vm.* -Ddart.isVM=true` block.
+      * `single_root_base` — the org-dartlang-sdk root; VM uses the execroot ($$(pwd),
+        spec `…:///sdk/lib/…`), web uses `sdk` (spec `…:///lib/…`). Both resolve to
+        sdk/lib; the embedded URIs are the canonical scheme, so output stays
+        byte-identical to GN regardless of the on-disk base (same as vm_platform).
+      * `deps_outline` — GN's add_implicit_vm_platform_dependency: web variants read
+        the VM outline (//runtime/vm:vm_platform_outline.dill) for their depfile and
+        dep on it; the VM self-build instead uses its own outline (None → default).
+      * `platform_out` / `outline` — GN names the outputs after the *tool*
+        (dart2js_platform.dill / dart2js_outline.dill), not the target, so both
+        output filenames are overridable.
     """
-    platform_out = name + ".dill"
+    platform_out = platform_out or (name + ".dill")
     outline_out = outline or (name + "_outline.dill")
+    base = single_root_base or "$$(pwd)"
+    srcs = [_SDK_FILES, sources, sdk_sources]
+
+    if platform_args == None:
+        # VM platform: dart:core + the VM defines (+ optional --exclude-source).
+        mid = (
+            "dart:core -Ddart.vm.product={product} -Ddart.vm.asan=false " +
+            "-Ddart.vm.msan=false -Ddart.vm.tsan=false -Ddart.isVM=true {exclude}"
+        ).format(
+            product = "true" if product else "false",
+            exclude = "--exclude-source " if exclude_source else "",
+        )
+    else:
+        # Web/Wasm platform: the caller's --target=… args verbatim.
+        mid = " ".join(platform_args) + " "
+
+    if deps_outline == None:
+        # VM self-build: the deps-read outline positional is its own outline.
+        deps_pos = "$(location {})".format(outline_out)
+    else:
+        # Web variants read the VM outline (GN add_implicit_vm_platform_dependency).
+        srcs = srcs + [deps_outline]
+        deps_pos = "$(location {})".format(deps_outline)
+
     native.genrule(
         name = name,
-        srcs = [_SDK_FILES, sources, sdk_sources],
+        srcs = srcs,
         outs = [platform_out, outline_out],
         cmd = (
             "{dart} -Dsdk_hash={hash} --packages={pkg} {tool} " +
-            "dart:core -Ddart.vm.product={product} -Ddart.vm.asan=false " +
-            "-Ddart.vm.msan=false -Ddart.vm.tsan=false -Ddart.isVM=true {exclude}" +
-            "--single-root-scheme=org-dartlang-sdk --single-root-base=$$(pwd) " +
-            "{spec} $(location {outline}) $(location {platform}) $(location {outline})"
+            "{mid}" +
+            "--single-root-scheme=org-dartlang-sdk --single-root-base={base} " +
+            "{spec} {deps_pos} $(location {platform}) $(location {outline})"
         ).format(
             dart = _PREBUILT_DART,
             hash = sdk_hash,
             pkg = _PACKAGE_CONFIG,
             tool = _COMPILE_PLATFORM,
-            product = "true" if product else "false",
-            exclude = "--exclude-source " if exclude_source else "",
+            mid = mid,
+            base = base,
             spec = libraries_spec,
+            deps_pos = deps_pos,
             outline = outline_out,
             platform = platform_out,
         ),

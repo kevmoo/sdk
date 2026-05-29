@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -22,8 +22,6 @@ cc_library(name = "dartdevc")
 # rules_dart Step 4: real DDC (dev_compiler) AOT snapshots over
 # pkg/dev_compiler/bin/dartdevc.dart. Ports utils/ddc/BUILD.gn:aot_snapshot.
 # //:ddc references dartdevc_aot directly via cc_library deps (bare genrule OK).
-# The ddc_platform compile_platform target (a non-VM platform dill) is NOT yet
-# ported — it needs a generalized compile_platform; left as a stub.
 dart_aot_snapshot(
     name = "dartdevc_aot",
     main = "//:pkg/dev_compiler/bin/dartdevc.dart",
@@ -89,8 +87,27 @@ cc_library(
 # TODO(M3): genrule for ddc_files_stamp (gn type=action)
 cc_library(name = "ddc_files_stamp")
 
-# TODO(M3): genrule for ddc_platform (gn type=action)
-cc_library(name = "ddc_platform")
+# rules_dart Step 2a (first compile_platform WEB variant). Ports
+# utils/ddc/BUILD.gn:compile_platform("ddc_platform") — the DDC SDK platform dill
+# (--target=dartdevc). Differs from the VM platform: leading args --target=dartdevc
+# dart:core (no -Ddart.vm.*), single_root_base=sdk (spec …:///lib/…), and it reads
+# the VM outline as its implicit dep. Output filenames follow GN's tool naming
+# (ddc_platform.dill / ddc_outline.dill, not the target name). Consumed by the
+# dartdevc app-jit training run + the ddc_compile_sdk JS targets.
+dart_compile_platform(
+    name = "ddc_platform",
+    sources = "//:dart_package_sources",
+    sdk_sources = "//sdk:sdk_library_sources",
+    libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
+    single_root_base = "sdk",
+    platform_args = [
+        "--target=dartdevc",
+        "dart:core",
+    ],
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
+    platform_out = "ddc_platform.dill",
+    outline = "ddc_outline.dill",
+)
 
 # TODO(M3): genrule for ddc_sdk_patch_stamp (gn type=action)
 cc_library(name = "ddc_sdk_patch_stamp")

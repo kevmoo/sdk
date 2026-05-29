@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,14 +16,56 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for compile_dart2wasm_js_compatibility_platform (gn type=action)
-cc_library(name = "compile_dart2wasm_js_compatibility_platform")
+# rules_dart Step 2a (compile_platform web variants). Port the three
+# compile_platform() targets in utils/dart2wasm/BUILD.gn (--target=dart2wasm,
+# dart2wasm_js_compatibility, dart2wasm_standalone). Same web shape as ddc_platform;
+# js_compatibility additionally threads -Ddart.wasm.js_compatibility=true. Output
+# filenames follow GN's tool naming. Consumed by //:dart2wasm_platform.
+dart_compile_platform(
+    name = "compile_dart2wasm_platform",
+    sources = "//:dart_package_sources",
+    sdk_sources = "//sdk:sdk_library_sources",
+    libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
+    single_root_base = "sdk",
+    platform_args = [
+        "--target=dart2wasm",
+        "dart:core",
+    ],
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
+    platform_out = "dart2wasm_platform.dill",
+    outline = "dart2wasm_outline.dill",
+)
 
-# TODO(M3): genrule for compile_dart2wasm_platform (gn type=action)
-cc_library(name = "compile_dart2wasm_platform")
+dart_compile_platform(
+    name = "compile_dart2wasm_js_compatibility_platform",
+    sources = "//:dart_package_sources",
+    sdk_sources = "//sdk:sdk_library_sources",
+    libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
+    single_root_base = "sdk",
+    platform_args = [
+        "--target=dart2wasm_js_compatibility",
+        "-Ddart.wasm.js_compatibility=true",
+        "dart:core",
+    ],
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
+    platform_out = "dart2wasm_js_compatibility_platform.dill",
+    outline = "dart2wasm_js_compatibility_outline.dill",
+)
 
-# TODO(M3): genrule for compile_dart2wasm_standalone_platform (gn type=action)
-cc_library(name = "compile_dart2wasm_standalone_platform")
+dart_compile_platform(
+    name = "compile_dart2wasm_standalone_platform",
+    sources = "//:dart_package_sources",
+    sdk_sources = "//sdk:sdk_library_sources",
+    libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
+    single_root_base = "sdk",
+    platform_args = [
+        "--target=dart2wasm_standalone",
+        "dart:core",
+    ],
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
+    platform_out = "dart2wasm_standalone_platform.dill",
+    outline = "dart2wasm_standalone_outline.dill",
+)
 
 # rules_dart Step 4: real dart2wasm AOT snapshots. Unblocked by the session-13
 # refresh. Ports the three aot_snapshot() targets in utils/dart2wasm/BUILD.gn
