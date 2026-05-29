@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -8261,8 +8262,19 @@ cc_binary(
     ],
 )
 
-# TODO(M3): genrule for vm_platform (gn type=action)
-cc_library(name = "vm_platform")
+# rules_dart Step 1: real vm_platform.dill (+ vm_outline.dill) built in-Bazel,
+# replacing the pre-staged out/ReleaseX64/vm_platform.dill blob. Ports
+# runtime/vm/BUILD.gn:gen_vm_platform("vm_platform") — postfix "", exclude_source
+# false, product false (dart_runtime_mode != "release" for ReleaseX64). The
+# output file //runtime/vm:vm_platform.dill is consumed by the kPlatformDill
+# embed in //runtime/bin and the kernel_worker snapshot in //utils/bazel.
+dart_compile_platform(
+    name = "vm_platform",
+    sources = "//:dart_package_sources",
+    sdk_sources = "//sdk:sdk_library_sources",
+    product = False,
+    exclude_source = False,
+)
 
 # TODO(M3): genrule for vm_platform_product (gn type=action)
 cc_library(name = "vm_platform_product")

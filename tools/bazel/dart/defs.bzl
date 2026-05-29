@@ -44,6 +44,59 @@ def dart_kernel_snapshot(name, main, sources, sdk_hash = "0000000000", **kwargs)
         **kwargs
     )
 
+_COMPILE_PLATFORM = "pkg/front_end/tool/compile_platform.dart"
+
+def dart_compile_platform(
+        name,
+        sources,
+        sdk_sources,
+        libraries_spec = "org-dartlang-sdk:///sdk/lib/libraries.json",
+        product = False,
+        exclude_source = False,
+        sdk_hash = "0000000000",
+        outline = None,
+        **kwargs):
+    """Compile the VM platform .dill + outline with the prebuilt SDK.
+
+    Ports utils/compile_platform.gni (the prebuilt_dart_action branch) +
+    runtime/vm/BUILD.gn:gen_vm_platform. Runs the prebuilt `dart` on
+    pkg/front_end/tool/compile_platform.dart, which reads the SDK libraries
+    (dart:core et al., in `sdk_sources`) plus the CFE and its package closure
+    (in `sources`) and writes two outputs: the full platform `<name>.dill` and
+    the summary outline `<name>_outline.dill`.
+
+    The trailing positional arg order — outline, platform, outline — is exactly
+    what GN passes (compile_platform.gni:90-91): restArguments[2] is the host
+    platform read for the deps file, restArguments[4] is the outline output, and
+    the platform output sits between them. sdk_hash must match the dartvm /
+    gen_snapshot that consume the dill, or the VM rejects it at load.
+    """
+    platform_out = name + ".dill"
+    outline_out = outline or (name + "_outline.dill")
+    native.genrule(
+        name = name,
+        srcs = [_SDK_FILES, sources, sdk_sources],
+        outs = [platform_out, outline_out],
+        cmd = (
+            "{dart} -Dsdk_hash={hash} --packages={pkg} {tool} " +
+            "dart:core -Ddart.vm.product={product} -Ddart.vm.asan=false " +
+            "-Ddart.vm.msan=false -Ddart.vm.tsan=false -Ddart.isVM=true {exclude}" +
+            "--single-root-scheme=org-dartlang-sdk --single-root-base=$$(pwd) " +
+            "{spec} $(location {outline}) $(location {platform}) $(location {outline})"
+        ).format(
+            dart = _PREBUILT_DART,
+            hash = sdk_hash,
+            pkg = _PACKAGE_CONFIG,
+            tool = _COMPILE_PLATFORM,
+            product = "true" if product else "false",
+            exclude = "--exclude-source " if exclude_source else "",
+            spec = libraries_spec,
+            outline = outline_out,
+            platform = platform_out,
+        ),
+        **kwargs
+    )
+
 def dart_aot_snapshot(
         name,
         main,

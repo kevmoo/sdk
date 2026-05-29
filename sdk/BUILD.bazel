@@ -15,6 +15,18 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+# rules_dart Step 1 (opaque deps): the SDK library sources that compile_platform
+# reads to build vm_platform.dill — dart:core et al. plus libraries.json, which
+# the single-root scheme resolves under sdk/lib/. Consumed by
+# //runtime/vm:vm_platform (see //tools/bazel/dart:dart_compile_platform).
+filegroup(
+    name = "sdk_library_sources",
+    srcs = glob(
+        ["lib/**/*.dart", "lib/**/*.json"],
+        allow_empty = True,
+    ),
+)
+
 cc_library(
     name = "_create_platform_sdk",
     deps = [
