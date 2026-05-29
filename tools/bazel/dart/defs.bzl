@@ -143,9 +143,12 @@ def dart_aot_snapshot(
         ),
     )
 
-    # Stage 2: AOT ELF (mirrors the *_gen_snapshot gen_snapshot_action).
+    # Stage 2: AOT ELF (mirrors the *_gen_snapshot gen_snapshot_action). The
+    # genrule is named `name` (not `name + "_snapshot"`) so it is a drop-in for
+    # the GN aot_snapshot() target of the same name — e.g. cross-package refs
+    # like dds_aot -> //utils/dtd:dtd_aot_snapshot resolve unchanged.
     native.genrule(
-        name = name + "_snapshot",
+        name = name,
         srcs = [dill],
         outs = [out or (name + ".snapshot")],
         tools = [gen_snapshot],

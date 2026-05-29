@@ -148,7 +148,7 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 
 | Step | Deliverable | Verify |
 |---|---|---|
-| **0 (first proof)** — ✅ **DONE (session 11)** | `dart_kernel_snapshot` + `dart_aot_snapshot` macros in `//tools/bazel/dart:defs.bzl`; opaque-filegroup deps (`//:dart_package_sources`); bootstrap dill built in-Bazel (the checked-in blob was stale). Target: **`//utils/bazel:kernel_worker_aot_product_snapshot`**. | ✅ `bazel build` produces a 14M AOT ELF; runs under Bazel `dartaotruntime_product` (real CFE path: "No input file provided to the compiler"; `--persistent_worker` starts+exits clean). This is the §5 external contract. |
+| **0 (first proof)** — ✅ **DONE (session 11)** | `dart_kernel_snapshot` + `dart_aot_snapshot` macros in `//tools/bazel/dart:defs.bzl`; opaque-filegroup deps (`//:dart_package_sources`); bootstrap dill built in-Bazel (the checked-in blob was stale). Target: **`//utils/bazel:kernel_worker_aot_product`**. | ✅ `bazel build` produces a 14M AOT ELF; runs under Bazel `dartaotruntime_product` (real CFE path: "No input file provided to the compiler"; `--persistent_worker` starts+exits clean). This is the §5 external contract. |
 | **1** — ✅ **DONE (session 12)** | `dart_compile_platform` macro in `//tools/bazel/dart:defs.bzl` + `//runtime/vm:vm_platform` produce `vm_platform.dill` (+ outline) in Bazel; both consumers (kPlatformDill embed, kernel_worker snapshot) dropped off the pre-staged blob. | ✅ `bazel-bin/runtime/vm/vm_platform.dill` is **byte-identical** to GN's `out/ReleaseX64/vm_platform.dill`. dartvm still runs raw `.dart`; snapshot still honors `--persistent_worker`. |
 | 2 | `bootstrap_gen_kernel.dill` produced by a Bazel rule (drop that pre-stage). | dartvm/snapshots still byte-match. |
 | 3 | `dart_library` provider + gazelle-style pubspec→deps generator (recover incrementality). | Touching one pkg rebuilds only its dependents. |
@@ -161,7 +161,7 @@ breadth.
 
 ### Step 0 result (session 11) — validated
 
-`bazel build //utils/bazel:kernel_worker_aot_product_snapshot` works end-to-end
+`bazel build //utils/bazel:kernel_worker_aot_product` works end-to-end
 and the output runs under the Bazel-built `dartaotruntime_product`. What we
 learned doing it:
 
