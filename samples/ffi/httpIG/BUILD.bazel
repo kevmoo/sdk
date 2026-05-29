@@ -15,13 +15,24 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+# GN: shared_library("fake_httpIG") { sources = ["lib/fake_http.cc"] }.
+# Same shape as //samples/ffi/http:fake_http — see that file for the rationale
+# behind the cc_library + cc_binary(linkshared) split, alwayslink, and -fPIC.
 cc_library(
     name = "fake_httpIG",
-    deps = [
-        "//samples/ffi/httpIG:fake_httpIG_copy",
+    srcs = ["lib/fake_http.cc"],
+    copts = [
+        "-Isamples/ffi/httpIG",
+        "-fPIC",
     ],
+    alwayslink = True,
 )
 
-# TODO(M3): copy for fake_httpIG_copy (gn type=copy)
-cc_library(name = "fake_httpIG_copy")
+cc_binary(
+    name = "libfake_httpIG.so",
+    copts = ["-Isamples/ffi/httpIG"],
+    linkshared = True,
+    linkopts = ["-rdynamic"],
+    deps = [":fake_httpIG"],
+)
 
