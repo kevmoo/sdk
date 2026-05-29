@@ -16,9 +16,18 @@ exports_files(glob(
 ))
 
 cc_library(
+    name = "headers",
+    hdrs = glob(["**/*.h"], allow_empty = True),
+)
+
+cc_library(
     name = "dart_engine_aot_shared",
     deps = [
-        "//runtime/engine:dart_engine_aot_shared_copy",
+        # M5 follow-up: the GN target is a `copy` of libdart_engine_aot.so
+        # produced elsewhere. Until that copy genrule is wired, link the
+        # symbols statically via :engine_aot_set so cc_binary consumers
+        # resolve at link time.
+        "//runtime/engine:engine_aot_set",
     ],
 )
 
@@ -80,7 +89,8 @@ cc_library(
 cc_library(
     name = "dart_engine_jit_shared",
     deps = [
-        "//runtime/engine:dart_engine_jit_shared_copy",
+        # M5 follow-up: same story as dart_engine_aot_shared above.
+        "//runtime/engine:engine_jit_set",
     ],
 )
 
@@ -142,6 +152,7 @@ cc_library(
 cc_library(
     name = "engine_aot_set",
     implementation_deps = [
+        "//runtime/engine:headers",
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
@@ -235,6 +246,7 @@ cc_library(
 cc_library(
     name = "engine_jit_set",
     implementation_deps = [
+        "//runtime/engine:headers",
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
