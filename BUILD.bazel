@@ -15,6 +15,22 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+# rules_dart Step 0 (opaque deps model): the whole Dart package closure as one
+# filegroup, fed to the Dart-compilation rules in //tools/bazel/dart. pkg/ and
+# third_party/pkg/ have no sub-BUILD.bazel, so they belong to this root package
+# and are globbable here. See docs/todo_issues/rules_dart_scoping.md §7.
+filegroup(
+    name = "dart_package_sources",
+    srcs = glob(
+        ["pkg/**/*.dart", "third_party/pkg/**/*.dart"],
+        allow_empty = True,
+    ) + [".dart_tool/package_config.json"],
+)
+
+# Dart entry-point scripts referenced as `main` by Dart-compilation rules
+# (these live in the root package because pkg/ has no sub-BUILD.bazel).
+exports_files(["pkg/vm/bin/gen_kernel.dart"])
+
 cc_library(
     name = "analysis_server",
     deps = [

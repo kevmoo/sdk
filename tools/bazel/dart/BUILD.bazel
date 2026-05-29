@@ -1,0 +1,6 @@
+# Package marker so //tools/bazel/dart:defs.bzl is loadable.
+# The Dart-compilation rule macros live in defs.bzl.
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["defs.bzl"])
