@@ -5476,10 +5476,12 @@ cc_binary(
 
 cc_library(
     name = "run_vm_tests_set",
+    alwayslink = True,
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
     srcs = [
         "dfe.cc",
@@ -5623,6 +5625,7 @@ cc_library(
     deps = [
         "//third_party/boringssl:boringssl",
         "//third_party/perfetto:libprotozero",
+        "//third_party/zlib:zlib",
     ],
     defines = [
         "TESTING",
