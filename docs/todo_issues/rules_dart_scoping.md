@@ -152,7 +152,7 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 | **1** — ✅ **DONE (session 12)** | `dart_compile_platform` macro in `//tools/bazel/dart:defs.bzl` + `//runtime/vm:vm_platform` produce `vm_platform.dill` (+ outline) in Bazel; both consumers (kPlatformDill embed, kernel_worker snapshot) dropped off the pre-staged blob. | ✅ `bazel-bin/runtime/vm/vm_platform.dill` is **byte-identical** to GN's `out/ReleaseX64/vm_platform.dill`. dartvm still runs raw `.dart`; snapshot still honors `--persistent_worker`. |
 | **2** — ✅ **DONE (session 11)** | `bootstrap_gen_kernel.dill` produced in-Bazel by `dart_kernel_snapshot` at `//utils/gen_kernel:bootstrap_gen_kernel` (the checked-in `out/` blob was stale — wrong kernel format). Landed alongside Step 0. | ✅ dartvm/snapshots build against it; the stale pre-stage is gone. |
 | 3 | `dart_library` provider + gazelle-style pubspec→deps generator (recover incrementality). | Touching one pkg rebuilds only its dependents. |
-| **4** — 🟡 **STARTED (session 12)** | Port the rest of `utils/` tool-by-tool (dartdev, analysis_server, ddc, dart2js, dart2wasm, dds, …). **dtd done** (both AOT snapshots over `pkg/dtd_impl/bin/dtd.dart`); `dart_aot_snapshot` was first made GN-target-faithful so cross-package refs (dds→dtd) resolve. | Each tool's snapshot matches GN; `create_sdk` assembles. dtd: both snapshots start a live Dart Tooling Daemon. |
+| **4** — 🟡 **STARTED (session 12)** | Port the rest of `utils/` tool-by-tool. **Done: dtd, dds, frontend_server** (AOT snapshots, all run). `dart_aot_snapshot` made GN-target-faithful so cross-package refs (dds→dtd) resolve. **Deferred: dartdev, dart_runtime_service_vm** — blocked on out-of-band staleness (see below), not rule gaps. Remaining: ddc, dart2js, dart2wasm, analysis_server, kernel-service app-jit, … | Each tool's snapshot matches GN; `create_sdk` assembles. dtd → live Tooling Daemon; dds → dds CLI; frontend_server → server usage. |
 | 5 | `sdk/` assembly (Phase 2b) — mostly `copy`/`copy_tree` once snapshots exist. | `bazel build //sdk` produces a working SDK dir. |
 
 Step 0 is the de-risking move: if a Bazel rule can produce the kernel_worker
@@ -222,14 +222,31 @@ First `utils/` tool on the macro. The mechanical recipe for the remaining ~14
   `<tool>_aot_product_snapshot` (`force_product_mode=!dart_debug` → product,
   `//runtime/bin:gen_snapshot_product`). All feed `vm_platform.dill` (non-product)
   to gen_kernel regardless — see `aot_snapshot.gni:67`.
-- **The GN `<tool>_aot` group must stay a `cc_library`** (the `//:runtime`
-  aggregate `deps` on it), but carry the snapshots via **`data`**, not `deps` — a
-  `cc_library` can't depend on a genrule (no `CcInfo`). `data` keeps `CcInfo` and
-  still builds the snapshots.
+- **Two reference patterns, both work with the bare genrule.** Some tools have a
+  `<tool>_aot` group `cc_library` the aggregate `deps` on (dtd, dds — bundle the
+  snapshots via `data`); others are referenced *directly* by `//:runtime` `deps`
+  (frontend_server, dartdev). **A `cc_library` CAN depend on a bare genrule under
+  Bazel 9 / rules_cc** — `//:runtime` analyzes cleanly either way (verified). So
+  no wrapper is needed; the GN-named genrule is a drop-in for both. (Groups still
+  use `data` rather than `deps` as the more honest "this is a data file" edge.)
 - **The `main_dart` entry-point** (if under `pkg/`) needs a root `exports_files`
   entry, since `pkg/` has no sub-`BUILD.bazel`.
-- The opaque `//:dart_package_sources` closure was sufficient for dtd with zero
-  missing-source failures — the model holds beyond the CFE.
+- **Opaque-closure gaps surface as kernel-compile errors and are cheap to fix**
+  when the missing root has no sub-`BUILD.bazel`: dds needed `third_party/devtools`
+  (package:devtools_shared) added to `//:dart_package_sources`.
+
+**Deferred tools — out-of-band staleness, NOT rule gaps:**
+- **dart_runtime_service_vm**: `package:dart_runtime_service_vm` is absent from
+  the gitignored `.dart_tool/package_config.json` (192 pkgs, not this one) →
+  "Couldn't resolve the package". Needs a package_config refresh.
+- **dartdev**: pulls `pkg/analysis_server`, whose source uses the
+  `primary-constructors` experiment (package_config pins it at languageVersion
+  3.12; pubspec wants ^3.13.0-0, and `allowed_experiments.json` grants it to no
+  one). Enabling `--enable-experiment=primary-constructors` clears that but
+  reveals a *second* layer: `package:unified_analytics` is API-drifted vs source
+  (`DashEnvVar`/`ideName`/`areAnalyticsSuppressed` undefined) — same class as the
+  record_use drift. Needs `gclient sync` + `pub get`, which prior sessions
+  deferred as broad/risky (it could disturb the byte-pinned blob state).
 
 `application_snapshot()` (app-jit, e.g. the non-AOT `dds.dart.snapshot`) is not
 yet ported — only the AOT groups the `runtime` aggregate consumes. That's the
