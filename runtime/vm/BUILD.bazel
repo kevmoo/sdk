@@ -8110,6 +8110,7 @@ cc_binary(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/vm:headers",
         "//build/config/sanitizers:deps",
     ],
     defines = [
@@ -8188,6 +8189,7 @@ cc_binary(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/vm:headers",
         "//build/config/sanitizers:deps",
     ],
     defines = [
