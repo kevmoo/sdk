@@ -22,9 +22,11 @@ cc_library(
 
 cc_binary(
     name = "gen_regexp_special_case",
+    srcs = ["regexp/gen-regexp-special-case.cc"],
     deps = [
         "//build/config/sanitizers:deps",
         "//runtime/platform:libdart_platform_jit",
+        "//runtime/vm:headers",
         "//third_party/icu:icuuc",
     ],
     defines = [
