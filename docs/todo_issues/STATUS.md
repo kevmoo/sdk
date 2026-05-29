@@ -11,7 +11,7 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-05-29 (session 13) — THE REFRESH done (package_config regen + 16 Dart-pkg clone rolls to DEPS pins); unblocked + ported 4 more AOT tools (dart_runtime_service_vm, dartdev, dart2wasm, analysis_server). Only dartanalyzer (app-jit) + web compile_platform variants remain on the utils/ AOT seam._
+_Last updated: 2026-05-29 (session 14) — VERIFIED AOT-tool fidelity (closes the session-12 "ported snapshots unverified vs GN" risk): 4 of 10 tools (dtd, dart2js, dart2wasm_asserts, analysis_server) spot-checked by rebuilding GN from current sources + path-normalized kernel-dump diff → kernel dills SEMANTICALLY IDENTICAL (0-line diff, 61k–463k lines each; dtd also proven byte-level). See "AOT tool snapshot fidelity" below. Session 13 — THE REFRESH done (package_config regen + 16 Dart-pkg clone rolls to DEPS pins); unblocked + ported 4 more AOT tools (dart_runtime_service_vm, dartdev, dart2wasm, analysis_server). Only dartanalyzer (app-jit) + web compile_platform variants remain on the utils/ AOT seam._
 
 ## TL;DR
 
@@ -77,6 +77,55 @@ The reliable claim is the *ordering*: nothing in Phase 2+ moves until
 3. **Cutover machinery (§4.3 + §3.6).** Test integration, swapping
    `tools/build.py`/`test.py` backends GN→Bazel behind the same CLI, and the
    atomic per-subtree GN deletion. None started — GN is still the source of truth.
+
+## AOT tool snapshot fidelity (verified — session 14)
+
+Closes the risk recorded at the session-12 gating decision: *"ported tool
+snapshots are unverified vs GN (only `vm_platform` was diffed)."* Spot-checked
+**4 of the 10** ported AOT tools, chosen to span the distinct rule paths:
+`dtd` (plain), `dart2js` (generated entry via `make_version --no-git-hash`),
+`dart2wasm_asserts` (`--enable-asserts` threaded to gen_kernel + gen_snapshot),
+`analysis_server` (analyzer stack, post-refresh; `-Dbuilt_as_aot=true`).
+
+**Method (the trap, and how to avoid it):** the GN artifacts staged in
+`out/ReleaseX64` are dated **Feb 27 — pre-refresh**. `cmp`-ing fresh Bazel output
+against them is invalid (input drift, not rule drift). The fair test is to
+**rebuild the GN target from *current* sources via ninja** (delete the stale leaf
+`*.dart.dill` + `*.snapshot` first; they're leaf outputs — `vm_platform`/blob
+deps are upstream and untouched), then compare against Bazel built from the same
+sources. Compare **semantically**: `tools/sdks/dart-sdk/bin/dart pkg/kernel/bin/dump.dart`
+on both dills, normalize the absolute-path prefixes
+(`/var/home/.../sdk/` and the Bazel `…/sandbox/linux-sandbox/N/execroot/_main/`
+both → `ROOT/`; generated-entry gen dirs → `GENROOT/`), then `diff`.
+
+**Result: kernel dills are SEMANTICALLY IDENTICAL** — 0-line dump diff for all
+four (dtd 61 397, dart2js 329 828, dart2wasm_asserts 426 203, analysis_server
+462 779 lines). `dtd` additionally got a byte-level forensic: the residual raw-byte
+diff is *entirely* the embedded absolute source-URI prefix (sandbox execroot vs
+checkout) cascading into kernel string-table offset **varint widths** — size delta
+(12 360 B) accounted for to the byte (192 URIs × prefix-length delta + varint
+widening). After prefix-stripping, the differing region is exactly the string
+table.
+
+**Why not byte-identical (and why that's correct, not a defect):** the AOT
+*tool* kernel compiles embed absolute `file://` source URIs — they do **not** use
+`--single-root-base`/`org-dartlang-sdk:///` canonical URIs the way
+`compile_platform`/`vm_platform.dill` does. So these dills are *location-dependent
+under GN itself* (a different checkout path → different bytes). "Byte-identical to
+GN" was never achievable here; **"semantically identical" is the right bar, and we
+meet it.** (Forward note: threading a multi-root scheme into the tool AOT compiles
+would make them reproducible/remote-cacheable for GN *and* Bazel — a possible
+SDK improvement, not yet filed.)
+
+**Define-position finding (confirmed non-issue):** GN passes
+`analysis_server`'s `-Dbuilt_as_aot=true` via the template's post-`main_dart`
+`args` slot; the Bazel port uses pre-`main` `gen_kernel_args`. The dump diff is
+still 0 lines — gen_kernel collects `-D` defines globally regardless of position.
+
+**AOT ELF snapshots:** byte-different, **wholly inherited** from the dill's
+path divergence (same `gen_snapshot --deterministic`, path-divergent input dill).
+NOT independently byte/semantic-compared; functional equivalence rests on the dill
+semantic identity + the session-13 run verification (each tool launches/runs).
 
 ## Known red / blocked
 
