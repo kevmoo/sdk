@@ -93,14 +93,22 @@ def _attr_list(name, items, indent=4):
 _HDR_EXTS = (".h", ".hpp", ".hh", ".inc")
 
 
-def emit_cc_library(name, t, pkg, packages):
-    """source_set / static_library -> cc_library."""
+def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
+    """source_set / static_library -> cc_library; executable -> cc_binary.
+
+    cc_binary has no `hdrs` attribute, so for binaries the header inputs are
+    folded into `srcs` (header files in srcs are made available to the
+    binary's own compiles but not compiled as translation units).
+    """
     hdrs, srcs = [], []
     for s in t.get("sources", []):
         lbl = src_label(s, pkg, packages)
         if lbl is None:
             continue
         (hdrs if s.endswith(_HDR_EXTS) else srcs).append(lbl)
+    if rule == "cc_binary":
+        srcs += hdrs
+        hdrs = []
     deps = [f'"{d}"' for d in t.get("deps", [])]
     defines = [f'"{d}"' for d in t.get("defines", [])]
     include_copts = []
@@ -119,7 +127,7 @@ def emit_cc_library(name, t, pkg, packages):
     raw_flags = [f for f in raw_flags if not f.startswith("--sysroot=")]
     copts = include_copts + [f'"{c}"' for c in raw_flags]
     linkopts = [f'"-l{l}"' for l in t.get("libs", [])]
-    out = [f'cc_library(\n    name = "{name}",\n']
+    out = [f'{rule}(\n    name = "{name}",\n']
     out.append(_attr_list("srcs", srcs))
     out.append(_attr_list("hdrs", hdrs))
     out.append(_attr_list("deps", deps))
@@ -131,8 +139,7 @@ def emit_cc_library(name, t, pkg, packages):
 
 
 def emit_cc_binary(name, t, pkg, packages):
-    body = emit_cc_library(name, t, pkg, packages).replace("cc_library(", "cc_binary(", 1)
-    return body
+    return emit_cc_library(name, t, pkg, packages, rule="cc_binary")
 
 
 def emit_group(name, t, pkg, packages):
