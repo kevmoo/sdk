@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -18,23 +19,39 @@ exports_files(glob(
 # TODO(M3): genrule for analysis_server (gn type=action)
 cc_library(name = "analysis_server")
 
-# TODO(M3): copy for analysis_server_aot (gn type=copy)
-cc_library(name = "analysis_server_aot")
+# rules_dart Step 4: real analysis_server AOT snapshots. Unblocked by the
+# session-13 refresh (the analyzer/linter stack now resolves). Ports the two
+# aot_snapshot() targets in utils/analysis_server/BUILD.gn over
+# pkg/analysis_server/bin/server.dart. Both pass -Dbuilt_as_aot=true (GN
+# invoker.args -> the gen_kernel define). The application_snapshot("analysis_server")
+# app-jit target stays a deferred stub. Output names match GN ($root_gen_dir).
 
-# TODO(M3): genrule for analysis_server_aot_dill (gn type=action)
-cc_library(name = "analysis_server_aot_dill")
+# aot_snapshot("analysis_server_aot") -> product = false.
+dart_aot_snapshot(
+    name = "analysis_server_aot",
+    main = "//:pkg/analysis_server/bin/server.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    gen_kernel_args = ["-Dbuilt_as_aot=true"],
+    out = "analysis_server_aot.dart.snapshot",
+)
 
-# TODO(M3): genrule for analysis_server_aot_gen_snapshot (gn type=action)
-cc_library(name = "analysis_server_aot_gen_snapshot")
-
-# TODO(M3): copy for analysis_server_aot_product (gn type=copy)
-cc_library(name = "analysis_server_aot_product")
-
-# TODO(M3): genrule for analysis_server_aot_product_dill (gn type=action)
-cc_library(name = "analysis_server_aot_product_dill")
-
-# TODO(M3): genrule for analysis_server_aot_product_gen_snapshot (gn type=action)
-cc_library(name = "analysis_server_aot_product_gen_snapshot")
+# aot_snapshot("analysis_server_aot_product") force_product_mode = !dart_debug
+# -> product = true -> //runtime/bin:gen_snapshot_product.
+dart_aot_snapshot(
+    name = "analysis_server_aot_product",
+    main = "//:pkg/analysis_server/bin/server.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    gen_kernel_args = ["-Dbuilt_as_aot=true"],
+    out = "analysis_server_aot_product.dart.snapshot",
+)
 
 # TODO(M3): genrule for analysis_server_dill (gn type=action)
 cc_library(name = "analysis_server_dill")
