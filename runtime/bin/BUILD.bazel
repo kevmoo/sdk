@@ -1833,13 +1833,25 @@ cc_library(name = "ffi_callback_stub_bin")
 
 cc_library(
     name = "ffi_test_dynamic_library",
-    deps = [
-        "//runtime/bin:ffi_test_dynamic_library_copy",
+    srcs = ["ffi_test/ffi_test_dynamic_library.cc"],
+    # gn include_dirs = [".."] -> -Iruntime; -fPIC because the toolchain
+    # doesn't advertise supports_pic (see //samples/ffi/http:fake_http).
+    copts = [
+        "-Iruntime",
+        "-fPIC",
     ],
+    alwayslink = True,
 )
 
-# TODO(M3): copy for ffi_test_dynamic_library_copy (gn type=copy)
-cc_library(name = "ffi_test_dynamic_library_copy")
+# GN: shared_library("ffi_test_dynamic_library"). Self-contained (references
+# no Dart_* symbols), so the gn deps=[":dartvm"] is not needed to link the .so.
+cc_binary(
+    name = "libffi_test_dynamic_library.so",
+    copts = ["-Iruntime"],
+    linkshared = True,
+    linkopts = ["-rdynamic"],
+    deps = [":ffi_test_dynamic_library"],
+)
 
 cc_library(
     name = "ffi_test_functions",
