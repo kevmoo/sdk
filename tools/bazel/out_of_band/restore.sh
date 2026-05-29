@@ -5,9 +5,10 @@
 # WHY THIS EXISTS
 #   A large amount of load-bearing state for the Bazel build cannot live in the
 #   SDK's own git history: it sits inside depot_tools/gclient-managed nested
-#   clones (third_party/icu, /zlib, /boringssl, /perfetto, /pkg/native) that the
-#   outer SDK repo treats as opaque, plus a handful of files under the gitignored
-#   out/ tree. Two routine operations silently wipe this state:
+#   clones (third_party/icu, /zlib, /boringssl, /perfetto, /pkg/native,
+#   /pkg/tools) that the outer SDK repo treats as opaque, plus a handful of files
+#   under the gitignored out/ tree and the gitignored .dart_tool/package_config.json.
+#   Two routine operations silently wipe this state:
 #     1. `gclient sync`                 — resets the nested subrepos.
 #     2. re-running the GN->Bazel translator (tools/bazel/translate_gn_desc.py).
 #
@@ -30,9 +31,15 @@ SDK_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 SNAP="$SCRIPT_DIR/snapshot"
 cd "$SDK_ROOT"
 
-# The exact upstream revision third_party/pkg/native must sit at for the
-# record_use API to match current SDK source (DEPS pin; see README).
-PKG_NATIVE_PIN="b814f5393753e0cd752ce3ad733f5e66dd5949ce"
+# Nested gclient-managed subrepos that must sit at a specific upstream revision
+# for their package APIs to match current SDK source (DEPS pins; see README).
+#   pkg/native — record_use API (DefinitionWithInstances etc.); rebuilds kernel_service.dill.
+#   pkg/tools  — package:unified_analytics API (DashEnvVar / ideName /
+#                areAnalyticsSuppressed); needed by dartdev + analysis_server.
+SUBREPO_PINS=(
+  "third_party/pkg/native:b814f5393753e0cd752ce3ad733f5e66dd5949ce"
+  "third_party/pkg/tools:6a7dd15748e63db7d41cfee8294c54636b668f41"
+)
 
 DISABLED_SUFFIX=".disabled-for-dart-bazel-migration"
 
@@ -69,7 +76,7 @@ echo
 # 1. Verbatim files (wholly ours): every *.snap under snapshot/ maps to the
 #    same path with the snapshot/ prefix and .snap suffix removed.
 # --------------------------------------------------------------------------
-echo "[1/6] Verbatim files (.snap)"
+echo "[1/7] Verbatim files (.snap)"
 while IFS= read -r -d '' src; do
   rel="${src#"$SNAP"/}"          # e.g. third_party/icu/BUILD.bazel.snap
   dest="${rel%.snap}"           # e.g. third_party/icu/BUILD.bazel
@@ -88,7 +95,7 @@ echo
 # 2. Append blocks: every *.append appends a "# Dart Bazel M5:" marked block
 #    to an upstream file. Idempotent via the marker.
 # --------------------------------------------------------------------------
-echo "[2/6] Append blocks (.append)"
+echo "[2/7] Append blocks (.append)"
 while IFS= read -r -d '' src; do
   rel="${src#"$SNAP"/}"          # third_party/icu/source/common/BUILD.bazel.append
   dest="${rel%.append}"         # third_party/icu/source/common/BUILD.bazel
@@ -109,7 +116,7 @@ echo
 # --------------------------------------------------------------------------
 # 3. Disabling renames (move blocking upstream BUILD/WORKSPACE files aside).
 # --------------------------------------------------------------------------
-echo "[3/6] Disabling renames"
+echo "[3/7] Disabling renames"
 for f in "${RENAMES[@]}"; do
   disabled="${f}${DISABLED_SUFFIX}"
   if [ -e "$disabled" ]; then
@@ -127,7 +134,7 @@ echo
 # --------------------------------------------------------------------------
 # 4. GN args flips (sdk_hash determinism — see README "SDK hash discipline").
 # --------------------------------------------------------------------------
-echo "[4/6] out/ReleaseX64/args.gn flags"
+echo "[4/7] out/ReleaseX64/args.gn flags"
 ARGS_GN="out/ReleaseX64/args.gn"
 set_gn_false() {
   local key="$1"
@@ -153,31 +160,58 @@ fi
 echo
 
 # --------------------------------------------------------------------------
-# 5. third_party/pkg/native DEPS pin (record_use API match).
+# 5. Nested-subrepo DEPS pins (package APIs must match current SDK source).
 # --------------------------------------------------------------------------
-echo "[5/6] third_party/pkg/native pin"
-if [ -d "third_party/pkg/native/.git" ]; then
-  cur="$(git -C third_party/pkg/native rev-parse HEAD)"
-  if [ "$cur" = "$PKG_NATIVE_PIN" ]; then
-    say "ok       at pin ${PKG_NATIVE_PIN:0:12}"
-  else
-    say "rolling  ${cur:0:12} -> ${PKG_NATIVE_PIN:0:12}"
-    if ! git -C third_party/pkg/native checkout -q "$PKG_NATIVE_PIN" 2>/dev/null; then
-      git -C third_party/pkg/native fetch -q origin "$PKG_NATIVE_PIN" 2>/dev/null || \
-        git -C third_party/pkg/native fetch -q origin
-      git -C third_party/pkg/native checkout -q "$PKG_NATIVE_PIN"
+echo "[5/7] Nested-subrepo DEPS pins"
+for entry in "${SUBREPO_PINS[@]}"; do
+  path="${entry%%:*}"
+  pin="${entry#*:}"
+  if [ -d "$path/.git" ]; then
+    cur="$(git -C "$path" rev-parse HEAD)"
+    if [ "$cur" = "$pin" ]; then
+      say "ok       $path at pin ${pin:0:12}"
+    else
+      say "rolling  $path ${cur:0:12} -> ${pin:0:12}"
+      if ! git -C "$path" checkout -q "$pin" 2>/dev/null; then
+        git -C "$path" fetch -q origin "$pin" 2>/dev/null || \
+          git -C "$path" fetch -q origin
+        git -C "$path" checkout -q "$pin"
+      fi
+      note_change
     fi
+  else
+    yellow "  $path is not a git checkout — skipping"
+  fi
+done
+echo
+
+# --------------------------------------------------------------------------
+# 6. Regenerate .dart_tool/package_config.json (gitignored; deterministic).
+#    Runs the checked-in prebuilt SDK over the workspace pubspecs — the same
+#    mechanism `gclient runhooks` uses. Must come AFTER the pin rolls above so
+#    it resolves against the correct subrepo revisions. This replaces any stale
+#    or hand-hacked config (e.g. the historical uniform-3.12 languageVersion).
+# --------------------------------------------------------------------------
+echo "[6/7] .dart_tool/package_config.json"
+if [ -x "tools/sdks/dart-sdk/bin/dart" ]; then
+  before=""
+  [ -f ".dart_tool/package_config.json" ] && before="$(cat .dart_tool/package_config.json)"
+  python3 tools/generate_package_config.py >/dev/null
+  if [ "$before" != "$(cat .dart_tool/package_config.json)" ]; then
+    say "regenerated .dart_tool/package_config.json"
     note_change
+  else
+    say "ok       .dart_tool/package_config.json (unchanged)"
   fi
 else
-  yellow "  third_party/pkg/native is not a git checkout — skipping"
+  yellow "  tools/sdks/dart-sdk/bin/dart absent — run gclient sync/CIPD first; skipping"
 fi
 echo
 
 # --------------------------------------------------------------------------
-# 6. Verify heavy artifacts (NOT produced here — see README for regen recipes).
+# 7. Verify heavy artifacts (NOT produced here — see README for regen recipes).
 # --------------------------------------------------------------------------
-echo "[6/6] Build artifacts (verify only)"
+echo "[7/7] Build artifacts (verify only)"
 missing=0
 for a in "${ARTIFACTS[@]}"; do
   if [ -f "$a" ]; then
