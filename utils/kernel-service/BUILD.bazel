@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,14 +16,50 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): copy for copy_kernel-service_snapshot (gn type=copy)
-cc_library(name = "copy_kernel-service_snapshot")
+# GN copy("copy_kernel-service_snapshot") restages the app-jit snapshot from
+# $root_gen_dir into $root_out_dir. The snapshot is now a real
+# dart_app_jit_snapshot genrule; the group keeps its cc_library shape (so
+# //:runtime's aggregate dep stays CcInfo-valid) but carries the snapshot via
+# `data`, per the dtd_aot / generate_dtd_snapshot pattern.
+cc_library(
+    name = "copy_kernel-service_snapshot",
+    data = [
+        "//utils/kernel-service:kernel-service_snapshot",
+    ],
+)
 
 # TODO(M3): genrule for ddc_files_stamp (gn type=action)
 cc_library(name = "ddc_files_stamp")
 
-# TODO(M3): genrule for frontend_server (gn type=action)
-cc_library(name = "frontend_server")
+# rules_dart Step 4 (app-jit): frontend_server app-jit snapshot. Ports
+# utils/kernel-service/BUILD.gn:application_snapshot("frontend_server").
+# Training compiles frontend_server_starter.dart itself; --train re-parses args,
+# resolving the platform via Uri.file(platform) against --sdk-root. GN points
+# --sdk-root/--platform at root_out_dir (where it colocates vm_platform.dill);
+# here --sdk-root=. is the execroot (Uri.base) and --platform is the execroot-
+# relative $(location) of the in-Bazel vm_platform.dill, so sdkRoot.resolve()
+# lands on the right file. ddc_files_stamp/frontend_server_files_stamp (GN
+# create_timestamp_file rebuild triggers) are subsumed by the sources glob.
+dart_app_jit_snapshot(
+    name = "frontend_server",
+    main = "//:pkg/frontend_server/bin/frontend_server_starter.dart",
+    sources = "//:dart_package_sources",
+    training_args = [
+        "--train",
+        "--sdk-root=.",
+        "--platform=$(location //runtime/vm:vm_platform.dill)",
+        "$(location //:pkg/frontend_server/bin/frontend_server_starter.dart)",
+    ],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    training_srcs = [
+        "//:pkg/frontend_server/bin/frontend_server_starter.dart",
+        "//runtime/vm:vm_platform.dill",
+    ],
+    out = "frontend_server.dart.snapshot",
+)
 
 # rules_dart Step 4: real frontend_server AOT snapshots over
 # pkg/frontend_server/bin/frontend_server_starter.dart. Ports
@@ -50,8 +86,8 @@ dart_aot_snapshot(
     out = "frontend_server_aot_product.dart.snapshot",
 )
 
-# TODO(M3): genrule for frontend_server_dill (gn type=action)
-cc_library(name = "frontend_server_dill")
+# frontend_server_dill is now emitted by the dart_app_jit_snapshot macro above
+# (its stage-1 kernel compile), so the translator stub is dropped.
 
 # TODO(M3): genrule for frontend_server_files_stamp (gn type=action)
 cc_library(name = "frontend_server_files_stamp")
@@ -63,11 +99,38 @@ cc_library(
     ],
 )
 
-# TODO(M3): genrule for kernel-service_snapshot (gn type=action)
-cc_library(name = "kernel-service_snapshot")
+# rules_dart Step 4 (app-jit): kernel-service app-jit snapshot. Ports
+# utils/kernel-service/BUILD.gn:application_snapshot("kernel-service_snapshot").
+# Training run = the JIT VM compiling kernel_service.dart itself (--train
+# <script>). GN passes no platform arg and relies on
+# computePlatformBinariesLocation() finding vm_platform.dill next to the built
+# dart; here dartvm is NOT colocated with the dill, so we pass the platform
+# explicitly as the optional 2nd positional --train arg (kernel_service.dart
+# resolves request[3] via Uri.base.resolveUri(Uri.file(...)) against the
+# execroot). DFE is pinned NEVER_LOADED by the macro, avoiding the circular dep
+# on the kernel service this snapshot IS.
+dart_app_jit_snapshot(
+    name = "kernel-service_snapshot",
+    main = "//:pkg/vm/bin/kernel_service.dart",
+    sources = "//:dart_package_sources",
+    training_args = [
+        "--train",
+        "$(location //:pkg/vm/bin/kernel_service.dart)",
+        "$(location //runtime/vm:vm_platform.dill)",
+    ],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    training_srcs = [
+        "//:pkg/vm/bin/kernel_service.dart",
+        "//runtime/vm:vm_platform.dill",
+    ],
+    out = "kernel-service.dart.snapshot",
+)
 
-# TODO(M3): genrule for kernel-service_snapshot_dill (gn type=action)
-cc_library(name = "kernel-service_snapshot_dill")
+# kernel-service_snapshot_dill is now emitted by the dart_app_jit_snapshot macro
+# above (its stage-1 kernel compile), so the translator stub is dropped.
 
 # TODO(M3): genrule for kernel_service_dill (gn type=action)
 cc_library(name = "kernel_service_dill")
