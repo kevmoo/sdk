@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -29,31 +30,48 @@ cc_library(
     ],
 )
 
+# Group stays a cc_library (//:runtime deps on it): the prebuilt-devtools copy
+# stays a deps stub (copy_tree, deferred); the snapshot rides via `data`.
 cc_library(
     name = "dartdev_aot",
     deps = [
         "//utils/dartdev:copy_prebuilt_devtools",
+    ],
+    data = [
         "//utils/dartdev:dartdev_aot_snapshot",
     ],
 )
 
-# TODO(M3): copy for dartdev_aot_profile_snapshot (gn type=copy)
-cc_library(name = "dartdev_aot_profile_snapshot")
+# rules_dart Step 4: real dartdev AOT snapshots. Unblocked by the session-13
+# refresh (pkg/tools roll fixed the package:unified_analytics API that
+# pkg/dartdev/lib/dartdev.dart imports). Ports the two aot_snapshot() targets in
+# utils/dartdev/BUILD.gn over pkg/dartdev/bin/dartdev.dart.
 
-# TODO(M3): genrule for dartdev_aot_profile_snapshot_dill (gn type=action)
-cc_library(name = "dartdev_aot_profile_snapshot_dill")
+# aot_snapshot("dartdev_aot_snapshot") has force_product_mode = !dart_debug, so
+# in this (non-debug) config product = true -> //runtime/bin:gen_snapshot_product.
+dart_aot_snapshot(
+    name = "dartdev_aot_snapshot",
+    main = "//:pkg/dartdev/bin/dartdev.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "dartdev_aot.dart.snapshot",
+)
 
-# TODO(M3): genrule for dartdev_aot_profile_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dartdev_aot_profile_snapshot_gen_snapshot")
-
-# TODO(M3): copy for dartdev_aot_snapshot (gn type=copy)
-cc_library(name = "dartdev_aot_snapshot")
-
-# TODO(M3): genrule for dartdev_aot_snapshot_dill (gn type=action)
-cc_library(name = "dartdev_aot_snapshot_dill")
-
-# TODO(M3): genrule for dartdev_aot_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dartdev_aot_snapshot_gen_snapshot")
+# aot_snapshot("dartdev_aot_profile_snapshot") has no force_product_mode ->
+# product = false -> //runtime/bin:gen_snapshot.
+dart_aot_snapshot(
+    name = "dartdev_aot_profile_snapshot",
+    main = "//:pkg/dartdev/bin/dartdev.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "dartdev_aot_profile.dart.snapshot",
+)
 
 # TODO(M3): genrule for generate_dartdev_snapshot (gn type=action)
 cc_library(name = "generate_dartdev_snapshot")
