@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_library")
 load("//tools/bazel/dart:packages.bzl", "dart_packages")
 
 package(default_visibility = ["//visibility:public"])
@@ -52,6 +53,43 @@ filegroup(
 filegroup(
     name = "package_config_json",
     srcs = [".dart_tool/package_config.json"],
+)
+
+# rules_dart Step 3: the scoped closure for the platform compiles (vm_platform +
+# the 6 web/wasm dart_compile_platform variants), replacing their use of the
+# opaque //:dart_package_sources blob. Their entry script
+# pkg/front_end/tool/compile_platform.dart and its tool/ siblings live OUTSIDE any
+# package lib/, so no generated dart_pkg_* closure materializes them — hence they
+# are listed here as explicit srcs. The script statically imports every kernel
+# Target (vm, dart2js, dartdevc, dart2wasm) via additional_targets.dart, so a
+# SINGLE closure serves all 7 callers regardless of which --target= they pass; the
+# deps are exactly the top-level packages reachable from the 7 tool/test files
+# (build_integration, compiler, dart2wasm, dev_compiler, _fe_analyzer_shared,
+# front_end, kernel, vm, vm_service — transitively closed by dart_library).
+# Scoping vm_platform this way must keep its .dill BYTE-IDENTICAL to GN (re-cmp
+# after any edit).
+dart_library(
+    name = "compile_platform_tool",
+    srcs = [
+        "pkg/front_end/tool/compile_platform.dart",
+        "pkg/front_end/tool/entry_points.dart",
+        "pkg/front_end/tool/additional_targets.dart",
+        "pkg/front_end/tool/bench_maker.dart",
+        "pkg/front_end/tool/command_line.dart",
+        "pkg/front_end/test/coverage_helper.dart",
+        "pkg/front_end/test/vm_service_helper.dart",
+    ],
+    deps = [
+        ":dart_pkg__fe_analyzer_shared",
+        ":dart_pkg_build_integration",
+        ":dart_pkg_compiler",
+        ":dart_pkg_dart2wasm",
+        ":dart_pkg_dev_compiler",
+        ":dart_pkg_front_end",
+        ":dart_pkg_kernel",
+        ":dart_pkg_vm",
+        ":dart_pkg_vm_service",
+    ],
 )
 
 # Dart entry-point scripts referenced as `main` by Dart-compilation rules

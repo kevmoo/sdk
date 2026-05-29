@@ -8270,7 +8270,7 @@ cc_binary(
 # embed in //runtime/bin and the kernel_worker snapshot in //utils/bazel.
 dart_compile_platform(
     name = "vm_platform",
-    sources = "//:dart_package_sources",
+    sources = "//:compile_platform_tool",
     sdk_sources = "//sdk:sdk_library_sources",
     product = False,
     exclude_source = False,

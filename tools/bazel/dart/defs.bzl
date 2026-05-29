@@ -134,7 +134,11 @@ def dart_compile_platform(
     platform_out = platform_out or (name + ".dill")
     outline_out = outline or (name + "_outline.dill")
     base = single_root_base or "$$(pwd)"
-    srcs = [_SDK_FILES, sources, sdk_sources]
+    # _PACKAGE_CONFIG_FILE materializes .dart_tool/package_config.json for the
+    # --packages flag. Required now that `sources` may be a per-package
+    # dart_library closure (.dart only); deduped/harmless when `sources` is still
+    # the opaque //:dart_package_sources blob (which also bundles it).
+    srcs = [_SDK_FILES, sources, sdk_sources, _PACKAGE_CONFIG_FILE]
 
     if platform_args == None:
         # VM platform: dart:core + the VM defines (+ optional --exclude-source).
