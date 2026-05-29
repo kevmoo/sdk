@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -33,8 +34,25 @@ cc_library(name = "dart2js_aot_dill")
 # TODO(M3): genrule for dart2js_aot_gen_snapshot (gn type=action)
 cc_library(name = "dart2js_aot_gen_snapshot")
 
-# TODO(M3): genrule for dart2js_create_snapshot_entry (gn type=action)
-cc_library(name = "dart2js_create_snapshot_entry")
+# rules_dart Step 4: generate the dart2js entry-point wrapper (embeds the SDK
+# version into the compiler). Ports utils/compiler/BUILD.gn:
+# prebuilt_dart_action("dart2js_create_snapshot_entry"). create_snapshot_entry.dart
+# shells to `python3 tools/make_version.py --quiet --no-git-hash`; --no-git-hash
+# skips the sdk_hash path that would read runtime/vm files, so the only inputs
+# are make_version.py + utils.py + VERSION. Output is utils/compiler/dart2js.dart.
+genrule(
+    name = "dart2js_create_snapshot_entry",
+    srcs = [
+        "create_snapshot_entry.dart",
+        "//tools:make_version.py",
+        "//tools:utils.py",
+        "//tools:VERSION",
+        "//tools/sdks/dart-sdk:sdk_files",
+    ],
+    outs = ["dart2js.dart"],
+    cmd = "tools/sdks/dart-sdk/bin/dart $(location create_snapshot_entry.dart) " +
+          "--output_dir=$(RULEDIR) --no-git-hash",
+)
 
 # TODO(M3): genrule for dart2js_dill (gn type=action)
 cc_library(name = "dart2js_dill")
@@ -42,23 +60,30 @@ cc_library(name = "dart2js_dill")
 # TODO(M3): genrule for dart2js_files_stamp (gn type=action)
 cc_library(name = "dart2js_files_stamp")
 
-# TODO(M3): copy for dart2js_sdk_aot (gn type=copy)
-cc_library(name = "dart2js_sdk_aot")
+# rules_dart Step 4: real dart2js AOT snapshots over the generated entry-point.
+# Ports utils/compiler/BUILD.gn:aot_snapshot("dart2js_sdk_aot[_product]").
+# //:dart2js references dart2js_sdk_aot directly via cc_library deps.
+dart_aot_snapshot(
+    name = "dart2js_sdk_aot",
+    main = "dart2js.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "dart2js_aot.dart.snapshot",
+)
 
-# TODO(M3): genrule for dart2js_sdk_aot_dill (gn type=action)
-cc_library(name = "dart2js_sdk_aot_dill")
-
-# TODO(M3): genrule for dart2js_sdk_aot_gen_snapshot (gn type=action)
-cc_library(name = "dart2js_sdk_aot_gen_snapshot")
-
-# TODO(M3): copy for dart2js_sdk_aot_product (gn type=copy)
-cc_library(name = "dart2js_sdk_aot_product")
-
-# TODO(M3): genrule for dart2js_sdk_aot_product_dill (gn type=action)
-cc_library(name = "dart2js_sdk_aot_product_dill")
-
-# TODO(M3): genrule for dart2js_sdk_aot_product_gen_snapshot (gn type=action)
-cc_library(name = "dart2js_sdk_aot_product_gen_snapshot")
+dart_aot_snapshot(
+    name = "dart2js_sdk_aot_product",
+    main = "dart2js.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "dart2js_aot_product.dart.snapshot",
+)
 
 # TODO(M3): genrule for dartdoc_files_stamp (gn type=action)
 cc_library(name = "dartdoc_files_stamp")
