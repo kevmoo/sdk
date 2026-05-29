@@ -1868,15 +1868,63 @@ cc_binary(
     deps = [":ffi_test_dynamic_library"],
 )
 
+# The C sources are split from the C++ sources: cc_library copts apply to
+# every compile, but -std=c++20 (needed by the C++ TUs for std::bit_cast) is
+# rejected on the C compiles, which the toolchain forces through -x c. See
+# docs/todo_issues/issue_00001_split_conlyopts_cxxopts.md.
 cc_library(
-    name = "ffi_test_functions",
-    deps = [
-        "//runtime/bin:ffi_test_functions_copy",
+    name = "ffi_test_functions_c",
+    srcs = [
+        # gn comment: "must be compiled in for dynamic linking" (Dart_*_DL).
+        "//runtime/include:dart_api_dl.c",
+        "ffi_test/ffi_test_fields.c",
+        "ffi_test/ffi_test_fields.h",
     ],
+    # gn include_dirs = [".."] -> -Iruntime; -fPIC (toolchain lacks
+    # supports_pic, see //samples/ffi/http:fake_http).
+    copts = [
+        "-Iruntime",
+        "-fPIC",
+    ],
+    deps = ["//runtime/include:headers"],
+    alwayslink = True,
 )
 
-# TODO(M3): copy for ffi_test_functions_copy (gn type=copy)
-cc_library(name = "ffi_test_functions_copy")
+cc_library(
+    name = "ffi_test_functions",
+    srcs = [
+        "ffi_test/ffi_test_functions.cc",
+        "ffi_test/ffi_test_functions_generated.cc",
+        "ffi_test/ffi_test_functions_generated_2.cc",
+        "ffi_test/ffi_test_functions_vmspecific.cc",
+        "ffi_test/ffi_test_fields.h",
+        # gn: clobber_$current_cpu.S (non-win); x64 on this host.
+        "ffi_test/clobber_x64.S",
+    ],
+    copts = [
+        "-Iruntime",
+        "-fPIC",
+        "-std=c++20",
+    ],
+    deps = [
+        ":ffi_test_functions_c",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+    ],
+    alwayslink = True,
+)
+
+# GN: shared_library("ffi_test_functions"). The vmspecific TU calls the full
+# Dart_* embedder API; those symbols stay undefined in the .so and resolve at
+# dlopen against the host dartvm (-rdynamic), so deps=[":dartvm"] is not a
+# link-time dep. dart_api_dl.c supplies the Dart_*_DL trampolines.
+cc_binary(
+    name = "libffi_test_functions.so",
+    copts = ["-Iruntime"],
+    linkshared = True,
+    linkopts = ["-rdynamic"],
+    deps = [":ffi_test_functions"],
+)
 
 cc_binary(
     name = "gen_snapshot",
