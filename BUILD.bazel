@@ -48,6 +48,7 @@ exports_files([
     "pkg/dartdev/bin/dartdev.dart",
     "pkg/dart2wasm/bin/dart2wasm.dart",
     "pkg/analysis_server/bin/server.dart",
+    "pkg/analyzer_cli/bin/analyzer.dart",
 ])
 
 cc_library(

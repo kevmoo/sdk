@@ -161,3 +161,88 @@ def dart_aot_snapshot(
         ),
         **kwargs
     )
+
+def dart_app_jit_snapshot(
+        name,
+        main,
+        sources,
+        training_args,
+        gen_kernel_dill,
+        platform_dill,
+        dart_vm,
+        product = False,
+        sdk_hash = "0000000000",
+        gen_kernel_args = None,
+        vm_args = None,
+        out = None,
+        **kwargs):
+    """Build a Dart app-jit snapshot via a training run. Ports utils/application_snapshot.gni.
+
+    Two stages:
+      1. prebuilt `dart` + `gen_kernel_dill` compiles `main` to a *non-AOT*
+         `.dart.dill` (`--no-aot --no-embed-sources --no-link-platform`, unlike
+         dart_aot_snapshot's `--aot`).
+      2. the Bazel-built `dart_vm` (//runtime/bin:dartvm) *executes* that dill
+         with `training_args` under `--snapshot-kind=app-jit`, writing the
+         app-jit snapshot. This mirrors the GN `dart_action` (APP_JIT) step --
+         note it is the JIT VM doing a training run, NOT gen_snapshot. DFE is
+         pinned to NEVER_LOADED so the VM doesn't pull in the kernel service
+         (which would be a circular dep for kernel-service's own snapshot).
+    """
+    dill = name + ".dart.dill"
+    gen_kernel_args = gen_kernel_args or []
+    vm_args = list(vm_args or [])
+
+    # GN injects --coverage=false (+ --ignore-unrecognized-flags, since
+    # --coverage is unrecognized in product mode) unless --coverage is already
+    # set. Mirror that here (application_snapshot.gni:75-90).
+    if not [a for a in vm_args if a.startswith("--coverage")]:
+        vm_args = vm_args + ["--coverage=false", "--ignore-unrecognized-flags"]
+
+    # Stage 1: kernel compile (mirrors the *_dill prebuilt_dart_action). Same
+    # shape as dart_aot_snapshot's stage 1 but with the app-jit gen_kernel flags.
+    native.genrule(
+        name = name + "_dill",
+        srcs = [main, gen_kernel_dill, platform_dill, _SDK_FILES, sources],
+        outs = [dill],
+        cmd = (
+            "{dart} -Dsdk_hash={hash} $(location {boot}) " +
+            "--packages={pkg} --platform=$(location {plat}) " +
+            "--no-aot --no-embed-sources --no-link-platform --output=$@ " +
+            "-Dsdk_hash={hash} -Ddart.vm.product={product} " +
+            "-Ddart.vm.asan=false -Ddart.vm.msan=false -Ddart.vm.tsan=false " +
+            "{extra}$(location {main})"
+        ).format(
+            dart = _PREBUILT_DART,
+            hash = sdk_hash,
+            boot = gen_kernel_dill,
+            pkg = _PACKAGE_CONFIG,
+            plat = platform_dill,
+            product = "true" if product else "false",
+            extra = "".join([a + " " for a in gen_kernel_args]),
+            main = main,
+        ),
+    )
+
+    # Stage 2: app-jit training run (mirrors the dart_action APP_JIT step). The
+    # genrule is named `name` so it is a drop-in for the GN target. `sources`
+    # is included so .dart_tool/package_config.json (part of the opaque
+    # filegroup) is materialized for --packages.
+    native.genrule(
+        name = name,
+        srcs = [dill, _SDK_FILES, sources],
+        outs = [out or (name + ".dart.snapshot")],
+        tools = [dart_vm],
+        cmd = (
+            "$(location {vm}) --deterministic --packages={pkg} " +
+            "--snapshot=$@ --snapshot-kind=app-jit --dfe=NEVER_LOADED " +
+            "{vmargs}$(location {dill}) {targs}"
+        ).format(
+            vm = dart_vm,
+            pkg = _PACKAGE_CONFIG,
+            vmargs = "".join([a + " " for a in vm_args]),
+            dill = dill,
+            targs = " ".join(training_args),
+        ),
+        **kwargs
+    )

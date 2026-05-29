@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -15,16 +16,32 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+# GN group("dartanalyzer") deps=[":generate_dartanalyzer_snapshot"]. The snapshot
+# is now a real dart_app_jit_snapshot genrule; the group keeps its cc_library shape
+# (so //:runtime's aggregate dep stays CcInfo-valid) but carries the snapshot via
+# `data` rather than `deps`, per the dtd/dds pattern.
 cc_library(
     name = "dartanalyzer",
-    deps = [
+    data = [
         "//utils/dartanalyzer:generate_dartanalyzer_snapshot",
     ],
 )
 
-# TODO(M3): genrule for generate_dartanalyzer_snapshot (gn type=action)
-cc_library(name = "generate_dartanalyzer_snapshot")
-
-# TODO(M3): genrule for generate_dartanalyzer_snapshot_dill (gn type=action)
-cc_library(name = "generate_dartanalyzer_snapshot_dill")
+# rules_dart Step 4 (first app-jit tool). Ports
+# utils/dartanalyzer/BUILD.gn:application_snapshot("generate_dartanalyzer_snapshot").
+# No force_product_mode → non-product (this ReleaseX64 config), so the training run
+# uses the non-product //runtime/bin:dartvm. The macro also emits the
+# generate_dartanalyzer_snapshot_dill genrule (the prior translator stub for it is
+# dropped).
+dart_app_jit_snapshot(
+    name = "generate_dartanalyzer_snapshot",
+    main = "//:pkg/analyzer_cli/bin/analyzer.dart",
+    sources = "//:dart_package_sources",
+    training_args = ["--help"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    dart_vm = "//runtime/bin:dartvm",
+    product = False,
+    out = "dartanalyzer.dart.snapshot",
+)
 
