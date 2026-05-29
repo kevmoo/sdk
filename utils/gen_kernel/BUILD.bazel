@@ -22,7 +22,11 @@ exports_files(glob(
 dart_kernel_snapshot(
     name = "bootstrap_gen_kernel",
     main = "//:pkg/vm/bin/gen_kernel.dart",
-    sources = "//:dart_package_sources",
+    # rules_dart Step 3: gen_kernel.dart imports only package:vm/kernel/args, all
+    # in the dart_pkg_vm closure (17 pkgs). Scoping off the opaque blob is what
+    # lets a tool dill be a cache hit when an unrelated package changes — this
+    # bootstrap dill is a shared upstream of every tool's kernel compile.
+    sources = "//:dart_pkg_vm",
 )
 
 # TODO(M3): copy for gen_kernel (gn type=copy)

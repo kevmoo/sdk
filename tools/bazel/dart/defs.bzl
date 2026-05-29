@@ -21,6 +21,12 @@ _PREBUILT_DART = "tools/sdks/dart-sdk/bin/dart"
 _SDK_FILES = "//tools/sdks/dart-sdk:sdk_files"
 _PACKAGE_CONFIG = ".dart_tool/package_config.json"
 
+# The package map as a standalone filegroup input. When `sources` is a per-package
+# dart_library closure (.dart files only), this materializes
+# .dart_tool/package_config.json for the --packages flag. Harmless (deduped) when
+# `sources` is still the opaque //:dart_package_sources, which also bundles it.
+_PACKAGE_CONFIG_FILE = "//:package_config_json"
+
 # rules_dart Step 3 (per-package deps): replaces the opaque //:dart_package_sources
 # filegroup with a real dependency graph. DartLibraryInfo carries the transitive
 # closure of a package's .dart sources as a depset; DefaultInfo exposes it so a
@@ -63,7 +69,7 @@ def dart_kernel_snapshot(name, main, sources, sdk_hash = "0000000000", **kwargs)
     """
     native.genrule(
         name = name,
-        srcs = [main, _SDK_FILES, sources],
+        srcs = [main, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE],
         outs = [name + ".dill"],
         cmd = (
             "{dart} --snapshot-kind=kernel --snapshot=$@ " +
@@ -203,7 +209,7 @@ def dart_aot_snapshot(
     # Stage 1: kernel compile (mirrors the *_dill prebuilt_dart_action).
     native.genrule(
         name = name + "_dill",
-        srcs = [main, gen_kernel_dill, platform_dill, _SDK_FILES, sources],
+        srcs = [main, gen_kernel_dill, platform_dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE],
         outs = [dill],
         cmd = (
             "{dart} -Dsdk_hash={hash} $(location {boot}) " +
@@ -289,7 +295,7 @@ def dart_app_jit_snapshot(
     # shape as dart_aot_snapshot's stage 1 but with the app-jit gen_kernel flags.
     native.genrule(
         name = name + "_dill",
-        srcs = [main, gen_kernel_dill, platform_dill, _SDK_FILES, sources],
+        srcs = [main, gen_kernel_dill, platform_dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE],
         outs = [dill],
         cmd = (
             "{dart} -Dsdk_hash={hash} $(location {boot}) " +
@@ -316,7 +322,7 @@ def dart_app_jit_snapshot(
     # filegroup) is materialized for --packages.
     native.genrule(
         name = name,
-        srcs = [dill, _SDK_FILES, sources] + training_srcs,
+        srcs = [dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE] + training_srcs,
         outs = [out or (name + ".dart.snapshot")],
         tools = [dart_vm],
         cmd = (
