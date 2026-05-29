@@ -151,7 +151,7 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 | **0 (first proof)** — ✅ **DONE (session 11)** | `dart_kernel_snapshot` + `dart_aot_snapshot` macros in `//tools/bazel/dart:defs.bzl`; opaque-filegroup deps (`//:dart_package_sources`); bootstrap dill built in-Bazel (the checked-in blob was stale). Target: **`//utils/bazel:kernel_worker_aot_product`**. | ✅ `bazel build` produces a 14M AOT ELF; runs under Bazel `dartaotruntime_product` (real CFE path: "No input file provided to the compiler"; `--persistent_worker` starts+exits clean). This is the §5 external contract. |
 | **1** — ✅ **DONE (session 12)** | `dart_compile_platform` macro in `//tools/bazel/dart:defs.bzl` + `//runtime/vm:vm_platform` produce `vm_platform.dill` (+ outline) in Bazel; both consumers (kPlatformDill embed, kernel_worker snapshot) dropped off the pre-staged blob. | ✅ `bazel-bin/runtime/vm/vm_platform.dill` is **byte-identical** to GN's `out/ReleaseX64/vm_platform.dill`. dartvm still runs raw `.dart`; snapshot still honors `--persistent_worker`. |
 | **2** — ✅ **DONE (session 11)** | `bootstrap_gen_kernel.dill` produced in-Bazel by `dart_kernel_snapshot` at `//utils/gen_kernel:bootstrap_gen_kernel` (the checked-in `out/` blob was stale — wrong kernel format). Landed alongside Step 0. | ✅ dartvm/snapshots build against it; the stale pre-stage is gone. |
-| 3 | `dart_library` provider + gazelle-style pubspec→deps generator (recover incrementality). | Touching one pkg rebuilds only its dependents. |
+| **3** — ✅ **DONE (session 19)** | `dart_library` rule + `DartLibraryInfo` provider + `gen_packages.py` (pubspec→deps generator) → `packages.bzl` (196 `dart_pkg_*` targets). All ported `utils/` tools + `bootstrap_gen_kernel` repointed off `//:dart_package_sources` onto per-package closures. | ✅ Editing an out-of-closure package leaves a tool's kernel compile a CACHE HIT (was a full recompile under the blob); dills semantically identical to the opaque build (0-line dump-diff, dtd + dart2js spot-checked); `//:runtime` clean; `vm_platform.dill` byte-identical. |
 | **4** — 🟡 **WELL UNDERWAY (session 12)** | Port `utils/` tool-by-tool. **Done & running: dtd, dds, frontend_server, dart_mcp_server, ddc, dart2js** — every genuinely-clean AOT tool in `utils/`. `dart_aot_snapshot` made GN-target-faithful (cross-pkg refs resolve); dart2js also needed a generated entry-point genrule (`dart2js_create_snapshot_entry`, reuses `make_version.py --no-git-hash`). **Blocked: dartdev, dart2wasm, analysis_server, dartanalyzer** (analyzer→linter→`primary-constructors`), **dart_runtime_service_vm** (missing package_config) — out-of-band staleness, see below. Remaining clean: `compile_platform` web variants + app-jit. | Each runs: dtd→Tooling Daemon, dds→CLI, frontend_server→usage, dart_mcp_server→help, ddc→usage, dart2js→`--version` "3.13.0-edge". |
 | 5 | `sdk/` assembly (Phase 2b) — mostly `copy`/`copy_tree` once snapshots exist. | `bazel build //sdk` produces a working SDK dir. |
 
@@ -275,6 +275,68 @@ different work, not more of the same:
    training run via in-progress `dartvm`. Still TODO.
 3. **The blocked tools** need an out-of-band refresh (see below), which is the real
    gating decision, not a rules problem.
+
+### Step 3 result (session 19) — pubspec-derived per-package deps, validated
+
+Replaced the opaque `//:dart_package_sources` blob (all ~197 packages, fed to
+every snapshot's kernel compile) with a real per-package dependency graph. Three
+pieces in `//tools/bazel/dart`:
+
+- **`dart_library` rule + `DartLibraryInfo` provider** (`defs.bzl`). The provider
+  carries a `depset` of the package's `lib/**` `.dart` sources unioned with its
+  deps' transitive srcs; `DefaultInfo.files` exposes it so a snapshot genrule can
+  take a single `dart_library` as `sources` and materialize exactly that closure.
+- **`gen_packages.py`** — gazelle-style generator. Reads name→dir from
+  `.dart_tool/package_config.json` and dep edges from each `pubspec.yaml`'s
+  `dependencies:`, emits `packages.bzl` (a `dart_packages()` macro declaring one
+  `dart_library` per package, in the ROOT package — `pkg/`, `third_party/pkg/`,
+  `third_party/devtools` have no sub-`BUILD.bazel` so only `//` can glob them).
+  Targets are namespaced `dart_pkg_<name>` to avoid colliding with the
+  hand-maintained root `cc_library` groups and the `tools`/`utils` workspace pkgs.
+
+**The deps-model decision (resolved the §7 / §9 "wildcard"):** use pubspec
+`dependencies`, NOT import-scanning. Three empirical findings drove this:
+1. A *comment-aware* scan finds `imported-not-declared = 0` for every tool
+   checked (dtd/dds/dart2js_info/frontend_server) — every package the source
+   actually imports IS declared. (A naive scan looked like deps were
+   under-declared, but that was a `/// import 'package:test/...'` **doc-comment**
+   dragging in the whole analyzer/test stack — a false edge, not a real dep.)
+2. So pubspec `dependencies` is a *safe superset* of real imports (can be looser,
+   never misses) — a scoped compile fails loudly (missing source) rather than
+   silently, and none did.
+3. The `dependencies`-only graph is **cycle-free** (197 nodes, 806 edges, 0
+   SCCs>1). `dev_dependencies` WOULD introduce cycles (analyzer⇄test), which
+   Bazel forbids — excluding them is both necessary and sufficient.
+
+**Verified:**
+- Tool kernel dills are SEMANTICALLY IDENTICAL to the opaque build — 0-line
+  normalized `dump.dart` diff for dtd (61 397 lines) and dart2js (329 828); byte
+  diff is only the sandbox-execroot URI nondeterminism session 14 documented.
+- **Incrementality:** editing an out-of-closure package (e.g. `pkg/analysis_server`
+  for dtd) leaves the tool's `_dill` genrule a CACHE HIT — under the blob it was a
+  full recompile. Editing an in-closure file re-executes it.
+- `bootstrap_gen_kernel` (shared upstream of every tool compile) scoped to
+  `//:dart_pkg_vm` (17 pkgs; gen_kernel.dart imports only vm/kernel/args);
+  semantically identical scoped vs opaque.
+- `//:runtime` clean; `vm_platform.dill` still byte-identical to GN.
+
+**Two macro fixes the breadth pass surfaced** (`defs.bzl`): the app-jit *training*
+stage now lists `main` (DDC's training recompiles its own `bin/dartdevc.dart`,
+which is outside the `lib/` closure; deduped against `training_srcs`); and
+analysis_server's training needs `//:dart_pkg_compiler` in `training_srcs` because
+`--train-using=pkg/compiler/lib` analyzes the compiler sources (without it the
+sandboxed analyzer spins on missing files).
+
+**Left opaque ON PURPOSE — the platform compiles** (`runtime/vm:vm_platform` + the
+6 `dart_compile_platform` web/wasm variants). Their tool script
+`pkg/front_end/tool/compile_platform.dart` lives outside any package `lib/`, so a
+per-package closure misses it — scoping them cleanly needs the tool threaded as an
+explicit input (a clean follow-up). They are byte-deterministic (canonical URIs),
+so they re-run on unrelated edits but produce identical output and DON'T cascade.
+
+`packages.bzl` is generated + committed; `out_of_band/restore.sh` step 6
+regenerates it after `package_config.json` and flags drift (stale generated output
+to re-commit).
 
 ## 9. Effort estimate (low confidence — flagged honestly)
 
