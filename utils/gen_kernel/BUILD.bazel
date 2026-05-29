@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_kernel_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -15,8 +16,14 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for bootstrap_gen_kernel (gn type=action)
-cc_library(name = "bootstrap_gen_kernel")
+# rules_dart Step 0: real bootstrap_gen_kernel.dill, regenerated from the
+# current prebuilt SDK (the checked-in out/ blob is stale — wrong kernel format
+# version). Mirrors utils/gen_kernel/BUILD.gn:bootstrap_gen_kernel.
+dart_kernel_snapshot(
+    name = "bootstrap_gen_kernel",
+    main = "//:pkg/vm/bin/gen_kernel.dart",
+    sources = "//:dart_package_sources",
+)
 
 # TODO(M3): copy for gen_kernel (gn type=copy)
 cc_library(name = "gen_kernel")
