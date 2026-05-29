@@ -149,7 +149,7 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 | Step | Deliverable | Verify |
 |---|---|---|
 | **0 (first proof)** — ✅ **DONE (session 11)** | `dart_kernel_snapshot` + `dart_aot_snapshot` macros in `//tools/bazel/dart:defs.bzl`; opaque-filegroup deps (`//:dart_package_sources`); bootstrap dill built in-Bazel (the checked-in blob was stale). Target: **`//utils/bazel:kernel_worker_aot_product_snapshot`**. | ✅ `bazel build` produces a 14M AOT ELF; runs under Bazel `dartaotruntime_product` (real CFE path: "No input file provided to the compiler"; `--persistent_worker` starts+exits clean). This is the §5 external contract. |
-| 1 | `compile_platform` rule → produce `vm_platform.dill` in Bazel (drop the pre-stage). | Resulting `.dill` matches GN's. |
+| **1** — ✅ **DONE (session 12)** | `dart_compile_platform` macro in `//tools/bazel/dart:defs.bzl` + `//runtime/vm:vm_platform` produce `vm_platform.dill` (+ outline) in Bazel; both consumers (kPlatformDill embed, kernel_worker snapshot) dropped off the pre-staged blob. | ✅ `bazel-bin/runtime/vm/vm_platform.dill` is **byte-identical** to GN's `out/ReleaseX64/vm_platform.dill`. dartvm still runs raw `.dart`; snapshot still honors `--persistent_worker`. |
 | 2 | `bootstrap_gen_kernel.dill` produced by a Bazel rule (drop that pre-stage). | dartvm/snapshots still byte-match. |
 | 3 | `dart_library` provider + gazelle-style pubspec→deps generator (recover incrementality). | Touching one pkg rebuilds only its dependents. |
 | 4 | Port the rest of `utils/` tool-by-tool (dartdev, analysis_server, ddc, dart2js, dart2wasm, dds, dtd, …). | Each tool's snapshot matches GN; `create_sdk` assembles. |
@@ -183,6 +183,31 @@ learned doing it:
 - **Not yet done:** byte-for-byte diff vs GN (the on-disk GN artifact predates
   the sdk_hash flip, so a clean comparison needs a fresh GN build with
   `0000000000`); behavioral equivalence is established.
+
+### Step 1 result (session 12) — validated, byte-identical to GN
+
+`bazel build //runtime/vm:vm_platform` produces `vm_platform.dill` (+
+`vm_platform_outline.dill`) via `dart_compile_platform`, a third macro in
+`defs.bzl` that ports the `prebuilt_dart_action` branch of
+`compile_platform.gni` + `gen_vm_platform`. What we learned:
+
+- **The output is byte-identical to GN's** `out/ReleaseX64/vm_platform.dill`
+  (not just behaviorally equivalent — `cmp` reports 0 diffs). Kernel
+  serialization is deterministic given the same sources + `sdk_hash`, and the
+  prebuilt `dart` (3.13.0-103.1.beta) emits the same bytes the on-disk GN dill
+  has. This is the cleanest possible validation of a ported rule — it answers
+  the open "byte diff vs GN" note Step 0 left.
+- **SDK library sources need their own filegroup.** `//:dart_package_sources`
+  (the opaque CFE+pkg closure) does *not* cover `sdk/lib/**`, which is what
+  compile_platform actually compiles. Added `//sdk:sdk_library_sources` (glob
+  `lib/**/*.dart` + `lib/**/*.json`). The single-root scheme
+  (`--single-root-base=$(pwd)`) resolves `org-dartlang-sdk:///sdk/lib/...`
+  against the sandbox execroot.
+- **`emitDeps` defaults true**, so the tool writes a `<out>.dill.d` depfile into
+  RULEDIR. It's undeclared, so Bazel drops it — harmless, no need to suppress.
+- **Scope kept to `vm_platform`** (postfix "", product false). `vm_platform_product`
+  and `vm_platform_stripped` remain translator stubs; their consumers (the
+  pre-staged core snapshot) have separate deferred concerns.
 
 ## 9. Effort estimate (low confidence — flagged honestly)
 
