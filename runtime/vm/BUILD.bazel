@@ -3630,6 +3630,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_aotruntime",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -3946,6 +3948,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_aotruntime_product",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -4580,6 +4584,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_jit_product",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -4895,6 +4901,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_libfuzzer",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -5534,6 +5542,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_host_targeting_host",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -5850,6 +5860,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_product",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -6169,6 +6181,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_product_host_targeting_host",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -6486,6 +6500,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -6805,6 +6821,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -7124,6 +7142,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -7443,6 +7463,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
@@ -7762,6 +7784,8 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/platform:libdart_platform_precompiler_testing",
+        "//third_party/double-conversion/src:libdouble_conversion",
     ],
     srcs = [
         "allocation.cc",
