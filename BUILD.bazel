@@ -22,7 +22,16 @@ exports_files(glob(
 filegroup(
     name = "dart_package_sources",
     srcs = glob(
-        ["pkg/**/*.dart", "third_party/pkg/**/*.dart"],
+        [
+            "pkg/**/*.dart",
+            "third_party/pkg/**/*.dart",
+            # third_party/devtools holds package:devtools_shared (per
+            # .dart_tool/package_config.json), pulled in by e.g. dds. Like the
+            # two above it has no sub-BUILD.bazel, so it globs from this root
+            # package. Other package roots (runtime/, utils/, tools/, samples/)
+            # DO have sub-packages and can't be globbed here.
+            "third_party/devtools/**/*.dart",
+        ],
         allow_empty = True,
     ) + [".dart_tool/package_config.json"],
 )
@@ -32,6 +41,7 @@ filegroup(
 exports_files([
     "pkg/vm/bin/gen_kernel.dart",
     "pkg/dtd_impl/bin/dtd.dart",
+    "pkg/dds/bin/dds.dart",
 ])
 
 cc_library(
