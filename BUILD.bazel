@@ -29,7 +29,10 @@ filegroup(
 
 # Dart entry-point scripts referenced as `main` by Dart-compilation rules
 # (these live in the root package because pkg/ has no sub-BUILD.bazel).
-exports_files(["pkg/vm/bin/gen_kernel.dart"])
+exports_files([
+    "pkg/vm/bin/gen_kernel.dart",
+    "pkg/dtd_impl/bin/dtd.dart",
+])
 
 cc_library(
     name = "analysis_server",

@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -25,31 +26,44 @@ cc_library(
     ],
 )
 
+# rules_dart Step 4 (first ported utils/ tool). The snapshot targets are now
+# real dart_aot_snapshot genrules; the GN-shaped `dtd_aot` group keeps its
+# cc_library shape (so the //:runtime aggregate's dep stays CcInfo-valid) but
+# carries the snapshots via `data` rather than `deps`, since a cc_library can't
+# depend on a genrule. Building :dtd_aot builds both snapshots.
 cc_library(
     name = "dtd_aot",
-    deps = [
+    data = [
         "//utils/dtd:dtd_aot_product_snapshot",
         "//utils/dtd:dtd_aot_snapshot",
     ],
 )
 
-# TODO(M3): copy for dtd_aot_product_snapshot (gn type=copy)
-cc_library(name = "dtd_aot_product_snapshot")
+# Ports utils/dtd/BUILD.gn:aot_snapshot("dtd_aot_product_snapshot"). force_product_mode
+# (=!dart_debug) → product; product gen_snapshot so it loads under dartaotruntime_product.
+dart_aot_snapshot(
+    name = "dtd_aot_product_snapshot",
+    main = "//:pkg/dtd_impl/bin/dtd.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "dart_tooling_daemon_aot_product.dart.snapshot",
+)
 
-# TODO(M3): genrule for dtd_aot_product_snapshot_dill (gn type=action)
-cc_library(name = "dtd_aot_product_snapshot_dill")
-
-# TODO(M3): genrule for dtd_aot_product_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dtd_aot_product_snapshot_gen_snapshot")
-
-# TODO(M3): copy for dtd_aot_snapshot (gn type=copy)
-cc_library(name = "dtd_aot_snapshot")
-
-# TODO(M3): genrule for dtd_aot_snapshot_dill (gn type=action)
-cc_library(name = "dtd_aot_snapshot_dill")
-
-# TODO(M3): genrule for dtd_aot_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dtd_aot_snapshot_gen_snapshot")
+# Ports utils/dtd/BUILD.gn:aot_snapshot("dtd_aot_snapshot"). No force_product_mode
+# → product follows dart_runtime_mode (non-product for this ReleaseX64 config).
+dart_aot_snapshot(
+    name = "dtd_aot_snapshot",
+    main = "//:pkg/dtd_impl/bin/dtd.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "dart_tooling_daemon_aot.dart.snapshot",
+)
 
 # TODO(M3): genrule for generate_dtd_snapshot (gn type=action)
 cc_library(name = "generate_dtd_snapshot")
