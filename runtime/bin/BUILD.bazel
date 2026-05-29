@@ -22,6 +22,7 @@ cc_binary(
     ],
     deps = [
         "//build/config/sanitizers:deps",
+        "//runtime/platform:headers",
     ],
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -661,6 +662,7 @@ cc_binary(
     ],
     deps = [
         "//build/config/sanitizers:deps",
+        "//runtime/platform:headers",
     ],
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
