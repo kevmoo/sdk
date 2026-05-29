@@ -5287,12 +5287,12 @@ cc_library(
 # above for the same pattern + rationale).
 genrule(
     name = "dart_platform_dill_S",
-    srcs = ["//out/ReleaseX64:vm_platform.dill"],
+    srcs = ["//runtime/vm:vm_platform.dill"],
     outs = [
         "dart_platform_dill.S",
         "dart_vm_platform.dill",
     ],
-    cmd = "cp $(execpath //out/ReleaseX64:vm_platform.dill) $(RULEDIR)/dart_vm_platform.dill && " +
+    cmd = "cp $(execpath //runtime/vm:vm_platform.dill) $(RULEDIR)/dart_vm_platform.dill && " +
           "SIZE=$$(stat -c %s $(RULEDIR)/dart_vm_platform.dill) && " +
           "{ echo '.section .rodata'; " +
           "  echo '.type kPlatformDill STT_OBJECT'; " +
