@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -24,32 +25,50 @@ cc_library(name = "compile_dart2wasm_platform")
 # TODO(M3): genrule for compile_dart2wasm_standalone_platform (gn type=action)
 cc_library(name = "compile_dart2wasm_standalone_platform")
 
-# TODO(M3): copy for dart2wasm_asserts_snapshot (gn type=copy)
-cc_library(name = "dart2wasm_asserts_snapshot")
+# rules_dart Step 4: real dart2wasm AOT snapshots. Unblocked by the session-13
+# refresh. Ports the three aot_snapshot() targets in utils/dart2wasm/BUILD.gn
+# over pkg/dart2wasm/bin/dart2wasm.dart. The compile_dart2wasm_*_platform targets
+# (web platform dills) and the emscripten wasm_module stay deferred stubs.
 
-# TODO(M3): genrule for dart2wasm_asserts_snapshot_dill (gn type=action)
-cc_library(name = "dart2wasm_asserts_snapshot_dill")
+# aot_snapshot("dart2wasm_snapshot") name="dart2wasm" -> product = false.
+dart_aot_snapshot(
+    name = "dart2wasm_snapshot",
+    main = "//:pkg/dart2wasm/bin/dart2wasm.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "dart2wasm.snapshot",
+)
 
-# TODO(M3): genrule for dart2wasm_asserts_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart2wasm_asserts_snapshot_gen_snapshot")
+# aot_snapshot("dart2wasm_asserts_snapshot") -> product = false, with
+# --enable-asserts threaded to BOTH gen_kernel and gen_snapshot (matches GN).
+dart_aot_snapshot(
+    name = "dart2wasm_asserts_snapshot",
+    main = "//:pkg/dart2wasm/bin/dart2wasm.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    gen_kernel_args = ["--enable-asserts"],
+    gen_snapshot_args = ["--enable-asserts"],
+    out = "dart2wasm_asserts.snapshot",
+)
 
-# TODO(M3): copy for dart2wasm_product_snapshot (gn type=copy)
-cc_library(name = "dart2wasm_product_snapshot")
-
-# TODO(M3): genrule for dart2wasm_product_snapshot_dill (gn type=action)
-cc_library(name = "dart2wasm_product_snapshot_dill")
-
-# TODO(M3): genrule for dart2wasm_product_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart2wasm_product_snapshot_gen_snapshot")
-
-# TODO(M3): copy for dart2wasm_snapshot (gn type=copy)
-cc_library(name = "dart2wasm_snapshot")
-
-# TODO(M3): genrule for dart2wasm_snapshot_dill (gn type=action)
-cc_library(name = "dart2wasm_snapshot_dill")
-
-# TODO(M3): genrule for dart2wasm_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart2wasm_snapshot_gen_snapshot")
+# aot_snapshot("dart2wasm_product_snapshot") force_product_mode = true ->
+# product = true -> //runtime/bin:gen_snapshot_product.
+dart_aot_snapshot(
+    name = "dart2wasm_product_snapshot",
+    main = "//:pkg/dart2wasm/bin/dart2wasm.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "dart2wasm_product.snapshot",
+)
 
 # TODO(M3): genrule for ffi_native_test_wasm_module (gn type=action)
 cc_library(name = "ffi_native_test_wasm_module")

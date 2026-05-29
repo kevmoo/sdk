@@ -107,6 +107,7 @@ def dart_aot_snapshot(
         product = True,
         sdk_hash = "0000000000",
         gen_kernel_args = None,
+        gen_snapshot_args = None,
         out = None,
         **kwargs):
     """Build a Dart AOT (app-aot-elf) snapshot. Ports utils/aot_snapshot.gni.
@@ -119,6 +120,7 @@ def dart_aot_snapshot(
     """
     dill = name + ".dart.dill"
     gen_kernel_args = gen_kernel_args or []
+    gen_snapshot_args = gen_snapshot_args or []
 
     # Stage 1: kernel compile (mirrors the *_dill prebuilt_dart_action).
     native.genrule(
@@ -152,8 +154,9 @@ def dart_aot_snapshot(
         srcs = [dill],
         outs = [out or (name + ".snapshot")],
         tools = [gen_snapshot],
-        cmd = "$(location {gs}) --deterministic --snapshot-kind=app-aot-elf --elf=$@ $(location {dill})".format(
+        cmd = "$(location {gs}) --deterministic --snapshot-kind=app-aot-elf --elf=$@ {gsargs}$(location {dill})".format(
             gs = gen_snapshot,
+            gsargs = "".join([a + " " for a in gen_snapshot_args]),
             dill = dill,
         ),
         **kwargs
