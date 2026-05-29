@@ -11,7 +11,7 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-05-29 (session 14) — VERIFIED AOT-tool fidelity (closes the session-12 "ported snapshots unverified vs GN" risk): 4 of 10 tools (dtd, dart2js, dart2wasm_asserts, analysis_server) spot-checked by rebuilding GN from current sources + path-normalized kernel-dump diff → kernel dills SEMANTICALLY IDENTICAL (0-line diff, 61k–463k lines each; dtd also proven byte-level). See "AOT tool snapshot fidelity" below. Session 13 — THE REFRESH done (package_config regen + 16 Dart-pkg clone rolls to DEPS pins); unblocked + ported 4 more AOT tools (dart_runtime_service_vm, dartdev, dart2wasm, analysis_server). Only dartanalyzer (app-jit) + web compile_platform variants remain on the utils/ AOT seam._
+_Last updated: 2026-05-29 (session 14) — (1) VERIFIED AOT-tool fidelity (closes the session-12 "ported snapshots unverified vs GN" risk): 4 of 10 tools (dtd, dart2js, dart2wasm_asserts, analysis_server) spot-checked by rebuilding GN from current sources + path-normalized kernel-dump diff → kernel dills SEMANTICALLY IDENTICAL (0-line diff, 61k–463k lines each; dtd also proven byte-level). See "AOT tool snapshot fidelity" below. (2) NEW `dart_app_jit_snapshot` macro (4th in tools/bazel/dart:defs.bzl) + ported **dartanalyzer** (first app-jit tool) — builds, runs, dill SEMANTICALLY IDENTICAL to GN (0-line diff, 297 541 lines). Session 13 — THE REFRESH done (package_config regen + 16 Dart-pkg clone rolls to DEPS pins); unblocked + ported 4 more AOT tools (dart_runtime_service_vm, dartdev, dart2wasm, analysis_server). Only dartanalyzer (app-jit) + web compile_platform variants remain on the utils/ AOT seam._
 
 ## TL;DR
 
@@ -47,7 +47,7 @@ The reliable claim is the *ordering*: nothing in Phase 2+ moves until
 | 1a | `runtime/vm` core C++ | ✅ 100%¹ | `libdart_vm_jit` + 13 variants; ¹one config only |
 | 1b | `runtime/bin` executables | ✅ ~90%¹ | `dart`, `dartvm`, `dartaotruntime`, `gen_snapshot` family, `run_vm_tests`, all 14 host cc_binaries, 3 FFI test `.so`s, 43 FFI unit tests pass |
 | 1c | `runtime/platform`, observatory, … | 🟡 ~50% | platform done; observatory + remainder untouched |
-| 2a | `utils/` — Dart-builds-Dart | 🟡 ~30% | `rules_dart` Steps 0–2 done + Step 4 broad: `dart_kernel_snapshot`+`dart_aot_snapshot`+`dart_compile_platform` macros (`//tools/bazel/dart`). Step 0 → `kernel_worker_aot_product`; Step 1 → `vm_platform.dill` in-Bazel (byte-identical to GN); Step 2 → `bootstrap_gen_kernel.dill` in-Bazel; **Step 4 → 10 AOT tools ported & running: dtd, dds, frontend_server, dart_mcp_server, ddc, dart2js + (session 13, after THE REFRESH) dart_runtime_service_vm, dartdev, dart2wasm, analysis_server.** The session-13 refresh (package_config regen + rolling all Dart-pkg clones to DEPS pins) cleared the out-of-band staleness that blocked the analyzer-stack tools. Remaining utils/ AOT work: **dartanalyzer (app-jit only — no aot_snapshot target)** + app-jit `application_snapshot` variants (need a `dart_app_jit_snapshot` rule) + `compile_platform` web variants (need generalized macro) + deps generator (Step 3). See `rules_dart_scoping.md`. |
+| 2a | `utils/` — Dart-builds-Dart | 🟡 ~30% | `rules_dart` Steps 0–2 done + Step 4 broad: `dart_kernel_snapshot`+`dart_aot_snapshot`+`dart_compile_platform` macros (`//tools/bazel/dart`). Step 0 → `kernel_worker_aot_product`; Step 1 → `vm_platform.dill` in-Bazel (byte-identical to GN); Step 2 → `bootstrap_gen_kernel.dill` in-Bazel; **Step 4 → 10 AOT tools ported & running: dtd, dds, frontend_server, dart_mcp_server, ddc, dart2js + (session 13, after THE REFRESH) dart_runtime_service_vm, dartdev, dart2wasm, analysis_server.** The session-13 refresh (package_config regen + rolling all Dart-pkg clones to DEPS pins) cleared the out-of-band staleness that blocked the analyzer-stack tools. **Session 14 added a 4th macro `dart_app_jit_snapshot` (ports `application_snapshot.gni` — JIT VM training run via `//runtime/bin:dartvm`, not gen_snapshot) and ported `dartanalyzer` (first app-jit tool; builds + runs + dill verified semantically identical to GN).** Remaining utils/ AOT work: app-jit `application_snapshot`/`generate_*` variants of the other tools (now unblocked by the new macro) + `compile_platform` web variants (need generalized macro) + deps generator (Step 3). See `rules_dart_scoping.md`. |
 | 2b | `sdk/` assembly | 🔴 0% | gated on 2a |
 | 2c | `samples/` | 🟡 ~40% | all 20 `samples/embedder` + `ffi/http*` done; rest no |
 | 3 | `third_party/` | 🟡 partial | icu/boringssl/perfetto/zlib/double-conversion hand-shimmed & working; BCR `bazel_dep` migration not done |
@@ -66,9 +66,10 @@ The reliable claim is the *ordering*: nothing in Phase 2+ moves until
    frontend_server, dart_mcp_server, ddc, dart2js + dart_runtime_service_vm,
    dartdev, dart2wasm, analysis_server) are ported and run. The session-13 refresh
    cleared the out-of-band staleness that blocked the analyzer-stack tools.
-   Remaining clean work: app-jit variants (incl. dartanalyzer) via a
-   `dart_app_jit_snapshot` rule + the `compile_platform` web variants + deps
-   generator (Step 3).
+   Session 14 added the `dart_app_jit_snapshot` macro and ported `dartanalyzer`
+   (first app-jit tool). Remaining clean work: the remaining app-jit
+   `generate_*` variants (now unblocked) + the `compile_platform` web variants
+   + deps generator (Step 3).
 2. **Multi-config + overlay (M4).** Single-config today, and every translator
    regen trashes the hand-edits — which is the entire reason
    `tools/bazel/out_of_band/restore.sh` exists. No `select()` folding and no
