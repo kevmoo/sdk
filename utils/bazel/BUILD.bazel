@@ -36,7 +36,7 @@ cc_library(name = "kernel_worker_aot_gen_snapshot")
 dart_aot_snapshot(
     name = "kernel_worker_aot_product",
     main = ":kernel_worker.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_frontend_server",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",

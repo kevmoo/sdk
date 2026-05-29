@@ -68,7 +68,7 @@ dart_compile_platform(
 dart_app_jit_snapshot(
     name = "dart2js",
     main = "dart2js.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_compiler",
     training_args = [
         "--invoker=gn_build",
         "--packages=.dart_tool/package_config.json",
@@ -130,7 +130,7 @@ cc_library(name = "dart2js_files_stamp")
 dart_aot_snapshot(
     name = "dart2js_sdk_aot",
     main = "dart2js.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_compiler",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",
@@ -141,7 +141,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "dart2js_sdk_aot_product",
     main = "dart2js.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_compiler",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",

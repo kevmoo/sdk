@@ -43,7 +43,7 @@ cc_library(name = "ddc_files_stamp")
 dart_app_jit_snapshot(
     name = "frontend_server",
     main = "//:pkg/frontend_server/bin/frontend_server_starter.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_frontend_server",
     training_args = [
         "--train",
         "--sdk-root=.",
@@ -67,7 +67,7 @@ dart_app_jit_snapshot(
 dart_aot_snapshot(
     name = "frontend_server_aot",
     main = "//:pkg/frontend_server/bin/frontend_server_starter.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_frontend_server",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",
@@ -78,7 +78,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "frontend_server_aot_product",
     main = "//:pkg/frontend_server/bin/frontend_server_starter.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_frontend_server",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",
@@ -112,7 +112,7 @@ cc_library(
 dart_app_jit_snapshot(
     name = "kernel-service_snapshot",
     main = "//:pkg/vm/bin/kernel_service.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_vm",
     training_args = [
         "--train",
         "$(location //:pkg/vm/bin/kernel_service.dart)",

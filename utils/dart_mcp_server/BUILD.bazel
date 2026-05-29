@@ -31,7 +31,7 @@ cc_library(
 dart_aot_snapshot(
     name = "dart_mcp_server_aot_product_snapshot",
     main = "dart_mcp_server.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dart_mcp_server",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",
@@ -43,7 +43,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "dart_mcp_server_aot_snapshot",
     main = "dart_mcp_server.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dart_mcp_server",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",

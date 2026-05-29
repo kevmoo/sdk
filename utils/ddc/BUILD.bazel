@@ -27,7 +27,7 @@ exports_files(glob(
 dart_app_jit_snapshot(
     name = "dartdevc",
     main = "//:pkg/dev_compiler/bin/dartdevc.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dev_compiler",
     training_args = [
         "--packages",
         ".dart_tool/package_config.json",
@@ -51,7 +51,7 @@ dart_app_jit_snapshot(
 dart_aot_snapshot(
     name = "dartdevc_aot",
     main = "//:pkg/dev_compiler/bin/dartdevc.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dev_compiler",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",
@@ -62,7 +62,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "dartdevc_aot_product",
     main = "//:pkg/dev_compiler/bin/dartdevc.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dev_compiler",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",

@@ -320,9 +320,18 @@ def dart_app_jit_snapshot(
     # genrule is named `name` so it is a drop-in for the GN target. `sources`
     # is included so .dart_tool/package_config.json (part of the opaque
     # filegroup) is materialized for --packages.
+    # `main` is included so a training run that re-reads the entry source (e.g.
+    # DDC compiling its own bin/dartdevc.dart) finds it: the entry lives in bin/,
+    # outside the package's lib/ closure, so a per-package `sources` no longer
+    # materializes it the way the opaque blob did. Dedupe — some tools already
+    # list main in training_srcs (e.g. frontend_server/kernel-service pass it via
+    # $(location)), and genrule srcs rejects a duplicated label.
+    training_stage_srcs = [dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE] + training_srcs
+    if main not in training_stage_srcs:
+        training_stage_srcs = training_stage_srcs + [main]
     native.genrule(
         name = name,
-        srcs = [dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE] + training_srcs,
+        srcs = training_stage_srcs,
         outs = [out or (name + ".dart.snapshot")],
         tools = [dart_vm],
         cmd = (

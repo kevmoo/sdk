@@ -76,7 +76,7 @@ dart_compile_platform(
 dart_aot_snapshot(
     name = "dart2wasm_snapshot",
     main = "//:pkg/dart2wasm/bin/dart2wasm.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dart2wasm",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",
@@ -89,7 +89,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "dart2wasm_asserts_snapshot",
     main = "//:pkg/dart2wasm/bin/dart2wasm.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dart2wasm",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",
@@ -104,7 +104,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "dart2wasm_product_snapshot",
     main = "//:pkg/dart2wasm/bin/dart2wasm.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dart2wasm",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",

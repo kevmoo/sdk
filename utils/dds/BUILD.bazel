@@ -50,7 +50,7 @@ cc_library(
 dart_aot_snapshot(
     name = "dds_aot_product_snapshot",
     main = "//:pkg/dds/bin/dds.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dds",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",
@@ -62,7 +62,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "dds_aot_snapshot",
     main = "//:pkg/dds/bin/dds.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dds",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",
@@ -77,7 +77,7 @@ dart_aot_snapshot(
 dart_app_jit_snapshot(
     name = "generate_dds_snapshot",
     main = "//:pkg/dds/bin/dds.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_dds",
     training_args = ["--help"],
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",

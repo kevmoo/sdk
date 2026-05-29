@@ -27,17 +27,21 @@ exports_files(glob(
 dart_app_jit_snapshot(
     name = "analysis_server",
     main = "//:pkg/analysis_server/bin/server.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_analysis_server",
     training_args = [
         "--sdk=sdk/",
         "--train-using=pkg/compiler/lib",
     ],
     # The --sdk training run reads sdk/lib/** (libraries.dart, dart:core, …) plus
     # the sdk/version stamp — all outside the pkg/ closure in `sources`; declare
-    # them explicitly so the sandboxed training run can open them.
+    # them explicitly so the sandboxed training run can open them. --train-using
+    # analyzes pkg/compiler/lib, so its source closure (dart_pkg_compiler) must be
+    # materialized too — under the opaque blob it came for free; with a per-package
+    # `sources` it must be declared, or the analyzer spins on missing files.
     training_srcs = [
         "//sdk:sdk_library_sources",
         "//sdk:version",
+        "//:dart_pkg_compiler",
     ],
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
@@ -56,7 +60,7 @@ dart_app_jit_snapshot(
 dart_aot_snapshot(
     name = "analysis_server_aot",
     main = "//:pkg/analysis_server/bin/server.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_analysis_server",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot",
@@ -70,7 +74,7 @@ dart_aot_snapshot(
 dart_aot_snapshot(
     name = "analysis_server_aot_product",
     main = "//:pkg/analysis_server/bin/server.dart",
-    sources = "//:dart_package_sources",
+    sources = "//:dart_pkg_analysis_server",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     platform_dill = "//runtime/vm:vm_platform.dill",
     gen_snapshot = "//runtime/bin:gen_snapshot_product",
