@@ -21,6 +21,39 @@ _PREBUILT_DART = "tools/sdks/dart-sdk/bin/dart"
 _SDK_FILES = "//tools/sdks/dart-sdk:sdk_files"
 _PACKAGE_CONFIG = ".dart_tool/package_config.json"
 
+# rules_dart Step 3 (per-package deps): replaces the opaque //:dart_package_sources
+# filegroup with a real dependency graph. DartLibraryInfo carries the transitive
+# closure of a package's .dart sources as a depset; DefaultInfo exposes it so a
+# snapshot genrule can take a single dart_library as `sources` and materialize
+# exactly that package's closure (not all ~197 packages). Edges come from each
+# pubspec's `dependencies:` (a cycle-free safe superset of real imports — see
+# docs/todo_issues/rules_dart_scoping.md §8). The graph is generated into
+# packages.bzl by gen_packages.py.
+
+DartLibraryInfo = provider(
+    doc = "Transitive closure of a Dart package's library sources.",
+    fields = {"transitive_srcs": "depset of .dart files in this package + its deps"},
+)
+
+def _dart_library_impl(ctx):
+    transitive = depset(
+        direct = ctx.files.srcs,
+        transitive = [d[DartLibraryInfo].transitive_srcs for d in ctx.attr.deps],
+    )
+    return [
+        DefaultInfo(files = transitive),
+        DartLibraryInfo(transitive_srcs = transitive),
+    ]
+
+dart_library = rule(
+    implementation = _dart_library_impl,
+    doc = "A Dart package: its own lib sources plus its transitive dep closure.",
+    attrs = {
+        "srcs": attr.label_list(allow_files = [".dart"]),
+        "deps": attr.label_list(providers = [DartLibraryInfo]),
+    },
+)
+
 def dart_kernel_snapshot(name, main, sources, sdk_hash = "0000000000", **kwargs):
     """Compile a Dart script to a *kernel* snapshot with the prebuilt SDK.
 
