@@ -152,7 +152,7 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 | **1** — ✅ **DONE (session 12)** | `dart_compile_platform` macro in `//tools/bazel/dart:defs.bzl` + `//runtime/vm:vm_platform` produce `vm_platform.dill` (+ outline) in Bazel; both consumers (kPlatformDill embed, kernel_worker snapshot) dropped off the pre-staged blob. | ✅ `bazel-bin/runtime/vm/vm_platform.dill` is **byte-identical** to GN's `out/ReleaseX64/vm_platform.dill`. dartvm still runs raw `.dart`; snapshot still honors `--persistent_worker`. |
 | **2** — ✅ **DONE (session 11)** | `bootstrap_gen_kernel.dill` produced in-Bazel by `dart_kernel_snapshot` at `//utils/gen_kernel:bootstrap_gen_kernel` (the checked-in `out/` blob was stale — wrong kernel format). Landed alongside Step 0. | ✅ dartvm/snapshots build against it; the stale pre-stage is gone. |
 | 3 | `dart_library` provider + gazelle-style pubspec→deps generator (recover incrementality). | Touching one pkg rebuilds only its dependents. |
-| **4** — 🟡 **STARTED (session 12)** | Port the rest of `utils/` tool-by-tool. **Done: dtd, dds, frontend_server** (AOT snapshots, all run). `dart_aot_snapshot` made GN-target-faithful so cross-package refs (dds→dtd) resolve. **Deferred: dartdev, dart_runtime_service_vm** — blocked on out-of-band staleness (see below), not rule gaps. Remaining: ddc, dart2js, dart2wasm, analysis_server, kernel-service app-jit, … | Each tool's snapshot matches GN; `create_sdk` assembles. dtd → live Tooling Daemon; dds → dds CLI; frontend_server → server usage. |
+| **4** — 🟡 **WELL UNDERWAY (session 12)** | Port `utils/` tool-by-tool. **Done & running: dtd, dds, frontend_server, dart_mcp_server, ddc, dart2js** — every genuinely-clean AOT tool in `utils/`. `dart_aot_snapshot` made GN-target-faithful (cross-pkg refs resolve); dart2js also needed a generated entry-point genrule (`dart2js_create_snapshot_entry`, reuses `make_version.py --no-git-hash`). **Blocked: dartdev, dart2wasm, analysis_server, dartanalyzer** (analyzer→linter→`primary-constructors`), **dart_runtime_service_vm** (missing package_config) — out-of-band staleness, see below. Remaining clean: `compile_platform` web variants + app-jit. | Each runs: dtd→Tooling Daemon, dds→CLI, frontend_server→usage, dart_mcp_server→help, ddc→usage, dart2js→`--version` "3.13.0-edge". |
 | 5 | `sdk/` assembly (Phase 2b) — mostly `copy`/`copy_tree` once snapshots exist. | `bazel build //sdk` produces a working SDK dir. |
 
 Step 0 is the de-risking move: if a Bazel rule can produce the kernel_worker
@@ -248,9 +248,33 @@ First `utils/` tool on the macro. The mechanical recipe for the remaining ~14
   record_use drift. Needs `gclient sync` + `pub get`, which prior sessions
   deferred as broad/risky (it could disturb the byte-pinned blob state).
 
-`application_snapshot()` (app-jit, e.g. the non-AOT `dds.dart.snapshot`) is not
-yet ported — only the AOT groups the `runtime` aggregate consumes. That's the
-`dart_app_jit_snapshot` rule (§6 #5), still TODO.
+**Generated entry-points (dart2js pattern).** dart2js's `main_dart` is generated
+(`$target_gen_dir/dart2js.dart`) by `create_snapshot_entry.dart`, a thin wrapper
+embedding the SDK version. Ported as a genrule running the prebuilt `dart` on
+that script with `--output_dir=$(RULEDIR) --no-git-hash`; it shells to
+`python3 tools/make_version.py`, and `--no-git-hash` skips the sdk_hash branch
+that reads `runtime/vm` files, so the inputs are just `make_version.py` +
+`utils.py` + `VERSION` (same hermetic shape as `runtime:gen_version_cc`). This
+pattern applies to any tool with a generated entry-point.
+
+**The clean AOT seam is now exhausted.** Every `utils/` tool that is a plain
+`aot_snapshot()` over a CFE-only entry-point is ported. What's left is genuinely
+different work, not more of the same:
+
+1. **`compile_platform` web variants** (`compile_dart2js_platform`, `ddc_platform`,
+   `compile_dart2wasm_*_platform`). These need `dart_compile_platform` GENERALIZED:
+   they pass `--target=dart2js`/`--no-defines` (not the VM's `-Ddart.vm.*` +
+   `-Ddart.isVM=true`) and use `single_root_base=<sdk>/` with
+   `org-dartlang-sdk:///lib/libraries.json` (vs the VM's root base +
+   `/sdk/lib/...`). Do this ADDITIVELY (optional `platform_args` + `single_root_base`
+   params) so the VM caller stays unchanged and `vm_platform.dill` stays
+   byte-identical — re-`cmp` against GN after. (Deferred from session 12 as a
+   design change best made not-overnight.)
+2. **app-jit `application_snapshot()`** (e.g. non-AOT `dds.dart.snapshot`,
+   `dartdev`, `kernel-service`): the `dart_app_jit_snapshot` rule (§6 #5) — JIT +
+   training run via in-progress `dartvm`. Still TODO.
+3. **The blocked tools** need an out-of-band refresh (see below), which is the real
+   gating decision, not a rules problem.
 
 ## 9. Effort estimate (low confidence — flagged honestly)
 
