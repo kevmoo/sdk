@@ -3,8 +3,11 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
+
+exports_files(["kernel_worker.dart"])
 
 # GN lets one target's sources reach into other BUILD.gn dirs; Bazel
 # requires cross-package file refs to be explicitly exported. Bulk-export
@@ -27,14 +30,22 @@ cc_library(name = "kernel_worker_aot_dill")
 # TODO(M3): genrule for kernel_worker_aot_gen_snapshot (gn type=action)
 cc_library(name = "kernel_worker_aot_gen_snapshot")
 
-# TODO(M3): copy for kernel_worker_aot_product (gn type=copy)
-cc_library(name = "kernel_worker_aot_product")
+# rules_dart Step 0: real AOT snapshot of the CFE persistent worker — the
+# external --persistent_worker compatibility contract (DESIGN.md §3.5). Product
+# mode + product gen_snapshot so it loads under dartaotruntime_product.
+dart_aot_snapshot(
+    name = "kernel_worker_aot_product",
+    main = ":kernel_worker.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//out/ReleaseX64:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "kernel_worker_aot_product.dart.snapshot",
+)
 
-# TODO(M3): genrule for kernel_worker_aot_product_dill (gn type=action)
-cc_library(name = "kernel_worker_aot_product_dill")
-
-# TODO(M3): genrule for kernel_worker_aot_product_gen_snapshot (gn type=action)
-cc_library(name = "kernel_worker_aot_product_gen_snapshot")
+# (kernel_worker_aot_product, _dill, _gen_snapshot stubs superseded by the
+# dart_aot_snapshot macro above, which emits the _dill + _snapshot genrules.)
 
 # TODO(M3): genrule for kernel_worker_dill (gn type=action)
 cc_library(name = "kernel_worker_dill")

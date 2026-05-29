@@ -11,7 +11,7 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-05-28 (session 11)._
+_Last updated: 2026-05-28 (session 11) — rules_dart Step 0 landed._
 
 ## TL;DR
 
@@ -47,7 +47,7 @@ The reliable claim is the *ordering*: nothing in Phase 2+ moves until
 | 1a | `runtime/vm` core C++ | ✅ 100%¹ | `libdart_vm_jit` + 13 variants; ¹one config only |
 | 1b | `runtime/bin` executables | ✅ ~90%¹ | `dart`, `dartvm`, `dartaotruntime`, `gen_snapshot` family, `run_vm_tests`, all 14 host cc_binaries, 3 FFI test `.so`s, 43 FFI unit tests pass |
 | 1c | `runtime/platform`, observatory, … | 🟡 ~50% | platform done; observatory + remainder untouched |
-| 2a | `utils/` — Dart-builds-Dart | 🔴 0% | **blocked on `rules_dart`** (dart2js, ddc, dart2wasm, dartdev, dds, analyzer, kernel-service) |
+| 2a | `utils/` — Dart-builds-Dart | 🟡 ~5% | `rules_dart` Step 0 landed: `dart_kernel_snapshot`+`dart_aot_snapshot` macros (`//tools/bazel/dart`) produce a working `kernel_worker_aot_product.dart.snapshot`. Remaining tools (dart2js, ddc, dart2wasm, dartdev, dds, analyzer, kernel-service) + deps generator still to do. See `rules_dart_scoping.md`. |
 | 2b | `sdk/` assembly | 🔴 0% | gated on 2a |
 | 2c | `samples/` | 🟡 ~40% | all 20 `samples/embedder` + `ffi/http*` done; rest no |
 | 3 | `third_party/` | 🟡 partial | icu/boringssl/perfetto/zlib/double-conversion hand-shimmed & working; BCR `bazel_dep` migration not done |
@@ -58,11 +58,10 @@ The reliable claim is the *ordering*: nothing in Phase 2+ moves until
 1. **`rules_dart` — the single biggest scope item.** DESIGN.md §4.3: this is the
    precondition that stalled Flutter's Bazel adoption for 7+ years; the plan says
    solve it *as a precondition, not during* the migration. Gates all of Phase 2a
-   and therefore 2b. Plausibly larger than everything done to date. **Scoped
-   (session 11) — see `rules_dart_scoping.md`.** Key finding: the building blocks
-   (`gen_snapshot`, prebuilt-SDK kernel compile) already exist; a real first proof
-   (the `kernel_worker_aot_product.dart.snapshot` external contract) is achievable
-   now. Implementation not started.
+   and therefore 2b. Plausibly larger than everything done to date. **Scoped +
+   Step 0 landed (session 11) — see `rules_dart_scoping.md`.** The first proof (a
+   working `kernel_worker_aot_product.dart.snapshot`, the external contract)
+   builds and runs via Bazel. Remaining: deps generator + all the other tools.
 2. **Multi-config + overlay (M4).** Single-config today, and every translator
    regen trashes the hand-edits — which is the entire reason
    `tools/bazel/out_of_band/restore.sh` exists. No `select()` folding and no

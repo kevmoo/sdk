@@ -1,0 +1,22 @@
+# OUT-OF-BAND (gitignored): tools/sdks/dart-sdk is a CIPD-managed prebuilt SDK,
+# not tracked by SDK git. This BUILD.bazel exposes the prebuilt `dart` /
+# `dartaotruntime` binaries (and their sibling lib/snapshots, which `dart`
+# resolves relative to its own path) to the Dart-compilation rules in
+# //tools/bazel/dart. Re-create via tools/bazel/out_of_band/restore.sh after a
+# gclient sync. See docs/todo_issues/rules_dart_scoping.md.
+
+package(default_visibility = ["//visibility:public"])
+
+# The whole prebuilt SDK tree as one input bundle. `dart` finds its own SDK
+# (snapshots, libraries) by walking up from the executable, so the entire tree
+# must be present in the action sandbox with its relative layout intact.
+filegroup(
+    name = "sdk_files",
+    srcs = glob(
+        ["**"],
+        exclude = [
+            "BUILD.bazel",
+            "**/*.sym",  # debug symbol sidecars; not needed to run
+        ],
+    ),
+)

@@ -148,7 +148,7 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 
 | Step | Deliverable | Verify |
 |---|---|---|
-| **0 (first proof)** | `dart_kernel` + `dart_aot_snapshot` as minimal rules; opaque-filegroup deps; pre-staged `bootstrap_gen_kernel.dill` + `vm_platform.dill` (like M5 blobs). Target: **`kernel_worker_aot_product.dart.snapshot`**. | Byte-for-byte (or behaviorally) diff against the GN-built snapshot. This is the §5 external contract — the highest-value single artifact. |
+| **0 (first proof)** — ✅ **DONE (session 11)** | `dart_kernel_snapshot` + `dart_aot_snapshot` macros in `//tools/bazel/dart:defs.bzl`; opaque-filegroup deps (`//:dart_package_sources`); bootstrap dill built in-Bazel (the checked-in blob was stale). Target: **`//utils/bazel:kernel_worker_aot_product_snapshot`**. | ✅ `bazel build` produces a 14M AOT ELF; runs under Bazel `dartaotruntime_product` (real CFE path: "No input file provided to the compiler"; `--persistent_worker` starts+exits clean). This is the §5 external contract. |
 | 1 | `compile_platform` rule → produce `vm_platform.dill` in Bazel (drop the pre-stage). | Resulting `.dill` matches GN's. |
 | 2 | `bootstrap_gen_kernel.dill` produced by a Bazel rule (drop that pre-stage). | dartvm/snapshots still byte-match. |
 | 3 | `dart_library` provider + gazelle-style pubspec→deps generator (recover incrementality). | Touching one pkg rebuilds only its dependents. |
@@ -158,6 +158,31 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 Step 0 is the de-risking move: if a Bazel rule can produce the kernel_worker
 snapshot and it matches GN, the entire approach is validated and the rest is
 breadth.
+
+### Step 0 result (session 11) — validated
+
+`bazel build //utils/bazel:kernel_worker_aot_product_snapshot` works end-to-end
+and the output runs under the Bazel-built `dartaotruntime_product`. What we
+learned doing it:
+
+- **Opaque deps via filegroup works hermetically.** `//:dart_package_sources` =
+  `glob(["pkg/**/*.dart", "third_party/pkg/**/*.dart"]) + package_config.json`,
+  globbed from the root package (neither subtree has a sub-`BUILD.bazel`). The
+  kernel compile ran clean in `linux-sandbox` with only that + the prebuilt SDK
+  tree + the platform/bootstrap dills declared. No undeclared-input failures.
+- **The checked-in `bootstrap_gen_kernel.dill` was stale** (kernel format v127;
+  current prebuilt dart emits v130) — risk #1 below, hit immediately. Fixed by
+  building it in-Bazel from the prebuilt SDK (`dart_kernel_snapshot`), so it
+  never goes stale. Pre-staging would have re-introduced the trap.
+- **Exec-config `gen_snapshot_product` compiled cleanly** as a genrule `tool` —
+  the zlib strict-C++ exec-config failure noted in earlier sessions did *not*
+  recur (the `-x c` toolchain feature now covers it). This unblocks the
+  "gen_snapshot as a Bazel tool" path that M5 had punted on.
+- **One out-of-band file added:** `tools/sdks/dart-sdk/BUILD.bazel` (the prebuilt
+  SDK dir is CIPD-managed / gitignored). Captured in `out_of_band/restore.sh`.
+- **Not yet done:** byte-for-byte diff vs GN (the on-disk GN artifact predates
+  the sdk_hash flip, so a clean comparison needs a fresh GN build with
+  `0000000000`); behavioral equivalence is established.
 
 ## 9. Effort estimate (low confidence — flagged honestly)
 
