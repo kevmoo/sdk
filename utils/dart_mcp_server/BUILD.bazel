@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -15,29 +16,38 @@ exports_files(glob(
     allow_empty = True,
 ))
 
+# rules_dart Step 4. main is same-package (utils/dart_mcp_server/dart_mcp_server.dart),
+# so it's referenced directly, no root exports_files needed. Group carries the
+# snapshots via `data`.
 cc_library(
     name = "dart_mcp_server_aot",
-    deps = [
+    data = [
         "//utils/dart_mcp_server:dart_mcp_server_aot_product_snapshot",
         "//utils/dart_mcp_server:dart_mcp_server_aot_snapshot",
     ],
 )
 
-# TODO(M3): copy for dart_mcp_server_aot_product_snapshot (gn type=copy)
-cc_library(name = "dart_mcp_server_aot_product_snapshot")
+# Ports utils/dart_mcp_server/BUILD.gn:aot_snapshot("dart_mcp_server_aot_product_snapshot").
+dart_aot_snapshot(
+    name = "dart_mcp_server_aot_product_snapshot",
+    main = "dart_mcp_server.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "dart_mcp_server_aot_product.dart.snapshot",
+)
 
-# TODO(M3): genrule for dart_mcp_server_aot_product_snapshot_dill (gn type=action)
-cc_library(name = "dart_mcp_server_aot_product_snapshot_dill")
-
-# TODO(M3): genrule for dart_mcp_server_aot_product_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart_mcp_server_aot_product_snapshot_gen_snapshot")
-
-# TODO(M3): copy for dart_mcp_server_aot_snapshot (gn type=copy)
-cc_library(name = "dart_mcp_server_aot_snapshot")
-
-# TODO(M3): genrule for dart_mcp_server_aot_snapshot_dill (gn type=action)
-cc_library(name = "dart_mcp_server_aot_snapshot_dill")
-
-# TODO(M3): genrule for dart_mcp_server_aot_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart_mcp_server_aot_snapshot_gen_snapshot")
+# Ports utils/dart_mcp_server/BUILD.gn:aot_snapshot("dart_mcp_server_aot_snapshot").
+dart_aot_snapshot(
+    name = "dart_mcp_server_aot_snapshot",
+    main = "dart_mcp_server.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "dart_mcp_server_aot.dart.snapshot",
+)
 
