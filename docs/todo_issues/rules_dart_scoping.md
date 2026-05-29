@@ -151,7 +151,7 @@ chicken-and-egg first. Sequenced so each step ships a verifiable artifact:
 | **0 (first proof)** — ✅ **DONE (session 11)** | `dart_kernel_snapshot` + `dart_aot_snapshot` macros in `//tools/bazel/dart:defs.bzl`; opaque-filegroup deps (`//:dart_package_sources`); bootstrap dill built in-Bazel (the checked-in blob was stale). Target: **`//utils/bazel:kernel_worker_aot_product`**. | ✅ `bazel build` produces a 14M AOT ELF; runs under Bazel `dartaotruntime_product` (real CFE path: "No input file provided to the compiler"; `--persistent_worker` starts+exits clean). This is the §5 external contract. |
 | **1** — ✅ **DONE (session 12)** | `dart_compile_platform` macro in `//tools/bazel/dart:defs.bzl` + `//runtime/vm:vm_platform` produce `vm_platform.dill` (+ outline) in Bazel; both consumers (kPlatformDill embed, kernel_worker snapshot) dropped off the pre-staged blob. | ✅ `bazel-bin/runtime/vm/vm_platform.dill` is **byte-identical** to GN's `out/ReleaseX64/vm_platform.dill`. dartvm still runs raw `.dart`; snapshot still honors `--persistent_worker`. |
 | **2** — ✅ **DONE (session 11)** | `bootstrap_gen_kernel.dill` produced in-Bazel by `dart_kernel_snapshot` at `//utils/gen_kernel:bootstrap_gen_kernel` (the checked-in `out/` blob was stale — wrong kernel format). Landed alongside Step 0. | ✅ dartvm/snapshots build against it; the stale pre-stage is gone. |
-| **3** — ✅ **DONE (session 19)** | `dart_library` rule + `DartLibraryInfo` provider + `gen_packages.py` (pubspec→deps generator) → `packages.bzl` (196 `dart_pkg_*` targets). All ported `utils/` tools + `bootstrap_gen_kernel` repointed off `//:dart_package_sources` onto per-package closures. | ✅ Editing an out-of-closure package leaves a tool's kernel compile a CACHE HIT (was a full recompile under the blob); dills semantically identical to the opaque build (0-line dump-diff, dtd + dart2js spot-checked); `//:runtime` clean; `vm_platform.dill` byte-identical. |
+| **3** — ✅ **DONE (session 19; finished session 20)** | `dart_library` rule + `DartLibraryInfo` provider + `gen_packages.py` (pubspec→deps generator) → `packages.bzl` (196 `dart_pkg_*` targets). All ported `utils/` tools + `bootstrap_gen_kernel` repointed off `//:dart_package_sources` onto per-package closures. **Session 20 scoped the last holdouts — the 7 platform compiles — via `//:compile_platform_tool`, retiring the blob (now zero consumers).** | ✅ Editing an out-of-closure package leaves a tool's kernel compile a CACHE HIT (was a full recompile under the blob); dills semantically identical to the opaque build (0-line dump-diff, dtd + dart2js spot-checked); `//:runtime` clean; **all 14 platform dills byte-identical to GN; `vm_platform` closure 21 177 → 3 210 `.dart` inputs.** |
 | **4** — 🟡 **WELL UNDERWAY (session 12)** | Port `utils/` tool-by-tool. **Done & running: dtd, dds, frontend_server, dart_mcp_server, ddc, dart2js** — every genuinely-clean AOT tool in `utils/`. `dart_aot_snapshot` made GN-target-faithful (cross-pkg refs resolve); dart2js also needed a generated entry-point genrule (`dart2js_create_snapshot_entry`, reuses `make_version.py --no-git-hash`). **Blocked: dartdev, dart2wasm, analysis_server, dartanalyzer** (analyzer→linter→`primary-constructors`), **dart_runtime_service_vm** (missing package_config) — out-of-band staleness, see below. Remaining clean: `compile_platform` web variants + app-jit. | Each runs: dtd→Tooling Daemon, dds→CLI, frontend_server→usage, dart_mcp_server→help, ddc→usage, dart2js→`--version` "3.13.0-edge". |
 | 5 | `sdk/` assembly (Phase 2b) — mostly `copy`/`copy_tree` once snapshots exist. | `bazel build //sdk` produces a working SDK dir. |
 
@@ -327,16 +327,45 @@ analysis_server's training needs `//:dart_pkg_compiler` in `training_srcs` becau
 `--train-using=pkg/compiler/lib` analyzes the compiler sources (without it the
 sandboxed analyzer spins on missing files).
 
-**Left opaque ON PURPOSE — the platform compiles** (`runtime/vm:vm_platform` + the
-6 `dart_compile_platform` web/wasm variants). Their tool script
-`pkg/front_end/tool/compile_platform.dart` lives outside any package `lib/`, so a
-per-package closure misses it — scoping them cleanly needs the tool threaded as an
-explicit input (a clean follow-up). They are byte-deterministic (canonical URIs),
-so they re-run on unrelated edits but produce identical output and DON'T cascade.
-
 `packages.bzl` is generated + committed; `out_of_band/restore.sh` step 6
 regenerates it after `package_config.json` and flags drift (stale generated output
 to re-commit).
+
+### Step 3 finish (session 20) — the platform compiles scoped, blob retired
+
+Session 19 left the 7 platform compiles (`runtime/vm:vm_platform` + the 6
+`dart_compile_platform` web/wasm variants) on the opaque blob: their tool script
+`pkg/front_end/tool/compile_platform.dart` and its `tool/` siblings live outside
+any package `lib/`, so a generated `dart_pkg_*` closure doesn't materialize them.
+Fixed by threading them as explicit srcs of a new hand-authored
+`//:compile_platform_tool` `dart_library` (in the ROOT `BUILD.bazel`, since
+`pkg/` has no sub-BUILD.bazel): the 7 import-closure files — `compile_platform`,
+`entry_points`, `additional_targets`, `bench_maker`, `command_line` (under
+`pkg/front_end/tool/`) + `coverage_helper`, `vm_service_helper` (under
+`pkg/front_end/test/`) — with `deps` on the 9 top-level packages the entry
+transitively reaches: `_fe_analyzer_shared, build_integration, compiler, dart2wasm,
+dev_compiler, front_end, kernel, vm, vm_service`. `additional_targets.dart`
+statically imports every kernel `Target`, so one closure serves all 7 callers
+regardless of `--target=`.
+
+One macro fix was required: `dart_compile_platform` did not list
+`_PACKAGE_CONFIG_FILE` in its genrule srcs — it had relied on the opaque blob
+bundling `.dart_tool/package_config.json`. With a `.dart`-only scoped closure,
+`--packages` read a missing file and *every* package failed to resolve (the real
+root cause; it first surfaced as misleading cascading `vm_service` "isn't a type"
+errors). The other three macros already include it; it is deduped/harmless when
+`sources` is still the blob.
+
+Verified: **all 14 platform dills (7 platform + 7 outline) are BYTE-IDENTICAL to
+GN** (`cmp` 0 vs `out/ReleaseX64`) — the vm_platform gold standard holds, not merely
+semantic. `vm_platform`'s `.dart` input closure shrank **21 177 → 3 210**
+(`dtd_impl`/`dds`/`analysis_server`/`dartdev` gone; `analyzer`'s 444 files remain
+only because `pkg/dart2wasm` + `pkg/front_end` declare `analyzer:` in real pubspec
+`dependencies` — the §8 safe-superset, not an overreach).
+
+**The opaque `//:dart_package_sources` filegroup now has ZERO remaining consumers**
+(no `sources=` references, no `rdeps`) — a clean candidate for outright removal in a
+follow-up. NEXT clean work is Step 5 (sdk/ assembly) / M4 multi-config.
 
 ## 9. Effort estimate (low confidence — flagged honestly)
 
