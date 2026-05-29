@@ -42,6 +42,7 @@ exports_files([
     "pkg/vm/bin/gen_kernel.dart",
     "pkg/dtd_impl/bin/dtd.dart",
     "pkg/dds/bin/dds.dart",
+    "pkg/frontend_server/bin/frontend_server_starter.dart",
 ])
 
 cc_library(

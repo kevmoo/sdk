@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -24,23 +25,30 @@ cc_library(name = "ddc_files_stamp")
 # TODO(M3): genrule for frontend_server (gn type=action)
 cc_library(name = "frontend_server")
 
-# TODO(M3): copy for frontend_server_aot (gn type=copy)
-cc_library(name = "frontend_server_aot")
+# rules_dart Step 4: real frontend_server AOT snapshots over
+# pkg/frontend_server/bin/frontend_server_starter.dart. Ports
+# utils/kernel-service/BUILD.gn:aot_snapshot("frontend_server_aot[_product]").
+dart_aot_snapshot(
+    name = "frontend_server_aot",
+    main = "//:pkg/frontend_server/bin/frontend_server_starter.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    product = False,
+    out = "frontend_server_aot.dart.snapshot",
+)
 
-# TODO(M3): genrule for frontend_server_aot_dill (gn type=action)
-cc_library(name = "frontend_server_aot_dill")
-
-# TODO(M3): genrule for frontend_server_aot_gen_snapshot (gn type=action)
-cc_library(name = "frontend_server_aot_gen_snapshot")
-
-# TODO(M3): copy for frontend_server_aot_product (gn type=copy)
-cc_library(name = "frontend_server_aot_product")
-
-# TODO(M3): genrule for frontend_server_aot_product_dill (gn type=action)
-cc_library(name = "frontend_server_aot_product_dill")
-
-# TODO(M3): genrule for frontend_server_aot_product_gen_snapshot (gn type=action)
-cc_library(name = "frontend_server_aot_product_gen_snapshot")
+dart_aot_snapshot(
+    name = "frontend_server_aot_product",
+    main = "//:pkg/frontend_server/bin/frontend_server_starter.dart",
+    sources = "//:dart_package_sources",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    product = True,
+    out = "frontend_server_aot_product.dart.snapshot",
+)
 
 # TODO(M3): genrule for frontend_server_dill (gn type=action)
 cc_library(name = "frontend_server_dill")
