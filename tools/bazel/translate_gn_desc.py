@@ -180,7 +180,7 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     cxxopts = _flags("cflags_cc")
     linkopts = [f'"-l{l}"' for l in t.get("libs", [])]
 
-    if pkg == "runtime/bin":
+    if pkg == "runtime" or pkg.startswith("runtime/"):
         defines = [d for d in defines if d != '"NDEBUG"']
         if '"//build/config:dart_mode"' not in deps:
             deps.append('"//build/config:dart_mode"')
@@ -190,9 +190,9 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     out.append(_attr_list("srcs", srcs))
     out.append(_attr_list("hdrs", hdrs))
     out.append(_attr_list("deps", deps))
-    out.append(_attr_list("defines", defines))
+    out.append(_attr_list("local_defines", defines))
 
-    if pkg == "runtime/bin":
+    if pkg == "runtime" or pkg.startswith("runtime/"):
         copts_str = _attr_list("copts", copts)
         if copts:
             copts_str = copts_str.rstrip("\n,")
@@ -211,7 +211,7 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
 
     out.append(_attr_list("conlyopts", conlyopts))
 
-    if pkg == "runtime/bin":
+    if pkg == "runtime" or pkg.startswith("runtime/"):
         cxxopts_str = _attr_list("cxxopts", cxxopts)
         if cxxopts:
             cxxopts_str = cxxopts_str.rstrip("\n,")
@@ -383,6 +383,9 @@ def main():
         return False
 
     for pkg, targets in sorted(by_pkg.items()):
+        if pkg in {"runtime/platform", "runtime/vm", "sdk"}:
+            print(f"skipping {pkg} (hand-authored BUILD.bazel overlay)", file=sys.stderr)
+            continue
         if pkg in GEN_TARGETS_PACKAGES:
             # §7 overlay: emit gen_targets.bzl; the hand-authored BUILD.bazel is
             # never written here (so a regen can't clobber its hand-fixes).

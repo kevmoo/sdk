@@ -432,7 +432,7 @@ cc_library(
     deps = [
         "//third_party/binaryen:generate_needed_files",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -525,7 +525,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -599,7 +599,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -673,7 +673,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -747,7 +747,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -821,7 +821,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -895,7 +895,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -969,7 +969,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -1037,7 +1037,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -1111,7 +1111,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -1185,7 +1185,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//third_party/binaryen:binaryen_sources",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",

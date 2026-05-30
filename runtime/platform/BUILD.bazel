@@ -21,6 +21,9 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
     ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
@@ -37,10 +40,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -74,7 +76,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -98,11 +99,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -111,6 +123,9 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
     ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
@@ -127,10 +142,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -165,7 +179,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -189,11 +202,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -201,6 +225,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -218,10 +245,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -253,7 +279,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -277,11 +302,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -289,6 +325,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -306,10 +345,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -342,7 +380,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -366,11 +403,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -378,6 +426,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -395,10 +446,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -431,7 +481,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -456,11 +505,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -469,6 +529,9 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
     ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
@@ -485,10 +548,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -521,7 +583,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -546,11 +607,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -559,6 +631,9 @@ cc_library(
         "//runtime/include:headers",
         "//runtime/lib:headers",
     ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
     srcs = [
         "allocation.cc",
         "assert.cc",
@@ -575,10 +650,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
@@ -609,7 +683,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -634,11 +707,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -646,6 +730,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -663,10 +750,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -700,7 +786,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -725,11 +810,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -737,6 +833,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -754,10 +853,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "PRODUCT",
@@ -789,7 +887,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -814,11 +911,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -826,6 +934,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -843,10 +954,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
@@ -880,7 +990,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -905,11 +1014,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -917,6 +1037,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -934,10 +1057,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
@@ -971,7 +1093,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -996,11 +1117,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -1008,6 +1140,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -1025,10 +1160,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
@@ -1062,7 +1196,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1087,11 +1220,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -1099,6 +1243,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -1116,10 +1263,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
@@ -1153,7 +1299,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1178,11 +1323,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -1190,6 +1346,9 @@ cc_library(
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
     srcs = [
         "allocation.cc",
@@ -1207,10 +1366,9 @@ cc_library(
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1244,7 +1402,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1269,11 +1426,22 @@ cc_library(
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 

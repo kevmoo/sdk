@@ -34,7 +34,7 @@ cc_library(
         "//runtime/include:dart_version.h",
         "//runtime/include:internal/dart_api_dl_impl.h",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
@@ -163,11 +163,11 @@ cc_library(
         "//runtime/vm:libdart_vm_aotruntime",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -203,7 +203,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -226,8 +225,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -260,11 +269,11 @@ cc_library(
         "//runtime/vm:libdart_vm_aotruntime_product",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -301,7 +310,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -324,8 +332,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -359,11 +377,11 @@ cc_library(
         "//runtime/vm:libdart_vm_jit",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -397,7 +415,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -420,8 +437,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -455,11 +482,11 @@ cc_library(
         "//runtime/vm:libdart_vm_jit_product",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -494,7 +521,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -517,8 +543,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -552,11 +588,11 @@ cc_library(
         "//runtime/vm:libdart_vm_libfuzzer",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -591,7 +627,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -615,8 +650,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -650,11 +695,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -689,7 +734,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -713,8 +757,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -748,11 +802,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_host_targeting_host",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_SHARED_LIB",
@@ -785,7 +839,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -809,8 +862,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -844,11 +907,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_product",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -884,7 +947,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -908,8 +970,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -943,11 +1015,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_product_host_targeting_host",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "PRODUCT",
@@ -981,7 +1053,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1005,8 +1076,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1040,11 +1121,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_product_linux_arm",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
@@ -1080,7 +1161,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1104,8 +1184,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1139,11 +1229,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_product_linux_arm64",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
@@ -1179,7 +1269,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1203,8 +1292,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1238,11 +1337,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_product_linux_riscv64",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
@@ -1278,7 +1377,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1302,8 +1400,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1337,11 +1445,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_product_linux_x64",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
@@ -1377,7 +1485,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1401,8 +1508,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1436,11 +1553,11 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_testing",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1476,7 +1593,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -1500,8 +1616,18 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti",
-    ],
+        "-fno-rtti"
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+        cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",

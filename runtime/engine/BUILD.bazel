@@ -16,18 +16,10 @@ exports_files(glob(
 ))
 
 cc_library(
-    name = "headers",
-    hdrs = glob(["**/*.h"], allow_empty = True),
-)
-
-cc_library(
     name = "dart_engine_aot_shared",
     deps = [
-        # M5 follow-up: the GN target is a `copy` of libdart_engine_aot.so
-        # produced elsewhere. Until that copy genrule is wired, link the
-        # symbols statically via :engine_aot_set so cc_binary consumers
-        # resolve at link time.
-        "//runtime/engine:engine_aot_set",
+        "//runtime/engine:dart_engine_aot_shared(//build/toolchain/linux:clang_x64_shared)",
+        "//runtime/engine:dart_engine_aot_shared_copy",
     ],
 )
 
@@ -38,11 +30,11 @@ cc_library(
     name = "dart_engine_aot_static",
     deps = [
         "//runtime/engine:engine_aot_set",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-m64",
@@ -69,17 +61,30 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -89,8 +94,8 @@ cc_library(
 cc_library(
     name = "dart_engine_jit_shared",
     deps = [
-        # M5 follow-up: same story as dart_engine_aot_shared above.
-        "//runtime/engine:engine_jit_set",
+        "//runtime/engine:dart_engine_jit_shared(//build/toolchain/linux:clang_x64_shared)",
+        "//runtime/engine:dart_engine_jit_shared_copy",
     ],
 )
 
@@ -101,11 +106,11 @@ cc_library(
     name = "dart_engine_jit_static",
     deps = [
         "//runtime/engine:engine_jit_set",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-m64",
@@ -132,17 +137,30 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -151,12 +169,6 @@ cc_library(
 
 cc_library(
     name = "engine_aot_set",
-    implementation_deps = [
-        "//runtime/engine:headers",
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "//runtime/bin:dart_embedder_api_impl.cc",
         "//runtime/bin:vmservice_impl.cc",
@@ -171,11 +183,11 @@ cc_library(
         "//runtime:libdart_aotruntime",
         "//runtime/bin:common_embedder_dart_io",
         "//runtime/bin:libdart_builtin",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "DART_PRECOMPILED_RUNTIME",
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TARGET_ARCH_X64",
@@ -212,7 +224,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -231,12 +242,26 @@ cc_library(
         "-Wimplicit-fallthrough",
         "-fno-strict-vtable-pointers",
         "-O2",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -245,12 +270,6 @@ cc_library(
 
 cc_library(
     name = "engine_jit_set",
-    implementation_deps = [
-        "//runtime/engine:headers",
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "//runtime/bin:dart_embedder_api_impl.cc",
         "//runtime/bin:vmservice_impl.cc",
@@ -266,11 +285,11 @@ cc_library(
         "//runtime/bin:common_embedder_dart_io",
         "//runtime/bin:dart_kernel_platform_cc",
         "//runtime/bin:libdart_builtin",
+        "//build/config:dart_mode",
     ],
-    defines = [
+    local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -305,7 +324,6 @@ cc_library(
         "-Wheader-hygiene",
         "-Wstring-conversion",
         "-O2",
-        "-fno-ident",
         "-fdata-sections",
         "-ffunction-sections",
         "-g3",
@@ -324,12 +342,26 @@ cc_library(
         "-Wimplicit-fallthrough",
         "-fno-strict-vtable-pointers",
         "-O2",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
         "-fno-rtti",
-    ],
+    ] + select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
