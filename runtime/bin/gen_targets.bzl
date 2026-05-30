@@ -80,6 +80,11 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -136,6 +141,11 @@ def gen_targets():
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -216,6 +226,11 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -268,6 +283,11 @@ def gen_targets():
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -321,6 +341,11 @@ def gen_targets():
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -402,6 +427,11 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -483,6 +513,11 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -565,6 +600,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -642,6 +682,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -722,6 +767,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -800,6 +850,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -880,6 +935,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -960,6 +1020,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -1040,6 +1105,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -1120,6 +1190,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -1172,6 +1247,11 @@ def gen_targets():
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -1228,6 +1308,11 @@ def gen_targets():
             "-g3",
             "-ggdb3",
             "-fPIE",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
@@ -1314,6 +1399,11 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
+        ],
+        conlyopts = [
+            "-std=c17",
+        ],
+        cxxopts = [
             "-fvisibility-inlines-hidden",
             "-fno-omit-frame-pointer",
             "-std=c++20",
