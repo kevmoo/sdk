@@ -95,6 +95,7 @@ cc_binary(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//build/config/sanitizers:deps",
         "//runtime/platform:headers",
     ],
@@ -211,6 +212,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -344,6 +346,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin",
         "//third_party/boringssl",
         "//third_party/fallback_root_certificates",
@@ -464,7 +467,6 @@ cc_library(
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
-        "PRODUCT",
     ],
     implementation_deps = [
         "//runtime/include:headers",
@@ -477,6 +479,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
         "//third_party/boringssl",
         "//third_party/fallback_root_certificates",
@@ -510,6 +513,7 @@ cc_library(
     implementation_deps = ["//runtime/platform:headers"],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -593,7 +597,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
     ],
     implementation_deps = [
@@ -607,6 +610,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -672,6 +676,7 @@ cc_binary(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//build/config/sanitizers:deps",
         "//runtime/platform:headers",
     ],
@@ -752,6 +757,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime:libdart_jit",
         "//runtime/bin:common_embedder_dart_io",
         "//runtime/bin:dart_kernel_platform_cc",
@@ -853,7 +859,6 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILED_RUNTIME",
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "PRODUCT",
         "U_USING_ICU_NAMESPACE=0",
         "U_ENABLE_DYLOAD=0",
         "USE_CHROMIUM_ICU=1",
@@ -873,6 +878,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -976,7 +982,6 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILED_RUNTIME",
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "PRODUCT",
         "U_USING_ICU_NAMESPACE=0",
         "U_ENABLE_DYLOAD=0",
         "USE_CHROMIUM_ICU=1",
@@ -996,6 +1001,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -1118,6 +1124,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -1204,6 +1211,7 @@ cc_binary(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//build/config/sanitizers:deps",
         "//runtime:libdart_jit",
         "//runtime/bin:common_embedder_dart_io",
@@ -1328,6 +1336,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -1414,7 +1423,6 @@ cc_library(
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
-        "PRODUCT",
         "DART_SHARED_LIB",
     ],
     implementation_deps = [
@@ -1428,6 +1436,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin",
     ],
 )
@@ -1510,7 +1519,6 @@ cc_library(
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
-        "PRODUCT",
         "DART_SHARED_LIB",
     ],
     implementation_deps = [
@@ -1524,6 +1532,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
     ],
 )
@@ -1549,6 +1558,7 @@ cc_library(
     }),
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/include:headers",
     ],
     alwayslink = True,
@@ -1578,6 +1588,7 @@ cc_binary(
     deps = [
         ":entrypoints_verification_test",
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1625,6 +1636,7 @@ cc_binary(
     deps = [
         ":ffi_test_dynamic_library",
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1658,6 +1670,7 @@ cc_library(
     }),
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/include:headers",
     ],
     alwayslink = True,
@@ -1692,6 +1705,7 @@ cc_library(
     deps = [
         ":ffi_test_functions_c",
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/include:headers",
         "//runtime/platform:headers",
     ],
@@ -1722,6 +1736,7 @@ cc_binary(
     deps = [
         ":ffi_test_functions",
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1850,6 +1865,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -1977,6 +1993,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2092,7 +2109,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_LINUX",
     ],
@@ -2107,6 +2123,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2222,7 +2239,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
     ],
     implementation_deps = [
         "//runtime/include:headers",
@@ -2235,6 +2251,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2350,7 +2367,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
     ],
@@ -2365,6 +2381,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2480,7 +2497,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
     ],
@@ -2495,6 +2511,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2610,7 +2627,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
     ],
@@ -2625,6 +2641,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2740,7 +2757,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
@@ -2755,6 +2771,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2859,6 +2876,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -2951,7 +2969,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
     ],
     implementation_deps = [
         "//runtime/include:headers",
@@ -2964,6 +2981,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -3056,7 +3074,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
     ],
@@ -3071,6 +3088,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -3163,7 +3181,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
     ],
@@ -3178,6 +3195,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -3270,7 +3288,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
     ],
@@ -3285,6 +3302,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -3377,7 +3395,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
@@ -3392,6 +3409,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -3484,7 +3502,6 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_LINUX",
     ],
@@ -3499,6 +3516,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -3605,6 +3623,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ],
 )
@@ -3803,6 +3822,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -3909,6 +3929,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4003,7 +4024,6 @@ cc_library(
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
@@ -4018,6 +4038,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4112,7 +4133,6 @@ cc_library(
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
     ],
     implementation_deps = [
         "//runtime/include:headers",
@@ -4125,6 +4145,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4219,7 +4240,6 @@ cc_library(
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
     ],
@@ -4234,6 +4254,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4328,7 +4349,6 @@ cc_library(
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
     ],
@@ -4343,6 +4363,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4437,7 +4458,6 @@ cc_library(
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
     ],
@@ -4452,6 +4472,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4546,7 +4567,6 @@ cc_library(
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
@@ -4561,6 +4581,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4652,6 +4673,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -4729,7 +4751,6 @@ cc_library(
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
-        "PRODUCT",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
@@ -4744,6 +4765,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -5139,6 +5161,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "//third_party/zlib",
@@ -5225,7 +5248,6 @@ cc_library(
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
-        "PRODUCT",
         "DART_SHARED_LIB",
     ],
     implementation_deps = [
@@ -5239,6 +5261,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin",
     ],
 )
@@ -5322,7 +5345,6 @@ cc_library(
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
-        "PRODUCT",
         "DART_SHARED_LIB",
     ],
     implementation_deps = [
@@ -5336,6 +5358,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
     ],
 )
