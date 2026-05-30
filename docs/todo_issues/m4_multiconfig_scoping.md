@@ -221,6 +221,41 @@ regions in one file (fragile to editing inside the region) and a committed-patch
 overlay (patch drift). The `.bzl`/`BUILD` split is the clean answer and the repo
 already runs it for Step 3.
 
+> **Update — landed session 23 (slice 2), on `//runtime/bin` as the pattern proof.**
+> `translate_gn_desc.py` gained an opt-in `GEN_TARGETS_PACKAGES` allowlist: for a
+> listed package it emits the **machine-derived** cc_* targets into a generated
+> `gen_targets.bzl` (`def gen_targets()` macro) and **never (over)writes
+> `BUILD.bazel`**; a hand-authored, clobber-safe `BUILD.bazel` `load()`s + calls
+> `gen_targets()` and owns every hand-fixed target. Three implementation notes the
+> recon didn't anticipate:
+> - **The split is by NAME EXCLUSION, not a hardcoded list.** The translator emits
+>   only the desc targets whose names are *not* already defined in the hand-authored
+>   `BUILD.bazel` (the hand file is the authority on what it owns). A small
+>   `GEN_TARGETS_DROP` set additionally suppresses obsolete GN targets the hand file
+>   replaced (here: 3 `copy` stubs superseded by real `.so` `cc_binary` rules), so a
+>   regen never resurrects them.
+> - **Foreign-scan had to be made allowlist-aware.** A `§7` package's hand-authored
+>   `BUILD.bazel` lacks the `AUTO-GENERATED` marker, which would otherwise flag it
+>   "foreign" and stop the translator from regenerating its **child** packages
+>   (`runtime/bin/ffi_unit_test`). The scan now skips the marker test for allowlisted
+>   packages.
+> - **For these hand-maintained runtime packages the §7 shape INVERTS.** Measuring
+>   pristine-translator output vs the committed file: `runtime/bin` is **53/79 targets
+>   hand-fixed** (`runtime/vm` 43/48) — only **20 of the 74** desc targets are
+>   byte-reproducible. So `gen_targets.bzl` holds the 20 machine targets and the
+>   *hand-authored* `BUILD.bazel` is the bulk (69 targets: `dartvm`, `libdart_builtin`
+>   + all product/arch variants, every `gen_snapshot*`, the 5 genrules + 8 filegroups,
+>   the `.so` rewrites). The recon assumed machine output is the bulk (true for the
+>   clean packages a tree-wide rollout will hit); for `runtime/*` the mechanism still
+>   works — the *shape* just reflects that these files are de-facto hand-maintained.
+>
+> Verified: `//runtime/bin:dartvm` byte-identical to pre-change; a regen regenerates
+> `gen_targets.bzl` byte-stably and leaves `BUILD.bazel` untouched (content + mtime);
+> additive (old-vs-new translator differ on `runtime/bin/BUILD.bazel` only, across all
+> emitted packages). **No wiring yet** — flowing `//build/config:dart_mode` into the
+> runtime cc_* targets is the next slice, now unblocked because their hand-authored
+> home is clobber-safe.
+
 ## 8. What this recon did NOT cover
 
 - **The other config axes:** arch, OS, product, sanitizers. The `PRODUCT`-on-58
