@@ -58,8 +58,16 @@ cc_binary(
         "-Wno-tautological-constant-compare",
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -111,8 +119,16 @@ cc_binary(
         "-Wno-tautological-constant-compare",
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -169,8 +185,16 @@ cc_library(
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
         "-Wno-parentheses-equality",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -222,8 +246,16 @@ cc_binary(
         "-Wno-tautological-constant-compare",
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -315,8 +347,16 @@ cc_library(
         "-Wno-deprecated-non-prototype",
         "-Wno-incompatible-pointer-types",
         "-Wunused-variable",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -374,8 +414,16 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -426,8 +474,16 @@ cc_binary(
         "-Wno-tautological-constant-compare",
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -483,8 +539,16 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -543,8 +607,16 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -604,8 +676,16 @@ cc_library(
         "-Wno-deprecated-non-prototype",
         "-Wno-incompatible-pointer-types",
         "-Wunused-variable",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -658,8 +738,16 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",
@@ -710,8 +798,16 @@ cc_binary(
         "-Wno-tautological-constant-compare",
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
+    cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
     ],
     linkopts = [
         "-ldl",

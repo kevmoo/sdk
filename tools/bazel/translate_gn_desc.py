@@ -166,13 +166,18 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
         path = path.rstrip("/")
         if path:
             include_copts.append(f'"-I{path}"')
-    # Drop flags whose values are gn-relative paths we don't reproduce in
-    # Bazel yet — most prominently --sysroot=../../buildtools/sysroot/linux
-    # (handled later by a real toolchain feature). With it filtered, clang
-    # falls back to the host's system headers, which is fine for M3.
-    raw_flags = list(t.get("cflags", [])) + list(t.get("cflags_cc", []))
-    raw_flags = [f for f in raw_flags if not f.startswith("--sysroot=")]
-    copts = include_copts + [f'"{c}"' for c in raw_flags]
+    # gn's flag buckets map to Bazel's per-language compile attrs: cflags (both
+    # C and C++) -> copts, cflags_c (C only) -> conlyopts, cflags_cc (C++ only)
+    # -> cxxopts. Keeping them separate (rather than folding cflags_cc into
+    # copts) stops C++-only flags like -std=c++20 / -fno-rtti from landing on .c
+    # compiles, and recovers the C-only flags (e.g. -std=c17) the old merge
+    # dropped — issue_00001. Drop --sysroot=... (a gn-relative path handled later
+    # by a real toolchain feature); filtered out, clang falls back to host headers.
+    def _flags(key):
+        return [f'"{c}"' for c in t.get(key, []) if not c.startswith("--sysroot=")]
+    copts = include_copts + _flags("cflags")
+    conlyopts = _flags("cflags_c")
+    cxxopts = _flags("cflags_cc")
     linkopts = [f'"-l{l}"' for l in t.get("libs", [])]
     out = [f'{rule}(\n    name = "{name}",\n']
     out.append(_attr_list("srcs", srcs))
@@ -180,6 +185,8 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     out.append(_attr_list("deps", deps))
     out.append(_attr_list("defines", defines))
     out.append(_attr_list("copts", copts))
+    out.append(_attr_list("conlyopts", conlyopts))
+    out.append(_attr_list("cxxopts", cxxopts))
     out.append(_attr_list("linkopts", linkopts))
     out.append(")\n")
     return "".join(out)

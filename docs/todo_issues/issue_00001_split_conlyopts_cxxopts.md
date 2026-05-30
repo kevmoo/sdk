@@ -48,3 +48,30 @@ Discovered during the Bazel migration — `zlib` was being compiled with
 `-std=c++20` and `-fno-rtti`, and the Bazel translator had to manually strip
 C++-only flags from the C target's `copts`. See M5 hand-off memory
 (`project-m3-handoff`) bucket discussions.
+
+## Resolution — Bazel translator side (session 23, 2026-05-30)
+
+`tools/bazel/translate_gn_desc.py` now maps gn's flag buckets to Bazel's
+per-language compile attrs instead of merging them: `cflags` → `copts`,
+`cflags_c` → `conlyopts`, `cflags_cc` → `cxxopts`. Previously it did
+`copts = cflags + cflags_cc` (so `-std=c++20` / `-fno-rtti` landed on every `.c`
+compile and clang hard-errored `'-std=c++20' not allowed with 'C'`) **and**
+dropped `cflags_c` entirely (losing `-std=c17` on C files). The gn desc already
+reports `-std=c++20` under `cflags_cc` and `-std=c17` under `cflags_c`, so this
+was a translator-only fix.
+
+The `third_party/zlib` out-of-band snapshot
+(`tools/bazel/out_of_band/snapshot/.../zlib/BUILD.bazel.snap`) was regenerated
+from the fixed translator, **retiring the previous hand-strip band-aid** (which
+deleted `-std=c++20` from `copts` by hand). Verified: `//runtime/bin:dartvm`
+builds green from the fresh zlib (652 actions, full zlib recompile); the
+generated `//third_party/zlib:zlib` target now carries `copts` (no `-std=c++20`),
+`conlyopts = ["-std=c17"]`, and `cxxopts = ["-std=c++20", …]`, so `.c` files no
+longer receive C++ flags. This is byte-identical for pure-C++ targets (a `.cc`
+file still sees `copts` then `cxxopts` = the old merged order).
+
+**Still open — GN side (optional, non-blocking):** the std flags are already
+split in gn, but some C++-only warnings (e.g. `-Wheader-hygiene`) still sit in
+the shared `cflags` block in `build/config/compiler/BUILD.gn`. Moving those to
+`cflags_cc` is the upstream "improvement on its own" (accurate compile DBs /
+clangd); clang merely warns on them for C, so it does not block the build.
