@@ -22,11 +22,11 @@ def gen_targets():
             "//runtime/bin:common_embedder_dart_io",
             "//runtime/bin:shared_object_loaders",
             "//runtime/platform:libdart_platform_aotruntime",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -60,7 +60,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -80,7 +79,10 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -90,7 +92,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -105,11 +113,11 @@ def gen_targets():
         deps = [
             "//runtime/bin:core_snapshot_data_linkable",
             "//runtime/bin:core_snapshot_text_linkable",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
         ],
         copts = [
             "-m64",
@@ -136,12 +144,14 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -151,7 +161,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -167,11 +183,11 @@ def gen_targets():
             "//runtime/bin:dart_set",
             "//runtime/bin:shared_object_loaders_product",
             "//runtime/platform:libdart_platform_aotruntime_product",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -206,7 +222,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -226,7 +241,10 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -236,7 +254,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -247,11 +271,11 @@ def gen_targets():
         name = "dart_embedder_runtime_jit",
         deps = [
             "//runtime/bin:dart_embedder_runtime_jit_set",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
         ],
         copts = [
             "-m64",
@@ -278,12 +302,14 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -293,7 +319,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -305,11 +337,11 @@ def gen_targets():
         deps = [
             "//runtime/bin:kernel_service_dill_linkable",
             "//runtime/bin:platform_dill_linkable",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
         ],
         copts = [
             "-m64",
@@ -336,12 +368,14 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -351,7 +385,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -369,11 +409,11 @@ def gen_targets():
             "//runtime/bin:native_assets_api",
             "//runtime/bin:shared_object_loaders",
             "//runtime/platform:libdart_platform_aotruntime",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -407,7 +447,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -427,7 +466,10 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -437,7 +479,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -454,11 +502,11 @@ def gen_targets():
             "//runtime/bin:native_assets_api_product",
             "//runtime/bin:shared_object_loaders_product",
             "//runtime/platform:libdart_platform_aotruntime_product",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -493,7 +541,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -513,7 +560,10 @@ def gen_targets():
             "-Wimplicit-fallthrough",
             "-fno-strict-vtable-pointers",
             "-O2",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -523,7 +573,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -542,11 +598,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_set",
             "//runtime/bin:libdart_builtin",
             "//runtime/platform:libdart_platform_precompiler",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "TARGET_ARCH_X64",
@@ -579,7 +635,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -600,7 +655,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -610,7 +668,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -626,11 +690,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_host_targeting_host_set",
             "//runtime/bin:libdart_builtin_host_targeting_host",
             "//runtime/platform:libdart_platform_precompiler_host_targeting_host",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
         ],
@@ -661,7 +725,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -682,7 +745,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -692,7 +758,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -708,11 +780,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_set",
             "//runtime/bin:libdart_builtin_product",
             "//runtime/platform:libdart_platform_precompiler_product",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
@@ -746,7 +818,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -767,7 +838,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -777,7 +851,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -793,11 +873,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_host_targeting_host_set",
             "//runtime/bin:libdart_builtin_host_targeting_host",
             "//runtime/platform:libdart_platform_precompiler_host_targeting_host",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
@@ -829,7 +909,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -850,7 +929,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -860,7 +942,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -876,11 +964,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_arm_set",
             "//runtime/bin:libdart_builtin_product_linux_arm",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
@@ -914,7 +1002,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -935,7 +1022,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -945,7 +1035,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -961,11 +1057,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_arm64_set",
             "//runtime/bin:libdart_builtin_product_linux_arm64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
@@ -999,7 +1095,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -1020,7 +1115,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -1030,7 +1128,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -1046,11 +1150,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_riscv64_set",
             "//runtime/bin:libdart_builtin_product_linux_riscv64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
@@ -1084,7 +1188,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -1105,7 +1208,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -1115,7 +1221,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -1131,11 +1243,11 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_x64_set",
             "//runtime/bin:libdart_builtin_product_linux_x64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
@@ -1169,7 +1281,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -1190,7 +1301,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -1200,7 +1314,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -1211,11 +1331,11 @@ def gen_targets():
         name = "icudtl_cc",
         deps = [
             "//runtime/bin:icudtl_linkable",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
         ],
         copts = [
             "-m64",
@@ -1242,12 +1362,14 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -1257,7 +1379,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -1271,11 +1399,11 @@ def gen_targets():
         ],
         deps = [
             "//build/config/sanitizers:deps",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
         ],
         copts = [
             "-m64",
@@ -1302,13 +1430,15 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
             "-ggdb3",
             "-fPIE",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -1318,7 +1448,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",
@@ -1338,11 +1474,11 @@ def gen_targets():
             "//third_party/boringssl:boringssl",
             "//third_party/perfetto:libprotozero",
             "//third_party/zlib:zlib",
+            "//build/config:dart_mode",
         ],
         defines = [
             "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
             "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-            "NDEBUG",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -1378,7 +1514,6 @@ def gen_targets():
             "-Wheader-hygiene",
             "-Wstring-conversion",
             "-O2",
-            "-fno-ident",
             "-fdata-sections",
             "-ffunction-sections",
             "-g3",
@@ -1399,7 +1534,10 @@ def gen_targets():
             "-fno-strict-vtable-pointers",
             "-O2",
             "-fno-omit-frame-pointer",
-        ],
+        ] + select({
+            "//build/config:debug": [],
+            "//conditions:default": ["-fno-ident"],
+        }),
         conlyopts = [
             "-std=c17",
         ],
@@ -1409,7 +1547,13 @@ def gen_targets():
             "-std=c++20",
             "-std=c++20",
             "-fno-rtti",
-        ],
+        ] + select({
+            "//build/config:debug": [
+                "-Wno-tautological-undefined-compare",
+                "-Wno-undefined-bool-conversion",
+            ],
+            "//conditions:default": [],
+        }),
         linkopts = [
             "-ldl",
             "-lpthread",

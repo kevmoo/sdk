@@ -179,14 +179,61 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     conlyopts = _flags("cflags_c")
     cxxopts = _flags("cflags_cc")
     linkopts = [f'"-l{l}"' for l in t.get("libs", [])]
+
+    if pkg == "runtime/bin":
+        defines = [d for d in defines if d != '"NDEBUG"']
+        if '"//build/config:dart_mode"' not in deps:
+            deps.append('"//build/config:dart_mode"')
+        copts = [c for c in copts if c != '"-fno-ident"']
+
     out = [f'{rule}(\n    name = "{name}",\n']
     out.append(_attr_list("srcs", srcs))
     out.append(_attr_list("hdrs", hdrs))
     out.append(_attr_list("deps", deps))
     out.append(_attr_list("defines", defines))
-    out.append(_attr_list("copts", copts))
+
+    if pkg == "runtime/bin":
+        copts_str = _attr_list("copts", copts)
+        if copts:
+            copts_str = copts_str.rstrip("\n,")
+            copts_str += " + select({\n"
+            copts_str += "        \"//build/config:debug\": [],\n"
+            copts_str += "        \"//conditions:default\": [\"-fno-ident\"],\n"
+            copts_str += "    }),\n"
+        else:
+            copts_str = "    copts = select({\n"
+            copts_str += "        \"//build/config:debug\": [],\n"
+            copts_str += "        \"//conditions:default\": [\"-fno-ident\"],\n"
+            copts_str += "    }),\n"
+        out.append(copts_str)
+    else:
+        out.append(_attr_list("copts", copts))
+
     out.append(_attr_list("conlyopts", conlyopts))
-    out.append(_attr_list("cxxopts", cxxopts))
+
+    if pkg == "runtime/bin":
+        cxxopts_str = _attr_list("cxxopts", cxxopts)
+        if cxxopts:
+            cxxopts_str = cxxopts_str.rstrip("\n,")
+            cxxopts_str += " + select({\n"
+            cxxopts_str += "        \"//build/config:debug\": [\n"
+            cxxopts_str += "            \"-Wno-tautological-undefined-compare\",\n"
+            cxxopts_str += "            \"-Wno-undefined-bool-conversion\",\n"
+            cxxopts_str += "        ],\n"
+            cxxopts_str += "        \"//conditions:default\": [],\n"
+            cxxopts_str += "    }),\n"
+        else:
+            cxxopts_str = "    cxxopts = select({\n"
+            cxxopts_str += "        \"//build/config:debug\": [\n"
+            cxxopts_str += "            \"-Wno-tautological-undefined-compare\",\n"
+            cxxopts_str += "            \"-Wno-undefined-bool-conversion\",\n"
+            cxxopts_str += "        ],\n"
+            cxxopts_str += "        \"//conditions:default\": [],\n"
+            cxxopts_str += "    }),\n"
+        out.append(cxxopts_str)
+    else:
+        out.append(_attr_list("cxxopts", cxxopts))
+
     out.append(_attr_list("linkopts", linkopts))
     out.append(")\n")
     return "".join(out)
