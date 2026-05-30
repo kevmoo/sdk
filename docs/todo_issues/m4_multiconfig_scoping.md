@@ -186,6 +186,58 @@ under a `select()`. Given §3's uniformity, that diff is small and almost entire
 shared — the generator can hoist it to one shared target instead of per-target
 `select()`s.
 
+> **Update — product axis landed (sessions 24–29), and the cross-slice ABI/ODR
+> end-state decision.** The product `config_setting` recommended above now exists
+> and is wired into the real `runtime/*` targets. Mechanism (sess 24,
+> `//build/config`): `bool_flag :dart_product` (default false) → `config_setting
+> :product` → a `:dart_product_mode` `cc_library` that carries the lone `PRODUCT`
+> define via `select()`; the translator strips the hardcoded `"PRODUCT"` from
+> `runtime/*` targets and routes `:dart_product_mode` through `deps` instead.
+>
+> **The slices scope that carrier differently, on purpose.** `runtime/vm`
+> (sess 28) and `runtime/platform` (sess 29) put it on the **`_product`-suffixed
+> variants only** (vm 23 of 44 `dart_mode` targets; platform 8 of 8 — every
+> carrier name ends `_product`, zero base targets). `runtime/bin` (sess 26) put it
+> on **every** `dart_mode` target (50 of 50), including base `dartvm`,
+> `libdart_builtin`, `crashpad`, `gen_snapshot_dart_io`, …
+>
+> This is **not** a package-structure difference — bin, vm and platform all use
+> GN's base-vs-`_product` variant split (`library_for_all_configs` / the `build_*`
+> templates). It is which of GN's **two** product mechanisms the single Bazel flag
+> models (`runtime/BUILD.gn` + `configs.gni`):
+> - `config("dart_product_config")` → `PRODUCT` whenever `!dart_debug`, applied
+>   **only to the `_product` variants** (the `is_product = true` rows of
+>   `_all_configs`). The "build product artifacts inside a normal release build"
+>   axis.
+> - `config("dart_maybe_product_config")` → `PRODUCT` **only** when
+>   `dart_runtime_mode == "release"` (Flutter's release embed), applied to the
+>   **base** variants. A whole-runtime mode flip.
+>
+> **Decision: `--//build/config:dart_product` models the `dart_product_config`
+> (`_product`-variant) axis; the end-state product assembly links the `_product`
+> variant libraries** — exactly as GN's product `gen_snapshot`/`dartaotruntime`
+> link `*_product`. So vm/platform are the GN-faithful, ODR-safe shape (a product
+> binary selects `libdart_vm_jit_product` + `libdart_platform_*_product`; every TU
+> gets `PRODUCT` uniformly). The base `_jit`/`_aotruntime`/… variants intentionally
+> never see this flag — their Flutter-release product-ness is the **separate**
+> `dart_maybe_product_config` axis, to be wired later as a `dart_runtime_mode`
+> setting, not this one.
+>
+> **Open reconciliation item (inert today; fix before the product-integration
+> slice).** Under this decision, bin's carrier on its **base** targets is a latent
+> mixed-`PRODUCT` inconsistency. Concretely: base `dartvm` carries the carrier
+> (→ `-DPRODUCT` under the flag) yet links vm's base `libdart_vm_jit`, which does
+> not (verified statically: `dart_product_mode` count is **0** in the
+> `libdart_vm_jit` block and **1** for the base carrier on `dartvm`;
+> `somepath(dartvm, libdart_vm_jit)` non-empty per sess-28 review). So
+> `--dart_product=true` over a base-`dartvm` build would mix PRODUCT-on (`dartvm`
+> TUs) with PRODUCT-off (`libdart_vm_jit` TUs) in one binary. It is inert only
+> because the flag defaults false and nothing builds that combination under the
+> flag yet. Before assembling a real product binary, **narrow bin's carrier to its
+> `_product` variants too** (match vm/platform), or guarantee the product binary
+> selects `_product` throughout and never builds a base target under the flag.
+> Tracked in `STATUS.md`'s M4 row.
+
 ## 7. Overlay strategy (stop regen from clobbering hand-edits)
 
 **The current pain.** The translator's own header says hand-fixes "belong in this
