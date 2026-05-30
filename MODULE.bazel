@@ -3,6 +3,11 @@ module(name = "dart_sdk", version = "0.0.0")
 bazel_dep(name = "rules_cc", version = "0.2.17")
 bazel_dep(name = "platforms", version = "1.0.0")
 
+# Provides bool_flag (//build/config:dart_debug) for the M4 debug<->release
+# select() axis. Already in the resolved graph transitively (selected 1.8.2);
+# declared here to make @bazel_skylib//rules:common_settings.bzl loadable.
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+
 dart_clang = use_extension("//build/toolchain/linux:clang_repo.bzl", "dart_clang")
 use_repo(dart_clang, "dart_linux_x64_clang")
 

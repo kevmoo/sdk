@@ -1,0 +1,81 @@
+# HAND-AUTHORED — NOT emitted by tools/bazel/translate_gn_desc.py. This is the
+# clobber-safe home for the M4 multi-config select() machinery: a translator
+# regen never writes build/config/BUILD.bazel, so the config_setting + select()s
+# below survive it (recon §7 overlay strategy). See
+# docs/todo_issues/m4_multiconfig_scoping.md (§3 delta / §6 folding / §7 overlay).
+#
+# Scope = the debug<->release axis ONLY (M4 mechanism proof #1). The product,
+# arch, and OS axes (recon §8) are deliberately out of scope; in particular the
+# PRODUCT define is the *product* axis and is NOT folded here.
+
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+
+package(default_visibility = ["//visibility:public"])
+
+# The debug<->release axis flag. Default false == the release flag set the
+# migration builds today (out/ReleaseX64). A custom build setting rather than
+# --compilation_mode so Dart's DEBUG/NDEBUG assertion axis stays decoupled from
+# Bazel's optimization level — the VM forces -O2 in BOTH modes (recon §3), so
+# Dart-debug is not Bazel's -c dbg. Flip with --//build/config:dart_debug=true.
+bool_flag(
+    name = "dart_debug",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "debug",
+    flag_values = {":dart_debug": "true"},
+)
+
+# The single shared mechanism (recon §6): ONE config_setting + ONE select()-driven
+# carrier folds the whole debug<->release delta, instead of 141 per-target
+# select()s. A cc_library dep propagates `defines` and `linkopts` to its
+# dependents, so those two halves of the delta live here and reach a consumer via
+# deps = [":dart_mode"]. The delta tokens are exactly recon §3:
+#   defines:  NDEBUG (release) <-> DEBUG (debug)
+#   linkopts: 4 release-only -Wl opts, dropped in debug
+# PRODUCT (recon §3/§8, the product axis) is intentionally excluded.
+cc_library(
+    name = "dart_mode",
+    defines = select({
+        ":debug": ["DEBUG"],
+        "//conditions:default": ["NDEBUG"],
+    }),
+    linkopts = select({
+        ":debug": [],
+        "//conditions:default": [
+            "-Wl,--icf=all",
+            "-Wl,-O2",
+            "-Wl,--gc-sections",
+            "-Wl,--as-needed",
+        ],
+    }),
+)
+
+# Mechanism proof / representative consumer ("the slice"). cc_binary so there is a
+# real link action to observe the linkopts flip on. `copts`/`cxxopts` do NOT
+# propagate from a cc_library dep (Bazel applies them only to a target's own
+# srcs), so the copt + cxxopt halves of the delta are applied here via the SAME
+# :debug config_setting — recon §3:
+#   copts:   -fno-ident (release-only), dropped in debug
+#   cxxopts: 2 debug-only -Wno warning suppressions, absent in release
+# defines + linkopts arrive via the :dart_mode dep. The translator-generalization
+# slice (later) will deliver copts/cxxopts to the 141 real targets via a
+# cc_toolchain feature or per-target inline select(); that is out of scope here.
+cc_binary(
+    name = "mode_probe",
+    srcs = ["mode_probe.cc"],
+    copts = select({
+        ":debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    cxxopts = select({
+        ":debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    deps = [":dart_mode"],
+)
