@@ -55,7 +55,7 @@ Canonical form **shortens labels** — `//third_party/zlib:zlib` → `//third_pa
 buildifier --lint=fix --warnings=load <hand-authored files>   # format + drop unused loads
 ```
 
-excluding `runtime/bin/gen_targets.bzl` (generated, `DO NOT EDIT`) and
+excluding generated overlays (e.g. `runtime/bin/gen_targets.bzl` and `runtime/vm/gen_targets.bzl`, both generated `DO NOT EDIT`) and
 `tools/sdks/dart-sdk/BUILD.bazel` (pre-existing upstream).
 
 **Follow-up for the translator:** `tools/bazel/translate_gn_desc.py` should
