@@ -54,7 +54,7 @@ exports_files(glob(
 # what it owns). GEN_TARGETS_DROP additionally suppresses obsolete GN targets
 # the hand file replaced (e.g. `copy` actions superseded by real .so rules) so a
 # regen does not resurrect them.
-GEN_TARGETS_PACKAGES = {"runtime/bin"}
+GEN_TARGETS_PACKAGES = {"runtime/bin", "runtime/vm"}
 
 GEN_TARGETS_DROP = {
     # Obsolete GN `copy` targets that runtime/bin/BUILD.bazel replaced with real
@@ -389,7 +389,7 @@ def main():
         return False
 
     for pkg, targets in sorted(by_pkg.items()):
-        if pkg in {"runtime/platform", "runtime/vm", "sdk"}:
+        if pkg in {"runtime/platform", "sdk"}:
             print(f"skipping {pkg} (hand-authored BUILD.bazel overlay)", file=sys.stderr)
             continue
         if pkg in GEN_TARGETS_PACKAGES:
