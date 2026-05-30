@@ -21,14 +21,13 @@ _PREBUILT_DART = "tools/sdks/dart-sdk/bin/dart"
 _SDK_FILES = "//tools/sdks/dart-sdk:sdk_files"
 _PACKAGE_CONFIG = ".dart_tool/package_config.json"
 
-# The package map as a standalone filegroup input. When `sources` is a per-package
+# The package map as a standalone filegroup input. Since `sources` is a per-package
 # dart_library closure (.dart files only), this materializes
-# .dart_tool/package_config.json for the --packages flag. Harmless (deduped) when
-# `sources` is still the opaque //:dart_package_sources, which also bundles it.
+# .dart_tool/package_config.json for the --packages flag.
 _PACKAGE_CONFIG_FILE = "//:package_config_json"
 
-# rules_dart Step 3 (per-package deps): replaces the opaque //:dart_package_sources
-# filegroup with a real dependency graph. DartLibraryInfo carries the transitive
+# rules_dart Step 3 (per-package deps): a real per-package dependency graph that
+# feeds each tool its own closure. DartLibraryInfo carries the transitive
 # closure of a package's .dart sources as a depset; DefaultInfo exposes it so a
 # snapshot genrule can take a single dart_library as `sources` and materialize
 # exactly that package's closure (not all ~197 packages). Edges come from each
@@ -135,9 +134,8 @@ def dart_compile_platform(
     outline_out = outline or (name + "_outline.dill")
     base = single_root_base or "$$(pwd)"
     # _PACKAGE_CONFIG_FILE materializes .dart_tool/package_config.json for the
-    # --packages flag. Required now that `sources` may be a per-package
-    # dart_library closure (.dart only); deduped/harmless when `sources` is still
-    # the opaque //:dart_package_sources blob (which also bundles it).
+    # --packages flag. Required because `sources` is a per-package dart_library
+    # closure (.dart only).
     srcs = [_SDK_FILES, sources, sdk_sources, _PACKAGE_CONFIG_FILE]
 
     if platform_args == None:

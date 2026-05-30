@@ -5,10 +5,9 @@
 
 """Generate tools/bazel/dart/packages.bzl — the per-package dart_library graph.
 
-rules_dart Step 3 (docs/todo_issues/rules_dart_scoping.md §6 #3, §8). Replaces
-the opaque //:dart_package_sources blob with one dart_library per package so a
-tool snapshot depends only on its own transitive closure, recovering Bazel
-incrementality.
+rules_dart Step 3 (docs/todo_issues/rules_dart_scoping.md §6 #3, §8). Emits one
+dart_library per package so a tool snapshot depends only on its own transitive
+closure, recovering Bazel incrementality.
 
 Data sources (both already maintained by the SDK):
   * .dart_tool/package_config.json — package name -> root dir (197 entries, all
