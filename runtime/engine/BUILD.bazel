@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,8 +10,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -28,13 +37,8 @@ cc_library(name = "dart_engine_aot_shared_copy")
 
 cc_library(
     name = "dart_engine_aot_static",
-    deps = [
-        "//runtime/engine:engine_aot_set",
-        "//build/config:dart_mode",
-    ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-m64",
@@ -69,9 +73,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -88,6 +89,14 @@ cc_library(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/engine:engine_aot_set",
     ],
 )
 
@@ -104,13 +113,8 @@ cc_library(name = "dart_engine_jit_shared_copy")
 
 cc_library(
     name = "dart_engine_jit_static",
-    deps = [
-        "//runtime/engine:engine_jit_set",
-        "//build/config:dart_mode",
-    ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-m64",
@@ -145,9 +149,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -165,25 +166,99 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/engine:engine_jit_set",
+    ],
 )
 
 cc_library(
     name = "engine_aot_set",
     srcs = [
-        "//runtime/bin:dart_embedder_api_impl.cc",
-        "//runtime/bin:vmservice_impl.cc",
         "dart_engine_impl.cc",
         "engine.cc",
+        "//runtime/bin:dart_embedder_api_impl.cc",
+        "//runtime/bin:vmservice_impl.cc",
     ],
     hdrs = [
-        "//runtime/bin:vmservice_impl.h",
         "engine.h",
+        "//runtime/bin:vmservice_impl.h",
     ],
-    deps = [
-        "//runtime:libdart_aotruntime",
-        "//runtime/bin:common_embedder_dart_io",
-        "//runtime/bin:libdart_builtin",
-        "//build/config:dart_mode",
+    conlyopts = [
+        "-std=c17",
+    ],
+    copts = [
+        "-Iruntime/engine",
+        "-Iruntime",
+        "-Ithird_party/boringssl/src/include",
+        "-Ithird_party",
+        "-Iruntime/include",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    cxxopts = [
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -194,6 +269,29 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:libdart_aotruntime",
+        "//runtime/bin:common_embedder_dart_io",
+        "//runtime/bin:libdart_builtin",
+    ],
+)
+
+cc_library(
+    name = "engine_jit_set",
+    srcs = [
+        "dart_engine_impl.cc",
+        "engine.cc",
+        "//runtime/bin:dart_embedder_api_impl.cc",
+        "//runtime/bin:vmservice_impl.cc",
+    ],
+    hdrs = [
+        "engine.h",
+        "//runtime/bin:vmservice_impl.h",
+    ],
+    conlyopts = [
+        "-std=c17",
+    ],
     copts = [
         "-Iruntime/engine",
         "-Iruntime",
@@ -246,9 +344,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -265,27 +360,6 @@ cc_library(
     linkopts = [
         "-ldl",
         "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "engine_jit_set",
-    srcs = [
-        "//runtime/bin:dart_embedder_api_impl.cc",
-        "//runtime/bin:vmservice_impl.cc",
-        "dart_engine_impl.cc",
-        "engine.cc",
-    ],
-    hdrs = [
-        "//runtime/bin:vmservice_impl.h",
-        "engine.h",
-    ],
-    deps = [
-        "//runtime:libdart_jit",
-        "//runtime/bin:common_embedder_dart_io",
-        "//runtime/bin:dart_kernel_platform_cc",
-        "//runtime/bin:libdart_builtin",
-        "//build/config:dart_mode",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -294,77 +368,11 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
     ],
-    copts = [
-        "-Iruntime/engine",
-        "-Iruntime",
-        "-Ithird_party/boringssl/src/include",
-        "-Ithird_party",
-        "-Iruntime/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
-    conlyopts = [
-        "-std=c17",
-    ],
-    cxxopts = [
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:libdart_jit",
+        "//runtime/bin:common_embedder_dart_io",
+        "//runtime/bin:dart_kernel_platform_cc",
+        "//runtime/bin:libdart_builtin",
     ],
 )
-

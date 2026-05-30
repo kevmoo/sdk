@@ -2,7 +2,6 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
@@ -11,8 +10,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -26,7 +34,12 @@ exports_files(glob(
 # The macro emits both this target and analysis_server_dill.
 dart_app_jit_snapshot(
     name = "analysis_server",
+    out = "analysis_server.dart.snapshot",
+    dart_vm = "//runtime/bin:dartvm",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     main = "//:pkg/analysis_server/bin/server.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
     sources = "//:dart_pkg_analysis_server",
     training_args = [
         "--sdk=sdk/",
@@ -43,11 +56,6 @@ dart_app_jit_snapshot(
         "//sdk:version",
         "//:dart_pkg_compiler",
     ],
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    dart_vm = "//runtime/bin:dartvm",
-    product = False,
-    out = "analysis_server.dart.snapshot",
 )
 
 # rules_dart Step 4: real analysis_server AOT snapshots. Unblocked by the
@@ -59,27 +67,26 @@ dart_app_jit_snapshot(
 # aot_snapshot("analysis_server_aot") -> product = false.
 dart_aot_snapshot(
     name = "analysis_server_aot",
-    main = "//:pkg/analysis_server/bin/server.dart",
-    sources = "//:dart_pkg_analysis_server",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot",
-    product = False,
-    gen_kernel_args = ["-Dbuilt_as_aot=true"],
     out = "analysis_server_aot.dart.snapshot",
+    gen_kernel_args = ["-Dbuilt_as_aot=true"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "//:pkg/analysis_server/bin/server.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
+    sources = "//:dart_pkg_analysis_server",
 )
 
 # aot_snapshot("analysis_server_aot_product") force_product_mode = !dart_debug
 # -> product = true -> //runtime/bin:gen_snapshot_product.
 dart_aot_snapshot(
     name = "analysis_server_aot_product",
-    main = "//:pkg/analysis_server/bin/server.dart",
-    sources = "//:dart_pkg_analysis_server",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot_product",
-    product = True,
-    gen_kernel_args = ["-Dbuilt_as_aot=true"],
     out = "analysis_server_aot_product.dart.snapshot",
+    gen_kernel_args = ["-Dbuilt_as_aot=true"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    main = "//:pkg/analysis_server/bin/server.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = True,
+    sources = "//:dart_pkg_analysis_server",
 )
-

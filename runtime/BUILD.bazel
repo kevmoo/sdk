@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,18 +10,22 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
 cc_library(
     name = "dart_api",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "//runtime/include:dart_api_dl.c",
     ],
@@ -33,11 +37,6 @@ cc_library(
         "//runtime/include:dart_tools_api.h",
         "//runtime/include:dart_version.h",
         "//runtime/include:internal/dart_api_dl_impl.h",
-    ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Iruntime",
@@ -77,9 +76,19 @@ cc_library(
         "-std=c++20",
         "-fno-rtti",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
     ],
 )
 
@@ -123,27 +132,22 @@ genrule(
 cc_library(
     name = "generate_version_cc_file",
     srcs = [":gen_version_cc"],
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/vm:headers",
-    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
         "-std=c++20",
         "-fno-rtti",
     ],
-)
-
-cc_library(
-    name = "libdart_aotruntime",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
+)
+
+cc_library(
+    name = "libdart_aotruntime",
     srcs = [
         "//runtime/vm:analyze_snapshot_api_impl.cc",
         "//runtime/vm:dart_api_impl.cc",
@@ -155,25 +159,6 @@ cc_library(
         "//runtime/include:dart_native_api.h",
         "//runtime/include:dart_tools_api.h",
         "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_aotruntime",
-        "//runtime/vm:libdart_lib_aotruntime",
-        "//runtime/vm:libdart_vm_aotruntime",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
-    ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "DART_PRECOMPILED_RUNTIME",
-        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "DART_SHARED_LIB",
     ],
     copts = [
         "-Iruntime",
@@ -225,31 +210,50 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_aotruntime_product",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "DART_PRECOMPILED_RUNTIME",
+        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "DART_SHARED_LIB",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_aotruntime",
+        "//runtime/vm:libdart_lib_aotruntime",
+        "//runtime/vm:libdart_vm_aotruntime",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_aotruntime_product",
     srcs = [
         "//runtime/vm:analyze_snapshot_api_impl.cc",
         "//runtime/vm:dart_api_impl.cc",
@@ -262,14 +266,76 @@ cc_library(
         "//runtime/include:dart_tools_api.h",
         "//runtime/vm:version.h",
     ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_aotruntime_product",
-        "//runtime/vm:libdart_lib_aotruntime_product",
-        "//runtime/vm:libdart_vm_aotruntime_product",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    copts = [
+        "-Iruntime",
+        "-Iruntime/include",
+        "-Ithird_party/perfetto/src/include",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -282,6 +348,31 @@ cc_library(
         "PRODUCT",
         "DART_SHARED_LIB",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_aotruntime_product",
+        "//runtime/vm:libdart_lib_aotruntime_product",
+        "//runtime/vm:libdart_vm_aotruntime_product",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_jit",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
+    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -332,44 +423,37 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_jit",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "DART_SHARED_LIB",
     ],
     deps = [
+        "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
         "//runtime/platform:libdart_platform_jit",
         "//runtime/vm:libdart_compiler_jit",
@@ -377,15 +461,22 @@ cc_library(
         "//runtime/vm:libdart_vm_jit",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
     ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "DART_SHARED_LIB",
+)
+
+cc_library(
+    name = "libdart_jit_product",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
     ],
     copts = [
         "-Iruntime",
@@ -437,52 +528,26 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_jit_product",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
-    ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_jit_product",
-        "//runtime/vm:libdart_compiler_jit_product",
-        "//runtime/vm:libdart_lib_jit_product",
-        "//runtime/vm:libdart_vm_jit_product",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -493,81 +558,20 @@ cc_library(
         "PRODUCT",
         "DART_SHARED_LIB",
     ],
-    copts = [
-        "-Iruntime",
-        "-Iruntime/include",
-        "-Ithird_party/perfetto/src/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti"
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
-        cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_jit_product",
+        "//runtime/vm:libdart_compiler_jit_product",
+        "//runtime/vm:libdart_lib_jit_product",
+        "//runtime/vm:libdart_vm_jit_product",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
     ],
 )
 
 cc_library(
     name = "libdart_libfuzzer",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "//runtime/vm:analyze_snapshot_api_impl.cc",
         "//runtime/vm:dart_api_impl.cc",
@@ -579,25 +583,6 @@ cc_library(
         "//runtime/include:dart_native_api.h",
         "//runtime/include:dart_tools_api.h",
         "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_libfuzzer",
-        "//runtime/vm:libdart_compiler_libfuzzer",
-        "//runtime/vm:libdart_lib_libfuzzer",
-        "//runtime/vm:libdart_vm_libfuzzer",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
-    ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION",
-        "DART_SHARED_LIB",
     ],
     copts = [
         "-Iruntime",
@@ -650,31 +635,50 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION",
+        "DART_SHARED_LIB",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_libfuzzer",
+        "//runtime/vm:libdart_compiler_libfuzzer",
+        "//runtime/vm:libdart_lib_libfuzzer",
+        "//runtime/vm:libdart_vm_libfuzzer",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_precompiler",
     srcs = [
         "//runtime/vm:analyze_snapshot_api_impl.cc",
         "//runtime/vm:dart_api_impl.cc",
@@ -687,7 +691,89 @@ cc_library(
         "//runtime/include:dart_tools_api.h",
         "//runtime/vm:version.h",
     ],
+    copts = [
+        "-Iruntime",
+        "-Iruntime/include",
+        "-Ithird_party/perfetto/src/include",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fno-omit-frame-pointer",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "DART_PRECOMPILER",
+        "DART_SHARED_LIB",
+    ],
     deps = [
+        "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
         "//runtime/platform:libdart_platform_precompiler",
         "//runtime/vm:libdart_compiler_precompiler",
@@ -695,16 +781,22 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
     ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "DART_PRECOMPILER",
-        "DART_SHARED_LIB",
+)
+
+cc_library(
+    name = "libdart_precompiler_host_targeting_host",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
     ],
     copts = [
         "-Iruntime",
@@ -757,44 +849,36 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler_host_targeting_host",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+        "DART_SHARED_LIB",
     ],
     deps = [
+        "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
         "//runtime/platform:libdart_platform_precompiler_host_targeting_host",
         "//runtime/vm:libdart_compiler_precompiler_host_targeting_host",
@@ -802,14 +886,22 @@ cc_library(
         "//runtime/vm:libdart_vm_precompiler_host_targeting_host",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
     ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-        "DART_SHARED_LIB",
+)
+
+cc_library(
+    name = "libdart_precompiler_product",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
     ],
     copts = [
         "-Iruntime",
@@ -862,52 +954,26 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler_product",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
-    ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_precompiler_product",
-        "//runtime/vm:libdart_compiler_precompiler_product",
-        "//runtime/vm:libdart_lib_precompiler_product",
-        "//runtime/vm:libdart_vm_precompiler_product",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -919,6 +985,32 @@ cc_library(
         "PRODUCT",
         "DART_SHARED_LIB",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_precompiler_product",
+        "//runtime/vm:libdart_compiler_precompiler_product",
+        "//runtime/vm:libdart_lib_precompiler_product",
+        "//runtime/vm:libdart_vm_precompiler_product",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_precompiler_product_host_targeting_host",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
+    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -970,52 +1062,26 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler_product_host_targeting_host",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
-    ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_precompiler_product_host_targeting_host",
-        "//runtime/vm:libdart_compiler_precompiler_product_host_targeting_host",
-        "//runtime/vm:libdart_lib_precompiler_product_host_targeting_host",
-        "//runtime/vm:libdart_vm_precompiler_product_host_targeting_host",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -1025,6 +1091,32 @@ cc_library(
         "PRODUCT",
         "DART_SHARED_LIB",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_precompiler_product_host_targeting_host",
+        "//runtime/vm:libdart_compiler_precompiler_product_host_targeting_host",
+        "//runtime/vm:libdart_lib_precompiler_product_host_targeting_host",
+        "//runtime/vm:libdart_vm_precompiler_product_host_targeting_host",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_precompiler_product_linux_arm",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
+    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -1076,52 +1168,26 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler_product_linux_arm",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
-    ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
-        "//runtime/vm:libdart_compiler_precompiler_product_linux_arm",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_arm",
-        "//runtime/vm:libdart_vm_precompiler_product_linux_arm",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -1133,6 +1199,32 @@ cc_library(
         "DART_PRECOMPILER",
         "DART_SHARED_LIB",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
+        "//runtime/vm:libdart_compiler_precompiler_product_linux_arm",
+        "//runtime/vm:libdart_lib_precompiler_product_linux_arm",
+        "//runtime/vm:libdart_vm_precompiler_product_linux_arm",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_precompiler_product_linux_arm64",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
+    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -1184,52 +1276,26 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler_product_linux_arm64",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
-    ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
-        "//runtime/vm:libdart_compiler_precompiler_product_linux_arm64",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_arm64",
-        "//runtime/vm:libdart_vm_precompiler_product_linux_arm64",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -1241,6 +1307,32 @@ cc_library(
         "DART_PRECOMPILER",
         "DART_SHARED_LIB",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
+        "//runtime/vm:libdart_compiler_precompiler_product_linux_arm64",
+        "//runtime/vm:libdart_lib_precompiler_product_linux_arm64",
+        "//runtime/vm:libdart_vm_precompiler_product_linux_arm64",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_precompiler_product_linux_riscv64",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
+    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -1292,52 +1384,26 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler_product_linux_riscv64",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
-    ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
-        "//runtime/vm:libdart_compiler_precompiler_product_linux_riscv64",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_riscv64",
-        "//runtime/vm:libdart_vm_precompiler_product_linux_riscv64",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -1349,6 +1415,32 @@ cc_library(
         "DART_PRECOMPILER",
         "DART_SHARED_LIB",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
+        "//runtime/vm:libdart_compiler_precompiler_product_linux_riscv64",
+        "//runtime/vm:libdart_lib_precompiler_product_linux_riscv64",
+        "//runtime/vm:libdart_vm_precompiler_product_linux_riscv64",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
+)
+
+cc_library(
+    name = "libdart_precompiler_product_linux_x64",
+    srcs = [
+        "//runtime/vm:analyze_snapshot_api_impl.cc",
+        "//runtime/vm:dart_api_impl.cc",
+        "//runtime/vm:native_api_impl.cc",
+    ],
+    hdrs = [
+        "//runtime/include:analyze_snapshot_api.h",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
+        "//runtime/vm:version.h",
+    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -1400,52 +1492,26 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_precompiler_product_linux_x64",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    srcs = [
-        "//runtime/vm:analyze_snapshot_api_impl.cc",
-        "//runtime/vm:dart_api_impl.cc",
-        "//runtime/vm:native_api_impl.cc",
-    ],
-    hdrs = [
-        "//runtime/include:analyze_snapshot_api.h",
-        "//runtime/include:dart_api.h",
-        "//runtime/include:dart_native_api.h",
-        "//runtime/include:dart_tools_api.h",
-        "//runtime/vm:version.h",
-    ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
-        "//runtime/vm:libdart_compiler_precompiler_product_linux_x64",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_x64",
-        "//runtime/vm:libdart_vm_precompiler_product_linux_x64",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
+    linkopts = [
+        "-ldl",
+        "-lpthread",
     ],
     local_defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -1457,82 +1523,20 @@ cc_library(
         "DART_PRECOMPILER",
         "DART_SHARED_LIB",
     ],
-    copts = [
-        "-Iruntime",
-        "-Iruntime/include",
-        "-Ithird_party/perfetto/src/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fno-omit-frame-pointer",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti"
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
-        cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
+        "//runtime/vm:libdart_compiler_precompiler_product_linux_x64",
+        "//runtime/vm:libdart_lib_precompiler_product_linux_x64",
+        "//runtime/vm:libdart_vm_precompiler_product_linux_x64",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
     ],
 )
 
 cc_library(
     name = "libdart_precompiler_testing",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "//runtime/vm:analyze_snapshot_api_impl.cc",
         "//runtime/vm:dart_api_impl.cc",
@@ -1545,26 +1549,6 @@ cc_library(
         "//runtime/include:dart_tools_api.h",
         "//runtime/vm:version.h",
     ],
-    deps = [
-        "//runtime:generate_version_cc_file",
-        "//runtime/platform:libdart_platform_precompiler_testing",
-        "//runtime/vm:libdart_compiler_precompiler_testing",
-        "//runtime/vm:libdart_lib_precompiler_testing",
-        "//runtime/vm:libdart_vm_precompiler_testing",
-        "//third_party/double-conversion/src:libdouble_conversion",
-        "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
-    ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "DART_PRECOMPILER",
-        "TESTING",
-        "DART_SHARED_LIB",
-    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -1616,21 +1600,45 @@ cc_library(
         "-fno-omit-frame-pointer",
         "-std=c++20",
         "-std=c++20",
-        "-fno-rtti"
+        "-fno-rtti",
     ] + select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-        cxxopts = select({
+    cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
             "-Wno-undefined-bool-conversion",
         ],
         "//conditions:default": [],
     }),
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+    local_defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "DART_PRECOMPILER",
+        "TESTING",
+        "DART_SHARED_LIB",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:generate_version_cc_file",
+        "//runtime/platform:libdart_platform_precompiler_testing",
+        "//runtime/vm:libdart_compiler_precompiler_testing",
+        "//runtime/vm:libdart_lib_precompiler_testing",
+        "//runtime/vm:libdart_vm_precompiler_testing",
+        "//third_party/double-conversion/src:libdouble_conversion",
+        "//third_party/perfetto:libprotozero",
+    ],
 )
-

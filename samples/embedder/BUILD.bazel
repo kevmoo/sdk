@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,8 +10,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -174,22 +183,8 @@ cc_library(
 cc_binary(
     name = "run_futures_aot",
     srcs = [
-        "run_futures.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_shared",
-        "//samples/embedder:futures_aot",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_futures.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -231,31 +226,31 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:futures_aot",
     ],
 )
 
 cc_binary(
     name = "run_futures_aot_static",
     srcs = [
-        "run_futures.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_static",
-        "//samples/embedder:futures_aot_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_futures.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -297,31 +292,31 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:futures_aot_static",
     ],
 )
 
 cc_binary(
     name = "run_futures_kernel",
     srcs = [
-        "run_futures.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_shared",
-        "//samples/embedder:futures_kernel",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_futures.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -363,31 +358,31 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:futures_kernel",
     ],
 )
 
 cc_binary(
     name = "run_futures_kernel_static",
     srcs = [
-        "run_futures.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_static",
-        "//samples/embedder:futures_kernel_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_futures.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -429,31 +424,31 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:futures_kernel_static",
     ],
 )
 
 cc_binary(
     name = "run_main_aot",
     srcs = [
-        "run_main.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_shared",
-        "//samples/embedder:hello_aot",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_main.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -495,31 +490,31 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:hello_aot",
     ],
 )
 
 cc_binary(
     name = "run_main_aot_static",
     srcs = [
-        "run_main.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_static",
-        "//samples/embedder:hello_aot_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_main.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -561,31 +556,31 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:hello_aot_static",
     ],
 )
 
 cc_binary(
     name = "run_main_kernel",
     srcs = [
-        "run_main.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_shared",
-        "//samples/embedder:hello_kernel",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_main.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -627,31 +622,31 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:hello_kernel",
     ],
 )
 
 cc_binary(
     name = "run_main_kernel_static",
     srcs = [
-        "run_main.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_static",
-        "//samples/embedder:hello_kernel_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_main.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -693,33 +688,32 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:hello_kernel_static",
     ],
 )
 
 cc_binary(
     name = "run_timer_aot",
     srcs = [
-        "run_timer.cc",
         "helpers.h",
+        "run_timer.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_shared",
-        "//samples/embedder:timer_aot",
-        "//samples/embedder:timer_library_aot",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -761,33 +755,33 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_aot",
+        "//samples/embedder:timer_library_aot",
     ],
 )
 
 cc_binary(
     name = "run_timer_aot_static",
     srcs = [
-        "run_timer.cc",
         "helpers.h",
+        "run_timer.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_static",
-        "//samples/embedder:timer_aot_static",
-        "//samples/embedder:timer_library_aot_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -829,33 +823,33 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_aot_static",
+        "//samples/embedder:timer_library_aot_static",
     ],
 )
 
 cc_binary(
     name = "run_timer_async_aot",
     srcs = [
-        "run_timer_async.cc",
         "helpers.h",
+        "run_timer_async.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_shared",
-        "//samples/embedder:timer_aot",
-        "//samples/embedder:timer_library_aot",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -897,33 +891,33 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_aot",
+        "//samples/embedder:timer_library_aot",
     ],
 )
 
 cc_binary(
     name = "run_timer_async_aot_static",
     srcs = [
-        "run_timer_async.cc",
         "helpers.h",
+        "run_timer_async.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_static",
-        "//samples/embedder:timer_aot_static",
-        "//samples/embedder:timer_library_aot_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -965,33 +959,33 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_aot_static",
+        "//samples/embedder:timer_library_aot_static",
     ],
 )
 
 cc_binary(
     name = "run_timer_async_kernel",
     srcs = [
-        "run_timer_async.cc",
         "helpers.h",
+        "run_timer_async.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_shared",
-        "//samples/embedder:timer_kernel",
-        "//samples/embedder:timer_library_kernel",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1033,33 +1027,33 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_kernel",
+        "//samples/embedder:timer_library_kernel",
     ],
 )
 
 cc_binary(
     name = "run_timer_async_kernel_static",
     srcs = [
-        "run_timer_async.cc",
         "helpers.h",
+        "run_timer_async.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_static",
-        "//samples/embedder:timer_kernel_static",
-        "//samples/embedder:timer_library_kernel_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1101,33 +1095,33 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_kernel_static",
+        "//samples/embedder:timer_library_kernel_static",
     ],
 )
 
 cc_binary(
     name = "run_timer_kernel",
     srcs = [
-        "run_timer.cc",
         "helpers.h",
+        "run_timer.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_shared",
-        "//samples/embedder:timer_kernel",
-        "//samples/embedder:timer_library_kernel",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1169,33 +1163,33 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_kernel",
+        "//samples/embedder:timer_library_kernel",
     ],
 )
 
 cc_binary(
     name = "run_timer_kernel_static",
     srcs = [
-        "run_timer.cc",
         "helpers.h",
+        "run_timer.cc",
         "timer.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_static",
-        "//samples/embedder:timer_kernel_static",
-        "//samples/embedder:timer_library_kernel_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1237,32 +1231,32 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:timer_kernel_static",
+        "//samples/embedder:timer_library_kernel_static",
     ],
 )
 
 cc_binary(
     name = "run_two_programs_aot",
     srcs = [
-        "run_two_programs.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_shared",
-        "//samples/embedder:program1_aot",
-        "//samples/embedder:program2_aot",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_two_programs.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1304,32 +1298,32 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:program1_aot",
+        "//samples/embedder:program2_aot",
     ],
 )
 
 cc_binary(
     name = "run_two_programs_aot_static",
     srcs = [
-        "run_two_programs.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_aot_static",
-        "//samples/embedder:program1_aot_static",
-        "//samples/embedder:program2_aot_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_two_programs.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1371,32 +1365,32 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_aot_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:program1_aot_static",
+        "//samples/embedder:program2_aot_static",
     ],
 )
 
 cc_binary(
     name = "run_two_programs_kernel",
     srcs = [
-        "run_two_programs.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_shared",
-        "//samples/embedder:program1_kernel",
-        "//samples/embedder:program2_kernel",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_two_programs.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1438,32 +1432,32 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_shared",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:program1_kernel",
+        "//samples/embedder:program2_kernel",
     ],
 )
 
 cc_binary(
     name = "run_two_programs_kernel_static",
     srcs = [
-        "run_two_programs.cc",
         "helpers.h",
-    ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-        "//build/config/sanitizers:deps",
-        "//runtime/engine:dart_engine_jit_static",
-        "//samples/embedder:program1_kernel_static",
-        "//samples/embedder:program2_kernel_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+        "run_two_programs.cc",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1505,9 +1499,24 @@ cc_binary(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/engine:dart_engine_jit_static",
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//samples/embedder:program1_kernel_static",
+        "//samples/embedder:program2_kernel_static",
     ],
 )
 
@@ -1556,25 +1565,11 @@ cc_library(name = "timer_library_aot_copy")
 
 cc_library(
     name = "timer_library_aot_static",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-    ],
     srcs = [
         "timer.cc",
     ],
     hdrs = [
         "timer.h",
-    ],
-    deps = [
-        "//runtime/engine:dart_engine_aot_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1615,9 +1610,23 @@ cc_library(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
+    implementation_deps = [
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//runtime/engine:dart_engine_aot_static",
     ],
 )
 
@@ -1634,25 +1643,11 @@ cc_library(name = "timer_library_kernel_copy")
 
 cc_library(
     name = "timer_library_kernel_static",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/engine:headers",
-    ],
     srcs = [
         "timer.cc",
     ],
     hdrs = [
         "timer.h",
-    ],
-    deps = [
-        "//runtime/engine:dart_engine_jit_static",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
     ],
     copts = [
         "-Isamples/embedder",
@@ -1693,9 +1688,22 @@ cc_library(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "NDEBUG",
+    ],
+    implementation_deps = [
+        "//runtime/engine:headers",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+    deps = [
+        "//runtime/engine:dart_engine_jit_static",
+    ],
 )
-

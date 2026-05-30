@@ -7,6 +7,7 @@ plus Bazel's legacy feature set, which auto-supplies depfile + standard
 compile/link flag plumbing.
 """
 
+load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
     "feature",
@@ -14,10 +15,8 @@ load(
     "flag_set",
     "tool_path",
 )
-load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 load("@dart_linux_x64_clang//:paths.bzl", "CLANG_BIN")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
-load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")  # noqa: F401 (sibling load)
 
 # Absolute paths emitted by the @dart_linux_x64_clang repo rule at fetch
 # time (see build/toolchain/linux/clang_repo.bzl). tool_paths must be

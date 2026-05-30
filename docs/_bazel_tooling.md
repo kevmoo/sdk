@@ -42,6 +42,28 @@ generated `gen_targets.bzl` is machine-emitted by the translator — reformat
 the *translator's output*, not the committed file by hand, or the next regen
 will diff against your manual edits.
 
+### Convention: buildifier-canonical
+
+The hand-authored `BUILD.bazel` / `.bzl` files on this branch are kept
+buildifier-canonical: run `buildifier --mode=check <files>` and it should be
+silent (only `tools/bazel/dart/{defs,packages}.bzl` still surface
+non-auto-fixable docstring/`unnamed-macro` warnings under `--lint=warn`).
+Canonical form **shortens labels** — `//third_party/zlib:zlib` → `//third_party/zlib`
+(equivalent in Bazel). The initial sweep ran:
+
+```bash
+buildifier --lint=fix --warnings=load <hand-authored files>   # format + drop unused loads
+```
+
+excluding `runtime/bin/gen_targets.bzl` (generated, `DO NOT EDIT`) and
+`tools/sdks/dart-sdk/BUILD.bazel` (pre-existing upstream).
+
+**Follow-up for the translator:** `tools/bazel/translate_gn_desc.py` should
+emit buildifier-canonical output — short labels, no unused `cc_*` loads, a
+module docstring — so regenerated `gen_targets.bzl` stays consistent with the
+hand-authored files and passes `buildifier --mode=check`. Until then,
+`gen_targets.bzl` keeps the long `//x:x` label form.
+
 ## buildozer — edits in place
 
 `buildozer` applies a command to matched targets and writes the BUILD file.

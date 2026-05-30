@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
@@ -11,8 +11,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -26,7 +35,12 @@ exports_files(glob(
 # `dartdevc` genrule (drop-in for the GN target name) + dartdevc_dill.
 dart_app_jit_snapshot(
     name = "dartdevc",
+    out = "dartdevc.dart.snapshot",
+    dart_vm = "//runtime/bin:dartvm",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     main = "//:pkg/dev_compiler/bin/dartdevc.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
     sources = "//:dart_pkg_dev_compiler",
     training_args = [
         "--packages",
@@ -38,11 +52,6 @@ dart_app_jit_snapshot(
         "pkg/dev_compiler/bin/dartdevc.dart",
     ],
     training_srcs = [":ddc_outline.dill"],
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    dart_vm = "//runtime/bin:dartvm",
-    product = False,
-    out = "dartdevc.dart.snapshot",
 )
 
 # rules_dart Step 4: real DDC (dev_compiler) AOT snapshots over
@@ -50,24 +59,24 @@ dart_app_jit_snapshot(
 # //:ddc references dartdevc_aot directly via cc_library deps (bare genrule OK).
 dart_aot_snapshot(
     name = "dartdevc_aot",
-    main = "//:pkg/dev_compiler/bin/dartdevc.dart",
-    sources = "//:dart_pkg_dev_compiler",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot",
-    product = False,
     out = "dartdevc_aot.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "//:pkg/dev_compiler/bin/dartdevc.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
+    sources = "//:dart_pkg_dev_compiler",
 )
 
 dart_aot_snapshot(
     name = "dartdevc_aot_product",
-    main = "//:pkg/dev_compiler/bin/dartdevc.dart",
-    sources = "//:dart_pkg_dev_compiler",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot_product",
-    product = True,
     out = "dartdevc_aot_product.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    main = "//:pkg/dev_compiler/bin/dartdevc.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = True,
+    sources = "//:dart_pkg_dev_compiler",
 )
 
 # dartdevc_dill is emitted by the dart_app_jit_snapshot macro above (the stage-1
@@ -123,17 +132,17 @@ cc_library(name = "ddc_files_stamp")
 # dartdevc app-jit training run + the ddc_compile_sdk JS targets.
 dart_compile_platform(
     name = "ddc_platform",
-    sources = "//:compile_platform_tool",
-    sdk_sources = "//sdk:sdk_library_sources",
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
-    single_root_base = "sdk",
+    outline = "ddc_outline.dill",
     platform_args = [
         "--target=dartdevc",
         "dart:core",
     ],
-    deps_outline = "//runtime/vm:vm_platform_outline.dill",
     platform_out = "ddc_platform.dill",
-    outline = "ddc_outline.dill",
+    sdk_sources = "//sdk:sdk_library_sources",
+    single_root_base = "sdk",
+    sources = "//:compile_platform_tool",
 )
 
 # TODO(M3): genrule for ddc_sdk_patch_stamp (gn type=action)
@@ -217,4 +226,3 @@ cc_library(name = "meta_stable_js")
 
 # TODO(M3): genrule for stack_trace_mapper (gn type=action)
 cc_library(name = "stack_trace_mapper")
-

@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
@@ -11,8 +11,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -24,34 +33,34 @@ exports_files(glob(
 # Consumed by the dart2js app-jit/AOT training run (training_inputs).
 dart_compile_platform(
     name = "compile_dart2js_platform",
-    sources = "//:compile_platform_tool",
-    sdk_sources = "//sdk:sdk_library_sources",
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
-    single_root_base = "sdk",
+    outline = "dart2js_outline.dill",
     platform_args = [
         "--target=dart2js",
         "--no-defines",
         "dart:core",
     ],
-    deps_outline = "//runtime/vm:vm_platform_outline.dill",
     platform_out = "dart2js_platform.dill",
-    outline = "dart2js_outline.dill",
+    sdk_sources = "//sdk:sdk_library_sources",
+    single_root_base = "sdk",
+    sources = "//:compile_platform_tool",
 )
 
 dart_compile_platform(
     name = "compile_dart2js_server_platform",
-    sources = "//:compile_platform_tool",
-    sdk_sources = "//sdk:sdk_library_sources",
+    deps_outline = "//runtime/vm:vm_platform_outline.dill",
     libraries_spec = "org-dartlang-sdk:///lib/libraries.json",
-    single_root_base = "sdk",
+    outline = "dart2js_server_outline.dill",
     platform_args = [
         "--target=dart2js_server",
         "--no-defines",
         "dart:core",
     ],
-    deps_outline = "//runtime/vm:vm_platform_outline.dill",
     platform_out = "dart2js_server_platform.dill",
-    outline = "dart2js_server_outline.dill",
+    sdk_sources = "//sdk:sdk_library_sources",
+    single_root_base = "sdk",
+    sources = "//:compile_platform_tool",
 )
 
 # rules_dart Step 4: real dart2js app-jit snapshot. Ports
@@ -67,7 +76,12 @@ dart_compile_platform(
 # GN target name) + dart2js_dill.
 dart_app_jit_snapshot(
     name = "dart2js",
+    out = "dart2js.dart.snapshot",
+    dart_vm = "//runtime/bin:dartvm",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     main = "dart2js.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
     sources = "//:dart_pkg_compiler",
     training_args = [
         "--invoker=gn_build",
@@ -82,11 +96,6 @@ dart_app_jit_snapshot(
         ":dart2js_outline.dill",
         "//sdk:sdk_library_sources",
     ],
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    dart_vm = "//runtime/bin:dartvm",
-    product = False,
-    out = "dart2js.dart.snapshot",
 )
 
 # TODO(M3): copy for dart2js_aot (gn type=copy)
@@ -129,24 +138,24 @@ cc_library(name = "dart2js_files_stamp")
 # //:dart2js references dart2js_sdk_aot directly via cc_library deps.
 dart_aot_snapshot(
     name = "dart2js_sdk_aot",
-    main = "dart2js.dart",
-    sources = "//:dart_pkg_compiler",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot",
-    product = False,
     out = "dart2js_aot.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "dart2js.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
+    sources = "//:dart_pkg_compiler",
 )
 
 dart_aot_snapshot(
     name = "dart2js_sdk_aot_product",
-    main = "dart2js.dart",
-    sources = "//:dart_pkg_compiler",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot_product",
-    product = True,
     out = "dart2js_aot_product.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    main = "dart2js.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = True,
+    sources = "//:dart_pkg_compiler",
 )
 
 # TODO(M3): genrule for dartdoc_files_stamp (gn type=action)
@@ -154,4 +163,3 @@ cc_library(name = "dartdoc_files_stamp")
 
 # TODO(M3): genrule for runtime_lib_files_stamp (gn type=action)
 cc_library(name = "runtime_lib_files_stamp")
-

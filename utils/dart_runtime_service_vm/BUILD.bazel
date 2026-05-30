@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
@@ -11,8 +11,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -50,13 +59,13 @@ cc_library(
 # that the GN _dill / _gen_snapshot action targets used to stub.
 dart_aot_snapshot(
     name = "dart_runtime_service_vm_aot_snapshot",
-    main = "//:pkg/dart_runtime_service_vm/bin/vm_service_entrypoint.dart",
-    sources = "//:dart_pkg_dart_runtime_service_vm",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot",
-    product = False,
     out = "dart_runtime_service_vm_aot.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "//:pkg/dart_runtime_service_vm/bin/vm_service_entrypoint.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
+    sources = "//:dart_pkg_dart_runtime_service_vm",
 )
 
 # rules_dart Step 4 (app-jit variant). Ports utils/dart_runtime_service_vm/
@@ -65,13 +74,12 @@ dart_aot_snapshot(
 # macro emits both this target and the _dill genrule.
 dart_app_jit_snapshot(
     name = "generate_dart_runtime_service_vm_snapshot",
+    out = "dart_runtime_service_vm.dart.snapshot",
+    dart_vm = "//runtime/bin:dartvm",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     main = "//:pkg/dart_runtime_service_vm/bin/vm_service_entrypoint.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
     sources = "//:dart_pkg_dart_runtime_service_vm",
     training_args = ["--help"],
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    dart_vm = "//runtime/bin:dartvm",
-    product = False,
-    out = "dart_runtime_service_vm.dart.snapshot",
 )
-

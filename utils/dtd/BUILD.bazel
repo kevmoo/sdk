@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
@@ -11,8 +11,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -52,26 +61,26 @@ cc_library(
 # (=!dart_debug) → product; product gen_snapshot so it loads under dartaotruntime_product.
 dart_aot_snapshot(
     name = "dtd_aot_product_snapshot",
-    main = "//:pkg/dtd_impl/bin/dtd.dart",
-    sources = "//:dart_pkg_dtd_impl",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot_product",
-    product = True,
     out = "dart_tooling_daemon_aot_product.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    main = "//:pkg/dtd_impl/bin/dtd.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = True,
+    sources = "//:dart_pkg_dtd_impl",
 )
 
 # Ports utils/dtd/BUILD.gn:aot_snapshot("dtd_aot_snapshot"). No force_product_mode
 # → product follows dart_runtime_mode (non-product for this ReleaseX64 config).
 dart_aot_snapshot(
     name = "dtd_aot_snapshot",
-    main = "//:pkg/dtd_impl/bin/dtd.dart",
-    sources = "//:dart_pkg_dtd_impl",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    gen_snapshot = "//runtime/bin:gen_snapshot",
-    product = False,
     out = "dart_tooling_daemon_aot.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "//:pkg/dtd_impl/bin/dtd.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
+    sources = "//:dart_pkg_dtd_impl",
 )
 
 # rules_dart Step 4 (app-jit variant). Ports
@@ -83,13 +92,12 @@ dart_aot_snapshot(
 # $root_gen_dir/dart_tooling_daemon.dart.snapshot.
 dart_app_jit_snapshot(
     name = "generate_dtd_snapshot",
+    out = "dart_tooling_daemon.dart.snapshot",
+    dart_vm = "//runtime/bin:dartvm",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
     main = "//:pkg/dtd_impl/bin/dtd.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
     sources = "//:dart_pkg_dtd_impl",
     training_args = ["--train"],
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    dart_vm = "//runtime/bin:dartvm",
-    product = False,
-    out = "dart_tooling_daemon.dart.snapshot",
 )
-

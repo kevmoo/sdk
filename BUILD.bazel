@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_library")
 load("//tools/bazel/dart:packages.bzl", "dart_packages")
 
@@ -18,8 +18,17 @@ dart_packages()
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -50,13 +59,13 @@ filegroup(
 dart_library(
     name = "compile_platform_tool",
     srcs = [
-        "pkg/front_end/tool/compile_platform.dart",
-        "pkg/front_end/tool/entry_points.dart",
+        "pkg/front_end/test/coverage_helper.dart",
+        "pkg/front_end/test/vm_service_helper.dart",
         "pkg/front_end/tool/additional_targets.dart",
         "pkg/front_end/tool/bench_maker.dart",
         "pkg/front_end/tool/command_line.dart",
-        "pkg/front_end/test/coverage_helper.dart",
-        "pkg/front_end/test/vm_service_helper.dart",
+        "pkg/front_end/tool/compile_platform.dart",
+        "pkg/front_end/tool/entry_points.dart",
     ],
     deps = [
         ":dart_pkg__fe_analyzer_shared",
@@ -92,7 +101,7 @@ cc_library(
     # //utils/analysis_server:analysis_server is now the real app-jit snapshot
     # genrule (not a cc_library), so it rides via `data`, not `deps`.
     data = [
-        "//utils/analysis_server:analysis_server",
+        "//utils/analysis_server",
     ],
 )
 
@@ -157,7 +166,7 @@ cc_library(
 cc_library(
     name = "dartanalyzer",
     deps = [
-        "//utils/dartanalyzer:dartanalyzer",
+        "//utils/dartanalyzer",
     ],
 )
 
@@ -173,7 +182,7 @@ cc_library(
 cc_library(
     name = "debian_package",
     deps = [
-        "//tools/debian_package:debian_package",
+        "//tools/debian_package",
     ],
 )
 
@@ -223,14 +232,14 @@ cc_library(
         "//samples/embedder:kernel",
         "//samples/ffi/http:fake_http",
         "//samples/ffi/httpIG:fake_httpIG",
-        "//utils/dart_runtime_service_vm:dart_runtime_service_vm",
+        "//utils/dart_runtime_service_vm",
         "//utils/dart_runtime_service_vm:dart_runtime_service_vm_aot_snapshot",
-        "//utils/dartdev:dartdev",
+        "//utils/dartdev",
         "//utils/dartdev:dartdev_aot_snapshot",
         "//utils/dds:dds_aot",
         "//utils/dtd:dtd_aot",
+        "//utils/kernel-service",
         "//utils/kernel-service:frontend_server_aot_product",
-        "//utils/kernel-service:kernel-service",
     ],
 )
 
@@ -252,4 +261,3 @@ cc_library(
         "//utils:gen_kernel.exe",
     ],
 )
-

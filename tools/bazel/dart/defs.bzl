@@ -133,6 +133,7 @@ def dart_compile_platform(
     platform_out = platform_out or (name + ".dill")
     outline_out = outline or (name + "_outline.dill")
     base = single_root_base or "$$(pwd)"
+
     # _PACKAGE_CONFIG_FILE materializes .dart_tool/package_config.json for the
     # --packages flag. Required because `sources` is a per-package dart_library
     # closure (.dart only).

@@ -7,7 +7,7 @@
 # select() wiring. The translator NEVER overwrites this file, so a regen cannot
 # clobber these hand-fixes. See docs/todo_issues/m4_multiconfig_scoping.md §7.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load(":gen_targets.bzl", "gen_targets")
 
 package(default_visibility = ["//visibility:public"])
@@ -16,8 +16,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -29,22 +38,6 @@ cc_binary(
     srcs = [
         "abstract_socket_test.cc",
     ],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//runtime/platform:headers",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-    ],
     copts = [
         "-Iruntime",
         "-m64",
@@ -85,31 +78,6 @@ cc_binary(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "analyze_snapshot_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "dart_embedder_api_impl.cc",
-        "error_exit.cc",
-        "icu.cc",
-        "options.cc",
-        "snapshot_utils.cc",
-        "vmservice_impl.cc",
-        "analyze_snapshot.cc",
-        "loader.cc",
-        "main_options.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -117,31 +85,38 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//runtime/bin:crashpad",
-        "//runtime/bin:icudtl_cc",
-        "//third_party/boringssl:boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
-        "DART_EMBED_ICU_DATA",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "DART_PRECOMPILED_RUNTIME",
-        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "U_USING_ICU_NAMESPACE=0",
-        "U_ENABLE_DYLOAD=0",
-        "USE_CHROMIUM_ICU=1",
-        "U_ENABLE_TRACING=1",
-        "U_ENABLE_RESOURCE_TRACING=0",
-        "U_STATIC_IMPLEMENTATION",
-        "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
     ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//build/config/sanitizers:deps",
+        "//runtime/platform:headers",
+    ],
+)
+
+cc_library(
+    name = "analyze_snapshot_set",
+    srcs = [
+        "analyze_snapshot.cc",
+        "dart_embedder_api_impl.cc",
+        "error_exit.cc",
+        "icu.cc",
+        "loader.cc",
+        "main_options.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -201,27 +176,63 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_EMBED_ICU_DATA",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "DART_PRECOMPILED_RUNTIME",
+        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "U_USING_ICU_NAMESPACE=0",
+        "U_ENABLE_DYLOAD=0",
+        "USE_CHROMIUM_ICU=1",
+        "U_ENABLE_TRACING=1",
+        "U_ENABLE_RESOURCE_TRACING=0",
+        "U_STATIC_IMPLEMENTATION",
+        "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
     ],
-)
-
-cc_library(
-    name = "common_embedder_dart_io",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:crashpad",
+        "//runtime/bin:icudtl_cc",
+        "//third_party/boringssl",
+        "//third_party/icu:icuuc",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "common_embedder_dart_io",
     srcs = [
+        "builtin.cc",
+        "builtin_natives.cc",
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -246,33 +257,11 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "builtin_natives.cc",
-        "io_natives.cc",
-        "builtin.cc",
-        "dart_io_api_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//runtime/bin:libdart_builtin",
-        "//third_party/boringssl:boringssl",
-        "//third_party/fallback_root_certificates:fallback_root_certificates",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -330,27 +319,52 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
     ],
-)
-
-cc_library(
-    name = "common_embedder_dart_io_product",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:libdart_builtin",
+        "//third_party/boringssl",
+        "//third_party/fallback_root_certificates",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "common_embedder_dart_io_product",
     srcs = [
+        "builtin.cc",
+        "builtin_natives.cc",
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -375,12 +389,68 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "builtin_natives.cc",
-        "io_natives.cc",
-        "builtin.cc",
-        "dart_io_api_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Iruntime",
+        "-Ithird_party",
+        "-Iruntime/include",
+        "-Ithird_party/zlib",
+        "-Ithird_party/boringssl/src/include",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -388,13 +458,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//runtime/bin:libdart_builtin_product",
-        "//third_party/boringssl:boringssl",
-        "//third_party/fallback_root_certificates:fallback_root_certificates",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
@@ -403,66 +466,21 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "PRODUCT",
     ],
-    copts = [
-        "-Iruntime",
-        "-Ithird_party",
-        "-Iruntime/include",
-        "-Ithird_party/zlib",
-        "-Ithird_party/boringssl/src/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:libdart_builtin_product",
+        "//third_party/boringssl",
+        "//third_party/fallback_root_certificates",
+        "//third_party/zlib",
     ],
 )
 
@@ -474,17 +492,6 @@ cc_library(
 cc_library(
     name = "bazel_link_stubs",
     srcs = ["bazel_link_stubs.cc"],
-    implementation_deps = ["//runtime/platform:headers"],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -493,6 +500,17 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    implementation_deps = ["//runtime/platform:headers"],
+    deps = [
+        "//build/config:dart_mode",
+    ],
 )
 
 # Real :core_snapshot_data_linkable / :core_snapshot_text_linkable are
@@ -502,33 +520,13 @@ cc_library(
 
 cc_library(
     name = "crashpad",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     srcs = [
         "crashpad.cc",
     ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "PRODUCT",
-        "DART_TARGET_OS_LINUX",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -583,9 +581,32 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "PRODUCT",
+        "DART_TARGET_OS_LINUX",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
 )
 
@@ -594,22 +615,6 @@ cc_binary(
     srcs = [
         "create_process_test_helper.cc",
     ],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//runtime/platform:headers",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-    ],
     copts = [
         "-Iruntime",
         "-m64",
@@ -650,43 +655,39 @@ cc_binary(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//build/config/sanitizers:deps",
+        "//runtime/platform:headers",
     ],
 )
 
 cc_library(
     name = "dart_embedder_runtime_jit_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "dart_embedder_api_impl.cc",
         "dfe.cc",
         "vmservice_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//runtime:libdart_jit",
-        "//runtime/bin:common_embedder_dart_io",
-        "//runtime/bin:dart_kernel_platform_cc",
-        "//runtime/bin:libdart_builtin",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party/boringssl/src/include",
@@ -729,66 +730,54 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime:libdart_jit",
+        "//runtime/bin:common_embedder_dart_io",
+        "//runtime/bin:dart_kernel_platform_cc",
+        "//runtime/bin:libdart_builtin",
     ],
 )
 
 cc_library(
     name = "dart_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "dart_embedder_api_impl.cc",
-        "error_exit.cc",
-        "icu.cc",
-        "options.cc",
-        "snapshot_utils.cc",
-        "vmservice_impl.cc",
         "dartdev.cc",
         "dartdev_options.cc",
+        "error_exit.cc",
         "gzip.cc",
+        "icu.cc",
         "loader.cc",
+        "options.cc",
         "snapshot_empty.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//runtime/bin:crashpad",
-        "//runtime/bin:icudtl_cc",
-        "//third_party/boringssl:boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_EMBED_ICU_DATA",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "DART_PRECOMPILED_RUNTIME",
-        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "PRODUCT",
-        "U_USING_ICU_NAMESPACE=0",
-        "U_ENABLE_DYLOAD=0",
-        "USE_CHROMIUM_ICU=1",
-        "U_ENABLE_TRACING=1",
-        "U_ENABLE_RESOURCE_TRACING=0",
-        "U_STATIC_IMPLEMENTATION",
-        "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -848,34 +837,129 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_EMBED_ICU_DATA",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "DART_PRECOMPILED_RUNTIME",
+        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "PRODUCT",
+        "U_USING_ICU_NAMESPACE=0",
+        "U_ENABLE_DYLOAD=0",
+        "USE_CHROMIUM_ICU=1",
+        "U_ENABLE_TRACING=1",
+        "U_ENABLE_RESOURCE_TRACING=0",
+        "U_STATIC_IMPLEMENTATION",
+        "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:crashpad",
+        "//runtime/bin:icudtl_cc",
+        "//third_party/boringssl",
+        "//third_party/icu:icuuc",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "dartaotruntime_product_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "dart_embedder_api_impl.cc",
         "error_exit.cc",
-        "icu.cc",
-        "options.cc",
-        "snapshot_utils.cc",
-        "vmservice_impl.cc",
         "gzip.cc",
+        "icu.cc",
         "loader.cc",
         "main.cc",
         "main_impl.cc",
         "main_options.cc",
+        "options.cc",
         "snapshot_empty.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Iruntime",
+        "-Ithird_party",
+        "-Iruntime/include",
+        "-Ithird_party/boringssl/src/include",
+        "-Ithird_party/icu/source/common",
+        "-Ithird_party/icu/source/i18n",
+        "-Ithird_party/zlib",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -883,14 +967,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//runtime/bin:crashpad",
-        "//runtime/bin:icudtl_cc",
-        "//third_party/boringssl:boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "DART_EMBED_ICU_DATA",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -909,6 +985,45 @@ cc_library(
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:crashpad",
+        "//runtime/bin:icudtl_cc",
+        "//third_party/boringssl",
+        "//third_party/icu:icuuc",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "dartaotruntime_set",
+    srcs = [
+        "dart_embedder_api_impl.cc",
+        "error_exit.cc",
+        "gzip.cc",
+        "icu.cc",
+        "loader.cc",
+        "main.cc",
+        "main_impl.cc",
+        "main_options.cc",
+        "options.cc",
+        "snapshot_empty.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -968,34 +1083,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "dartaotruntime_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "dart_embedder_api_impl.cc",
-        "error_exit.cc",
-        "icu.cc",
-        "options.cc",
-        "snapshot_utils.cc",
-        "vmservice_impl.cc",
-        "gzip.cc",
-        "loader.cc",
-        "main.cc",
-        "main_impl.cc",
-        "main_options.cc",
-        "snapshot_empty.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -1003,14 +1090,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//runtime/bin:crashpad",
-        "//runtime/bin:icudtl_cc",
-        "//third_party/boringssl:boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "DART_EMBED_ICU_DATA",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -1028,14 +1107,30 @@ cc_library(
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:crashpad",
+        "//runtime/bin:icudtl_cc",
+        "//third_party/boringssl",
+        "//third_party/icu:icuuc",
+        "//third_party/zlib",
+    ],
+)
+
+cc_binary(
+    name = "dartvm",
     copts = [
-        "-Iruntime",
-        "-Ithird_party",
         "-Iruntime/include",
-        "-Ithird_party/boringssl/src/include",
-        "-Ithird_party/icu/source/common",
-        "-Ithird_party/icu/source/i18n",
-        "-Ithird_party/zlib",
+        "-Iruntime",
         "-m64",
         "-march=x86-64",
         "-msse2",
@@ -1064,6 +1159,7 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
+        "-fPIE",
         "-Wno-unused-parameter",
         "-Wno-unused-private-field",
         "-Wnon-virtual-dtor",
@@ -1087,14 +1183,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_binary(
-    name = "dartvm",
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -1102,7 +1190,20 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+        "-stdlib=libc++",
+    ],
     deps = [
+        "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
         "//runtime:libdart_jit",
         "//runtime/bin:common_embedder_dart_io",
@@ -1112,129 +1213,29 @@ cc_binary(
         "//runtime/bin:native_assets_api",
         "//runtime/platform:libdart_platform_jit",
         "//third_party/perfetto:libprotozero",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-    ],
-    copts = [
-        "-Iruntime/include",
-        "-Iruntime",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-fPIE",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-        "-stdlib=libc++",
     ],
 )
 
 cc_library(
     name = "dartvm_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "dart_embedder_api_impl.cc",
-        "error_exit.cc",
-        "icu.cc",
-        "options.cc",
-        "snapshot_utils.cc",
-        "vmservice_impl.cc",
         "dfe.cc",
+        "error_exit.cc",
         "gzip.cc",
+        "icu.cc",
         "loader.cc",
         "main.cc",
         "main_impl.cc",
         "main_options.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//runtime/bin:crashpad",
-        "//runtime/bin:icudtl_cc",
-        "//third_party/boringssl:boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_EMBED_ICU_DATA",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "U_USING_ICU_NAMESPACE=0",
-        "U_ENABLE_DYLOAD=0",
-        "USE_CHROMIUM_ICU=1",
-        "U_ENABLE_TRACING=1",
-        "U_ENABLE_RESOURCE_TRACING=0",
-        "U_STATIC_IMPLEMENTATION",
-        "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -1294,45 +1295,58 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_EMBED_ICU_DATA",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "U_USING_ICU_NAMESPACE=0",
+        "U_ENABLE_DYLOAD=0",
+        "USE_CHROMIUM_ICU=1",
+        "U_ENABLE_TRACING=1",
+        "U_ENABLE_RESOURCE_TRACING=0",
+        "U_STATIC_IMPLEMENTATION",
+        "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:crashpad",
+        "//runtime/bin:icudtl_cc",
+        "//third_party/boringssl",
+        "//third_party/icu:icuuc",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "elf_loader",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "elf_loader.cc",
         "mappable.cc",
         "virtual_memory_posix.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//runtime/bin:libdart_builtin",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "PRODUCT",
-        "DART_SHARED_LIB",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -1387,45 +1401,48 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "PRODUCT",
+        "DART_SHARED_LIB",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:libdart_builtin",
     ],
 )
 
 cc_library(
     name = "elf_loader_product",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "elf_loader.cc",
         "mappable.cc",
         "virtual_memory_posix.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//runtime/bin:libdart_builtin_product",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "PRODUCT",
-        "DART_SHARED_LIB",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -1480,9 +1497,34 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "PRODUCT",
+        "DART_SHARED_LIB",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:libdart_builtin_product",
     ],
 )
 
@@ -1506,8 +1548,8 @@ cc_library(
         "//conditions:default": [],
     }),
     deps = [
-        "//runtime/include:headers",
         "//build/config:dart_mode",
+        "//runtime/include:headers",
     ],
     alwayslink = True,
 )
@@ -1524,8 +1566,6 @@ cc_binary(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkshared = True,
-    linkopts = ["-rdynamic"],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -1533,6 +1573,8 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    linkopts = ["-rdynamic"],
+    linkshared = True,
     deps = [
         ":entrypoints_verification_test",
         "//build/config:dart_mode",
@@ -1551,8 +1593,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    alwayslink = True,
-
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -1560,6 +1600,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 # GN: shared_library("ffi_test_dynamic_library"). Self-contained (references
@@ -1572,8 +1613,6 @@ cc_binary(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkshared = True,
-    linkopts = ["-rdynamic"],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -1581,6 +1620,8 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    linkopts = ["-rdynamic"],
+    linkshared = True,
     deps = [
         ":ffi_test_dynamic_library",
         "//build/config:dart_mode",
@@ -1616,8 +1657,8 @@ cc_library(
         "//conditions:default": [],
     }),
     deps = [
-        "//runtime/include:headers",
         "//build/config:dart_mode",
+        "//runtime/include:headers",
     ],
     alwayslink = True,
 )
@@ -1650,9 +1691,9 @@ cc_library(
     }),
     deps = [
         ":ffi_test_functions_c",
+        "//build/config:dart_mode",
         "//runtime/include:headers",
         "//runtime/platform:headers",
-        "//build/config:dart_mode",
     ],
     alwayslink = True,
 )
@@ -1669,8 +1710,6 @@ cc_binary(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkshared = True,
-    linkopts = ["-rdynamic"],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -1678,6 +1717,8 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    linkopts = ["-rdynamic"],
+    linkshared = True,
     deps = [
         ":ffi_test_functions",
         "//build/config:dart_mode",
@@ -1686,19 +1727,16 @@ cc_binary(
 
 cc_library(
     name = "gen_snapshot_dart_io",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -1723,30 +1761,11 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-        "TARGET_ARCH_X64",
-        "DART_TARGET_OS_LINUX",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -1804,27 +1823,49 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_IO_SECURE_SOCKET_DISABLED",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+        "TARGET_ARCH_X64",
+        "DART_TARGET_OS_LINUX",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "gen_snapshot_dart_io_host_targeting_host",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -1849,28 +1890,11 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -1928,27 +1952,47 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_IO_SECURE_SOCKET_DISABLED",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "gen_snapshot_dart_io_product",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -1973,31 +2017,11 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-        "PRODUCT",
-        "TARGET_ARCH_X64",
-        "DART_TARGET_OS_LINUX",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2055,27 +2079,50 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_IO_SECURE_SOCKET_DISABLED",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+        "PRODUCT",
+        "TARGET_ARCH_X64",
+        "DART_TARGET_OS_LINUX",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "gen_snapshot_dart_io_product_host_targeting_host",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -2100,29 +2147,11 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-        "PRODUCT",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2180,27 +2209,48 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_IO_SECURE_SOCKET_DISABLED",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+        "PRODUCT",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "gen_snapshot_dart_io_product_linux_arm",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -2225,31 +2275,11 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-        "PRODUCT",
-        "DART_TARGET_OS_LINUX",
-        "TARGET_ARCH_ARM",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2307,27 +2337,50 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_IO_SECURE_SOCKET_DISABLED",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+        "PRODUCT",
+        "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_ARM",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "gen_snapshot_dart_io_product_linux_arm64",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -2352,31 +2405,11 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-        "PRODUCT",
-        "DART_TARGET_OS_LINUX",
-        "TARGET_ARCH_ARM64",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2434,27 +2467,50 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "DART_IO_SECURE_SOCKET_DISABLED",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+        "PRODUCT",
+        "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_ARM64",
     ],
-)
-
-cc_library(
-    name = "gen_snapshot_dart_io_product_linux_riscv64",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_dart_io_product_linux_riscv64",
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -2479,10 +2535,68 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Iruntime",
+        "-Ithird_party",
+        "-Iruntime/include",
+        "-Ithird_party/zlib",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fno-omit-frame-pointer",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -2490,10 +2604,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -2504,84 +2614,33 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
     ],
-    copts = [
-        "-Iruntime",
-        "-Ithird_party",
-        "-Iruntime/include",
-        "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fno-omit-frame-pointer",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "gen_snapshot_dart_io_product_linux_x64",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_dart_io_product_linux_x64",
     srcs = [
         "console_posix.cc",
+        "dart_io_api_impl.cc",
         "eventhandler.cc",
         "eventhandler_linux.cc",
         "file_system_watcher.cc",
         "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
+        "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
@@ -2606,10 +2665,68 @@ cc_library(
         "sync_socket.cc",
         "sync_socket_linux.cc",
         "typed_data_utils.cc",
-        "dart_io_api_impl.cc",
-        "io_natives.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Iruntime",
+        "-Ithird_party",
+        "-Iruntime/include",
+        "-Ithird_party/zlib",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fno-omit-frame-pointer",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -2617,10 +2734,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -2631,6 +2744,39 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_host_targeting_host_set",
+    srcs = [
+        "builtin.cc",
+        "builtin_gen_snapshot.cc",
+        "dfe.cc",
+        "error_exit.cc",
+        "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2688,32 +2834,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "gen_snapshot_host_targeting_host_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
-        "builtin_gen_snapshot.cc",
-        "dfe.cc",
-        "gen_snapshot.cc",
-        "options.cc",
-        "vmservice_impl.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -2721,10 +2841,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -2732,6 +2848,39 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_product_host_targeting_host_set",
+    srcs = [
+        "builtin.cc",
+        "builtin_gen_snapshot.cc",
+        "dfe.cc",
+        "error_exit.cc",
+        "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2789,32 +2938,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "gen_snapshot_product_host_targeting_host_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
-        "builtin_gen_snapshot.cc",
-        "dfe.cc",
-        "gen_snapshot.cc",
-        "options.cc",
-        "vmservice_impl.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -2822,10 +2945,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -2834,6 +2953,39 @@ cc_library(
         "DART_PRECOMPILER",
         "PRODUCT",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_product_linux_arm64_set",
+    srcs = [
+        "builtin.cc",
+        "builtin_gen_snapshot.cc",
+        "dfe.cc",
+        "error_exit.cc",
+        "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2891,32 +3043,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "gen_snapshot_product_linux_arm64_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
-        "builtin_gen_snapshot.cc",
-        "dfe.cc",
-        "gen_snapshot.cc",
-        "options.cc",
-        "vmservice_impl.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -2924,10 +3050,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -2938,6 +3060,39 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_product_linux_arm_set",
+    srcs = [
+        "builtin.cc",
+        "builtin_gen_snapshot.cc",
+        "dfe.cc",
+        "error_exit.cc",
+        "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -2995,32 +3150,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "gen_snapshot_product_linux_arm_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
-        "builtin_gen_snapshot.cc",
-        "dfe.cc",
-        "gen_snapshot.cc",
-        "options.cc",
-        "vmservice_impl.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3028,10 +3157,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -3042,6 +3167,39 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_product_linux_riscv64_set",
+    srcs = [
+        "builtin.cc",
+        "builtin_gen_snapshot.cc",
+        "dfe.cc",
+        "error_exit.cc",
+        "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -3099,32 +3257,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "gen_snapshot_product_linux_riscv64_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
-        "builtin_gen_snapshot.cc",
-        "dfe.cc",
-        "gen_snapshot.cc",
-        "options.cc",
-        "vmservice_impl.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3132,10 +3264,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -3146,110 +3274,39 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
     ],
-    copts = [
-        "-Iruntime",
-        "-Ithird_party",
-        "-Iruntime/include",
-        "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fno-omit-frame-pointer",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "gen_snapshot_product_linux_x64_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
         "builtin_gen_snapshot.cc",
         "dfe.cc",
+        "error_exit.cc",
         "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
         "options.cc",
+        "snapshot_utils.cc",
         "vmservice_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_PRECOMPILER",
-        "PRODUCT",
-        "DART_TARGET_OS_LINUX",
-        "TARGET_ARCH_X64",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -3307,32 +3364,113 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_PRECOMPILER",
+        "PRODUCT",
+        "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_X64",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
 cc_library(
     name = "gen_snapshot_product_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
         "builtin_gen_snapshot.cc",
         "dfe.cc",
+        "error_exit.cc",
         "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
         "options.cc",
+        "snapshot_utils.cc",
         "vmservice_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Iruntime",
+        "-Ithird_party",
+        "-Iruntime/include",
+        "-Ithird_party/zlib",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fno-omit-frame-pointer",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3340,10 +3478,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -3354,6 +3488,39 @@ cc_library(
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_LINUX",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
+    ],
+)
+
+cc_library(
+    name = "gen_snapshot_set",
+    srcs = [
+        "builtin.cc",
+        "builtin_gen_snapshot.cc",
+        "dfe.cc",
+        "error_exit.cc",
+        "gen_snapshot.cc",
+        "gzip.cc",
+        "loader.cc",
+        "options.cc",
+        "snapshot_utils.cc",
+        "vmservice_impl.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -3411,32 +3578,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "gen_snapshot_set",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "builtin.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "snapshot_utils.cc",
-        "builtin_gen_snapshot.cc",
-        "dfe.cc",
-        "gen_snapshot.cc",
-        "options.cc",
-        "vmservice_impl.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3444,10 +3585,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
@@ -3457,66 +3594,18 @@ cc_library(
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_LINUX",
     ],
-    copts = [
-        "-Iruntime",
-        "-Ithird_party",
-        "-Iruntime/include",
-        "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fno-omit-frame-pointer",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/zlib",
     ],
 )
 
@@ -3528,24 +3617,22 @@ genrule(
     name = "dart_icudata_S",
     srcs = ["//third_party/icu/flutter:icudtl.dat"],
     outs = ["dart_icudata.S"],
-    tools = ["//runtime/tools:bin_to_assembly.py"],
     cmd = "python3 $(location //runtime/tools:bin_to_assembly.py) " +
           "--input $(location //third_party/icu/flutter:icudtl.dat) " +
           "--output $@ " +
           "--symbol_name kIcuData " +
           "--target_os linux " +
           "--target_arch x64",
+    tools = ["//runtime/tools:bin_to_assembly.py"],
 )
 
 cc_library(
     name = "icudtl_linkable",
     srcs = [":dart_icudata_S"],
-
     copts = select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3598,12 +3685,10 @@ cc_library(
     name = "kernel_service_dill_linkable",
     srcs = [":dart_kernel_service_dill_S_only"],
     additional_compiler_inputs = [":dart_kernel_service_dill_only"],
-
     copts = select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3615,21 +3700,6 @@ cc_library(
 
 cc_library(
     name = "libdart_builtin",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
     srcs = [
         "crypto.cc",
         "crypto_linux.cc",
@@ -3650,14 +3720,10 @@ cc_library(
         "utils.cc",
         "utils_linux.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "TARGET_ARCH_X64",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -3712,29 +3778,36 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_X64",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
 )
 
 cc_library(
     name = "libdart_builtin_host_targeting_host",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
     srcs = [
         "crypto.cc",
         "crypto_linux.cc",
@@ -3755,12 +3828,10 @@ cc_library(
         "utils.cc",
         "utils_linux.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -3815,19 +3886,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_builtin_product",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3835,9 +3893,27 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
     deps = [
         "//build/config:dart_mode",
     ],
+)
+
+cc_library(
+    name = "libdart_builtin_product",
     srcs = [
         "crypto.cc",
         "crypto_linux.cc",
@@ -3858,7 +3934,71 @@ cc_library(
         "utils.cc",
         "utils_linux.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Iruntime",
+        "-Iruntime/include",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
@@ -3867,6 +4007,46 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
+)
+
+cc_library(
+    name = "libdart_builtin_product_host_targeting_host",
+    srcs = [
+        "crypto.cc",
+        "crypto_linux.cc",
+        "dartutils.cc",
+        "directory.cc",
+        "directory_linux.cc",
+        "exe_utils.cc",
+        "fdutils_linux.cc",
+        "file.cc",
+        "file_linux.cc",
+        "file_support.cc",
+        "io_buffer.cc",
+        "isolate_data.cc",
+        "thread.cc",
+        "thread_absl.cc",
+        "thread_linux.cc",
+        "uri.cc",
+        "utils.cc",
+        "utils_linux.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -3921,19 +4101,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_builtin_product_host_targeting_host",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -3941,36 +4108,52 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
-    srcs = [
-        "crypto.cc",
-        "crypto_linux.cc",
-        "dartutils.cc",
-        "directory.cc",
-        "directory_linux.cc",
-        "exe_utils.cc",
-        "fdutils_linux.cc",
-        "file.cc",
-        "file_linux.cc",
-        "file_support.cc",
-        "io_buffer.cc",
-        "isolate_data.cc",
-        "thread.cc",
-        "thread_absl.cc",
-        "thread_linux.cc",
-        "uri.cc",
-        "utils.cc",
-        "utils_linux.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "PRODUCT",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
+)
+
+cc_library(
+    name = "libdart_builtin_product_linux_arm",
+    srcs = [
+        "crypto.cc",
+        "crypto_linux.cc",
+        "dartutils.cc",
+        "directory.cc",
+        "directory_linux.cc",
+        "exe_utils.cc",
+        "fdutils_linux.cc",
+        "file.cc",
+        "file_linux.cc",
+        "file_support.cc",
+        "io_buffer.cc",
+        "isolate_data.cc",
+        "thread.cc",
+        "thread_absl.cc",
+        "thread_linux.cc",
+        "uri.cc",
+        "utils.cc",
+        "utils_linux.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -4025,19 +4208,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_builtin_product_linux_arm",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -4045,30 +4215,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
-    srcs = [
-        "crypto.cc",
-        "crypto_linux.cc",
-        "dartutils.cc",
-        "directory.cc",
-        "directory_linux.cc",
-        "exe_utils.cc",
-        "fdutils_linux.cc",
-        "file.cc",
-        "file_linux.cc",
-        "file_support.cc",
-        "io_buffer.cc",
-        "isolate_data.cc",
-        "thread.cc",
-        "thread_absl.cc",
-        "thread_linux.cc",
-        "uri.cc",
-        "utils.cc",
-        "utils_linux.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
@@ -4077,6 +4223,46 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
+)
+
+cc_library(
+    name = "libdart_builtin_product_linux_arm64",
+    srcs = [
+        "crypto.cc",
+        "crypto_linux.cc",
+        "dartutils.cc",
+        "directory.cc",
+        "directory_linux.cc",
+        "exe_utils.cc",
+        "fdutils_linux.cc",
+        "file.cc",
+        "file_linux.cc",
+        "file_support.cc",
+        "io_buffer.cc",
+        "isolate_data.cc",
+        "thread.cc",
+        "thread_absl.cc",
+        "thread_linux.cc",
+        "uri.cc",
+        "utils.cc",
+        "utils_linux.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -4131,19 +4317,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_builtin_product_linux_arm64",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -4151,30 +4324,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
-    srcs = [
-        "crypto.cc",
-        "crypto_linux.cc",
-        "dartutils.cc",
-        "directory.cc",
-        "directory_linux.cc",
-        "exe_utils.cc",
-        "fdutils_linux.cc",
-        "file.cc",
-        "file_linux.cc",
-        "file_support.cc",
-        "io_buffer.cc",
-        "isolate_data.cc",
-        "thread.cc",
-        "thread_absl.cc",
-        "thread_linux.cc",
-        "uri.cc",
-        "utils.cc",
-        "utils_linux.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
@@ -4183,6 +4332,46 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+    ],
+)
+
+cc_library(
+    name = "libdart_builtin_product_linux_riscv64",
+    srcs = [
+        "crypto.cc",
+        "crypto_linux.cc",
+        "dartutils.cc",
+        "directory.cc",
+        "directory_linux.cc",
+        "exe_utils.cc",
+        "fdutils_linux.cc",
+        "file.cc",
+        "file_linux.cc",
+        "file_support.cc",
+        "io_buffer.cc",
+        "isolate_data.cc",
+        "thread.cc",
+        "thread_absl.cc",
+        "thread_linux.cc",
+        "uri.cc",
+        "utils.cc",
+        "utils_linux.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -4237,19 +4426,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_builtin_product_linux_riscv64",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -4257,30 +4433,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
-    srcs = [
-        "crypto.cc",
-        "crypto_linux.cc",
-        "dartutils.cc",
-        "directory.cc",
-        "directory_linux.cc",
-        "exe_utils.cc",
-        "fdutils_linux.cc",
-        "file.cc",
-        "file_linux.cc",
-        "file_support.cc",
-        "io_buffer.cc",
-        "isolate_data.cc",
-        "thread.cc",
-        "thread_absl.cc",
-        "thread_linux.cc",
-        "uri.cc",
-        "utils.cc",
-        "utils_linux.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
@@ -4289,83 +4441,22 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
     ],
-    copts = [
-        "-Iruntime",
-        "-Iruntime/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "libdart_builtin_product_linux_x64",
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
     deps = [
         "//build/config:dart_mode",
     ],
+)
+
+cc_library(
+    name = "libdart_builtin_product_linux_x64",
     srcs = [
         "crypto.cc",
         "crypto_linux.cc",
@@ -4386,15 +4477,10 @@ cc_library(
         "utils.cc",
         "utils_linux.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "PRODUCT",
-        "DART_TARGET_OS_LINUX",
-        "TARGET_ARCH_X64",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -4449,40 +4535,44 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "PRODUCT",
+        "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_X64",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
 )
 
 cc_library(
     name = "native_assets_api",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
     srcs = [
         "native_assets_api_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "TARGET_ARCH_X64",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -4537,19 +4627,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "native_assets_api_product",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -4557,13 +4634,97 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_X64",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
     deps = [
         "//build/config:dart_mode",
     ],
+)
+
+cc_library(
+    name = "native_assets_api_product",
     srcs = [
         "native_assets_api_impl.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Iruntime",
+        "-Iruntime/include",
+        "-m64",
+        "-march=x86-64",
+        "-msse2",
+        "-fPIE",
+        "--target=x86_64-linux-gnu",
+        "-fcolor-diagnostics",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wendif-labels",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-tautological-constant-compare",
+        "-Wno-unused-but-set-variable",
+        "-Wno-deprecated-non-prototype",
+        "-no-canonical-prefixes",
+        "-ffile-compilation-dir=.",
+        "-fvisibility=hidden",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+        "-Wheader-hygiene",
+        "-Wstring-conversion",
+        "-O2",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g3",
+        "-ggdb3",
+        "-Wno-unused-parameter",
+        "-Wno-unused-private-field",
+        "-Wnon-virtual-dtor",
+        "-Wvla",
+        "-Woverloaded-virtual",
+        "-Wno-comments",
+        "-g3",
+        "-ggdb3",
+        "-fno-rtti",
+        "-fno-exceptions",
+        "-Wnewline-eof",
+        "-Wimplicit-fallthrough",
+        "-fno-strict-vtable-pointers",
+        "-O2",
+        "-fvisibility-inlines-hidden",
+        "-fno-omit-frame-pointer",
+        "-std=c++20",
+        "-std=c++20",
+        "-fno-rtti",
+    ] + select({
+        "//build/config:debug": [],
+        "//conditions:default": ["-fno-ident"],
+    }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
     defines = [
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
@@ -4572,63 +4733,17 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
     ],
-    copts = [
-        "-Iruntime",
-        "-Iruntime/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
-        "-fPIE",
-        "--target=x86_64-linux-gnu",
-        "-fcolor-diagnostics",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wendif-labels",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-tautological-constant-compare",
-        "-Wno-unused-but-set-variable",
-        "-Wno-deprecated-non-prototype",
-        "-no-canonical-prefixes",
-        "-ffile-compilation-dir=.",
-        "-fvisibility=hidden",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-D_LARGEFILE64_SOURCE",
-        "-Wheader-hygiene",
-        "-Wstring-conversion",
-        "-O2",
-        "-fdata-sections",
-        "-ffunction-sections",
-        "-g3",
-        "-ggdb3",
-        "-Wno-unused-parameter",
-        "-Wno-unused-private-field",
-        "-Wnon-virtual-dtor",
-        "-Wvla",
-        "-Woverloaded-virtual",
-        "-Wno-comments",
-        "-g3",
-        "-ggdb3",
-        "-fno-rtti",
-        "-fno-exceptions",
-        "-Wnewline-eof",
-        "-Wimplicit-fallthrough",
-        "-fno-strict-vtable-pointers",
-        "-O2",
-        "-fvisibility-inlines-hidden",
-        "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
-    ] + select({
-        "//build/config:debug": [],
-        "//conditions:default": ["-fno-ident"],
-    }),
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
 )
 
@@ -4673,12 +4788,10 @@ cc_library(
     name = "platform_dill_linkable",
     srcs = [":dart_platform_dill_S_only"],
     additional_compiler_inputs = [":dart_vm_platform_dill_only"],
-
     copts = select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -4766,12 +4879,10 @@ cc_library(
     name = "core_snapshot_data_linkable",
     srcs = [":dart_core_snapshot_data_S_only"],
     additional_compiler_inputs = [":dart_core_snapshot_data_bin_only"],
-
     copts = select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -4785,12 +4896,10 @@ cc_library(
     name = "core_snapshot_text_linkable",
     srcs = [":dart_core_snapshot_text_S_only"],
     additional_compiler_inputs = [":dart_core_snapshot_text_bin_only"],
-
     copts = select({
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -4802,31 +4911,25 @@ cc_library(
 
 cc_library(
     name = "run_vm_tests_set",
-    alwayslink = True,
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//runtime/vm:headers",
-    ],
     srcs = [
-        "dfe.cc",
-        "error_exit.cc",
-        "gzip.cc",
-        "loader.cc",
-        "run_vm_tests.cc",
-        "snapshot_utils.cc",
-        "vmservice_impl.cc",
         "crypto_test.cc",
+        "dfe.cc",
         "directory_test.cc",
+        "error_exit.cc",
         "eventhandler_test.cc",
         "file_test.cc",
+        "gzip.cc",
         "hashmap_test.cc",
         "list_queue_test.cc",
+        "loader.cc",
         "priority_heap_test.cc",
+        "run_vm_tests.cc",
+        "secure_socket_utils_test.cc",
+        "snapshot_utils.cc",
         "snapshot_utils_test.cc",
         "test_utils.cc",
         "uri_test.cc",
+        "vmservice_impl.cc",
         "//runtime/vm:allocation_test.cc",
         "//runtime/vm:ama_test.cc",
         "//runtime/vm:assert_test.cc",
@@ -4845,6 +4948,37 @@ cc_library(
         "//runtime/vm:code_patcher_ia32_test.cc",
         "//runtime/vm:code_patcher_riscv_test.cc",
         "//runtime/vm:code_patcher_x64_test.cc",
+        "//runtime/vm:compiler/asm_intrinsifier_test.cc",
+        "//runtime/vm:compiler/assembler/assembler_arm64_test.cc",
+        "//runtime/vm:compiler/assembler/assembler_arm_test.cc",
+        "//runtime/vm:compiler/assembler/assembler_ia32_test.cc",
+        "//runtime/vm:compiler/assembler/assembler_riscv_test.cc",
+        "//runtime/vm:compiler/assembler/assembler_test.cc",
+        "//runtime/vm:compiler/assembler/assembler_x64_test.cc",
+        "//runtime/vm:compiler/assembler/disassembler_test.cc",
+        "//runtime/vm:compiler/backend/bce_test.cc",
+        "//runtime/vm:compiler/backend/constant_propagator_test.cc",
+        "//runtime/vm:compiler/backend/flow_graph_test.cc",
+        "//runtime/vm:compiler/backend/il_test.cc",
+        "//runtime/vm:compiler/backend/il_test_helper.cc",
+        "//runtime/vm:compiler/backend/inliner_test.cc",
+        "//runtime/vm:compiler/backend/linearscan_test.cc",
+        "//runtime/vm:compiler/backend/locations_helpers_test.cc",
+        "//runtime/vm:compiler/backend/loops_test.cc",
+        "//runtime/vm:compiler/backend/memory_copy_test.cc",
+        "//runtime/vm:compiler/backend/pragma_unsafe_no_bounds_check_test.cc",
+        "//runtime/vm:compiler/backend/range_analysis_test.cc",
+        "//runtime/vm:compiler/backend/reachability_fence_test.cc",
+        "//runtime/vm:compiler/backend/redundancy_elimination_test.cc",
+        "//runtime/vm:compiler/backend/slot_test.cc",
+        "//runtime/vm:compiler/backend/type_propagator_test.cc",
+        "//runtime/vm:compiler/backend/typed_data_aot_test.cc",
+        "//runtime/vm:compiler/backend/yield_position_test.cc",
+        "//runtime/vm:compiler/cha_test.cc",
+        "//runtime/vm:compiler/ffi/native_type_vm_test.cc",
+        "//runtime/vm:compiler/frontend/kernel_binary_flowgraph_test.cc",
+        "//runtime/vm:compiler/relocation_test.cc",
+        "//runtime/vm:compiler/write_barrier_elimination_test.cc",
         "//runtime/vm:compiler_test.cc",
         "//runtime/vm:cpu_test.cc",
         "//runtime/vm:cpuinfo_test.cc",
@@ -4853,14 +4987,20 @@ cc_library(
         "//runtime/vm:datastream_test.cc",
         "//runtime/vm:debugger_api_impl_test.cc",
         "//runtime/vm:exceptions_test.cc",
+        "//runtime/vm:ffi_callback_metadata_test.cc",
         "//runtime/vm:fixed_cache_test.cc",
         "//runtime/vm:flags_test.cc",
-        "//runtime/vm:ffi_callback_metadata_test.cc",
         "//runtime/vm:growable_array_test.cc",
         "//runtime/vm:guard_field_test.cc",
         "//runtime/vm:handles_test.cc",
         "//runtime/vm:hash_map_test.cc",
         "//runtime/vm:hash_table_test.cc",
+        "//runtime/vm:heap/become_test.cc",
+        "//runtime/vm:heap/freelist_test.cc",
+        "//runtime/vm:heap/heap_test.cc",
+        "//runtime/vm:heap/safepoint_test.cc",
+        "//runtime/vm:heap/splay_test.cc",
+        "//runtime/vm:heap/weak_table_test.cc",
         "//runtime/vm:instructions_arm64_test.cc",
         "//runtime/vm:instructions_arm_test.cc",
         "//runtime/vm:instructions_ia32_test.cc",
@@ -4891,6 +5031,7 @@ cc_library(
         "//runtime/vm:os_test.cc",
         "//runtime/vm:port_test.cc",
         "//runtime/vm:profiler_test.cc",
+        "//runtime/vm:regexp/regexp_test.cc",
         "//runtime/vm:ring_buffer_test.cc",
         "//runtime/vm:scopes_test.cc",
         "//runtime/vm:service_test.cc",
@@ -4907,69 +5048,11 @@ cc_library(
         "//runtime/vm:utils_test.cc",
         "//runtime/vm:virtual_memory_test.cc",
         "//runtime/vm:zone_test.cc",
-        "//runtime/vm:compiler/asm_intrinsifier_test.cc",
-        "//runtime/vm:compiler/assembler/assembler_arm64_test.cc",
-        "//runtime/vm:compiler/assembler/assembler_arm_test.cc",
-        "//runtime/vm:compiler/assembler/assembler_ia32_test.cc",
-        "//runtime/vm:compiler/assembler/assembler_riscv_test.cc",
-        "//runtime/vm:compiler/assembler/assembler_test.cc",
-        "//runtime/vm:compiler/assembler/assembler_x64_test.cc",
-        "//runtime/vm:compiler/assembler/disassembler_test.cc",
-        "//runtime/vm:compiler/backend/bce_test.cc",
-        "//runtime/vm:compiler/backend/constant_propagator_test.cc",
-        "//runtime/vm:compiler/backend/flow_graph_test.cc",
-        "//runtime/vm:compiler/backend/il_test.cc",
-        "//runtime/vm:compiler/backend/il_test_helper.cc",
-        "//runtime/vm:compiler/backend/inliner_test.cc",
-        "//runtime/vm:compiler/backend/linearscan_test.cc",
-        "//runtime/vm:compiler/backend/locations_helpers_test.cc",
-        "//runtime/vm:compiler/backend/loops_test.cc",
-        "//runtime/vm:compiler/backend/memory_copy_test.cc",
-        "//runtime/vm:compiler/backend/pragma_unsafe_no_bounds_check_test.cc",
-        "//runtime/vm:compiler/backend/range_analysis_test.cc",
-        "//runtime/vm:compiler/backend/reachability_fence_test.cc",
-        "//runtime/vm:compiler/backend/redundancy_elimination_test.cc",
-        "//runtime/vm:compiler/backend/slot_test.cc",
-        "//runtime/vm:compiler/backend/type_propagator_test.cc",
-        "//runtime/vm:compiler/backend/typed_data_aot_test.cc",
-        "//runtime/vm:compiler/backend/yield_position_test.cc",
-        "//runtime/vm:compiler/cha_test.cc",
-        "//runtime/vm:compiler/relocation_test.cc",
-        "//runtime/vm:compiler/ffi/native_type_vm_test.cc",
-        "//runtime/vm:compiler/frontend/kernel_binary_flowgraph_test.cc",
-        "//runtime/vm:compiler/write_barrier_elimination_test.cc",
-        "//runtime/vm:heap/become_test.cc",
-        "//runtime/vm:heap/freelist_test.cc",
-        "//runtime/vm:heap/heap_test.cc",
-        "//runtime/vm:heap/weak_table_test.cc",
-        "//runtime/vm:heap/safepoint_test.cc",
-        "//runtime/vm:heap/splay_test.cc",
-        "//runtime/vm:regexp/regexp_test.cc",
-        "secure_socket_utils_test.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//third_party/boringssl:boringssl",
-        "//third_party/perfetto:libprotozero",
-        "//third_party/zlib:zlib",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TESTING",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "DART_PRECOMPILER",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Ithird_party",
@@ -5028,26 +5111,6 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ],
-)
-
-cc_library(
-    name = "shared_object_loaders",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
-    srcs = [
-        "elf_loader.cc",
-        "macho_loader.cc",
-        "mappable.cc",
-        "virtual_memory_posix.cc",
-    ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
     cxxopts = select({
         "//build/config:debug": [
             "-Wno-tautological-undefined-compare",
@@ -5055,19 +5118,46 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//runtime/bin:libdart_builtin",
-        "//build/config:dart_mode",
-    ],
     defines = [
+        "TESTING",
         "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
-        "PRODUCT",
-        "DART_SHARED_LIB",
+        "DART_PRECOMPILER",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
+    ],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//third_party/boringssl",
+        "//third_party/perfetto:libprotozero",
+        "//third_party/zlib",
+    ],
+    alwayslink = True,
+)
+
+cc_library(
+    name = "shared_object_loaders",
+    srcs = [
+        "elf_loader.cc",
+        "macho_loader.cc",
+        "mappable.cc",
+        "virtual_memory_posix.cc",
+    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -5122,46 +5212,49 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "PRODUCT",
+        "DART_SHARED_LIB",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:libdart_builtin",
     ],
 )
 
 cc_library(
     name = "shared_object_loaders_product",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "elf_loader.cc",
         "macho_loader.cc",
         "mappable.cc",
         "virtual_memory_posix.cc",
     ],
-    hdrs = glob(["**/*.h"], allow_empty = True),
-    cxxopts = select({
-        "//build/config:debug": [
-            "-Wno-tautological-undefined-compare",
-            "-Wno-undefined-bool-conversion",
-        ],
-        "//conditions:default": [],
-    }),
-    deps = [
-        "//runtime/bin:libdart_builtin_product",
-        "//build/config:dart_mode",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "TARGET_ARCH_X64",
-        "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
-        "PRODUCT",
-        "DART_SHARED_LIB",
-    ],
+    hdrs = glob(
+        ["**/*.h"],
+        allow_empty = True,
+    ),
     copts = [
         "-Iruntime",
         "-Iruntime/include",
@@ -5216,9 +5309,33 @@ cc_library(
         "//build/config:debug": [],
         "//conditions:default": ["-fno-ident"],
     }),
+    cxxopts = select({
+        "//build/config:debug": [
+            "-Wno-tautological-undefined-compare",
+            "-Wno-undefined-bool-conversion",
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
+        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
+        "TARGET_ARCH_X64",
+        "SUPPORT_PERFETTO",
+        "DART_TARGET_OS_LINUX",
+        "PRODUCT",
+        "DART_SHARED_LIB",
+    ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
     ],
+    deps = [
+        "//build/config:dart_mode",
+        "//runtime/bin:libdart_builtin_product",
+    ],
 )
-

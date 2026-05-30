@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,8 +10,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -22,7 +31,10 @@ exports_files(glob(
 filegroup(
     name = "sdk_library_sources",
     srcs = glob(
-        ["lib/**/*.dart", "lib/**/*.json"],
+        [
+            "lib/**/*.dart",
+            "lib/**/*.json",
+        ],
         allow_empty = True,
     ),
 )
@@ -487,4 +499,3 @@ cc_library(name = "write_revision_file")
 
 # TODO(M3): genrule for write_version_file (gn type=action)
 cc_library(name = "write_version_file")
-
