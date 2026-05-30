@@ -220,10 +220,10 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILED_RUNTIME",
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -419,10 +419,10 @@ cc_library(
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
-        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -822,10 +822,10 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILER",
-        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -922,10 +922,10 @@ cc_library(
         "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
-        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1023,11 +1023,11 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
-        "PRODUCT",
         "DART_PRECOMPILER",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1125,11 +1125,11 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
-        "PRODUCT",
         "DART_PRECOMPILER",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1227,11 +1227,11 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
-        "PRODUCT",
         "DART_PRECOMPILER",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1329,11 +1329,11 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
-        "PRODUCT",
         "DART_PRECOMPILER",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
     ],
 )
 
