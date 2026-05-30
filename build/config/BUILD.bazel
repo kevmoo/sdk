@@ -4,9 +4,10 @@
 # below survive it (recon §7 overlay strategy). See
 # docs/todo_issues/m4_multiconfig_scoping.md (§3 delta / §6 folding / §7 overlay).
 #
-# Scope = the debug<->release axis ONLY (M4 mechanism proof #1). The product,
-# arch, and OS axes (recon §8) are deliberately out of scope; in particular the
-# PRODUCT define is the *product* axis and is NOT folded here.
+# Scope = two graph-isolated config-axis mechanism proofs: the debug<->release
+# axis (#1, below) and the product axis (#2, the PRODUCT define — bottom of file).
+# The arch and OS axes (recon §8) remain out of scope, as does WIRING either axis
+# into the real runtime targets (the translator-generalization slice does that).
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
@@ -78,4 +79,52 @@ cc_binary(
         "//conditions:default": [],
     }),
     deps = [":dart_mode"],
+)
+
+# ============================================================================
+# M4 mechanism proof #2 — the product axis (PRODUCT define), PARALLEL to the
+# debug<->release axis above. Graph-isolated; NO wiring into real targets.
+# ============================================================================
+
+# The product<->non-product axis flag. Default false == today's non-product
+# release (out/ReleaseX64). A custom build setting, separate from :dart_debug,
+# because PRODUCT is its own axis: recon §3 shows the PRODUCT define tracks the
+# product-variant targets (the 58 *_product targets) INDEPENDENTLY of the
+# debug<->release split, so it earns its own config_setting (recon §8 — "PRODUCT
+# is better attached to a product config_setting"). Flip with
+# --//build/config:dart_product=true.
+bool_flag(
+    name = "dart_product",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "product",
+    flag_values = {":dart_product": "true"},
+)
+
+# Product delta carrier — mirrors :dart_mode. A cc_library whose select()-driven
+# `defines` fold the product axis and propagate to a consumer via deps. The whole
+# product flag-surface delta on this slice is the single PRODUCT define (recon §3):
+# present under :product, absent otherwise.
+#
+# Out of scope (kept atomic): full product also drops the service-isolate
+# srcs/deps (recon §8) — a follow-up; this proof is the PRODUCT define only.
+cc_library(
+    name = "dart_product_mode",
+    defines = select({
+        ":product": ["PRODUCT"],
+        "//conditions:default": [],
+    }),
+)
+
+# Product-axis probe / representative consumer — mirrors :mode_probe. Reuses the
+# trivial mode_probe.cc TU; `deps = [":dart_product_mode"]` brings PRODUCT in via
+# define propagation, so it lands on this target's CppCompile under
+# --//build/config:dart_product=true and is absent by default (byte-identical to
+# pre-change). Graph-isolated: no real target depends on it.
+cc_binary(
+    name = "product_probe",
+    srcs = ["mode_probe.cc"],
+    deps = [":dart_product_mode"],
 )
