@@ -249,11 +249,16 @@ def _emit_targets_body(targets, pkg, packages):
 
 def _owned_target_names(build_path):
     """Names of targets already defined in a hand-authored BUILD.bazel. The §7
-    macro skips these (the hand file owns them). Empty if the file is absent."""
+    macro skips these (the hand file owns them). Empty if the file is absent.
+
+    The `name = "..."` match tolerates formatting shifts — single or double
+    quotes and any spacing around `=` — and `\\b` anchors `name` to a word
+    boundary so it does not match other attributes ending in "name" (filename,
+    pathname, …)."""
     if not os.path.exists(build_path):
         return set()
     with open(build_path) as f:
-        return set(re.findall(r'name = "([^"]+)"', f.read()))
+        return set(re.findall(r"""\bname\s*=\s*["']([^"']+)["']""", f.read()))
 
 
 def write_gen_targets_bzl(root, pkg, targets, packages):
