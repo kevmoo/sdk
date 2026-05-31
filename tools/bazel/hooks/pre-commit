@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Auto-canonicalize staged Bazel files with buildifier before each commit.
+# Runs the format (does NOT fail the commit); excludes generated gen_targets.bzl.
+set -uo pipefail
+command -v buildifier >/dev/null 2>&1 || exit 0
+files=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '(^|/)(BUILD\.bazel|MODULE\.bazel)$|\.bzl$' \
+  | grep -v 'gen_targets\.bzl' || true)
+[ -z "$files" ] && exit 0
+echo "$files" | xargs buildifier --lint=fix
+echo "$files" | xargs git add

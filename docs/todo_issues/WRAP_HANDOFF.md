@@ -35,20 +35,14 @@ experiment, but run the critical path solo.
   ```bash
   buildifier --lint=fix <files>   # excludes generated gen_targets.bzl
   ```
-- **Optional pre-commit hook** (auto-canonicalize on commit). Install it yourself:
+- **Pre-commit hook** (auto-canonicalize on commit) — now **tracked** at
+  `tools/bazel/hooks/pre-commit` and active in this checkout via a symlink
+  (`.git/hooks/pre-commit` → it; `.git/hooks` is never tracked by git itself).
+  It runs `buildifier --lint=fix` on staged BUILD/.bzl, re-stages, and never
+  fails the commit; excludes generated `gen_targets.bzl`. **On a fresh clone,
+  re-activate** with:
   ```bash
-  cat > .git/hooks/pre-commit <<'EOF'
-  #!/usr/bin/env bash
-  set -uo pipefail
-  command -v buildifier >/dev/null 2>&1 || exit 0
-  files=$(git diff --cached --name-only --diff-filter=ACM \
-    | grep -E '(^|/)(BUILD\.bazel|MODULE\.bazel)$|\.bzl$' \
-    | grep -v 'gen_targets\.bzl' || true)
-  [ -z "$files" ] && exit 0
-  echo "$files" | xargs buildifier --lint=fix
-  echo "$files" | xargs git add
-  EOF
-  chmod +x .git/hooks/pre-commit
+  ln -sf ../../tools/bazel/hooks/pre-commit .git/hooks/pre-commit
   ```
 
 ## Restarting the factory (if ever)
