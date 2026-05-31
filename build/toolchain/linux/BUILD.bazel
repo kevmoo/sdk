@@ -4,16 +4,28 @@ load(":cc_toolchain_config.bzl", "cc_toolchain_config")
 package(default_visibility = ["//visibility:public"])
 
 # Files the cc_toolchain claims as inputs to every C++ action so Bazel
-# sandboxes the clang install correctly. See buildtools/linux-x64/clang/
-# BUILD.bazel for the placeholder note about this package.
+# sandboxes the clang install and sysroot correctly.
 filegroup(
     name = "clang_files",
-    srcs = ["@dart_linux_x64_clang//:all_files"],
+    srcs = [
+        "//:sysroot_files",
+        "@dart_linux_x64_clang//:all_files",
+    ],
 )
 
 filegroup(name = "empty")
 
-cc_toolchain_config(name = "clang_x64_config")
+cc_toolchain_config(
+    name = "clang_x64_config",
+    cpu = "x86_64",
+    target_triple = "x86_64-linux-gnu",
+)
+
+cc_toolchain_config(
+    name = "clang_arm64_config",
+    cpu = "aarch64",
+    target_triple = "aarch64-linux-gnu",
+)
 
 cc_toolchain(
     name = "clang_x64",
@@ -27,6 +39,20 @@ cc_toolchain(
     strip_files = ":clang_files",
     toolchain_config = ":clang_x64_config",
     toolchain_identifier = "clang_x64",
+)
+
+cc_toolchain(
+    name = "clang_arm64",
+    all_files = ":clang_files",
+    ar_files = ":clang_files",
+    as_files = ":clang_files",
+    compiler_files = ":clang_files",
+    dwp_files = ":empty",
+    linker_files = ":clang_files",
+    objcopy_files = ":clang_files",
+    strip_files = ":clang_files",
+    toolchain_config = ":clang_arm64_config",
+    toolchain_identifier = "clang_arm64",
 )
 
 toolchain(
@@ -43,9 +69,24 @@ toolchain(
     toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
 )
 
+toolchain(
+    name = "clang_arm64_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    toolchain = ":clang_arm64",
+    toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
+)
+
 # Smoke-test target: confirms the toolchain can actually compile something.
 # Built via `bazelisk build //build/toolchain/linux:smoke_test`.
 cc_library(
     name = "smoke_test",
     srcs = ["smoke_test.cc"],
+    alwayslink = True,
 )
