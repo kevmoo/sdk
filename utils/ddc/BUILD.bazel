@@ -224,5 +224,25 @@ cc_library(name = "meta_outline")
 # TODO(M3): genrule for meta_stable_js (gn type=action)
 cc_library(name = "meta_stable_js")
 
-# TODO(M3): genrule for stack_trace_mapper (gn type=action)
-cc_library(name = "stack_trace_mapper")
+# rules_dart: compile stack_trace_mapper JS utility using prebuilt dart compile js.
+# Ports utils/ddc/BUILD.gn:dart2js_compile("stack_trace_mapper").
+genrule(
+    name = "stack_trace_mapper",
+    srcs = [
+        "//:pkg/dev_compiler/web/stack_trace_mapper.dart",
+        "//:pkg/dev_compiler/web/source_map_stack_trace.dart",
+        "//:package_config_json",
+        "//:dart_pkg_js",
+        "//:dart_pkg_path",
+        "//:dart_pkg_source_maps",
+        "//:dart_pkg_source_span",
+        "//:dart_pkg_stack_trace",
+        "//tools/sdks/dart-sdk:sdk_files",
+    ],
+    outs = ["dart_stack_trace_mapper.js"],
+    cmd = "tools/sdks/dart-sdk/bin/dart compile js " +
+          "-O2 " +
+          "--packages=$(location //:package_config_json) " +
+          "-o $(location dart_stack_trace_mapper.js) " +
+          "$(location //:pkg/dev_compiler/web/stack_trace_mapper.dart)",
+)

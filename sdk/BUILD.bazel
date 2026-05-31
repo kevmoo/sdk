@@ -80,6 +80,8 @@ copy_internal_with_dills(
         "//utils/dart2wasm:dart2wasm_platform.dill",
         "//utils/dart2wasm:dart2wasm_js_compatibility_outline.dill",
         "//utils/dart2wasm:dart2wasm_js_compatibility_platform.dill",
+        "//utils/ddc:ddc_platform.dill",
+        "//utils/ddc:ddc_outline.dill",
     ],
 )
 
@@ -303,18 +305,31 @@ genrule(
     cmd = "cp $< $@",
 )
 
-# TODO(M3): copy for copy_dev_compiler_amd_require_js (gn type=copy)
-cc_library(name = "copy_dev_compiler_amd_require_js")
+# rules_dart Step 5: copy require.js AMD asset. Ports GN copy("copy_dev_compiler_amd_require_js")
+genrule(
+    name = "copy_dev_compiler_amd_require_js",
+    srcs = ["//:third_party/requirejs/require.js"],
+    outs = ["dart-sdk/lib/dev_compiler/amd/require.js"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_dev_compiler_ddc_module_loader_js (gn type=copy)
-cc_library(name = "copy_dev_compiler_ddc_module_loader_js")
+# rules_dart Step 5: copy ddc_module_loader.js asset. Ports GN copy("copy_dev_compiler_ddc_module_loader_js")
+genrule(
+    name = "copy_dev_compiler_ddc_module_loader_js",
+    srcs = ["//:pkg/dev_compiler/lib/js/ddc/ddc_module_loader.js"],
+    outs = ["dart-sdk/lib/dev_compiler/ddc/ddc_module_loader.js"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_dev_compiler_dills (gn type=copy)
-cc_library(name = "copy_dev_compiler_dills")
+# rules_dart Step 5: DDC platform dills. Now staged via copy__internal_library.
+filegroup(
+    name = "copy_dev_compiler_dills",
+    srcs = [":copy__internal_library"],
+)
 
-cc_library(
+filegroup(
     name = "copy_dev_compiler_sdk",
-    deps = [
+    srcs = [
         "//sdk:copy_dev_compiler_amd_require_js",
         "//sdk:copy_dev_compiler_ddc_module_loader_js",
         "//sdk:copy_dev_compiler_dills",
@@ -322,8 +337,13 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for copy_dev_compiler_stack_trace_mapper (gn type=copy)
-cc_library(name = "copy_dev_compiler_stack_trace_mapper")
+# rules_dart Step 5: copy stack_trace_mapper JS tool. Ports GN copy("copy_dev_compiler_stack_trace_mapper")
+genrule(
+    name = "copy_dev_compiler_stack_trace_mapper",
+    srcs = ["//utils/ddc:stack_trace_mapper"],
+    outs = ["dart-sdk/lib/dev_compiler/web/dart_stack_trace_mapper.js"],
+    cmd = "cp $< $@",
+)
 
 copy_sdk_library(
     name = "copy_developer_library",
