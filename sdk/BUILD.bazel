@@ -169,6 +169,18 @@ cc_library(name = "copy_dart2wasm_platform")
 cc_library(name = "copy_dart2wasm_snapshot")
 
 # GN renames dartaotruntime_product -> dartaotruntime in bin/ (drops _product).
+# NON-PRODUCT DEVIATION: this genrule (and copy_gen_snapshot_exe below) sources
+# the _product cc_library variant -- GN-faithful, since GN ships the _product
+# binaries here. BUT both build in the DEFAULT config, where the flag-conditional
+# //build/config:dart_product_mode carrier adds no -DPRODUCT (PRODUCT lands only
+# under --//build/config:dart_product=true). So the staged bin/dartaotruntime and
+# bin/utils/gen_snapshot are effectively NON-product -- a 3rd GN-deviation
+# alongside the unstripped + no-.sym ones noted above, and one the "ELF runs /
+# --version=3.13.0" check can't catch (a non-product aotruntime runs + reports the
+# same version). Per the e3d2b96cad1 cross-slice decision, a functional product
+# assembly links the _product variants AND sets --//build/config:dart_product=true
+# (and runtime/bin must first narrow its product carrier to _product-only, else
+# mixed-PRODUCT ODR).
 genrule(
     name = "copy_dart_aotruntime",
     srcs = ["//runtime/bin:dartaotruntime_product"],
