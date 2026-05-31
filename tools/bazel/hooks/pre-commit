@@ -1,11 +1,46 @@
 #!/usr/bin/env bash
-# Auto-canonicalize staged Bazel files with buildifier before each commit.
-# Runs the format (does NOT fail the commit); excludes generated gen_targets.bzl.
+# Auto-canonicalize staged Bazel files and audit them for architecture safety.
 set -uo pipefail
-command -v buildifier >/dev/null 2>&1 || exit 0
-files=$(git diff --cached --name-only --diff-filter=ACM \
+
+# 1. Identify files to format (standard Bazel files only)
+files_to_format=$(git diff --cached --name-only --diff-filter=ACM \
   | grep -E '(^|/)(BUILD\.bazel|MODULE\.bazel)$|\.bzl$' \
   | grep -v 'gen_targets\.bzl' || true)
-[ -z "$files" ] && exit 0
-echo "$files" | xargs buildifier --lint=fix
-echo "$files" | xargs git add
+
+if [ -n "$files_to_format" ] && command -v buildifier >/dev/null 2>&1; then
+  echo "$files_to_format" | xargs buildifier --lint=fix
+  echo "$files_to_format" | xargs git add
+fi
+
+# 2. Audit all Bazel and snapshot files for hardcoded host-specific target/cpu cflags and defines
+files_to_audit=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '(^|/)(BUILD\.bazel|MODULE\.bazel)$|\.bzl$|\.snap$|\.append$' \
+  | grep -v 'gen_targets\.bzl' || true)
+
+if [ -n "$files_to_audit" ]; then
+  forbidden_patterns=(
+    '"-m64"'
+    '"-march=x86-64"'
+    '"-msse2"'
+    '"--target=x86_64-linux-gnu"'
+    '"TARGET_ARCH_X64"'
+  )
+  
+  failed=0
+  for pattern in "${forbidden_patterns[@]}"; do
+    # Check if the pattern exists in any of the staged files
+    if echo "$files_to_audit" | xargs grep -F "$pattern" >/dev/null 2>&1; then
+      echo "🚨 ERROR: Staged Bazel file contains hardcoded host architecture flag/define: $pattern"
+      # Find the exact files and line numbers that failed
+      echo "$files_to_audit" | xargs grep -F -n "$pattern" || true
+      failed=1
+    fi
+  done
+
+  if [ "$failed" -eq 1 ]; then
+    echo "👉 Please remove these flags or parameterize them dynamically using select()."
+    echo "👉 Cross-compilation targeting ARM64 will fail if host cflags are hardcoded."
+    exit 1
+  fi
+fi
+
