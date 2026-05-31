@@ -85,21 +85,21 @@ copy_sdk_library(
 genrule(
     name = "copy_analysis_server_aot_product_snapshot",
     srcs = ["//utils/analysis_server:analysis_server_aot_product"],
-    outs = ["bin/snapshots/analysis_server_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/analysis_server_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_analysis_server_snapshot",
     srcs = ["//utils/analysis_server:analysis_server"],
-    outs = ["bin/snapshots/analysis_server.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/analysis_server.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_api_readme",
     srcs = ["api_readme.md"],
-    outs = ["lib/api_readme.md"],
+    outs = ["dart-sdk/lib/api_readme.md"],
     cmd = "cp $< $@",
 )
 
@@ -141,7 +141,7 @@ copy_sdk_library(
 genrule(
     name = "copy_dart",
     srcs = ["//runtime/bin:dart"],
-    outs = ["bin/dart"],
+    outs = ["dart-sdk/bin/dart"],
     cmd = "cp $< $@",
 )
 
@@ -155,7 +155,7 @@ filegroup(name = "copy_dart2bytecode_snapshot")
 genrule(
     name = "copy_dart2js_aot_product_snapshot",
     srcs = ["//utils/compiler:dart2js_sdk_aot_product"],
-    outs = ["bin/snapshots/dart2js_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dart2js_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
@@ -184,7 +184,7 @@ cc_library(name = "copy_dart2wasm_snapshot")
 genrule(
     name = "copy_dart_aotruntime",
     srcs = ["//runtime/bin:dartaotruntime_product"],
-    outs = ["bin/dartaotruntime"],
+    outs = ["dart-sdk/bin/dartaotruntime"],
     cmd = "cp $< $@",
 )
 
@@ -203,35 +203,35 @@ cc_library(name = "copy_dart_aotruntime_tsan")
 genrule(
     name = "copy_dart_mcp_server_aot_product_snapshot",
     srcs = ["//utils/dart_mcp_server:dart_mcp_server_aot_product_snapshot"],
-    outs = ["bin/snapshots/dart_mcp_server_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dart_mcp_server_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_dart_tooling_daemon_aot_product_snapshot",
     srcs = ["//utils/dtd:dtd_aot_product_snapshot"],
-    outs = ["bin/snapshots/dart_tooling_daemon_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dart_tooling_daemon_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_dartdev_aot_snapshot",
     srcs = ["//utils/dartdev:dartdev_aot_snapshot"],
-    outs = ["bin/snapshots/dartdev_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dartdev_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_dartdevc_aot_product_snapshot",
     srcs = ["//utils/ddc:dartdevc_aot_product"],
-    outs = ["bin/snapshots/dartdevc_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dartdevc_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_dartdevc_snapshot",
     srcs = ["//utils/ddc:dartdevc"],
-    outs = ["bin/snapshots/dartdevc.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dartdevc.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
@@ -252,14 +252,14 @@ cc_library(name = "copy_dartdoc_templates")
 genrule(
     name = "copy_dartvm",
     srcs = ["//runtime/bin:dartvm"],
-    outs = ["bin/dartvm"],
+    outs = ["dart-sdk/bin/dartvm"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_dds_aot_product_snapshot",
     srcs = ["//utils/dds:dds_aot_product_snapshot"],
-    outs = ["bin/snapshots/dds_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dds_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
@@ -298,7 +298,7 @@ copy_sdk_library(
 genrule(
     name = "copy_frontend_server_aot_product_snapshot",
     srcs = ["//utils/kernel-service:frontend_server_aot_product"],
-    outs = ["bin/snapshots/frontend_server_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
@@ -375,7 +375,7 @@ cc_library(
 genrule(
     name = "copy_gen_snapshot_exe",
     srcs = ["//runtime/bin:gen_snapshot_product"],
-    outs = ["bin/utils/gen_snapshot"],
+    outs = ["dart-sdk/bin/utils/gen_snapshot"],
     cmd = "cp $< $@",
 )
 
@@ -437,14 +437,14 @@ copy_sdk_library(
 genrule(
     name = "copy_kernel-service_snapshot",
     srcs = ["//utils/kernel-service:kernel-service_snapshot"],
-    outs = ["bin/snapshots/kernel-service.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/kernel-service.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_kernel_worker_aot_product_snapshot",
     srcs = ["//utils/bazel:kernel_worker_aot_product"],
-    outs = ["bin/snapshots/kernel_worker_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/kernel_worker_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
@@ -455,20 +455,19 @@ filegroup(
     ],
 )
 
-# TODO(Step 5.3 assembly): copy lib/libraries.json -> lib/libraries.json.
-# Blocked on the assembled-tree rooting decision: under the current
-# no-"dart-sdk/"-prefix output convention (Steps 5.1/5.2/5.3a) the genrule output
-# label //sdk:lib/libraries.json collides with the SOURCE file of the same name
-# ("has file 'lib/libraries.json' as both an input and an output"). Same hazard
-# for write_version_file -> //sdk:version (sdk/version is a source). Resolving
-# needs the GN dart_sdk_output ("dart-sdk/") root prefix, which revises the
-# 5.1/5.2/5.3a output paths -- escalated as a design decision.
+# TODO(sdk-xh6 assembly): wire copy_libraries_specification ->
+# dart-sdk/lib/libraries.json. The dart_sdk_output ("dart-sdk/") root prefix is
+# now adopted (human-confirmed; re-rooted in sdk-9xn), so the genrule output
+# dart-sdk/lib/libraries.json no longer collides with the //sdk:lib/libraries.json
+# SOURCE label (the earlier "file as both an input and an output" hazard is gone).
+# The same prefix unblocks write_version_file -> dart-sdk/version (vs the
+# sdk/version source). Still a stub until the assembly bead wires it.
 cc_library(name = "copy_libraries_specification")
 
 genrule(
     name = "copy_license",
     srcs = ["//:LICENSE"],
-    outs = ["LICENSE"],
+    outs = ["dart-sdk/LICENSE"],
     cmd = "cp $< $@",
 )
 
@@ -543,14 +542,14 @@ cc_library(name = "copy_prebuilt_devtools")
 genrule(
     name = "copy_readme",
     srcs = ["//:README.dart-sdk"],
-    outs = ["README"],
+    outs = ["dart-sdk/README"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_sdk_packages_yaml",
     srcs = ["//:sdk_packages.yaml"],
-    outs = ["sdk_packages.yaml"],
+    outs = ["dart-sdk/sdk_packages.yaml"],
     cmd = "cp $< $@",
 )
 

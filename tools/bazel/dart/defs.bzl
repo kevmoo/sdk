@@ -111,12 +111,17 @@ copy_tree = rule(
 )
 
 def copy_sdk_library(name, lib, exclude = _SDK_LIB_EXCLUDE, **kwargs):
-    """Stage sdk/lib/<lib> -> <bin>/lib/<lib>, porting GN copy_${lib}_library."""
+    """Stage sdk/lib/<lib> -> <bin>/dart-sdk/lib/<lib>, porting GN copy_${lib}_library.
+
+    Rooted under the GN dart_sdk_output ("dart-sdk/") prefix so the assembled
+    tree matches out/ReleaseX64/dart-sdk/ and single-file outputs (libraries.json,
+    version) don't collide with the same-named //sdk source labels.
+    """
     copy_tree(
         name = name,
         srcs = native.glob(["lib/%s/**" % lib], allow_empty = False),
         src_dir = native.package_name() + "/lib/" + lib,
-        out_dir = "lib/" + lib,
+        out_dir = "dart-sdk/lib/" + lib,
         exclude = exclude,
         **kwargs
     )
