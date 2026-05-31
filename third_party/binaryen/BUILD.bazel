@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,18 +10,22 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
 cc_library(
     name = "binaryen_sources",
-    implementation_deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-    ],
     srcs = [
         "src/src/analysis/cfg.cpp",
         "src/src/asmjs/asm_v_wasm.cpp",
@@ -215,18 +219,18 @@ cc_library(
         "src/src/wasm/literal.cpp",
         "src/src/wasm/parsing.cpp",
         "src/src/wasm/source-map.cpp",
+        "src/src/wasm/wasm.cpp",
         "src/src/wasm/wasm-binary.cpp",
         "src/src/wasm/wasm-debug.cpp",
         "src/src/wasm/wasm-emscripten.cpp",
         "src/src/wasm/wasm-interpreter.cpp",
         "src/src/wasm/wasm-io.cpp",
         "src/src/wasm/wasm-ir-builder.cpp",
-        "src/src/wasm/wasm-stack-opts.cpp",
         "src/src/wasm/wasm-stack.cpp",
-        "src/src/wasm/wasm-type-shape.cpp",
+        "src/src/wasm/wasm-stack-opts.cpp",
         "src/src/wasm/wasm-type.cpp",
+        "src/src/wasm/wasm-type-shape.cpp",
         "src/src/wasm/wasm-validator.cpp",
-        "src/src/wasm/wasm.cpp",
         "src/third_party/llvm-project/Binary.cpp",
         "src/third_party/llvm-project/ConvertUTF.cpp",
         "src/third_party/llvm-project/DJB.cpp",
@@ -295,8 +299,8 @@ cc_library(
         "src/src/analysis/cfg.h",
         "src/src/analysis/lattice.h",
         "src/src/analysis/liveness-transfer-function.h",
-        "src/src/analysis/monotone-analyzer-impl.h",
         "src/src/analysis/monotone-analyzer.h",
+        "src/src/analysis/monotone-analyzer-impl.h",
         "src/src/analysis/reaching-definitions-transfer-function.h",
         "src/src/analysis/transfer-function.h",
         "src/src/analysis/visitor-transfer-function.h",
@@ -375,8 +379,8 @@ cc_library(
         "src/src/parser/contexts.h",
         "src/src/parser/lexer.h",
         "src/src/parser/parsers.h",
-        "src/src/parser/wat-parser-internal.h",
         "src/src/parser/wat-parser.h",
+        "src/src/parser/wat-parser-internal.h",
         "src/src/passes/call-utils.h",
         "src/src/passes/intrinsics-module.h",
         "src/src/passes/opt-utils.h",
@@ -429,21 +433,11 @@ cc_library(
         "src/third_party/llvm-project/DWARFVisitor.h",
         "src/third_party/llvm-project/Error.h",
     ],
-    deps = [
-        "//third_party/binaryen:generate_needed_files",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
         "-Ithird_party/binaryen/src/third_party/llvm-project/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -486,9 +480,20 @@ cc_library(
         "-std=c++20",
         "-fexceptions",
     ],
+    implementation_deps = [
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//third_party/binaryen:generate_needed_files",
     ],
 )
 
@@ -516,24 +521,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-as.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -580,6 +571,16 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -588,24 +589,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-ctor-eval.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -652,6 +639,16 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -660,24 +657,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-dis.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -724,6 +707,16 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -732,24 +725,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-emscripten-finalize.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -796,6 +775,16 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -804,24 +793,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-fuzz-types.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -868,6 +843,16 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -876,24 +861,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-metadce.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -940,6 +911,16 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -948,24 +929,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-opt.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1012,26 +979,25 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
 cc_binary(
     name = "wasm-reduce",
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1078,6 +1044,13 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -1086,24 +1059,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm-shell.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1150,6 +1109,16 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
     ],
 )
 
@@ -1158,24 +1127,10 @@ cc_binary(
     srcs = [
         "src/src/tools/wasm2js.cpp",
     ],
-    deps = [
-        "//runtime/include:headers",
-        "//runtime/lib:headers",
-        "//runtime/platform:headers",
-        "//build/config/sanitizers:deps",
-        "//third_party/binaryen:binaryen_sources",
-    ],
-    local_defines = [
-        "NDEBUG",
-    ],
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1223,5 +1178,14 @@ cc_binary(
         "-ldl",
         "-lpthread",
     ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/lib:headers",
+        "//runtime/platform:headers",
+        "//third_party/binaryen:binaryen_sources",
+    ],
 )
-
