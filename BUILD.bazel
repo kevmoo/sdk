@@ -303,3 +303,12 @@ filegroup(
         allow_empty = True,
     ),
 )
+
+# Expose the hermetic multiarch Debian sysroot files for the toolchain.
+filegroup(
+    name = "sysroot_files",
+    srcs = glob(
+        ["buildtools/sysroot/linux/**"],
+        allow_empty = True,
+    ),
+)
