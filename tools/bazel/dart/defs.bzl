@@ -112,12 +112,25 @@ copy_tree = rule(
 
 def _copy_internal_with_dills_impl(ctx):
     out = ctx.actions.declare_directory(ctx.attr.out_dir)
+
+    # Build copy command for additional dills
+    copy_cmds = []
+    for f in ctx.files.additional_dills:
+        copy_cmds.append("cp {src} {to}/{basename}".format(
+            src = f.path,
+            to = out.path,
+            basename = f.basename,
+        ))
+    additional_cp = " && ".join(copy_cmds)
+    if additional_cp:
+        additional_cp = " && " + additional_cp
+
     ctx.actions.run_shell(
         command = (
             "python3 {tool} --from {src} --to {to} --exclude '{exclude}' && " +
             "cp {vm_plat} {to}/vm_platform.dill && " +
             "cp {vm_plat} {to}/vm_platform_strong.dill && " +
-            "cp {vm_plat_prod} {to}/vm_platform_product.dill"
+            "cp {vm_plat_prod} {to}/vm_platform_product.dill{additional}"
         ).format(
             tool = ctx.file._tool.path,
             src = ctx.attr.src_dir,
@@ -125,15 +138,16 @@ def _copy_internal_with_dills_impl(ctx):
             exclude = ctx.attr.exclude,
             vm_plat = ctx.file.vm_platform.path,
             vm_plat_prod = ctx.file.vm_platform_product.path,
+            additional = additional_cp,
         ),
-        inputs = ctx.files.srcs + [
+        inputs = ctx.files.srcs + ctx.files.additional_dills + [
             ctx.file._tool,
             ctx.file.vm_platform,
             ctx.file.vm_platform_product,
         ],
         outputs = [out],
         mnemonic = "CopyInternalWithDills",
-        progress_message = "Staging SDK internal library with VM platform dills",
+        progress_message = "Staging SDK internal library with VM and web platform dills",
     )
     return [DefaultInfo(files = depset([out]))]
 
@@ -159,6 +173,10 @@ copy_internal_with_dills = rule(
         "vm_platform_product": attr.label(
             mandatory = True,
             allow_single_file = True,
+        ),
+        "additional_dills": attr.label_list(
+            allow_files = True,
+            default = [],
         ),
         "_tool": attr.label(
             default = "//tools/bazel/dart:copytree.py",

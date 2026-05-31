@@ -73,6 +73,14 @@ copy_internal_with_dills(
     src_dir = "sdk/lib/_internal",
     vm_platform = "//runtime/vm:vm_platform.dill",
     vm_platform_product = "//runtime/vm:vm_platform_product.dill",
+    additional_dills = [
+        "//utils/compiler:dart2js_platform.dill",
+        "//utils/compiler:dart2js_server_platform.dill",
+        "//utils/dart2wasm:dart2wasm_outline.dill",
+        "//utils/dart2wasm:dart2wasm_platform.dill",
+        "//utils/dart2wasm:dart2wasm_js_compatibility_outline.dill",
+        "//utils/dart2wasm:dart2wasm_js_compatibility_platform.dill",
+    ],
 )
 
 copy_sdk_library(
@@ -167,14 +175,25 @@ genrule(
     cmd = "cp $< $@",
 )
 
-# TODO(M3): copy for copy_dart2js_dill_files (gn type=copy)
-cc_library(name = "copy_dart2js_dill_files")
+# rules_dart Step 5 (sdk/ assembly): web platform compiles. Now staged via copy__internal_library.
+filegroup(
+    name = "copy_dart2js_dill_files",
+    srcs = [":copy__internal_library"],
+)
 
-# TODO(M3): copy for copy_dart2wasm_platform (gn type=copy)
-cc_library(name = "copy_dart2wasm_platform")
+# rules_dart Step 5: dart2wasm platform outline & dills. Now staged via copy__internal_library.
+filegroup(
+    name = "copy_dart2wasm_platform",
+    srcs = [":copy__internal_library"],
+)
 
-# TODO(M3): copy for copy_dart2wasm_snapshot (gn type=copy)
-cc_library(name = "copy_dart2wasm_snapshot")
+# rules_dart Step 5: copy dart2wasm snapshot. Ports GN copy("copy_dart2wasm_snapshot")
+genrule(
+    name = "copy_dart2wasm_snapshot",
+    srcs = ["//utils/dart2wasm:dart2wasm_product_snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dart2wasm_product.snapshot"],
+    cmd = "cp $< $@",
+)
 
 # GN renames dartaotruntime_product -> dartaotruntime in bin/ (drops _product).
 # NON-PRODUCT DEVIATION: this genrule (and copy_gen_snapshot_exe below) sources
