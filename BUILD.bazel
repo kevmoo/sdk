@@ -98,6 +98,7 @@ exports_files([
     "pkg/dev_compiler/web/source_map_stack_trace.dart",
     "third_party/requirejs/require.js",
     "pkg/dev_compiler/lib/js/ddc/ddc_module_loader.js",
+    "pkg/dart2bytecode/bin/dart2bytecode.dart",
 ])
 
 # SDK resource files copied verbatim into the assembled dart-sdk/ tree by //sdk

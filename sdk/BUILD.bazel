@@ -68,11 +68,6 @@ copy_internal_with_dills(
         ["lib/_internal/**"],
         allow_empty = False,
     ),
-    exclude = "*.svn,doc,*.py,*.gypi,*.sh,.git*,*.gn,*.gni",
-    out_dir = "dart-sdk/lib/_internal",
-    src_dir = "sdk/lib/_internal",
-    vm_platform = "//runtime/vm:vm_platform.dill",
-    vm_platform_product = "//runtime/vm:vm_platform_product.dill",
     additional_dills = [
         "//utils/compiler:dart2js_platform.dill",
         "//utils/compiler:dart2js_server_platform.dill",
@@ -83,6 +78,11 @@ copy_internal_with_dills(
         "//utils/ddc:ddc_platform.dill",
         "//utils/ddc:ddc_outline.dill",
     ],
+    exclude = "*.svn,doc,*.py,*.gypi,*.sh,.git*,*.gn,*.gni",
+    out_dir = "dart-sdk/lib/_internal",
+    src_dir = "sdk/lib/_internal",
+    vm_platform = "//runtime/vm:vm_platform.dill",
+    vm_platform_product = "//runtime/vm:vm_platform_product.dill",
 )
 
 copy_sdk_library(
@@ -163,12 +163,12 @@ genrule(
     cmd = "cp $< $@",
 )
 
-# TODO(Step 5.2): //utils/dart2bytecode:dart2bytecode is not a snapshot
-# builder (no .dart.snapshot output -> genrule "$$<: no input file"). Wire
-# this copy to bin/snapshots/dart2bytecode.dart.snapshot once a real
-# dart2bytecode snapshot target exists. Empty filegroup keeps the
-# snapshot aggregators valid meanwhile.
-filegroup(name = "copy_dart2bytecode_snapshot")
+genrule(
+    name = "copy_dart2bytecode_snapshot",
+    srcs = ["//utils/dart2bytecode:dart2bytecode_snapshot"],
+    outs = ["dart-sdk/bin/snapshots/dart2bytecode.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 genrule(
     name = "copy_dart2js_aot_product_snapshot",
