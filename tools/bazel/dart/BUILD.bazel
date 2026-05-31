@@ -3,4 +3,4 @@
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["defs.bzl"])
+exports_files(["defs.bzl", "copytree.py"])

@@ -59,6 +59,68 @@ dart_library = rule(
     },
 )
 
+# rules_dart Step 5 (sdk/ assembly): the SDK platform libraries (dart:core et al.)
+# staged into the final dart-sdk/lib/<name> layout. Ports the GN copy_tree
+# template (build/dart/copy_tree.gni -> tools/copy_tree.py): each
+# copy_${library}_library copies sdk/lib/<library> with the same exclude globs.
+_SDK_LIB_EXCLUDE = "*.svn,doc,*.py,*.gypi,*.sh,.git*,*.gn,*.gni"
+
+def _copy_tree_impl(ctx):
+    out = ctx.actions.declare_directory(ctx.attr.out_dir)
+    ctx.actions.run_shell(
+        command = "python3 {tool} --from {src} --to {to} --exclude '{exclude}'".format(
+            tool = ctx.file._tool.path,
+            src = ctx.attr.src_dir,
+            to = out.path,
+            exclude = ctx.attr.exclude,
+        ),
+        inputs = ctx.files.srcs + [ctx.file._tool],
+        outputs = [out],
+        mnemonic = "CopyTree",
+        progress_message = "Staging SDK tree %s" % ctx.attr.out_dir,
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+copy_tree = rule(
+    implementation = _copy_tree_impl,
+    doc = "Stage src_dir into an output tree, mirroring GN copy_tree " +
+          "(tools/copy_tree.py): same shutil.copytree + ignore_patterns(exclude).",
+    attrs = {
+        "srcs": attr.label_list(
+            allow_files = True,
+            doc = "Every file under src_dir (a glob); excluded files are " +
+                  "harmless extra inputs, the action filters them out.",
+        ),
+        "src_dir": attr.string(
+            mandatory = True,
+            doc = "Execroot-relative source directory, e.g. sdk/lib/core.",
+        ),
+        "out_dir": attr.string(
+            mandatory = True,
+            doc = "Output tree path under the package's bin dir, e.g. lib/core.",
+        ),
+        "exclude": attr.string(
+            default = "",
+            doc = "GN-style comma-separated ignore_patterns globs.",
+        ),
+        "_tool": attr.label(
+            default = "//tools/bazel/dart:copytree.py",
+            allow_single_file = True,
+        ),
+    },
+)
+
+def copy_sdk_library(name, lib, exclude = _SDK_LIB_EXCLUDE, **kwargs):
+    """Stage sdk/lib/<lib> -> <bin>/lib/<lib>, porting GN copy_${lib}_library."""
+    copy_tree(
+        name = name,
+        srcs = native.glob(["lib/%s/**" % lib], allow_empty = False),
+        src_dir = native.package_name() + "/lib/" + lib,
+        out_dir = "lib/" + lib,
+        exclude = exclude,
+        **kwargs
+    )
+
 def dart_kernel_snapshot(name, main, sources, sdk_hash = "0000000000", **kwargs):
     """Compile a Dart script to a *kernel* snapshot with the prebuilt SDK.
 

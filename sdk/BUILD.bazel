@@ -3,6 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//tools/bazel/dart:defs.bzl", "copy_sdk_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -56,20 +57,30 @@ cc_library(
 # TODO(M3): genrule for build_devtools (gn type=action)
 cc_library(name = "build_devtools")
 
-# TODO(M3): genrule for copy__http_library (gn type=action)
-cc_library(name = "copy__http_library")
+copy_sdk_library(
+    name = "copy__http_library",
+    lib = "_http",
+)
 
-# TODO(M3): genrule for copy__internal_library (gn type=action)
-cc_library(name = "copy__internal_library")
+copy_sdk_library(
+    name = "copy__internal_library",
+    lib = "_internal",
+)
 
-# TODO(M3): genrule for copy__js_interop_wasm_library (gn type=action)
-cc_library(name = "copy__js_interop_wasm_library")
+copy_sdk_library(
+    name = "copy__js_interop_wasm_library",
+    lib = "_js_interop_wasm",
+)
 
-# TODO(M3): genrule for copy__vm_library (gn type=action)
-cc_library(name = "copy__vm_library")
+copy_sdk_library(
+    name = "copy__vm_library",
+    lib = "_vm",
+)
 
-# TODO(M3): genrule for copy__wasm_library (gn type=action)
-cc_library(name = "copy__wasm_library")
+copy_sdk_library(
+    name = "copy__wasm_library",
+    lib = "_wasm",
+)
 
 # TODO(M3): copy for copy_analysis_server_aot_product_snapshot (gn type=copy)
 cc_library(name = "copy_analysis_server_aot_product_snapshot")
@@ -80,23 +91,35 @@ cc_library(name = "copy_analysis_server_snapshot")
 # TODO(M3): copy for copy_api_readme (gn type=copy)
 cc_library(name = "copy_api_readme")
 
-# TODO(M3): genrule for copy_async_library (gn type=action)
-cc_library(name = "copy_async_library")
+copy_sdk_library(
+    name = "copy_async_library",
+    lib = "async",
+)
 
-# TODO(M3): genrule for copy_cli_library (gn type=action)
-cc_library(name = "copy_cli_library")
+copy_sdk_library(
+    name = "copy_cli_library",
+    lib = "cli",
+)
 
-# TODO(M3): genrule for copy_collection_library (gn type=action)
-cc_library(name = "copy_collection_library")
+copy_sdk_library(
+    name = "copy_collection_library",
+    lib = "collection",
+)
 
-# TODO(M3): genrule for copy_concurrent_library (gn type=action)
-cc_library(name = "copy_concurrent_library")
+copy_sdk_library(
+    name = "copy_concurrent_library",
+    lib = "concurrent",
+)
 
-# TODO(M3): genrule for copy_convert_library (gn type=action)
-cc_library(name = "copy_convert_library")
+copy_sdk_library(
+    name = "copy_convert_library",
+    lib = "convert",
+)
 
-# TODO(M3): genrule for copy_core_library (gn type=action)
-cc_library(name = "copy_core_library")
+copy_sdk_library(
+    name = "copy_core_library",
+    lib = "core",
+)
 
 # TODO(M3): copy for copy_dart (gn type=copy)
 cc_library(name = "copy_dart")
@@ -188,18 +211,22 @@ cc_library(
 # TODO(M3): copy for copy_dev_compiler_stack_trace_mapper (gn type=copy)
 cc_library(name = "copy_dev_compiler_stack_trace_mapper")
 
-# TODO(M3): genrule for copy_developer_library (gn type=action)
-cc_library(name = "copy_developer_library")
+copy_sdk_library(
+    name = "copy_developer_library",
+    lib = "developer",
+)
 
-# TODO(M3): genrule for copy_ffi_library (gn type=action)
-cc_library(name = "copy_ffi_library")
+copy_sdk_library(
+    name = "copy_ffi_library",
+    lib = "ffi",
+)
 
 # TODO(M3): copy for copy_frontend_server_aot_product_snapshot (gn type=copy)
 cc_library(name = "copy_frontend_server_aot_product_snapshot")
 
-cc_library(
+filegroup(
     name = "copy_full_sdk_libraries",
-    deps = [
+    srcs = [
         "//sdk:copy__http_library",
         "//sdk:copy__internal_library",
         "//sdk:copy__js_interop_wasm_library",
@@ -279,32 +306,50 @@ cc_library(
     ],
 )
 
-# TODO(M3): genrule for copy_html_library (gn type=action)
-cc_library(name = "copy_html_library")
+copy_sdk_library(
+    name = "copy_html_library",
+    lib = "html",
+)
 
-# TODO(M3): genrule for copy_indexed_db_library (gn type=action)
-cc_library(name = "copy_indexed_db_library")
+copy_sdk_library(
+    name = "copy_indexed_db_library",
+    lib = "indexed_db",
+)
 
-# TODO(M3): genrule for copy_internal_library (gn type=action)
-cc_library(name = "copy_internal_library")
+copy_sdk_library(
+    name = "copy_internal_library",
+    lib = "internal",
+)
 
-# TODO(M3): genrule for copy_io_library (gn type=action)
-cc_library(name = "copy_io_library")
+copy_sdk_library(
+    name = "copy_io_library",
+    lib = "io",
+)
 
-# TODO(M3): genrule for copy_isolate_library (gn type=action)
-cc_library(name = "copy_isolate_library")
+copy_sdk_library(
+    name = "copy_isolate_library",
+    lib = "isolate",
+)
 
-# TODO(M3): genrule for copy_js_interop_library (gn type=action)
-cc_library(name = "copy_js_interop_library")
+copy_sdk_library(
+    name = "copy_js_interop_library",
+    lib = "js_interop",
+)
 
-# TODO(M3): genrule for copy_js_interop_unsafe_library (gn type=action)
-cc_library(name = "copy_js_interop_unsafe_library")
+copy_sdk_library(
+    name = "copy_js_interop_unsafe_library",
+    lib = "js_interop_unsafe",
+)
 
-# TODO(M3): genrule for copy_js_library (gn type=action)
-cc_library(name = "copy_js_library")
+copy_sdk_library(
+    name = "copy_js_library",
+    lib = "js",
+)
 
-# TODO(M3): genrule for copy_js_util_library (gn type=action)
-cc_library(name = "copy_js_util_library")
+copy_sdk_library(
+    name = "copy_js_util_library",
+    lib = "js_util",
+)
 
 # TODO(M3): copy for copy_kernel-service_snapshot (gn type=copy)
 cc_library(name = "copy_kernel-service_snapshot")
@@ -312,9 +357,9 @@ cc_library(name = "copy_kernel-service_snapshot")
 # TODO(M3): copy for copy_kernel_worker_aot_product_snapshot (gn type=copy)
 cc_library(name = "copy_kernel_worker_aot_product_snapshot")
 
-cc_library(
+filegroup(
     name = "copy_libraries",
-    deps = [
+    srcs = [
         "//sdk:copy_full_sdk_libraries",
     ],
 )
@@ -325,15 +370,19 @@ cc_library(name = "copy_libraries_specification")
 # TODO(M3): copy for copy_license (gn type=copy)
 cc_library(name = "copy_license")
 
-# TODO(M3): genrule for copy_math_library (gn type=action)
-cc_library(name = "copy_math_library")
+copy_sdk_library(
+    name = "copy_math_library",
+    lib = "math",
+)
 
-# TODO(M3): genrule for copy_mirrors_library (gn type=action)
-cc_library(name = "copy_mirrors_library")
+copy_sdk_library(
+    name = "copy_mirrors_library",
+    lib = "mirrors",
+)
 
-cc_library(
+filegroup(
     name = "copy_platform_sdk_libraries",
-    deps = [
+    srcs = [
         "//sdk:copy__http_library",
         "//sdk:copy__internal_library",
         "//sdk:copy__js_interop_wasm_library",
@@ -394,11 +443,15 @@ cc_library(name = "copy_readme")
 # TODO(M3): copy for copy_sdk_packages_yaml (gn type=copy)
 cc_library(name = "copy_sdk_packages_yaml")
 
-# TODO(M3): genrule for copy_svg_library (gn type=action)
-cc_library(name = "copy_svg_library")
+copy_sdk_library(
+    name = "copy_svg_library",
+    lib = "svg",
+)
 
-# TODO(M3): genrule for copy_typed_data_library (gn type=action)
-cc_library(name = "copy_typed_data_library")
+copy_sdk_library(
+    name = "copy_typed_data_library",
+    lib = "typed_data",
+)
 
 # TODO(M3): copy for copy_vm_dill_files (gn type=copy)
 cc_library(name = "copy_vm_dill_files")
@@ -412,14 +465,20 @@ cc_library(name = "copy_vm_strong_dill_files")
 # TODO(M3): copy for copy_wasm_opt (gn type=copy)
 cc_library(name = "copy_wasm_opt")
 
-# TODO(M3): genrule for copy_web_audio_library (gn type=action)
-cc_library(name = "copy_web_audio_library")
+copy_sdk_library(
+    name = "copy_web_audio_library",
+    lib = "web_audio",
+)
 
-# TODO(M3): genrule for copy_web_gl_library (gn type=action)
-cc_library(name = "copy_web_gl_library")
+copy_sdk_library(
+    name = "copy_web_gl_library",
+    lib = "web_gl",
+)
 
-# TODO(M3): genrule for copy_web_sql_library (gn type=action)
-cc_library(name = "copy_web_sql_library")
+copy_sdk_library(
+    name = "copy_web_sql_library",
+    lib = "web_sql",
+)
 
 cc_library(
     name = "create_common_sdk",
