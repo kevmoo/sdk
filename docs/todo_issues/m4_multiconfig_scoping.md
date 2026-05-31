@@ -196,10 +196,12 @@ shared — the generator can hoist it to one shared target instead of per-target
 >
 > **The slices scope that carrier differently, on purpose.** `runtime/vm`
 > (sess 28) and `runtime/platform` (sess 29) put it on the **`_product`-suffixed
-> variants only** (vm 23 of 44 `dart_mode` targets; platform 8 of 8 — every
+> variants only** (vm 23 of 44 `dart_mode` targets; platform 8 of 14 — every
 > carrier name ends `_product`, zero base targets). `runtime/bin` (sess 26) put it
-> on **every** `dart_mode` target (50 of 50), including base `dartvm`,
-> `libdart_builtin`, `crashpad`, `gen_snapshot_dart_io`, …
+> on **base** targets too: 58 of its 68 `dart_mode` targets carry it (50 of 50 in
+> the hand-authored `BUILD.bazel`, 8 of 18 in the generated `gen_targets.bzl`), of
+> which **28 are base** — incl. `dartvm`, `libdart_builtin`, `crashpad`,
+> `gen_snapshot_dart_io`, …
 >
 > This is **not** a package-structure difference — bin, vm and platform all use
 > GN's base-vs-`_product` variant split (`library_for_all_configs` / the `build_*`
