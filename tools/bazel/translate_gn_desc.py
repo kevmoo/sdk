@@ -217,7 +217,12 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     # dropped — issue_00001. Drop --sysroot=... (a gn-relative path handled later
     # by a real toolchain feature); filtered out, clang falls back to host headers.
     def _flags(key):
-        return [f'"{c}"' for c in t.get(key, []) if not c.startswith("--sysroot=")]
+        return [
+            f'"{c}"'
+            for c in t.get(key, [])
+            if not c.startswith(("--sysroot=", "--target=", "-march=", "-mtune="))
+            and c not in ("-m64", "-msse", "-msse2", "-msse3", "-msse4", "-msse4.1", "-msse4.2", "-mavx", "-mavx2")
+        ]
     copts = include_copts + _flags("cflags")
     conlyopts = _flags("cflags_c")
     cxxopts = _flags("cflags_cc")
