@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//tools/bazel/dart:defs.bzl", "copy_internal_with_dills", "copy_sdk_library")
+load("//tools/bazel/dart:defs.bzl", "copy_internal_with_dills", "copy_sdk_library", "copy_tree")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -243,19 +243,32 @@ genrule(
     cmd = "cp $< $@",
 )
 
-cc_library(
+filegroup(
     name = "copy_dartdoc_files",
-    deps = [
+    srcs = [
         "//sdk:copy_dartdoc_resources",
         "//sdk:copy_dartdoc_templates",
     ],
 )
 
-# TODO(M3): genrule for copy_dartdoc_resources (gn type=action)
-cc_library(name = "copy_dartdoc_resources")
+# GN copy_tree("copy_dartdoc_resources"/"copy_dartdoc_templates"): stage the
+# dartdoc resource + template trees (sourced from third_party/pkg/dartdoc/lib,
+# exposed as //:dartdoc_*_files since that root package owns them) into
+# dart-sdk/bin/resources/dartdoc/. GN excludes nothing ("{}"); exclude = "" here
+# copies all.
+copy_tree(
+    name = "copy_dartdoc_resources",
+    srcs = ["//:dartdoc_resources_files"],
+    out_dir = "dart-sdk/bin/resources/dartdoc/resources",
+    src_dir = "third_party/pkg/dartdoc/lib/resources",
+)
 
-# TODO(M3): genrule for copy_dartdoc_templates (gn type=action)
-cc_library(name = "copy_dartdoc_templates")
+copy_tree(
+    name = "copy_dartdoc_templates",
+    srcs = ["//:dartdoc_templates_files"],
+    out_dir = "dart-sdk/bin/resources/dartdoc/templates",
+    src_dir = "third_party/pkg/dartdoc/lib/templates",
+)
 
 genrule(
     name = "copy_dartvm",

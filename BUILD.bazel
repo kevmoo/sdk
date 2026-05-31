@@ -105,6 +105,26 @@ exports_files([
     "sdk_packages.yaml",
 ])
 
+# dartdoc resource + template trees, copied verbatim into the assembled dart-sdk/
+# tree by //sdk:copy_dartdoc_{resources,templates} (Step 5). They live under
+# third_party/pkg/dartdoc, owned by this root package (no sub-BUILD.bazel there),
+# so expose them as filegroups for the copy_tree srcs (GN sourced them directly).
+filegroup(
+    name = "dartdoc_resources_files",
+    srcs = glob(
+        ["third_party/pkg/dartdoc/lib/resources/**"],
+        allow_empty = False,
+    ),
+)
+
+filegroup(
+    name = "dartdoc_templates_files",
+    srcs = glob(
+        ["third_party/pkg/dartdoc/lib/templates/**"],
+        allow_empty = False,
+    ),
+)
+
 cc_library(
     name = "analysis_server",
     # //utils/analysis_server:analysis_server is now the real app-jit snapshot

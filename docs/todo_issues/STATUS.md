@@ -84,8 +84,13 @@ blocker**:
   ddc_module_loader_js,dills,stack_trace_mapper}` (`lib/dev_compiler/**`).
 - **DevTools** — `build_devtools`, `copy_prebuilt_devtools` (the GN `type=action` build +
   `bin/resources/devtools`).
-- **dartdoc resources** — `copy_dartdoc_files`, `copy_dartdoc_resources`,
-  `copy_dartdoc_templates` (`bin/resources/dartdoc/**`).
+- ~~**dartdoc resources** — `copy_dartdoc_files`, `copy_dartdoc_resources`,
+  `copy_dartdoc_templates` (`bin/resources/dartdoc/**`)~~ **DONE (sess 36, claude):**
+  `copy_dartdoc_{resources,templates}` reuse the existing `copy_tree` rule to stage
+  `third_party/pkg/dartdoc/lib/{resources,templates}` → `dart-sdk/bin/resources/dartdoc/`
+  (sources exposed as root-package `//:dartdoc_{resources,templates}_files` filegroups since
+  that dir has no `BUILD.bazel`); `copy_dartdoc_files` is now a `filegroup`. Verified: trees
+  byte-identical to source (11 + 60 files), `//sdk:create_sdk` analysis-green + collects both.
 - ~~**C headers** — `copy_headers`~~ **DONE (sess 35, agy):** `//runtime/include:copy_headers`
   genrule copies `dart_api.h`/`dart_native_api.h`/`dart_tools_api.h` →
   `dart-sdk/include/`; `//sdk:copy_headers` is now a `filegroup` forwarding them.
