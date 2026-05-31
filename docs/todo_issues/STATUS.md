@@ -73,9 +73,9 @@ explicitly **POST-WRAP**; the pieces below are empty `cc_library`/`filegroup` st
 aggregators collect harmlessly (they contribute no files) — each is a documented gap, **not a
 blocker**:
 
-- **VM platform / kernel dills** — `copy_vm_dill_files`, `copy_vm_strong_dill_files`
+- ~~**VM platform / kernel dills** — `copy_vm_dill_files`, `copy_vm_strong_dill_files`
   (`lib/_internal/*.dill`), `copy_vm_platform_product`, `copy_gen_kernel_snapshot`
-  (`gen_kernel_aot`). Need the in-Bazel dill copies + the product platform/kernel snapshots.
+  (`gen_kernel_aot`)~~ **DONE (sess 36, agy):** `//runtime/vm:vm_platform_product` and `//runtime/vm:vm_platform_stripped` real compilation targets defined. Custom `copy_internal_with_dills` rule stages library sources and copies all three VM platform `.dill` files under the `dart-sdk/lib/_internal` directory artifact, avoiding directory-vs-file prefix conflicts. **STRUCTURAL DEVIATION:** this one rule subsumes 4 GN targets (`copy__internal_library` + `copy_vm_dill_files` + `copy_vm_strong_dill_files` + `copy_vm_platform_product`) because Bazel forbids multiple actions writing one output directory; the latter 3 GN-named targets stay empty `cc_library` stubs. `vm_platform_strong.dill` is a byte copy of `vm_platform.dill` (GN-faithful — GN's `copy_vm_strong_dill_files` also sources `vm_platform.dill`). Real `//utils/gen_kernel:gen_kernel` AOT snapshot target implemented; `//sdk:copy_gen_kernel_snapshot` genrule copies `gen_kernel_aot.dart.snapshot` to `dart-sdk/bin/snapshots/`. **Verified (sess 36, claude):** `bazel build //sdk:create_sdk --//build/config:dart_product=true` completes green; the 3 `_internal` dills materialize (`strong`==`vm_platform` byte-identical, `product` distinct), plus `gen_kernel_aot.dart.snapshot` + `dartdoc_options.yaml`.
 - **`dart2bytecode` snapshot** — `copy_dart2bytecode_snapshot` (empty `filegroup`); no Bazel
   snapshot rule ported yet (GN builds it on x64/linux).
 - **Web toolchain** — `copy_dart2js_dill_files`, `copy_dart2wasm_platform`,
@@ -100,7 +100,7 @@ blocker**:
   gates it on `if (!dart_version_git_info)` and the default is `dart_version_git_info = true`
   (`runtime/runtime_args.gni:61`) — so the Bazel SDK omits the git-hash suffix a default GN
   build would embed. Intentional for sandbox hermeticity (no `.git` access); consistent with the
-  existing AOT-tool `make_version --no-git-hash` precedent. Still a stub: `write_dartdoc_options`.
+  existing AOT-tool `make_version --no-git-hash` precedent. ~~Still a stub: `write_dartdoc_options`~~ **DONE (sess 36, agy):** `//sdk:write_dartdoc_options` genrule runs `tools/write_dartdoc_options_file.py` with `--no-git-hash` to generate `dart-sdk/dartdoc_options.yaml`.
 - **Sanitizer + `.sym` variants** — `copy_dart_aotruntime_{asan,msan,tsan}`,
   `copy_dart_aotruntime_sym`, `copy_gen_snapshot_sym` (no Bazel strip rule yet).
 - **bin/ wrapper scripts** — `copy_full_sdk_scripts`, `copy_platform_sdk_scripts`
