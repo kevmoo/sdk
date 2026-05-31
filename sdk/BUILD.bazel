@@ -91,7 +91,7 @@ genrule(
 
 genrule(
     name = "copy_analysis_server_snapshot",
-    srcs = ["//utils/analysis_server:analysis_server"],
+    srcs = ["//utils/analysis_server"],
     outs = ["dart-sdk/bin/snapshots/analysis_server.dart.snapshot"],
     cmd = "cp $< $@",
 )
