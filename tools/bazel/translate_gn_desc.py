@@ -190,7 +190,17 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
         srcs += hdrs
         hdrs = []
     deps = [f'"{canonical_label(d)}"' for d in t.get("deps", []) if "(" not in d]
-    defines = [f'"{d}"' for d in t.get("defines", [])]
+    # Drop TOOLCHAIN_VERSION=/SYSROOT_VERSION= — GN cache-buster defines carrying
+    # the clang/sysroot CIPD instance_id (build/config/compiler/BUILD.gn). No
+    # source reads them (verified), Bazel invalidates on toolchain change on its
+    # own, and the per-box CIPD id made every generated BUILD.bazel diverge across
+    # checkouts — the reproducibility killer. Strip so output is toolchain-pin
+    # independent.
+    defines = [
+        f'"{d}"'
+        for d in t.get("defines", [])
+        if not d.startswith(("TOOLCHAIN_VERSION=", "SYSROOT_VERSION="))
+    ]
     include_copts = []
     for inc in t.get("include_dirs", []):
         if inc.startswith("//out/"):

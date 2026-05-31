@@ -173,8 +173,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM64",
         "DART_TARGET_OS_ANDROID",
     ],
@@ -308,8 +306,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM64",
         "DART_TARGET_OS_FUCHSIA",
     ],
@@ -443,8 +439,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM64",
         "DART_TARGET_OS_MACOS_IOS",
     ],
@@ -578,8 +572,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM64",
         "DART_TARGET_OS_LINUX",
     ],
@@ -713,8 +705,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM64",
         "DART_TARGET_OS_MACOS",
     ],
@@ -848,8 +838,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM64",
         "DART_TARGET_OS_WINDOWS",
     ],
@@ -983,8 +971,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM",
         "DART_TARGET_OS_ANDROID",
     ],
@@ -1118,8 +1104,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM",
         "DART_TARGET_OS_MACOS_IOS",
     ],
@@ -1253,8 +1237,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_ARM",
         "DART_TARGET_OS_LINUX",
     ],
@@ -1388,8 +1370,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_IA32",
         "DART_TARGET_OS_ANDROID",
     ],
@@ -1523,8 +1503,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_IA32",
         "DART_TARGET_OS_LINUX",
     ],
@@ -1658,8 +1636,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_IA32",
         "DART_TARGET_OS_WINDOWS",
     ],
@@ -1793,8 +1769,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_RISCV32",
         "DART_TARGET_OS_LINUX",
     ],
@@ -1928,8 +1902,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_RISCV64",
         "DART_TARGET_OS_LINUX",
     ],
@@ -2063,8 +2035,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_FUCHSIA",
     ],
@@ -2198,8 +2168,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_MACOS_IOS",
     ],
@@ -2333,8 +2301,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_LINUX",
     ],
@@ -2468,8 +2434,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_MACOS",
     ],
@@ -2603,8 +2567,6 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "DART_TARGET_OS_WINDOWS",
     ],

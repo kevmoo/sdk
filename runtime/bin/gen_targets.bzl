@@ -27,8 +27,6 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -117,10 +115,6 @@ def gen_targets():
             "//runtime/bin:core_snapshot_text_linkable",
             "//build/config:dart_mode",
         ],
-        local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        ],
         copts = [
             "-m64",
             "-march=x86-64",
@@ -189,8 +183,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -275,10 +267,6 @@ def gen_targets():
             "//runtime/bin:dart_embedder_runtime_jit_set",
             "//build/config:dart_mode",
         ],
-        local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        ],
         copts = [
             "-m64",
             "-march=x86-64",
@@ -340,10 +328,6 @@ def gen_targets():
             "//runtime/bin:kernel_service_dill_linkable",
             "//runtime/bin:platform_dill_linkable",
             "//build/config:dart_mode",
-        ],
-        local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         ],
         copts = [
             "-m64",
@@ -414,8 +398,6 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -508,8 +490,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
@@ -603,8 +583,6 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "TARGET_ARCH_X64",
@@ -695,8 +673,6 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
         ],
@@ -786,8 +762,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "TARGET_ARCH_X64",
@@ -879,8 +853,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
         ],
@@ -970,8 +942,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "DART_TARGET_OS_LINUX",
@@ -1063,8 +1033,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "DART_TARGET_OS_LINUX",
@@ -1156,8 +1124,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "DART_TARGET_OS_LINUX",
@@ -1249,8 +1215,6 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "DART_TARGET_OS_LINUX",
@@ -1335,10 +1299,6 @@ def gen_targets():
             "//runtime/bin:icudtl_linkable",
             "//build/config:dart_mode",
         ],
-        local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        ],
         copts = [
             "-m64",
             "-march=x86-64",
@@ -1402,10 +1362,6 @@ def gen_targets():
         deps = [
             "//build/config/sanitizers:deps",
             "//build/config:dart_mode",
-        ],
-        local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         ],
         copts = [
             "-m64",
@@ -1479,8 +1435,6 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-            "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
             "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",

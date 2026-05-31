@@ -85,10 +85,6 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -186,8 +182,6 @@ cc_library(
     }),
     defines = [
         "DART_EMBED_ICU_DATA",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -329,8 +323,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -462,8 +454,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -593,8 +583,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -666,10 +654,6 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -742,10 +726,6 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-    ],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -852,8 +832,6 @@ cc_library(
     }),
     defines = [
         "DART_EMBED_ICU_DATA",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -975,8 +953,6 @@ cc_library(
     }),
     defines = [
         "DART_EMBED_ICU_DATA",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1098,8 +1074,6 @@ cc_library(
     }),
     defines = [
         "DART_EMBED_ICU_DATA",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1198,8 +1172,6 @@ cc_binary(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1312,8 +1284,6 @@ cc_library(
     }),
     defines = [
         "DART_EMBED_ICU_DATA",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1418,8 +1388,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1514,8 +1482,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -1847,8 +1813,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "TARGET_ARCH_X64",
@@ -1977,8 +1941,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
@@ -2105,8 +2067,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "TARGET_ARCH_X64",
@@ -2235,8 +2195,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
@@ -2363,8 +2321,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2493,8 +2449,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2623,8 +2577,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2753,8 +2705,6 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2860,8 +2810,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
@@ -2965,8 +2913,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
@@ -3070,8 +3016,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3177,8 +3121,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3284,8 +3226,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3391,8 +3331,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3498,8 +3436,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "TARGET_ARCH_X64",
@@ -3605,8 +3541,6 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "TARGET_ARCH_X64",
@@ -3805,8 +3739,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
@@ -3914,8 +3846,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
     ],
     implementation_deps = [
@@ -4021,8 +3951,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
@@ -4130,8 +4058,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
     ],
     implementation_deps = [
@@ -4237,8 +4163,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
@@ -4346,8 +4270,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
@@ -4455,8 +4377,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
@@ -4564,8 +4484,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
@@ -4656,8 +4574,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
@@ -4748,8 +4664,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_X64",
@@ -5142,8 +5056,6 @@ cc_library(
     }),
     defines = [
         "TESTING",
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -5243,8 +5155,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -5340,8 +5250,6 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",

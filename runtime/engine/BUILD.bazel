@@ -89,10 +89,6 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-    ],
     deps = [
         "//build/config:dart_mode",
         "//runtime/engine:engine_aot_set",
@@ -163,10 +159,6 @@ cc_library(
     linkopts = [
         "-ldl",
         "-lpthread",
-    ],
-    local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
     ],
     deps = [
         "//build/config:dart_mode",
@@ -259,8 +251,6 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "DART_PRECOMPILED_RUNTIME",
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "TARGET_ARCH_X64",
@@ -360,8 +350,6 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",

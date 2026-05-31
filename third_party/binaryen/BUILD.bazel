@@ -433,8 +433,6 @@ cc_library(
         "//third_party/binaryen:generate_needed_files",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -526,8 +524,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -600,8 +596,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -674,8 +668,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -748,8 +740,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -822,8 +812,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -896,8 +884,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -970,8 +956,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -1038,8 +1022,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -1112,8 +1094,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [
@@ -1186,8 +1166,6 @@ cc_binary(
         "//third_party/binaryen:binaryen_sources",
     ],
     local_defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     copts = [

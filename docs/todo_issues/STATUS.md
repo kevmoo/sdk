@@ -234,6 +234,18 @@ re-applies all of it idempotently
 after a `gclient sync` or translator regen. **Read it before assuming a clean
 checkout reproduces the build.**
 
+### Reproducibility: toolchain stamps stripped (sess 36, claude)
+The generated `BUILD.bazel`s used to embed `TOOLCHAIN_VERSION=`/`SYSROOT_VERSION=`
+defines — GN cache-busters carrying the clang/sysroot **CIPD instance_id**
+(`build/config/compiler/BUILD.gn`). Because that id is per-checkout, two boxes on
+different toolchain rolls produced different `BUILD.bazel` for the same sources
+(386 stamp lines across 12 files) — the main cross-box reproducibility breaker.
+No source reads the macros (verified) and Bazel invalidates on toolchain change
+itself, so the translator now drops them and the existing stamps were stripped.
+Generated output is now toolchain-pin-independent. (Orthogonal remaining
+divergence: the BoringSSL **source rev** — local `9a74…` vs DEPS/other-box
+`5ee9407bc` — which is a real `gclient sync` decision, not a generation issue.)
+
 ## Related
 
 - Plan of record: `DESIGN.md` (not in this repo — in the dart-bazel city workspace).

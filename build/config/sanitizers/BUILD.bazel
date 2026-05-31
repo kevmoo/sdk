@@ -71,8 +71,6 @@ cc_library(
         "-fno-rtti",
     ],
     defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
         "NDEBUG",
     ],
     linkopts = [
