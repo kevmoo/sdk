@@ -45,9 +45,9 @@ filegroup(
 # trained with --sdk=sdk/ (see utils/analysis_server app-jit training run).
 exports_files(["version"])
 
-cc_library(
+filegroup(
     name = "_create_platform_sdk",
-    deps = [
+    srcs = [
         "//sdk:copy_platform_sdk_libraries",
         "//sdk:copy_platform_sdk_scripts",
         "//sdk:copy_platform_sdk_snapshots",
@@ -590,9 +590,17 @@ copy_sdk_library(
     lib = "web_sql",
 )
 
-cc_library(
+# rules_dart Step 5 assembly (sdk-xh6): the create_* targets are filegroup
+# aggregators that stage the SDK tree under dart-sdk/ (re-rooted in sdk-9xn).
+# They were cc_library, which fails analysis when depping the 5.1/5.2 filegroups
+# ("no CcInfo provider"); filegroup is the correct file-tree aggregator. So
+# //sdk:create_sdk is STRUCTURALLY analysis-green -- it collects the real
+# binaries/libraries/snapshots/resources plus the empty stub members below (which
+# contribute no files). Those stubs are the documented POST-WRAP functional gaps;
+# see "Structural create_sdk gaps" in docs/todo_issues/STATUS.md.
+filegroup(
     name = "create_common_sdk",
-    deps = [
+    srcs = [
         "//sdk:copy_api_readme",
         "//sdk:copy_dart",
         "//sdk:copy_dartdoc_files",
@@ -612,9 +620,9 @@ cc_library(
     ],
 )
 
-cc_library(
+filegroup(
     name = "create_full_sdk",
-    deps = [
+    srcs = [
         "//runtime/bin:gen_snapshot_product_linux_arm",
         "//runtime/bin:gen_snapshot_product_linux_arm64",
         "//runtime/bin:gen_snapshot_product_linux_riscv64",
@@ -630,25 +638,25 @@ cc_library(
     ],
 )
 
-cc_library(
+filegroup(
     name = "create_platform_sdk",
-    deps = [
+    srcs = [
         "//sdk:_create_platform_sdk",
         "//sdk:create_common_sdk",
     ],
 )
 
-cc_library(
+filegroup(
     name = "create_sdk",
-    deps = [
+    srcs = [
         "//sdk:create_common_sdk",
         "//sdk:create_full_sdk",
     ],
 )
 
-cc_library(
+filegroup(
     name = "group_dart2native",
-    deps = [
+    srcs = [
         "//sdk:copy_dart_aotruntime",
         "//sdk:copy_dart_aotruntime_asan",
         "//sdk:copy_dart_aotruntime_msan",
