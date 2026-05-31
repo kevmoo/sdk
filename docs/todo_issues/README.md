@@ -15,6 +15,23 @@ architectural / hermeticity / vendoring problem.
 If the only argument for the change is "to make Bazel easier," it doesn't
 belong here. (File it elsewhere or fix it in the Bazel-side translator.)
 
+## Migration planning docs (not issues)
+
+This directory also holds the migration's own planning artifacts (they live here
+because it's where this work stream keeps its durable, reviewable docs):
+
+- **[DESIGN.md](DESIGN.md)** — plan of record: target Bazel design, rule mapping,
+  toolchain, third-party, and the Phase 0–3 sequencing the other docs cite as
+  `DESIGN.md §3.x/§4.x/§5.x`.
+- **[STATUS.md](STATUS.md)** — living progress tracker mapped onto DESIGN.md's
+  phases. **The source of truth for where the migration actually stands.**
+- **Scoping deep-dives** — [rules_dart_scoping.md](rules_dart_scoping.md)
+  (per-package deps graph), [m4_multiconfig_scoping.md](m4_multiconfig_scoping.md)
+  (product/config axis), [m4_arch_axis_scoping.md](m4_arch_axis_scoping.md) (arch
+  axis), [flutter_bazel_history.md](flutter_bazel_history.md) (prior art).
+
+When DESIGN.md and STATUS.md disagree, STATUS.md + the scoping docs win.
+
 ## Naming
 
 ```
