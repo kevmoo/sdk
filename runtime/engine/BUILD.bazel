@@ -27,7 +27,6 @@ exports_files(glob(
 cc_library(
     name = "dart_engine_aot_shared",
     deps = [
-        "//runtime/engine:dart_engine_aot_shared(//build/toolchain/linux:clang_x64_shared)",
         "//runtime/engine:dart_engine_aot_shared_copy",
     ],
 )
@@ -103,7 +102,6 @@ cc_library(
 cc_library(
     name = "dart_engine_jit_shared",
     deps = [
-        "//runtime/engine:dart_engine_jit_shared(//build/toolchain/linux:clang_x64_shared)",
         "//runtime/engine:dart_engine_jit_shared_copy",
     ],
 )
