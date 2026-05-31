@@ -5,7 +5,7 @@
 # owns every HAND-FIXED target. The translator NEVER overwrites this file, so a
 # regen cannot clobber these hand-fixes. See docs/todo_issues/m4_multiconfig_scoping.md §7.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_binary", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_compile_platform")
 load(":gen_targets.bzl", "gen_targets")
 

@@ -5,7 +5,7 @@
 # gn's implicit "-Iruntime" include dir. Bazel needs them declared so the
 # sandbox exposes them; this package mirrors the //runtime/include pattern.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 

@@ -7,10 +7,108 @@
 # select() wiring. The translator NEVER overwrites this file, so a regen cannot
 # clobber these hand-fixes. See docs/todo_issues/m4_multiconfig_scoping.md §7.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_binary", "cc_library")
 load(":gen_targets.bzl", "gen_targets")
 
 package(default_visibility = ["//visibility:public"])
+
+TEMPLATE_IO_PLATFORM_SRCS = select({
+    "@platforms//os:macos": [
+        "eventhandler_macos.cc",
+        "file_system_watcher_macos.cc",
+        "namespace_macos.cc",
+        "platform_macos.cc",
+        "process_macos.cc",
+        "security_context_macos.cc",
+        "socket_base_macos.cc",
+        "socket_macos.cc",
+        "stdio_macos.cc",
+        "sync_socket_macos.cc",
+    ],
+    "@platforms//os:linux": [
+        "eventhandler_linux.cc",
+        "file_system_watcher_linux.cc",
+        "namespace_linux.cc",
+        "platform_linux.cc",
+        "process_linux.cc",
+        "security_context_linux.cc",
+        "socket_base_linux.cc",
+        "socket_linux.cc",
+        "stdio_linux.cc",
+        "sync_socket_linux.cc",
+    ],
+    "//conditions:default": [
+        "eventhandler_linux.cc",
+        "file_system_watcher_linux.cc",
+        "namespace_linux.cc",
+        "platform_linux.cc",
+        "process_linux.cc",
+        "security_context_linux.cc",
+        "socket_base_linux.cc",
+        "socket_linux.cc",
+        "stdio_linux.cc",
+        "sync_socket_linux.cc",
+    ],
+})
+
+TEMPLATE_BUILTIN_PLATFORM_SRCS = select({
+    "@platforms//os:macos": [
+        "crypto_macos.cc",
+        "directory_macos.cc",
+        "fdutils_macos.cc",
+        "file_macos.cc",
+        "thread_macos.cc",
+        "utils_macos.cc",
+    ],
+    "@platforms//os:linux": [
+        "crypto_linux.cc",
+        "directory_linux.cc",
+        "fdutils_linux.cc",
+        "file_linux.cc",
+        "thread_linux.cc",
+        "utils_linux.cc",
+    ],
+    "//conditions:default": [
+        "crypto_linux.cc",
+        "directory_linux.cc",
+        "fdutils_linux.cc",
+        "file_linux.cc",
+        "thread_linux.cc",
+        "utils_linux.cc",
+    ],
+})
+
+genrule(
+    name = "platform_macos_cocoa_cc",
+    srcs = ["platform_macos_cocoa.mm"],
+    outs = ["platform_macos_cocoa_generated.cc"],
+    cmd = "cp $< $@",
+)
+
+cc_library(
+    name = "platform_macos_cocoa_lib",
+    srcs = [":platform_macos_cocoa_cc"],
+    hdrs = ["platform_macos_cocoa.h"],
+    copts = [
+        "-x",
+        "objective-c++",
+        "-std=c++20",
+        "-Iruntime",
+        "-Ithird_party",
+        "-Iruntime/include",
+    ],
+    deps = [
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+    ],
+)
+
+TEMPLATE_IO_PLATFORM_DEPS = select({
+    "@platforms//os:macos": [
+        ":platform_macos_cocoa_lib",
+    ],
+    "//conditions:default": [],
+})
 
 # GN lets one target's sources reach into other BUILD.gn dirs; Bazel
 # requires cross-package file refs to be explicitly exported. Bulk-export
@@ -214,37 +312,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -329,7 +417,7 @@ cc_library(
         "//third_party/boringssl",
         "//third_party/fallback_root_certificates",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -340,37 +428,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -455,7 +533,7 @@ cc_library(
         "//third_party/boringssl",
         "//third_party/fallback_root_certificates",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 # M5 Path-1 milestone: one shared cc_library with empty placeholders for
@@ -1645,37 +1723,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -1759,7 +1827,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -1768,37 +1836,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -1881,7 +1939,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -1890,37 +1948,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -2004,7 +2052,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -2013,37 +2061,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -2126,7 +2164,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -2135,37 +2173,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -2259,37 +2287,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -2383,37 +2401,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -2507,37 +2515,27 @@ cc_library(
         "console_posix.cc",
         "dart_io_api_impl.cc",
         "eventhandler.cc",
-        "eventhandler_linux.cc",
         "file_system_watcher.cc",
-        "file_system_watcher_linux.cc",
         "filter.cc",
         "ifaddrs.cc",
         "io_natives.cc",
         "io_service.cc",
         "io_service_no_ssl.cc",
         "namespace.cc",
-        "namespace_linux.cc",
         "platform.cc",
-        "platform_linux.cc",
         "process.cc",
-        "process_linux.cc",
         "root_certificates_unsupported.cc",
         "secure_socket_filter.cc",
         "secure_socket_unsupported.cc",
         "secure_socket_utils.cc",
         "security_context.cc",
-        "security_context_linux.cc",
         "socket.cc",
         "socket_base.cc",
-        "socket_base_linux.cc",
         "socket_base_posix.cc",
-        "socket_linux.cc",
         "stdio.cc",
-        "stdio_linux.cc",
         "sync_socket.cc",
-        "sync_socket_linux.cc",
         "typed_data_utils.cc",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -2721,7 +2719,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -2820,7 +2818,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -3324,7 +3322,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 cc_library(
@@ -3424,7 +3422,7 @@ cc_library(
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/zlib",
-    ],
+    ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
 # M5 Path-1.5: real icudtl.dat embed.
@@ -3439,8 +3437,16 @@ genrule(
           "--input $(location //third_party/icu/flutter:icudtl.dat) " +
           "--output $@ " +
           "--symbol_name kIcuData " +
-          "--target_os linux " +
-          "--target_arch x64",
+          select({
+              "@platforms//os:macos": "--target_os mac",
+              "@platforms//os:linux": "--target_os linux",
+              "//conditions:default": "--target_os linux",
+          }) + " " +
+          select({
+              "@platforms//cpu:arm64": "--target_arch arm64",
+              "@platforms//cpu:x86_64": "--target_arch x64",
+              "//conditions:default": "--target_arch x64",
+          }),
     tools = ["//runtime/tools:bin_to_assembly.py"],
 )
 
@@ -3475,17 +3481,29 @@ genrule(
         "dart_kernel_service.dill",
     ],
     cmd = "cp $(execpath //out/ReleaseX64/gen:kernel_service.dill) $(RULEDIR)/dart_kernel_service.dill && " +
-          "SIZE=$$(stat -c %s $(RULEDIR)/dart_kernel_service.dill) && " +
-          "{ echo '.section .rodata'; " +
-          "  echo '.type kKernelServiceDill STT_OBJECT'; " +
-          "  echo '.global kKernelServiceDill'; " +
-          "  echo '.balign 32'; " +
-          "  echo 'kKernelServiceDill:'; " +
-          "  echo \".incbin \\\"$(RULEDIR)/dart_kernel_service.dill\\\"\"; " +
-          "  echo '.size kKernelServiceDill, .-kKernelServiceDill'; " +
-          "  echo '.global kKernelServiceDillSize'; " +
-          "  echo 'kKernelServiceDillSize:'; " +
-          "  echo \".quad $$SIZE\"; " +
+          "SIZE=$$(python3 -c \"import os; print(os.path.getsize('$(RULEDIR)/dart_kernel_service.dill'))\") && " +
+          "{" + select({
+              "@platforms//os:macos":
+                  "  echo '.const'; " +
+                  "  echo '.global _kKernelServiceDill'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo '_kKernelServiceDill:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_kernel_service.dill\\\"\"; " +
+                  "  echo '.global _kKernelServiceDillSize'; " +
+                  "  echo '_kKernelServiceDillSize:'; " +
+                  "  echo \".quad $$SIZE\"; ",
+              "//conditions:default":
+                  "  echo '.section .rodata'; " +
+                  "  echo '.type kKernelServiceDill STT_OBJECT'; " +
+                  "  echo '.global kKernelServiceDill'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo 'kKernelServiceDill:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_kernel_service.dill\\\"\"; " +
+                  "  echo '.size kKernelServiceDill, .-kKernelServiceDill'; " +
+                  "  echo '.global kKernelServiceDillSize'; " +
+                  "  echo 'kKernelServiceDillSize:'; " +
+                  "  echo \".quad $$SIZE\"; ",
+          }) +
           "} > $(RULEDIR)/dart_kernel_service_dill.S",
 )
 
@@ -3520,24 +3538,18 @@ cc_library(
     name = "libdart_builtin",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -3622,24 +3634,18 @@ cc_library(
     name = "libdart_builtin_host_targeting_host",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -3723,24 +3729,18 @@ cc_library(
     name = "libdart_builtin_product",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -3825,24 +3825,18 @@ cc_library(
     name = "libdart_builtin_product_host_targeting_host",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -3926,24 +3920,18 @@ cc_library(
     name = "libdart_builtin_product_linux_arm",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -4029,24 +4017,18 @@ cc_library(
     name = "libdart_builtin_product_linux_arm64",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -4132,24 +4114,18 @@ cc_library(
     name = "libdart_builtin_product_linux_riscv64",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -4235,24 +4211,18 @@ cc_library(
     name = "libdart_builtin_product_linux_x64",
     srcs = [
         "crypto.cc",
-        "crypto_linux.cc",
         "dartutils.cc",
         "directory.cc",
-        "directory_linux.cc",
         "exe_utils.cc",
-        "fdutils_linux.cc",
         "file.cc",
-        "file_linux.cc",
         "file_support.cc",
         "io_buffer.cc",
         "isolate_data.cc",
         "thread.cc",
         "thread_absl.cc",
-        "thread_linux.cc",
         "uri.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_BUILTIN_PLATFORM_SRCS,
     hdrs = glob(
         ["**/*.h"],
         allow_empty = True,
@@ -4517,17 +4487,29 @@ genrule(
         "dart_vm_platform.dill",
     ],
     cmd = "cp $(execpath //runtime/vm:vm_platform.dill) $(RULEDIR)/dart_vm_platform.dill && " +
-          "SIZE=$$(stat -c %s $(RULEDIR)/dart_vm_platform.dill) && " +
-          "{ echo '.section .rodata'; " +
-          "  echo '.type kPlatformDill STT_OBJECT'; " +
-          "  echo '.global kPlatformDill'; " +
-          "  echo '.balign 32'; " +
-          "  echo 'kPlatformDill:'; " +
-          "  echo \".incbin \\\"$(RULEDIR)/dart_vm_platform.dill\\\"\"; " +
-          "  echo '.size kPlatformDill, .-kPlatformDill'; " +
-          "  echo '.global kPlatformDillSize'; " +
-          "  echo 'kPlatformDillSize:'; " +
-          "  echo \".quad $$SIZE\"; " +
+          "SIZE=$$(python3 -c \"import os; print(os.path.getsize('$(RULEDIR)/dart_vm_platform.dill'))\") && " +
+          "{" + select({
+              "@platforms//os:macos":
+                  "  echo '.const'; " +
+                  "  echo '.global _kPlatformDill'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo '_kPlatformDill:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_vm_platform.dill\\\"\"; " +
+                  "  echo '.global _kPlatformDillSize'; " +
+                  "  echo '_kPlatformDillSize:'; " +
+                  "  echo \".quad $$SIZE\"; ",
+              "//conditions:default":
+                  "  echo '.section .rodata'; " +
+                  "  echo '.type kPlatformDill STT_OBJECT'; " +
+                  "  echo '.global kPlatformDill'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo 'kPlatformDill:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_vm_platform.dill\\\"\"; " +
+                  "  echo '.size kPlatformDill, .-kPlatformDill'; " +
+                  "  echo '.global kPlatformDillSize'; " +
+                  "  echo 'kPlatformDillSize:'; " +
+                  "  echo \".quad $$SIZE\"; ",
+          }) +
           "} > $(RULEDIR)/dart_platform_dill.S",
 )
 
@@ -4581,13 +4563,22 @@ genrule(
         "dart_core_snapshot_data.bin",
     ],
     cmd = "cp $(execpath //out/ReleaseX64/gen/runtime/bin:core_snapshot_data.bin) $(RULEDIR)/dart_core_snapshot_data.bin && " +
-          "{ echo '.section .rodata'; " +
-          "  echo '.type kDartCoreSnapshotData STT_OBJECT'; " +
-          "  echo '.global kDartCoreSnapshotData'; " +
-          "  echo '.balign 32'; " +
-          "  echo 'kDartCoreSnapshotData:'; " +
-          "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_data.bin\\\"\"; " +
-          "  echo '.size kDartCoreSnapshotData, .-kDartCoreSnapshotData'; " +
+          "{" + select({
+              "@platforms//os:macos":
+                  "  echo '.const'; " +
+                  "  echo '.global _kDartCoreSnapshotData'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo '_kDartCoreSnapshotData:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_data.bin\\\"\"; ",
+              "//conditions:default":
+                  "  echo '.section .rodata'; " +
+                  "  echo '.type kDartCoreSnapshotData STT_OBJECT'; " +
+                  "  echo '.global kDartCoreSnapshotData'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo 'kDartCoreSnapshotData:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_data.bin\\\"\"; " +
+                  "  echo '.size kDartCoreSnapshotData, .-kDartCoreSnapshotData'; ",
+          }) +
           "} > $(RULEDIR)/core_snapshot_data.S",
 )
 
@@ -4602,13 +4593,22 @@ genrule(
         "dart_core_snapshot_text.bin",
     ],
     cmd = "cp $(execpath //out/ReleaseX64/gen/runtime/bin:core_snapshot_text.bin) $(RULEDIR)/dart_core_snapshot_text.bin && " +
-          "{ echo '.section .rodata'; " +
-          "  echo '.type kDartCoreSnapshotText STT_OBJECT'; " +
-          "  echo '.global kDartCoreSnapshotText'; " +
-          "  echo '.balign 32'; " +
-          "  echo 'kDartCoreSnapshotText:'; " +
-          "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_text.bin\\\"\"; " +
-          "  echo '.size kDartCoreSnapshotText, .-kDartCoreSnapshotText'; " +
+          "{" + select({
+              "@platforms//os:macos":
+                  "  echo '.const'; " +
+                  "  echo '.global _kDartCoreSnapshotText'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo '_kDartCoreSnapshotText:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_text.bin\\\"\"; ",
+              "//conditions:default":
+                  "  echo '.section .rodata'; " +
+                  "  echo '.type kDartCoreSnapshotText STT_OBJECT'; " +
+                  "  echo '.global kDartCoreSnapshotText'; " +
+                  "  echo '.balign 32'; " +
+                  "  echo 'kDartCoreSnapshotText:'; " +
+                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_text.bin\\\"\"; " +
+                  "  echo '.size kDartCoreSnapshotText, .-kDartCoreSnapshotText'; ",
+          }) +
           "} > $(RULEDIR)/core_snapshot_text.S",
 )
 

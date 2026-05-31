@@ -2,9 +2,24 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
+
+TEMPLATE_PLATFORM_OS_SRCS = select({
+    "@platforms//os:macos": [
+        "syslog_macos.cc",
+        "utils_macos.cc",
+    ],
+    "@platforms//os:linux": [
+        "syslog_linux.cc",
+        "utils_linux.cc",
+    ],
+    "//conditions:default": [
+        "syslog_linux.cc",
+        "utils_linux.cc",
+    ],
+})
 
 # GN lets one target's sources reach into other BUILD.gn dirs; Bazel
 # requires cross-package file refs to be explicitly exported. Bulk-export
@@ -32,13 +47,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -126,13 +139,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -221,13 +232,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -313,13 +322,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -406,13 +413,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -500,13 +505,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -594,13 +597,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -687,13 +688,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -782,13 +781,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -876,13 +873,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -972,13 +967,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -1068,13 +1061,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -1164,13 +1155,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),
@@ -1260,13 +1249,11 @@ cc_library(
         "hashmap.cc",
         "synchronization_absl.cc",
         "synchronization_posix.cc",
-        "syslog_linux.cc",
         "text_buffer.cc",
         "unicode.cc",
         "unwinding_records.cc",
         "utils.cc",
-        "utils_linux.cc",
-    ],
+    ] + TEMPLATE_PLATFORM_OS_SRCS,
     # M3 hand-edit: gn-declared hdrs miss files the vm code includes via
     # -Iruntime. Bulk-glob exposes every platform/*.h to the sandbox.
     hdrs = glob(["*.h"]),

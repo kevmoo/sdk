@@ -14,11 +14,25 @@ def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
         "@platforms//os:macos": ["DART_TARGET_OS_MACOS", "_DARWIN_C_SOURCE"],
         "@platforms//os:linux": ["DART_TARGET_OS_LINUX"],
         "//conditions:default": [],
-    }) + select({
-        "@platforms//cpu:arm64": ["TARGET_ARCH_ARM64"],
-        "@platforms//cpu:x86_64": ["TARGET_ARCH_X64"],
-        "//conditions:default": [],
     })
+
+    # Check if the target has its own explicit target architecture defined
+    has_target_arch = False
+    if type(defines) == "list":
+        for d in defines:
+            if type(d) == "string" and d.startswith("TARGET_ARCH_"):
+                has_target_arch = True
+    if type(local_defines) == "list":
+        for d in local_defines:
+            if type(d) == "string" and d.startswith("TARGET_ARCH_"):
+                has_target_arch = True
+
+    if not has_target_arch:
+        custom_local_defines = custom_local_defines + select({
+            "@platforms//cpu:arm64": ["TARGET_ARCH_ARM64"],
+            "@platforms//cpu:x86_64": ["TARGET_ARCH_X64"],
+            "//conditions:default": [],
+        })
 
     # Automatically inject platform-specific compiler options
     custom_copts = copts + select({
@@ -48,11 +62,25 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
         "@platforms//os:macos": ["DART_TARGET_OS_MACOS", "_DARWIN_C_SOURCE"],
         "@platforms//os:linux": ["DART_TARGET_OS_LINUX"],
         "//conditions:default": [],
-    }) + select({
-        "@platforms//cpu:arm64": ["TARGET_ARCH_ARM64"],
-        "@platforms//cpu:x86_64": ["TARGET_ARCH_X64"],
-        "//conditions:default": [],
     })
+
+    # Check if the target has its own explicit target architecture defined
+    has_target_arch = False
+    if type(defines) == "list":
+        for d in defines:
+            if type(d) == "string" and d.startswith("TARGET_ARCH_"):
+                has_target_arch = True
+    if type(local_defines) == "list":
+        for d in local_defines:
+            if type(d) == "string" and d.startswith("TARGET_ARCH_"):
+                has_target_arch = True
+
+    if not has_target_arch:
+        custom_local_defines = custom_local_defines + select({
+            "@platforms//cpu:arm64": ["TARGET_ARCH_ARM64"],
+            "@platforms//cpu:x86_64": ["TARGET_ARCH_X64"],
+            "//conditions:default": [],
+        })
 
     # Automatically inject platform-specific compiler options
     custom_copts = copts + select({
