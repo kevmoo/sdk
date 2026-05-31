@@ -110,6 +110,63 @@ copy_tree = rule(
     },
 )
 
+def _copy_internal_with_dills_impl(ctx):
+    out = ctx.actions.declare_directory(ctx.attr.out_dir)
+    ctx.actions.run_shell(
+        command = (
+            "python3 {tool} --from {src} --to {to} --exclude '{exclude}' && " +
+            "cp {vm_plat} {to}/vm_platform.dill && " +
+            "cp {vm_plat} {to}/vm_platform_strong.dill && " +
+            "cp {vm_plat_prod} {to}/vm_platform_product.dill"
+        ).format(
+            tool = ctx.file._tool.path,
+            src = ctx.attr.src_dir,
+            to = out.path,
+            exclude = ctx.attr.exclude,
+            vm_plat = ctx.file.vm_platform.path,
+            vm_plat_prod = ctx.file.vm_platform_product.path,
+        ),
+        inputs = ctx.files.srcs + [
+            ctx.file._tool,
+            ctx.file.vm_platform,
+            ctx.file.vm_platform_product,
+        ],
+        outputs = [out],
+        mnemonic = "CopyInternalWithDills",
+        progress_message = "Staging SDK internal library with VM platform dills",
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+copy_internal_with_dills = rule(
+    implementation = _copy_internal_with_dills_impl,
+    attrs = {
+        "srcs": attr.label_list(
+            allow_files = True,
+        ),
+        "src_dir": attr.string(
+            mandatory = True,
+        ),
+        "out_dir": attr.string(
+            mandatory = True,
+        ),
+        "exclude": attr.string(
+            default = "",
+        ),
+        "vm_platform": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+        ),
+        "vm_platform_product": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+        ),
+        "_tool": attr.label(
+            default = "//tools/bazel/dart:copytree.py",
+            allow_single_file = True,
+        ),
+    },
+)
+
 def copy_sdk_library(name, lib, exclude = _SDK_LIB_EXCLUDE, **kwargs):
     """Stage sdk/lib/<lib> -> <bin>/dart-sdk/lib/<lib>, porting GN copy_${lib}_library.
 

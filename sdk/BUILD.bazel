@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//tools/bazel/dart:defs.bzl", "copy_sdk_library")
+load("//tools/bazel/dart:defs.bzl", "copy_internal_with_dills", "copy_sdk_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -62,9 +62,17 @@ copy_sdk_library(
     lib = "_http",
 )
 
-copy_sdk_library(
+copy_internal_with_dills(
     name = "copy__internal_library",
-    lib = "_internal",
+    srcs = glob(
+        ["lib/_internal/**"],
+        allow_empty = False,
+    ),
+    exclude = "*.svn,doc,*.py,*.gypi,*.sh,.git*,*.gn,*.gni",
+    out_dir = "dart-sdk/lib/_internal",
+    src_dir = "sdk/lib/_internal",
+    vm_platform = "//runtime/vm:vm_platform.dill",
+    vm_platform_product = "//runtime/vm:vm_platform_product.dill",
 )
 
 copy_sdk_library(
@@ -565,13 +573,10 @@ copy_sdk_library(
     lib = "typed_data",
 )
 
-# TODO(M3): copy for copy_vm_dill_files (gn type=copy)
 cc_library(name = "copy_vm_dill_files")
 
-# TODO(M3): copy for copy_vm_platform_product (gn type=copy)
 cc_library(name = "copy_vm_platform_product")
 
-# TODO(M3): copy for copy_vm_strong_dill_files (gn type=copy)
 cc_library(name = "copy_vm_strong_dill_files")
 
 # TODO(M3): copy for copy_wasm_opt (gn type=copy)

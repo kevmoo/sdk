@@ -8813,3 +8813,19 @@ dart_compile_platform(
     sdk_sources = "//sdk:sdk_library_sources",
     sources = "//:compile_platform_tool",
 )
+
+dart_compile_platform(
+    name = "vm_platform_product",
+    exclude_source = False,
+    product = True,
+    sdk_sources = "//sdk:sdk_library_sources",
+    sources = "//:compile_platform_tool",
+)
+
+dart_compile_platform(
+    name = "vm_platform_stripped",
+    exclude_source = True,
+    product = False,
+    sdk_sources = "//sdk:sdk_library_sources",
+    sources = "//:compile_platform_tool",
+)

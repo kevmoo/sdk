@@ -6,8 +6,6 @@ touches the HAND-AUTHORED BUILD.bazel that load()s + calls gen_targets() and
 owns the hand-fixed targets. Mirrors tools/bazel/dart/packages.bzl. DO NOT EDIT.
 """
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
-
 def gen_targets():
     """Declare this package's machine-derived cc_* targets (see header).
 
@@ -15,8 +13,4 @@ def gen_targets():
     target; targets defined there are excluded from this macro by the translator.
     """
 
-    # TODO(M3): genrule for vm_platform_product (gn type=action)
-    cc_library(name = "vm_platform_product")
-
-    # TODO(M3): genrule for vm_platform_stripped (gn type=action)
-    cc_library(name = "vm_platform_stripped")
+    pass
