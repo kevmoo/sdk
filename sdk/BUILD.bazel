@@ -82,11 +82,19 @@ copy_sdk_library(
     lib = "_wasm",
 )
 
-# TODO(M3): copy for copy_analysis_server_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_analysis_server_aot_product_snapshot")
+genrule(
+    name = "copy_analysis_server_aot_product_snapshot",
+    srcs = ["//:analysis_server_aot_product"],
+    outs = ["bin/snapshots/analysis_server_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_analysis_server_snapshot (gn type=copy)
-cc_library(name = "copy_analysis_server_snapshot")
+genrule(
+    name = "copy_analysis_server_snapshot",
+    srcs = ["//:analysis_server"],
+    outs = ["bin/snapshots/analysis_server.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 # TODO(M3): copy for copy_api_readme (gn type=copy)
 cc_library(name = "copy_api_readme")
@@ -124,11 +132,19 @@ copy_sdk_library(
 # TODO(M3): copy for copy_dart (gn type=copy)
 cc_library(name = "copy_dart")
 
-# TODO(M3): copy for copy_dart2bytecode_snapshot (gn type=copy)
-cc_library(name = "copy_dart2bytecode_snapshot")
+genrule(
+    name = "copy_dart2bytecode_snapshot",
+    srcs = ["//:dart2bytecode"],
+    outs = ["bin/snapshots/dart2bytecode.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_dart2js_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_dart2js_aot_product_snapshot")
+genrule(
+    name = "copy_dart2js_aot_product_snapshot",
+    srcs = ["//:dart2js_sdk_aot_product"],
+    outs = ["bin/snapshots/dart2js_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 # TODO(M3): copy for copy_dart2js_dill_files (gn type=copy)
 cc_library(name = "copy_dart2js_dill_files")
@@ -154,20 +170,40 @@ cc_library(name = "copy_dart_aotruntime_sym")
 # TODO(M3): copy for copy_dart_aotruntime_tsan (gn type=copy)
 cc_library(name = "copy_dart_aotruntime_tsan")
 
-# TODO(M3): copy for copy_dart_mcp_server_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_dart_mcp_server_aot_product_snapshot")
+genrule(
+    name = "copy_dart_mcp_server_aot_product_snapshot",
+    srcs = ["//:dart_mcp_server_aot"],
+    outs = ["bin/snapshots/dart_mcp_server_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_dart_tooling_daemon_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_dart_tooling_daemon_aot_product_snapshot")
+genrule(
+    name = "copy_dart_tooling_daemon_aot_product_snapshot",
+    srcs = ["//:dtd_aot"],
+    outs = ["bin/snapshots/dart_tooling_daemon_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_dartdev_aot_snapshot (gn type=copy)
-cc_library(name = "copy_dartdev_aot_snapshot")
+genrule(
+    name = "copy_dartdev_aot_snapshot",
+    srcs = ["//:dartdev_aot"],
+    outs = ["bin/snapshots/dartdev_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_dartdevc_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_dartdevc_aot_product_snapshot")
+genrule(
+    name = "copy_dartdevc_aot_product_snapshot",
+    srcs = ["//:dartdevc_aot_product"],
+    outs = ["bin/snapshots/dartdevc_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_dartdevc_snapshot (gn type=copy)
-cc_library(name = "copy_dartdevc_snapshot")
+genrule(
+    name = "copy_dartdevc_snapshot",
+    srcs = ["//:dartdevc"],
+    outs = ["bin/snapshots/dartdevc.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 cc_library(
     name = "copy_dartdoc_files",
@@ -186,8 +222,12 @@ cc_library(name = "copy_dartdoc_templates")
 # TODO(M3): copy for copy_dartvm (gn type=copy)
 cc_library(name = "copy_dartvm")
 
-# TODO(M3): copy for copy_dds_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_dds_aot_product_snapshot")
+genrule(
+    name = "copy_dds_aot_product_snapshot",
+    srcs = ["//:dds_aot"],
+    outs = ["bin/snapshots/dds_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 # TODO(M3): copy for copy_dev_compiler_amd_require_js (gn type=copy)
 cc_library(name = "copy_dev_compiler_amd_require_js")
@@ -221,8 +261,12 @@ copy_sdk_library(
     lib = "ffi",
 )
 
-# TODO(M3): copy for copy_frontend_server_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_frontend_server_aot_product_snapshot")
+genrule(
+    name = "copy_frontend_server_aot_product_snapshot",
+    srcs = ["//:frontend_server_aot_product"],
+    outs = ["bin/snapshots/frontend_server_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 filegroup(
     name = "copy_full_sdk_libraries",
@@ -263,9 +307,9 @@ cc_library(
     name = "copy_full_sdk_scripts",
 )
 
-cc_library(
+filegroup(
     name = "copy_full_sdk_snapshots",
-    deps = [
+    srcs = [
         "//sdk:copy_analysis_server_aot_product_snapshot",
         "//sdk:copy_analysis_server_snapshot",
         "//sdk:copy_dart2bytecode_snapshot",
@@ -351,11 +395,19 @@ copy_sdk_library(
     lib = "js_util",
 )
 
-# TODO(M3): copy for copy_kernel-service_snapshot (gn type=copy)
-cc_library(name = "copy_kernel-service_snapshot")
+genrule(
+    name = "copy_kernel-service_snapshot",
+    srcs = ["//:kernel-service_snapshot"],
+    outs = ["bin/snapshots/kernel-service.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_kernel_worker_aot_product_snapshot (gn type=copy)
-cc_library(name = "copy_kernel_worker_aot_product_snapshot")
+genrule(
+    name = "copy_kernel_worker_aot_product_snapshot",
+    srcs = ["//:kernel_worker_aot_product"],
+    outs = ["bin/snapshots/kernel_worker_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 filegroup(
     name = "copy_libraries",
@@ -419,9 +471,9 @@ cc_library(
     name = "copy_platform_sdk_scripts",
 )
 
-cc_library(
+filegroup(
     name = "copy_platform_sdk_snapshots",
-    deps = [
+    srcs = [
         "//sdk:copy_analysis_server_aot_product_snapshot",
         "//sdk:copy_analysis_server_snapshot",
         "//sdk:copy_dart2bytecode_snapshot",
