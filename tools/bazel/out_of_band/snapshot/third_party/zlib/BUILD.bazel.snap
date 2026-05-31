@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,8 +10,17 @@ package(default_visibility = ["//visibility:public"])
 # requires cross-package file refs to be explicitly exported. Bulk-export
 # every file in the package so the gn-shaped source lists keep working.
 exports_files(glob(
-    ["**/*.h", "**/*.hpp", "**/*.hh", "**/*.inc",
-     "**/*.cc", "**/*.cpp", "**/*.c", "**/*.S", "**/*.s"],
+    [
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.hh",
+        "**/*.inc",
+        "**/*.cc",
+        "**/*.cpp",
+        "**/*.c",
+        "**/*.S",
+        "**/*.s",
+    ],
     allow_empty = True,
 ))
 
@@ -20,22 +29,12 @@ cc_binary(
     srcs = [
         "test/minigzip.c",
     ],
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//third_party/zlib:zlib",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -59,9 +58,6 @@ cc_binary(
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -72,6 +68,13 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//third_party/zlib",
     ],
 )
 
@@ -80,23 +83,13 @@ cc_binary(
     srcs = [
         "contrib/minizip/miniunz.c",
     ],
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//third_party/zlib:minizip",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
         "-Wno-incompatible-pointer-types-discards-qualifiers",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -120,9 +113,6 @@ cc_binary(
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -133,6 +123,13 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//third_party/zlib:minizip",
     ],
 )
 
@@ -148,21 +145,12 @@ cc_library(
         "contrib/minizip/unzip.h",
         "contrib/minizip/zip.h",
     ],
-    deps = [
-        "//third_party/zlib:zlib",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -186,9 +174,6 @@ cc_library(
         "-Wno-deprecated-non-prototype",
         "-Wno-parentheses-equality",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -200,6 +185,12 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//third_party/zlib",
+    ],
 )
 
 cc_binary(
@@ -207,23 +198,13 @@ cc_binary(
     srcs = [
         "contrib/minizip/minizip.c",
     ],
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//third_party/zlib:minizip",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
         "-Wno-incompatible-pointer-types-discards-qualifiers",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -247,9 +228,6 @@ cc_binary(
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -260,6 +238,13 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//third_party/zlib:minizip",
     ],
 )
 
@@ -298,32 +283,12 @@ cc_library(
         "zlib.h",
         "zutil.h",
     ],
-    deps = [
-        "//third_party/zlib:zlib_adler32_simd",
-        "//third_party/zlib:zlib_crc32_simd",
-        "//third_party/zlib:zlib_data_chunk_simd",
-        "//third_party/zlib:zlib_slide_hash_simd",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
-        "ZLIB_IMPLEMENTATION",
-        "ADLER32_SIMD_SSSE3",
-        "X86_NOT_WINDOWS",
-        "INFLATE_CHUNK_SIMD_SSE2",
-        "INFLATE_CHUNK_READ_64LE",
-        "DEFLATE_CHUNK_WRITE_64LE",
-        "DEFLATE_SLIDE_HASH_SSE2",
-        "CRC32_SIMD_SSE42_PCLMUL",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -348,9 +313,6 @@ cc_library(
         "-Wno-incompatible-pointer-types",
         "-Wunused-variable",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -362,6 +324,16 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
+    local_defines = [
+        "NDEBUG",
+        "ZLIB_IMPLEMENTATION",
+    ],
+    deps = [
+        "//third_party/zlib:zlib_adler32_simd",
+        "//third_party/zlib:zlib_crc32_simd",
+        "//third_party/zlib:zlib_data_chunk_simd",
+        "//third_party/zlib:zlib_slide_hash_simd",
+    ],
 )
 
 cc_library(
@@ -372,24 +344,11 @@ cc_library(
     hdrs = [
         "adler32_simd.h",
     ],
-    deps = [
-        "//third_party/zlib:zlib_common_headers",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
-        "ZLIB_IMPLEMENTATION",
-        "ADLER32_SIMD_SSSE3",
-        "X86_NOT_WINDOWS",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
-        "-mssse3",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -414,10 +373,10 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
-    ],
-    conlyopts = [
-        "-std=c17",
-    ],
+    ] + select({
+        "//build/config:cpu_x64": ["-mssse3"],
+        "//conditions:default": [],
+    }),
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -425,9 +384,25 @@ cc_library(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "NDEBUG",
+        "ZLIB_IMPLEMENTATION",
+    ] + select({
+        "//build/config:cpu_x64": [
+            "ADLER32_SIMD_SSSE3",
+            "X86_NOT_WINDOWS",
+        ],
+        "//build/config:cpu_arm64": [
+            "ADLER32_SIMD_NEON",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//third_party/zlib:zlib_common_headers",
     ],
 )
 
@@ -436,22 +411,12 @@ cc_binary(
     srcs = [
         "contrib/bench/zlib_bench.cc",
     ],
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//third_party/zlib:zlib",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -475,9 +440,6 @@ cc_binary(
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -488,6 +450,13 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//third_party/zlib",
     ],
 )
 
@@ -504,17 +473,11 @@ cc_library(
         "zlib.h",
         "zutil.h",
     ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -540,9 +503,6 @@ cc_library(
         "-g3",
         "-ggdb3",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -553,6 +513,9 @@ cc_library(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    local_defines = [
+        "NDEBUG",
     ],
 )
 
@@ -560,29 +523,18 @@ cc_library(
     name = "zlib_crc32_simd",
     srcs = [
         "crc32_simd.c",
-        "crc_folding.c",
-    ],
+    ] + select({
+        "//build/config:cpu_x64": ["crc_folding.c"],
+        "//conditions:default": [],
+    }),
     hdrs = [
         "crc32_simd.h",
     ],
-    deps = [
-        "//third_party/zlib:zlib_common_headers",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
-        "ZLIB_IMPLEMENTATION",
-        "CRC32_SIMD_SSE42_PCLMUL",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
-        "-msse4.2",
-        "-mpclmul",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -607,10 +559,13 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
-    ],
-    conlyopts = [
-        "-std=c17",
-    ],
+    ] + select({
+        "//build/config:cpu_x64": [
+            "-msse4.2",
+            "-mpclmul",
+        ],
+        "//conditions:default": [],
+    }),
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -621,6 +576,9 @@ cc_library(
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//third_party/zlib:zlib_common_headers",
     ],
 )
 
@@ -634,25 +592,12 @@ cc_library(
         "contrib/optimizations/chunkcopy.h",
         "contrib/optimizations/inffast_chunk.h",
     ],
-    deps = [
-        "//third_party/zlib:zlib_common_headers",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
-        "ZLIB_IMPLEMENTATION",
-        "INFLATE_CHUNK_SIMD_SSE2",
-        "INFLATE_CHUNK_READ_64LE",
-        "DEFLATE_CHUNK_WRITE_64LE",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -677,9 +622,6 @@ cc_library(
         "-Wno-incompatible-pointer-types",
         "-Wunused-variable",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -687,9 +629,26 @@ cc_library(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "NDEBUG",
+        "ZLIB_IMPLEMENTATION",
+        "INFLATE_CHUNK_READ_64LE",
+        "DEFLATE_CHUNK_WRITE_64LE",
+    ] + select({
+        "//build/config:cpu_x64": [
+            "INFLATE_CHUNK_SIMD_SSE2",
+        ],
+        "//build/config:cpu_arm64": [
+            "INFLATE_CHUNK_SIMD_NEON",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//third_party/zlib:zlib_common_headers",
     ],
 )
 
@@ -698,22 +657,11 @@ cc_library(
     hdrs = [
         "slide_hash_simd.h",
     ],
-    deps = [
-        "//third_party/zlib:zlib_common_headers",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
-        "ZLIB_IMPLEMENTATION",
-        "DEFLATE_SLIDE_HASH_SSE2",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -739,9 +687,6 @@ cc_library(
         "-g3",
         "-ggdb3",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -749,9 +694,24 @@ cc_library(
         "-std=c++20",
         "-fno-rtti",
     ],
+    defines = [
+        "NDEBUG",
+        "ZLIB_IMPLEMENTATION",
+    ] + select({
+        "//build/config:cpu_x64": [
+            "DEFLATE_SLIDE_HASH_SSE2",
+        ],
+        "//build/config:cpu_arm64": [
+            "DEFLATE_SLIDE_HASH_NEON",
+        ],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
         "-lpthread",
+    ],
+    deps = [
+        "//third_party/zlib:zlib_common_headers",
     ],
 )
 
@@ -760,22 +720,12 @@ cc_binary(
     srcs = [
         "examples/zpipe.c",
     ],
-    deps = [
-        "//build/config/sanitizers:deps",
-        "//third_party/zlib:zlib",
-    ],
-    defines = [
-        "TOOLCHAIN_VERSION=LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC",
-        "SYSROOT_VERSION=dCkoVcYlgGIP_pmR61ZMIrSDgdrV81BtxcPeTRuyqlUC",
-        "NDEBUG",
+    conlyopts = [
+        "-std=c17",
     ],
     copts = [
         "-Ithird_party/zlib",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-no-canonical-prefixes",
         "-ffile-compilation-dir=.",
@@ -799,9 +749,6 @@ cc_binary(
         "-Wno-unused-but-set-variable",
         "-Wno-deprecated-non-prototype",
     ],
-    conlyopts = [
-        "-std=c17",
-    ],
     cxxopts = [
         "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
@@ -813,5 +760,11 @@ cc_binary(
         "-ldl",
         "-lpthread",
     ],
+    local_defines = [
+        "NDEBUG",
+    ],
+    deps = [
+        "//build/config/sanitizers:deps",
+        "//third_party/zlib",
+    ],
 )
-
