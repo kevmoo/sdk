@@ -129,8 +129,17 @@ copy_sdk_library(
     lib = "core",
 )
 
-# TODO(M3): copy for copy_dart (gn type=copy)
-cc_library(name = "copy_dart")
+# GN copy_dart also copies dart.sym (the .sym debug-symbol file) when
+# _has_dot_sym, but Bazel cc_binary emits an unstripped binary with no separate
+# .sym, so the .sym half is omitted pending a Bazel strip rule. The binary
+# itself is functional. (Same applies to copy_dartvm / copy_dart_aotruntime /
+# copy_gen_snapshot_exe below.)
+genrule(
+    name = "copy_dart",
+    srcs = ["//runtime/bin:dart"],
+    outs = ["bin/dart"],
+    cmd = "cp $< $@",
+)
 
 # TODO(Step 5.2): //utils/dart2bytecode:dart2bytecode is not a snapshot
 # builder (no .dart.snapshot output -> genrule "$$<: no input file"). Wire
@@ -155,8 +164,13 @@ cc_library(name = "copy_dart2wasm_platform")
 # TODO(M3): copy for copy_dart2wasm_snapshot (gn type=copy)
 cc_library(name = "copy_dart2wasm_snapshot")
 
-# TODO(M3): copy for copy_dart_aotruntime (gn type=copy)
-cc_library(name = "copy_dart_aotruntime")
+# GN renames dartaotruntime_product -> dartaotruntime in bin/ (drops _product).
+genrule(
+    name = "copy_dart_aotruntime",
+    srcs = ["//runtime/bin:dartaotruntime_product"],
+    outs = ["bin/dartaotruntime"],
+    cmd = "cp $< $@",
+)
 
 # TODO(M3): copy for copy_dart_aotruntime_asan (gn type=copy)
 cc_library(name = "copy_dart_aotruntime_asan")
@@ -219,8 +233,12 @@ cc_library(name = "copy_dartdoc_resources")
 # TODO(M3): genrule for copy_dartdoc_templates (gn type=action)
 cc_library(name = "copy_dartdoc_templates")
 
-# TODO(M3): copy for copy_dartvm (gn type=copy)
-cc_library(name = "copy_dartvm")
+genrule(
+    name = "copy_dartvm",
+    srcs = ["//runtime/bin:dartvm"],
+    outs = ["bin/dartvm"],
+    cmd = "cp $< $@",
+)
 
 genrule(
     name = "copy_dds_aot_product_snapshot",
@@ -337,8 +355,13 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for copy_gen_snapshot_exe (gn type=copy)
-cc_library(name = "copy_gen_snapshot_exe")
+# GN renames gen_snapshot_product -> gen_snapshot under bin/utils/.
+genrule(
+    name = "copy_gen_snapshot_exe",
+    srcs = ["//runtime/bin:gen_snapshot_product"],
+    outs = ["bin/utils/gen_snapshot"],
+    cmd = "cp $< $@",
+)
 
 # TODO(M3): copy for copy_gen_snapshot_sym (gn type=copy)
 cc_library(name = "copy_gen_snapshot_sym")
