@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -241,9 +241,7 @@ cc_library(
     local_defines = [
         "DART_PRECOMPILED_RUNTIME",
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
-        "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
     ],
     deps = [
         "//build/config:dart_mode",
@@ -334,9 +332,7 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
-        "DART_TARGET_OS_LINUX",
     ],
     deps = [
         "//build/config:dart_mode",

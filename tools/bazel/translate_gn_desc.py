@@ -115,7 +115,7 @@ def make_load_statement(rules_used):
         return ""
     rules = sorted(list(rules_used))
     rules_str = ", ".join(f'"{r}"' for r in rules)
-    return f'load("@rules_cc//cc:defs.bzl", {rules_str})\n\n'
+    return f'load("//tools/bazel:rules.bzl", {rules_str})\n\n'
 
 
 def get_rules_used(targets):
@@ -200,6 +200,7 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
         f'"{d}"'
         for d in t.get("defines", [])
         if not d.startswith(("TOOLCHAIN_VERSION=", "SYSROOT_VERSION="))
+        and d not in ("DART_TARGET_OS_LINUX", "DART_TARGET_OS_MACOS", "TARGET_ARCH_X64", "TARGET_ARCH_ARM64")
     ]
     include_copts = []
     for inc in t.get("include_dirs", []):

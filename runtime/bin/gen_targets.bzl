@@ -6,7 +6,7 @@ touches the HAND-AUTHORED BUILD.bazel that load()s + calls gen_targets() and
 owns the hand-fixed targets. Mirrors tools/bazel/dart/packages.bzl. DO NOT EDIT.
 """
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_binary", "cc_library")
 
 def gen_targets():
     """Declare this package's machine-derived cc_* targets (see header).
@@ -27,9 +27,7 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
             "DART_PRECOMPILED_RUNTIME",
             "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         ],
@@ -175,9 +173,7 @@ def gen_targets():
             "//build/config:dart_product_mode",
         ],
         local_defines = [
-            "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
             "DART_PRECOMPILED_RUNTIME",
             "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         ],
@@ -378,9 +374,7 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
             "DART_PRECOMPILED_RUNTIME",
             "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         ],
@@ -465,9 +459,7 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
             "DART_PRECOMPILED_RUNTIME",
             "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
             "PRODUCT",
@@ -557,8 +549,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "TARGET_ARCH_X64",
-            "DART_TARGET_OS_LINUX",
         ],
         copts = [
             "-Iruntime/include",
@@ -728,8 +718,6 @@ def gen_targets():
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
-            "TARGET_ARCH_X64",
-            "DART_TARGET_OS_LINUX",
         ],
         copts = [
             "-Iruntime/include",
@@ -894,13 +882,12 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_arm_set",
             "//runtime/bin:libdart_builtin_product_linux_arm",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
-            "//build/config:dart_mode_no_arch",
+            "//build/config:dart_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
-            "DART_TARGET_OS_LINUX",
             "TARGET_ARCH_ARM",
         ],
         copts = [
@@ -981,14 +968,12 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_arm64_set",
             "//runtime/bin:libdart_builtin_product_linux_arm64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
-            "//build/config:dart_mode_no_arch",
+            "//build/config:dart_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_ARM64",
         ],
         copts = [
             "-Iruntime/include",
@@ -1068,13 +1053,12 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_riscv64_set",
             "//runtime/bin:libdart_builtin_product_linux_riscv64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
-            "//build/config:dart_mode_no_arch",
+            "//build/config:dart_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
-            "DART_TARGET_OS_LINUX",
             "TARGET_ARCH_RISCV64",
         ],
         copts = [
@@ -1155,14 +1139,12 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_x64_set",
             "//runtime/bin:libdart_builtin_product_linux_x64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
-            "//build/config:dart_mode_no_arch",
+            "//build/config:dart_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "PRODUCT",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_X64",
         ],
         copts = [
             "-Iruntime/include",
@@ -1367,9 +1349,7 @@ def gen_targets():
             "//build/config:dart_mode",
         ],
         local_defines = [
-            "TARGET_ARCH_X64",
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
             "DART_PRECOMPILER",
         ],
         copts = [
