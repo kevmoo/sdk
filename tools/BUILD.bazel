@@ -4,4 +4,6 @@ exports_files([
     "VERSION",
     "make_version.py",
     "utils.py",
+    "write_revision_file.py",
+    "write_version_file.py",
 ])

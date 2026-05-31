@@ -671,8 +671,23 @@ filegroup(
 # TODO(M3): genrule for write_dartdoc_options (gn type=action)
 cc_library(name = "write_dartdoc_options")
 
-# TODO(M3): genrule for write_revision_file (gn type=action)
-cc_library(name = "write_revision_file")
+genrule(
+    name = "write_revision_file",
+    srcs = [
+        "//tools:utils.py",
+        "//tools:write_revision_file.py",
+    ],
+    outs = ["dart-sdk/revision"],
+    cmd = "python3 $(location //tools:write_revision_file.py) --output $@ --no-git-hash",
+)
 
-# TODO(M3): genrule for write_version_file (gn type=action)
-cc_library(name = "write_version_file")
+genrule(
+    name = "write_version_file",
+    srcs = [
+        "//tools:VERSION",
+        "//tools:utils.py",
+        "//tools:write_version_file.py",
+    ],
+    outs = ["dart-sdk/version"],
+    cmd = "python3 $(location //tools:write_version_file.py) --output $@ --no-git-hash",
+)
