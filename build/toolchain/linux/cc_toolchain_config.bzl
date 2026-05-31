@@ -24,6 +24,9 @@ load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 _CLANG_BIN = CLANG_BIN
 
 def _impl(ctx):
+    cpu = ctx.attr.cpu
+    triple = ctx.attr.target_triple
+
     tool_paths = [
         # Use clang++ as the "gcc" driver so cc_binary links auto-pull
         # libc++/libm (libstdc++ implicit deps); clang++ still compiles
@@ -57,30 +60,86 @@ def _impl(ctx):
         ],
     )
 
+    # Target architecture specific flags (triple, ISA, sysroot)
+    target_flags = ["--sysroot=buildtools/sysroot/linux"]
+    target_linkopts = ["--sysroot=buildtools/sysroot/linux"]
+
+    if cpu == "aarch64":
+        target_flags.append("--target=" + triple)
+        target_linkopts.extend([
+            "--target=" + triple,
+            "-Wl,--fix-cortex-a53-843419",
+        ])
+    else:
+        target_flags.extend([
+            "--target=" + triple,
+            "-march=x86-64",
+            "-m64",
+            "-msse2",
+        ])
+        target_linkopts.extend([
+            "--target=" + triple,
+            "-m64",
+        ])
+
+    target_arch_feature = feature(
+        name = "dart_target_arch_flags",
+        enabled = True,
+        flag_sets = [
+            flag_set(
+                actions = [
+                    ACTION_NAMES.c_compile,
+                    ACTION_NAMES.cpp_compile,
+                    ACTION_NAMES.cpp_header_parsing,
+                    ACTION_NAMES.cpp_module_compile,
+                    ACTION_NAMES.cpp_module_codegen,
+                    ACTION_NAMES.assemble,
+                    ACTION_NAMES.preprocess_assemble,
+                ],
+                flag_groups = [flag_group(flags = target_flags)],
+            ),
+            flag_set(
+                actions = [
+                    ACTION_NAMES.cpp_link_executable,
+                    ACTION_NAMES.cpp_link_dynamic_library,
+                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
+                ],
+                flag_groups = [flag_group(flags = target_linkopts)],
+            ),
+        ],
+    )
+
     # System include roots Bazel treats as toolchain-builtin (suppresses
     # the "absolute path inclusion(s) found" error from strict-includes).
     clang_root = CLANG_BIN.rstrip("/").rsplit("/", 1)[0]
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
-        toolchain_identifier = "clang_x64",
+        toolchain_identifier = "clang_" + cpu,
         host_system_name = "x86_64-linux-gnu",
-        target_system_name = "x86_64-linux-gnu",
-        target_cpu = "x86_64",
+        target_system_name = triple,
+        target_cpu = cpu,
         target_libc = "glibc",
         compiler = "clang",
         abi_version = "unknown",
         abi_libc_version = "unknown",
         tool_paths = tool_paths,
-        features = [force_c_language],
+        builtin_sysroot = "buildtools/sysroot/linux",
+        features = [force_c_language, target_arch_feature],
         cxx_builtin_include_directories = [
             "/usr/include",
             "/usr/local/include",
             clang_root + "/include",
             clang_root + "/lib/clang",
+            "%sysroot%/usr/include",
+            "%sysroot%/usr/include/aarch64-linux-gnu",
+            "%sysroot%/usr/include/x86_64-linux-gnu",
         ],
     )
 
 cc_toolchain_config = rule(
     implementation = _impl,
-    attrs = {},
+    attrs = {
+        "cpu": attr.string(mandatory = True),
+        "target_triple": attr.string(mandatory = True),
+    },
 )
