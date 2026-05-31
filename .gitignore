@@ -129,3 +129,6 @@ runtime/tools/heapsnapshot/.dart_tool
 .gemini
 .geminiignore
 gemini.md
+
+# Bazel migration temporary configurations
+/desc.json
