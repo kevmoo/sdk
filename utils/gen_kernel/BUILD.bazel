@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//tools/bazel/dart:defs.bzl", "dart_kernel_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_kernel_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -38,11 +38,13 @@ dart_kernel_snapshot(
     sources = "//:dart_pkg_vm",
 )
 
-# TODO(M3): copy for gen_kernel (gn type=copy)
-cc_library(name = "gen_kernel")
-
-# TODO(M3): genrule for gen_kernel_dill (gn type=action)
-cc_library(name = "gen_kernel_dill")
-
-# TODO(M3): genrule for gen_kernel_gen_snapshot (gn type=action)
-cc_library(name = "gen_kernel_gen_snapshot")
+dart_aot_snapshot(
+    name = "gen_kernel",
+    out = "gen_kernel_aot.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot_product",
+    main = "//:pkg/vm/bin/gen_kernel.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = True,
+    sources = "//:dart_pkg_vm",
+)

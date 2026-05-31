@@ -368,8 +368,12 @@ filegroup(
     ],
 )
 
-# TODO(M3): copy for copy_gen_kernel_snapshot (gn type=copy)
-cc_library(name = "copy_gen_kernel_snapshot")
+genrule(
+    name = "copy_gen_kernel_snapshot",
+    srcs = ["//utils/gen_kernel:gen_kernel_aot.dart.snapshot"],
+    outs = ["dart-sdk/bin/snapshots/gen_kernel_aot.dart.snapshot"],
+    cmd = "cp $< $@",
+)
 
 cc_library(
     name = "copy_gen_snapshot",
