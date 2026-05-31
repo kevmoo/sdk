@@ -289,5 +289,5 @@ build green. (Latent inconsistency: `zlib` BUILD is still out-of-band; only
 - `m4_arch_axis_scoping.md` — scoping spike for M4's **arch** sub-axis (x64↔arm64
   delta, Bazel cross-compile needs, and the empirical RED re-test that found the
   cross-arch `gen_snapshot` cluster GREEN, not red).
-- Discovered SDK improvements: `issue_00001`–`issue_00012` in this directory.
+- Discovered SDK improvements: `issue_00001`–`issue_00011` in this directory.
 - Independent skeptical review of issues 1–9: `other_agent_review.md`.
