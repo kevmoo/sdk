@@ -96,6 +96,15 @@ exports_files([
     "pkg/vm/bin/kernel_service.dart",
 ])
 
+# SDK resource files copied verbatim into the assembled dart-sdk/ tree by //sdk
+# (Step 5.3). They live in the root package; export so //sdk can reference them
+# (GN sourced them as ../README.dart-sdk etc.).
+exports_files([
+    "README.dart-sdk",
+    "LICENSE",
+    "sdk_packages.yaml",
+])
+
 cc_library(
     name = "analysis_server",
     # //utils/analysis_server:analysis_server is now the real app-jit snapshot

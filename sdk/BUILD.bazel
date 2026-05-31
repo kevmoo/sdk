@@ -96,8 +96,12 @@ genrule(
     cmd = "cp $< $@",
 )
 
-# TODO(M3): copy for copy_api_readme (gn type=copy)
-cc_library(name = "copy_api_readme")
+genrule(
+    name = "copy_api_readme",
+    srcs = ["api_readme.md"],
+    outs = ["lib/api_readme.md"],
+    cmd = "cp $< $@",
+)
 
 copy_sdk_library(
     name = "copy_async_library",
@@ -439,11 +443,22 @@ filegroup(
     ],
 )
 
-# TODO(M3): copy for copy_libraries_specification (gn type=copy)
+# TODO(Step 5.3 assembly): copy lib/libraries.json -> lib/libraries.json.
+# Blocked on the assembled-tree rooting decision: under the current
+# no-"dart-sdk/"-prefix output convention (Steps 5.1/5.2/5.3a) the genrule output
+# label //sdk:lib/libraries.json collides with the SOURCE file of the same name
+# ("has file 'lib/libraries.json' as both an input and an output"). Same hazard
+# for write_version_file -> //sdk:version (sdk/version is a source). Resolving
+# needs the GN dart_sdk_output ("dart-sdk/") root prefix, which revises the
+# 5.1/5.2/5.3a output paths -- escalated as a design decision.
 cc_library(name = "copy_libraries_specification")
 
-# TODO(M3): copy for copy_license (gn type=copy)
-cc_library(name = "copy_license")
+genrule(
+    name = "copy_license",
+    srcs = ["//:LICENSE"],
+    outs = ["LICENSE"],
+    cmd = "cp $< $@",
+)
 
 copy_sdk_library(
     name = "copy_math_library",
@@ -512,11 +527,20 @@ filegroup(
 # TODO(M3): genrule for copy_prebuilt_devtools (gn type=action)
 cc_library(name = "copy_prebuilt_devtools")
 
-# TODO(M3): copy for copy_readme (gn type=copy)
-cc_library(name = "copy_readme")
+# GN renames README.dart-sdk -> README at the SDK root.
+genrule(
+    name = "copy_readme",
+    srcs = ["//:README.dart-sdk"],
+    outs = ["README"],
+    cmd = "cp $< $@",
+)
 
-# TODO(M3): copy for copy_sdk_packages_yaml (gn type=copy)
-cc_library(name = "copy_sdk_packages_yaml")
+genrule(
+    name = "copy_sdk_packages_yaml",
+    srcs = ["//:sdk_packages.yaml"],
+    outs = ["sdk_packages.yaml"],
+    cmd = "cp $< $@",
+)
 
 copy_sdk_library(
     name = "copy_svg_library",
