@@ -294,3 +294,12 @@ cc_library(
         "//utils:gen_kernel.exe",
     ],
 )
+
+# Expose prebuilt DevTools web assets to sdk packaging.
+filegroup(
+    name = "prebuilt_devtools_files",
+    srcs = glob(
+        ["third_party/devtools/web/**"],
+        allow_empty = True,
+    ),
+)

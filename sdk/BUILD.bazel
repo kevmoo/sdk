@@ -601,8 +601,13 @@ filegroup(
     ],
 )
 
-# TODO(M3): genrule for copy_prebuilt_devtools (gn type=action)
-cc_library(name = "copy_prebuilt_devtools")
+# rules_dart Step 5: copy prebuilt DevTools application assets. Ports GN copy_tree("copy_prebuilt_devtools")
+copy_tree(
+    name = "copy_prebuilt_devtools",
+    srcs = ["//:prebuilt_devtools_files"],
+    out_dir = "dart-sdk/bin/resources/devtools",
+    src_dir = "third_party/devtools/web",
+)
 
 # GN renames README.dart-sdk -> README at the SDK root.
 genrule(
