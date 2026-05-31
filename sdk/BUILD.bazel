@@ -455,14 +455,16 @@ filegroup(
     ],
 )
 
-# TODO(sdk-xh6 assembly): wire copy_libraries_specification ->
-# dart-sdk/lib/libraries.json. The dart_sdk_output ("dart-sdk/") root prefix is
-# now adopted (human-confirmed; re-rooted in sdk-9xn), so the genrule output
-# dart-sdk/lib/libraries.json no longer collides with the //sdk:lib/libraries.json
-# SOURCE label (the earlier "file as both an input and an output" hazard is gone).
-# The same prefix unblocks write_version_file -> dart-sdk/version (vs the
-# sdk/version source). Still a stub until the assembly bead wires it.
-cc_library(name = "copy_libraries_specification")
+# GN copy("copy_libraries_specification"): verbatim copy of lib/libraries.json
+# into the SDK tree. The dart_sdk_output ("dart-sdk/") root prefix (adopted in
+# sdk-9xn) keeps the dart-sdk/lib/libraries.json output from colliding with the
+# //sdk:lib/libraries.json SOURCE label.
+genrule(
+    name = "copy_libraries_specification",
+    srcs = ["lib/libraries.json"],
+    outs = ["dart-sdk/lib/libraries.json"],
+    cmd = "cp $< $@",
+)
 
 genrule(
     name = "copy_license",
