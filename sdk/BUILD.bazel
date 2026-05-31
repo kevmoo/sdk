@@ -132,12 +132,12 @@ copy_sdk_library(
 # TODO(M3): copy for copy_dart (gn type=copy)
 cc_library(name = "copy_dart")
 
-genrule(
-    name = "copy_dart2bytecode_snapshot",
-    srcs = ["//utils/dart2bytecode:dart2bytecode"],
-    outs = ["bin/snapshots/dart2bytecode.dart.snapshot"],
-    cmd = "cp $< $@",
-)
+# TODO(Step 5.2): //utils/dart2bytecode:dart2bytecode is not a snapshot
+# builder (no .dart.snapshot output -> genrule "$$<: no input file"). Wire
+# this copy to bin/snapshots/dart2bytecode.dart.snapshot once a real
+# dart2bytecode snapshot target exists. Empty filegroup keeps the
+# snapshot aggregators valid meanwhile.
+filegroup(name = "copy_dart2bytecode_snapshot")
 
 genrule(
     name = "copy_dart2js_aot_product_snapshot",
@@ -172,21 +172,21 @@ cc_library(name = "copy_dart_aotruntime_tsan")
 
 genrule(
     name = "copy_dart_mcp_server_aot_product_snapshot",
-    srcs = ["//utils/dart_mcp_server:dart_mcp_server_aot"],
+    srcs = ["//utils/dart_mcp_server:dart_mcp_server_aot_product_snapshot"],
     outs = ["bin/snapshots/dart_mcp_server_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_dart_tooling_daemon_aot_product_snapshot",
-    srcs = ["//utils/dtd:dtd_aot"],
+    srcs = ["//utils/dtd:dtd_aot_product_snapshot"],
     outs = ["bin/snapshots/dart_tooling_daemon_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
 
 genrule(
     name = "copy_dartdev_aot_snapshot",
-    srcs = ["//utils/dartdev:dartdev_aot"],
+    srcs = ["//utils/dartdev:dartdev_aot_snapshot"],
     outs = ["bin/snapshots/dartdev_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -224,7 +224,7 @@ cc_library(name = "copy_dartvm")
 
 genrule(
     name = "copy_dds_aot_product_snapshot",
-    srcs = ["//utils/dds:dds_aot"],
+    srcs = ["//utils/dds:dds_aot_product_snapshot"],
     outs = ["bin/snapshots/dds_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
