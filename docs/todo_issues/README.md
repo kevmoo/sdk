@@ -15,6 +15,14 @@ architectural / hermeticity / vendoring problem.
 If the only argument for the change is "to make Bazel easier," it doesn't
 belong here. (File it elsewhere or fix it in the Bazel-side translator.)
 
+## 🤖 Protocol for Autonomous Agents
+
+If you are an AI agent executing a task on this repository, you MUST adhere to the following protocol:
+1. **Identify Proactively**: Do not silently patch or work around SDK coupling, bad scripts, or dirty vendoring. If it is a net improvement on its own to fix it, it belongs here.
+2. **Sequence & Name**: Check the existing files in this directory to find the highest sequence number (e.g., `issue_00011_...`). Use the next sequential number (e.g., `issue_00012_...`) and follow the `issue_NNNNN_short_name.md` format.
+3. **Document Before Coding**: Create the issue file *before* you implement the workaround or the fix. Under the `## Resolution` section (see existing issues like `issue_00001...` for format), log what you did, the date, and your session ID so future agents have full context.
+4. **Clean Up**: If your changes fully resolve the issue on both the Bazel and SDK/GN sides, delete the issue file in the same commit that resolves it. If the issue remains partially open (e.g., GN-side pending but Bazel-side fixed), leave it open and document your partial progress under `## Resolution`.
+
 ## Migration planning docs (not issues)
 
 This directory also holds the migration's own planning artifacts (they live here
