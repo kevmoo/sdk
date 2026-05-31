@@ -6,4 +6,5 @@ exports_files([
     "utils.py",
     "write_revision_file.py",
     "write_version_file.py",
+    "write_dartdoc_options_file.py",
 ])

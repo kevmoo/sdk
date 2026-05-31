@@ -675,8 +675,15 @@ filegroup(
     ],
 )
 
-# TODO(M3): genrule for write_dartdoc_options (gn type=action)
-cc_library(name = "write_dartdoc_options")
+genrule(
+    name = "write_dartdoc_options",
+    srcs = [
+        "//tools:utils.py",
+        "//tools:write_dartdoc_options_file.py",
+    ],
+    outs = ["dart-sdk/dartdoc_options.yaml"],
+    cmd = "python3 $(location //tools:write_dartdoc_options_file.py) --output $@ --no-git-hash",
+)
 
 genrule(
     name = "write_revision_file",
