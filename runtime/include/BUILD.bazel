@@ -24,8 +24,22 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): copy for copy_headers (gn type=copy)
-cc_library(name = "copy_headers")
+genrule(
+    name = "copy_headers",
+    srcs = [
+        "dart_api.h",
+        "dart_native_api.h",
+        "dart_tools_api.h",
+    ],
+    outs = [
+        "dart-sdk/include/dart_api.h",
+        "dart-sdk/include/dart_native_api.h",
+        "dart-sdk/include/dart_tools_api.h",
+    ],
+    cmd = "cp $(location dart_api.h) $(location dart-sdk/include/dart_api.h) && " +
+          "cp $(location dart_native_api.h) $(location dart-sdk/include/dart_native_api.h) && " +
+          "cp $(location dart_tools_api.h) $(location dart-sdk/include/dart_tools_api.h)",
+)
 
 # M3 hand-edit: header-only cc_library for runtime/vm and others that
 # include "include/dart_api.h" etc. via -Iruntime.

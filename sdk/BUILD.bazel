@@ -382,9 +382,9 @@ genrule(
 # TODO(M3): copy for copy_gen_snapshot_sym (gn type=copy)
 cc_library(name = "copy_gen_snapshot_sym")
 
-cc_library(
+filegroup(
     name = "copy_headers",
-    deps = [
+    srcs = [
         "//runtime/include:copy_headers",
     ],
 )
