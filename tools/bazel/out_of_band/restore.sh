@@ -40,9 +40,13 @@ cd "$SDK_ROOT"
 # Session 13 found several stale (e.g. dart_style referenced renamed analyzer
 # AST types like DefaultFormalParameter), which broke the analyzer-stack tools'
 # AOT builds. Rolling them is low-risk (pure Dart; the opaque source glob picks
-# them up; no BUILD.bazel wires specific files). NOT boringssl/src or zlib:
-# those carry load-bearing C++ hand-edits and the build works against their
-# current revs — leave them (a roll would break the enumerated-source wiring).
+# them up; no BUILD.bazel wires specific files). zlib stays at its current rev
+# (its enumerated-source wiring in third_party/zlib/BUILD.bazel is pinned to it).
+# boringssl/src is NOT pinned here either, but it now tracks the DEPS pin
+# (5ee9407bc): third_party/boringssl/BUILD.bazel's enumerated sources were updated
+# to that roll (p_mlkem.cc added, p224-64.cc.inc / getrandom_fillin.h dropped), and
+# boringssl ships its own src/BUILD.bazel at this rev — RENAMES below disables it so
+# `src` isn't a subpackage. A `gclient sync` lands 5ee9407bc and the build matches.
 SUBREPO_PINS=(
   "third_party/pkg/native:b814f5393753e0cd752ce3ad733f5e66dd5949ce"
   "third_party/pkg/tools:6a7dd15748e63db7d41cfee8294c54636b668f41"

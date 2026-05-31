@@ -211,6 +211,7 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
+        "PRODUCT",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -219,7 +220,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
     ],
 )
 
@@ -408,13 +408,13 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
+        "PRODUCT",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
     ],
 )
 
@@ -802,6 +802,7 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
+        "PRODUCT",
         "TARGET_ARCH_X64",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
@@ -809,7 +810,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
     ],
 )
 

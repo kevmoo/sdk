@@ -242,9 +242,30 @@ different toolchain rolls produced different `BUILD.bazel` for the same sources
 (386 stamp lines across 12 files) — the main cross-box reproducibility breaker.
 No source reads the macros (verified) and Bazel invalidates on toolchain change
 itself, so the translator now drops them and the existing stamps were stripped.
-Generated output is now toolchain-pin-independent. (Orthogonal remaining
-divergence: the BoringSSL **source rev** — local `9a74…` vs DEPS/other-box
-`5ee9407bc` — which is a real `gclient sync` decision, not a generation issue.)
+Generated output is now toolchain-pin-independent.
+
+### Reproducibility: aligned on DEPS + integrated the other box's fixes (sess 36, claude)
+The second Linux box's `bazel-m1-cc-toolchain-reproducible` branch (built on the
+stamp-strip above) carried good fixes — integrated here, **dropping its
+`gn-desc.json` commit** (a 2.7 MB generated artifact that re-embedded the per-box
+toolchain stamp 391× — wrong layer; the committed `BUILD.bazel` is the reproducible
+artifact, not the translator input):
+- **VM product-ABI fix:** `_product`-named targets now bake in `-DPRODUCT`
+  unconditionally (translator: `is_dedicated_product`) instead of the
+  flag-conditional `//build/config:dart_product_mode` carrier. GN-faithful
+  (`_product` targets are inherently product) and ABI-safe by construction — kills
+  the mixed-PRODUCT ODR risk flagged in [[project_m4_product_crossslice]].
+- **BoringSSL rolled to the DEPS pin `5ee9407bc`** (was a stale local `9a74…`);
+  `third_party/boringssl/BUILD.bazel` enumerated sources updated to match
+  (`p_mlkem.cc` added; `p224-64.cc.inc` + `getrandom_fillin.h` dropped). The roll
+  re-introduces BoringSSL's upstream `src/BUILD.bazel` → `restore.sh` RENAMES it
+  aside so `src` isn't a subpackage (else all `//third_party/boringssl:src/...`
+  labels are invalid).
+- **`third_party/double-conversion/src/BUILD.bazel` now tracked** (was gitignored
+  out-of-band) so a fresh checkout resolves the package without `restore.sh`.
+All stamp-free. Verified: `dartvm` + `create_sdk` (product **and** default) all
+build green. (Latent inconsistency: `zlib` BUILD is still out-of-band; only
+`double-conversion` was promoted to tracked — a model choice to settle later.)
 
 ## Related
 

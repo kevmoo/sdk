@@ -225,14 +225,19 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
 
     if pkg == "runtime" or pkg.startswith("runtime/"):
         defines = [d for d in defines if d != '"NDEBUG"']
+        is_dedicated_product = "_product" in name
         has_product = '"PRODUCT"' in defines
-        if has_product:
+        if has_product and not is_dedicated_product:
             defines = [d for d in defines if d != '"PRODUCT"']
         if '"//build/config:dart_mode"' not in deps:
             deps.append('"//build/config:dart_mode"')
         if has_product:
-            if '"//build/config:dart_product_mode"' not in deps:
-                deps.append('"//build/config:dart_product_mode"')
+            if is_dedicated_product:
+                if '"PRODUCT"' not in defines:
+                    defines.append('"PRODUCT"')
+            else:
+                if '"//build/config:dart_product_mode"' not in deps:
+                    deps.append('"//build/config:dart_product_mode"')
         copts = [c for c in copts if c != '"-fno-ident"']
 
     out = [f'{rule}(\n    name = "{name}",\n']
