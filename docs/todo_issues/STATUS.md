@@ -86,11 +86,21 @@ blocker**:
   `bin/resources/devtools`).
 - **dartdoc resources** — `copy_dartdoc_files`, `copy_dartdoc_resources`,
   `copy_dartdoc_templates` (`bin/resources/dartdoc/**`).
-- **C headers** — `copy_headers` (`include/dart_api.h`, `dart_native_api.h`, `dart_tools_api.h`).
-- **`lib/libraries.json`** — `copy_libraries_specification`; **now unblocked** by the
-  `dart-sdk/` prefix (was the collision) — wire as a genrule → `dart-sdk/lib/libraries.json`.
-- **Generated files (GN `type=action`)** — `write_version_file`, `write_revision_file`,
-  `write_dartdoc_options`.
+- ~~**C headers** — `copy_headers`~~ **DONE (sess 35, agy):** `//runtime/include:copy_headers`
+  genrule copies `dart_api.h`/`dart_native_api.h`/`dart_tools_api.h` →
+  `dart-sdk/include/`; `//sdk:copy_headers` is now a `filegroup` forwarding them.
+  Verified collected under `dart-sdk/include/`.
+- ~~**`lib/libraries.json`** — `copy_libraries_specification`~~ **DONE (sess 35, claude):**
+  `cp $< $@` genrule → `dart-sdk/lib/libraries.json`, byte-identical to the source; collected
+  by `create_sdk` (the `dart-sdk/` prefix resolves the old source-label collision).
+- **Generated files (GN `type=action`)** — ~~`write_version_file`, `write_revision_file`~~
+  **DONE (sess 35, agy):** genrules over `//tools:write_{version,revision}_file.py` →
+  `dart-sdk/{version,revision}`. Built green; bytes verified (`version`=`3.13.0-edge\n`,
+  `revision`=`\n`). ⚠️ **DEVIATION:** both pass `--no-git-hash` *unconditionally*, whereas GN
+  gates it on `if (!dart_version_git_info)` and the default is `dart_version_git_info = true`
+  (`runtime/runtime_args.gni:61`) — so the Bazel SDK omits the git-hash suffix a default GN
+  build would embed. Intentional for sandbox hermeticity (no `.git` access); consistent with the
+  existing AOT-tool `make_version --no-git-hash` precedent. Still a stub: `write_dartdoc_options`.
 - **Sanitizer + `.sym` variants** — `copy_dart_aotruntime_{asan,msan,tsan}`,
   `copy_dart_aotruntime_sym`, `copy_gen_snapshot_sym` (no Bazel strip rule yet).
 - **bin/ wrapper scripts** — `copy_full_sdk_scripts`, `copy_platform_sdk_scripts`
