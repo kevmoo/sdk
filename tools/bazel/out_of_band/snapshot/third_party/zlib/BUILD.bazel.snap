@@ -577,6 +577,19 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
+    defines = [
+        "NDEBUG",
+        "ZLIB_IMPLEMENTATION",
+    ] + select({
+        "//build/config:cpu_x64": [
+            "CRC32_SIMD_SSE42_PCLMUL",
+        ],
+        "//build/config:cpu_arm64": [
+            "CRC32_ARMV8_CRC32",
+            "ARMV8_OS_LINUX",
+        ],
+        "//conditions:default": [],
+    }),
     deps = [
         "//third_party/zlib:zlib_common_headers",
     ],
