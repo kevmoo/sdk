@@ -314,6 +314,9 @@ already runs it for Step 3.
 
 - **The other config axes:** arch, OS, product, sanitizers. The `PRODUCT`-on-58
   signature (§3) is a first peek at the product axis; it is not modeled here.
+  (**Arch is now its own recon — `m4_arch_axis_scoping.md`, session 34:** the
+  x64↔arm64 delta, the host/target split, and the finding that the cross-arch
+  `gen_snapshot` cluster is GREEN, not the documented red.)
 - **The cross-toolchain `(...)` labels** (201 in a single out-dir: sanitizer
   toolchains, `clang_x64` host-targeting variants). These are the *intra*-out-dir
   toolchain-folding axis the translator skips today — a distinct piece of M4 from
