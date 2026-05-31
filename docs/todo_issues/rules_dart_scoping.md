@@ -15,9 +15,12 @@
 
 Everything in `runtime/` (C++) is buildable in Bazel today. Everything in
 `utils/` and `sdk/` is **not**, because those subtrees compile *Dart* into
-snapshots, and Bazel has no rule that knows how to do that. `DESIGN.md` §4.3 is
-blunt: this is the precondition that stalled Flutter's Bazel adoption for 7+
-years (`flutter/flutter#58082`, open since 2020). The plan says solve it *as a
+snapshots, and Bazel has no rule that knows how to do that. This is the precondition that stalled Flutter's Bazel adoption for ~7 years
+(primary source [`flutter/flutter#14125`](https://github.com/flutter/flutter/issues/14125),
+2018 — which names `cbracken/rules_dart`). See
+[`flutter_bazel_history.md`](flutter_bazel_history.md) for the verified sources +
+the honest nuance: the *"explicitly because `rules_dart`"* causation is
+interpretation, and the cited `DESIGN.md §4.3` is not in this tree. The plan says solve it *as a
 precondition, not during* the migration. This spike de-risks it early rather
 than discovering its true size at the end.
 
