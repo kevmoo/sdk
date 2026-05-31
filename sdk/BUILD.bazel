@@ -640,8 +640,12 @@ cc_library(name = "copy_vm_platform_product")
 
 cc_library(name = "copy_vm_strong_dill_files")
 
-# TODO(M3): copy for copy_wasm_opt (gn type=copy)
-cc_library(name = "copy_wasm_opt")
+genrule(
+    name = "copy_wasm_opt",
+    srcs = ["//third_party/binaryen:wasm-opt"],
+    outs = ["dart-sdk/bin/utils/wasm-opt"],
+    cmd = "cp $< $@",
+)
 
 copy_sdk_library(
     name = "copy_web_audio_library",

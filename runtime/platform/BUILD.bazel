@@ -959,7 +959,7 @@ cc_library(
         "DART_PRECOMPILER",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
     ],
 )
@@ -1055,7 +1055,7 @@ cc_library(
         "DART_PRECOMPILER",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
     ],
 )
@@ -1151,7 +1151,7 @@ cc_library(
         "DART_PRECOMPILER",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
     ],
 )
@@ -1243,10 +1243,11 @@ cc_library(
     local_defines = [
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_" + "X64",
         "DART_PRECOMPILER",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
     ],
 )

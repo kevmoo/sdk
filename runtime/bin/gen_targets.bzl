@@ -894,7 +894,7 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_arm_set",
             "//runtime/bin:libdart_builtin_product_linux_arm",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
-            "//build/config:dart_mode",
+            "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
@@ -981,7 +981,7 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_arm64_set",
             "//runtime/bin:libdart_builtin_product_linux_arm64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
-            "//build/config:dart_mode",
+            "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
@@ -1068,7 +1068,7 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_riscv64_set",
             "//runtime/bin:libdart_builtin_product_linux_riscv64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
-            "//build/config:dart_mode",
+            "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
@@ -1155,7 +1155,7 @@ def gen_targets():
             "//runtime/bin:gen_snapshot_product_linux_x64_set",
             "//runtime/bin:libdart_builtin_product_linux_x64",
             "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
-            "//build/config:dart_mode",
+            "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",

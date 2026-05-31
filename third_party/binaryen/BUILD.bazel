@@ -56,13 +56,13 @@ cc_library(
         "src/src/ir/properties.cpp",
         "src/src/ir/public-type-validator.cpp",
         "src/src/ir/return-utils.cpp",
+        "src/src/ir/runtime-global.cpp",
         "src/src/ir/runtime-table.cpp",
         "src/src/ir/stack-utils.cpp",
         "src/src/ir/table-utils.cpp",
         "src/src/ir/type-updating.cpp",
         "src/src/parser/context-decls.cpp",
         "src/src/parser/context-defs.cpp",
-        "src/src/parser/lexer.cpp",
         "src/src/parser/parse-1-decls.cpp",
         "src/src/parser/parse-2-typedefs.cpp",
         "src/src/parser/parse-3-implicit-types.cpp",
@@ -84,6 +84,7 @@ cc_library(
         "src/src/passes/DeAlign.cpp",
         "src/src/passes/DeNaN.cpp",
         "src/src/passes/DeadArgumentElimination.cpp",
+        "src/src/passes/DeadArgumentElimination2.cpp",
         "src/src/passes/DeadCodeElimination.cpp",
         "src/src/passes/DebugLocationPropagation.cpp",
         "src/src/passes/Directize.cpp",
@@ -223,7 +224,6 @@ cc_library(
         "src/src/wasm/wasm-binary.cpp",
         "src/src/wasm/wasm-debug.cpp",
         "src/src/wasm/wasm-emscripten.cpp",
-        "src/src/wasm/wasm-interpreter.cpp",
         "src/src/wasm/wasm-io.cpp",
         "src/src/wasm/wasm-ir-builder.cpp",
         "src/src/wasm/wasm-stack.cpp",
@@ -337,10 +337,11 @@ cc_library(
         "src/src/ir/glbs.h",
         "src/src/ir/global-utils.h",
         "src/src/ir/hashed.h",
-        "src/src/ir/import-name.h",
+        "src/src/ir/import-names.h",
         "src/src/ir/import-utils.h",
         "src/src/ir/intrinsics.h",
         "src/src/ir/iteration.h",
+        "src/src/ir/js-utils.h",
         "src/src/ir/label-utils.h",
         "src/src/ir/linear-execution.h",
         "src/src/ir/literal-utils.h",
@@ -366,6 +367,7 @@ cc_library(
         "src/src/ir/properties.h",
         "src/src/ir/public-type-validator.h",
         "src/src/ir/return-utils.h",
+        "src/src/ir/runtime-global.h",
         "src/src/ir/runtime-table.h",
         "src/src/ir/stack-utils.h",
         "src/src/ir/struct-utils.h",
@@ -432,7 +434,23 @@ cc_library(
         "src/src/tools/fuzzing/random.h",
         "src/third_party/llvm-project/DWARFVisitor.h",
         "src/third_party/llvm-project/Error.h",
-    ],
+    ] + glob(
+        [
+            "src/src/*.h",
+            "src/src/*.def",
+            "src/src/*.inc",
+            "src/src/abi/*.h",
+            "src/src/analysis/lattices/*.h",
+            "src/src/dataflow/*.h",
+            "src/src/interpreter/*.h",
+            "src/src/tools/*.h",
+            "src/third_party/llvm-project/include/**/*.h",
+            "src/third_party/llvm-project/include/**/*.def",
+            "src/third_party/llvm-project/include/**/*.inc",
+            "src/third_party/FP16/include/**/*.h",
+        ],
+        allow_empty = True,
+    ),
     copts = [
         "-Ithird_party/binaryen/src/src",
         "-Ithird_party/binaryen/src/third_party/FP16/include",
@@ -485,6 +503,7 @@ cc_library(
         "//runtime/lib:headers",
         "//runtime/platform:headers",
     ],
+    includes = ["."],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -493,6 +512,7 @@ cc_library(
         "NDEBUG",
     ],
     deps = [
+        ":wasm_intrinsics_lib",
         "//third_party/binaryen:generate_needed_files",
     ],
 )
@@ -513,8 +533,59 @@ cc_library(
     ],
 )
 
-# TODO(M3): genrule for generate_needed_files (gn type=action)
-cc_library(name = "generate_needed_files")
+genrule(
+    name = "generate_needed_files",
+    srcs = [
+        "generate_needed_files.py",
+        "src/src/passes/wasm-intrinsics.wat",
+        "src/src/passes/WasmIntrinsics.cpp.in",
+        "src/CMakeLists.txt",
+        "src/config.h.in",
+    ],
+    outs = [
+        "WasmIntrinsics.cpp",
+        "config.h",
+    ],
+    cmd = "python3 $(location generate_needed_files.py) " +
+          "$(location src/src/passes/wasm-intrinsics.wat) " +
+          "$(location src/src/passes/WasmIntrinsics.cpp.in) " +
+          "$(location WasmIntrinsics.cpp) " +
+          "$(location src/CMakeLists.txt) " +
+          "$(location src/config.h.in) " +
+          "$(location config.h)",
+)
+
+cc_library(
+    name = "wasm_intrinsics_lib",
+    srcs = [
+        ":WasmIntrinsics.cpp",
+    ],
+    hdrs = [
+        ":config.h",
+    ] + glob(
+        [
+            "src/src/*.h",
+            "src/src/*.def",
+            "src/src/*.inc",
+            "src/src/passes/*.h",
+            "src/third_party/llvm-project/include/**/*.h",
+            "src/third_party/llvm-project/include/**/*.def",
+            "src/third_party/llvm-project/include/**/*.inc",
+            "src/third_party/FP16/include/**/*.h",
+        ],
+        allow_empty = True,
+    ),
+    copts = [
+        "-Ithird_party/binaryen/src/src",
+        "-Ithird_party/binaryen/src/third_party/FP16/include",
+        "-std=c++20",
+        "-fexceptions",
+    ],
+    includes = ["."],
+    deps = [
+        "//third_party/binaryen:generate_needed_files",
+    ],
+)
 
 cc_binary(
     name = "wasm-as",

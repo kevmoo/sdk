@@ -1128,7 +1128,7 @@ cc_library(
         "DART_SHARED_LIB",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
         "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_arm",
@@ -1230,7 +1230,7 @@ cc_library(
         "DART_SHARED_LIB",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
         "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_arm64",
@@ -1332,7 +1332,7 @@ cc_library(
         "DART_SHARED_LIB",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
         "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_riscv64",
@@ -1428,12 +1428,13 @@ cc_library(
     local_defines = [
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
+        "TARGET_ARCH_" + "X64",
         "PRODUCT",
         "DART_PRECOMPILER",
         "DART_SHARED_LIB",
     ],
     deps = [
-        "//build/config:dart_mode",
+        "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
         "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_x64",
