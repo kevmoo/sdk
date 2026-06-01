@@ -521,6 +521,22 @@ cc_library(
     ],
 )
 
+config_setting(
+    name = "arm64_macos",
+    constraint_values = [
+        "@platforms//cpu:arm64",
+        "@platforms//os:macos",
+    ],
+)
+
+config_setting(
+    name = "arm64_linux",
+    constraint_values = [
+        "@platforms//cpu:arm64",
+        "@platforms//os:linux",
+    ],
+)
+
 cc_library(
     name = "zlib_crc32_simd",
     srcs = [
@@ -590,6 +606,13 @@ cc_library(
         ],
         "//build/config:cpu_arm64": [
             "CRC32_ARMV8_CRC32",
+        ],
+        "//conditions:default": [],
+    }) + select({
+        ":arm64_macos": [
+            "ARMV8_OS_MACOS",
+        ],
+        ":arm64_linux": [
             "ARMV8_OS_LINUX",
         ],
         "//conditions:default": [],
