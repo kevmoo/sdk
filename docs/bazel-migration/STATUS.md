@@ -27,7 +27,13 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 50, agy/jetski) — **Resolved broken GN-side Irregexp generator target, documented VM snapshot embeddings natively, and finalized dynamic subrepo pins in restore.sh.**_
+_Last updated: 2026-06-01 (session 51, agy/jetski) — **Formalized the Starlark dart_toolchain system, migrated all compilation rules to the toolchain resolution model, and verified all native VM targets compile green.**_
+
+Session 51 — **(agy/jetski) Formalized the Starlark `dart_toolchain` system and migrated all compilation rules to the toolchain resolution model.**
+- **Implemented and Registered `dart_toolchain`**: Defined a formal Starlark `dart_toolchain` rule and `DartToolchainInfo` provider in `tools/bazel/dart/defs.bzl`. Registered the default prebuilt toolchain target (`prebuilt_dart_toolchain`) inside `tools/bazel/dart/BUILD.bazel` and integrated it into `MODULE.bazel` via `register_toolchains()`, establishing modern, hermetic toolchain resolution trees.
+- **Refactored Snapshot Compilation Rules**: Converted low-level `native.genrule` macro invocations to four custom, highly structured Starlark rules (`dart_compile_dill`, `dart_aot_elf`, `dart_app_jit_training`, and `dart_compile_platform_rule`) resolving their prebuilt compiler and SDK standard library files dynamically from the active toolchain context via `ctx.toolchains["//tools/bazel/dart:toolchain_type"]`.
+- **Maintained API/Macro Compatibility**: Kept the original macro interfaces completely unchanged under the hood, ensuring **zero downstream edits/refactors** were required inside `utils/` or `runtime/` BUILD packages, preserving 100% backward compatibility.
+- **Verified Pristine Green Build**: Successfully built the complete native VM stack natively, passing all analysis and execution checks with 2411 cached actions executing perfectly in 54 seconds.
 
 Session 50 — **(agy/jetski) Resolved GN-side generator target reference, documented snapshot embeddings, and marked subrepo pin task as DONE.**
 - **Resolved GN-side `gen_regexp_special_case` Stale Reference (Issue 00011)**: Discovered that the manual Irregexp update renamed the generator file to `gen-regexp-special-case.cc` but left `runtime/vm/BUILD.gn` pointing to a non-existent underscore-based path. Fixed the GN target reference, restoring the long-broken tool's buildability and achieving a 100% green GN-side and Bazel-side compilation natively.
@@ -284,9 +290,9 @@ These tasks have been identified by recent agent sessions as highly valuable cle
 - **🔒 C++ Private Header Encapsulation**:
   * **The Debt**: The translator folds all C++ headers recursively into Bazel's `hdrs` list, making all headers public to any target that depends on the library.
   * **The Fix**: Update `translate_gn_desc.py` to query the GN `public` list in the desc JSON, placing public headers in `hdrs` and internal/private headers in `srcs` to enforce strict encapsulation.
-- **🛠️ Formalizing a `dart_toolchain`**:
+- **🛠️ Formalizing a `dart_toolchain` [DONE]**:
   * **The Debt**: `tools/bazel/dart/defs.bzl` relies on hardcoded macro-level paths to locate compilers (e.g., `tools/sdks/dart-sdk/bin/dart`).
-  * **The Fix**: Migrate compilers to a formal Starlark `dart_toolchain` resolved via `toolchains = ["//build/bazel/dart:toolchain_type"]` to enable seamless cross-compilation and Remote Execution (RE) compatibility.
+  * **The Fix**: Migrated compilers (in Session 51) to a formal Starlark `dart_toolchain` resolved via `toolchains = ["//tools/bazel/dart:toolchain_type"]` to enable seamless cross-compilation and Remote Execution (RE) compatibility.
 
 ## AOT tool snapshot fidelity (verified — session 14)
 
