@@ -364,9 +364,9 @@ semantic identity + the session-13 run verification (each tool launches/runs).
 - **Real `libdart_engine_*.so`** (gn `type=copy` stubs): blocked on toolchain-wide
   `supports_pic` — the whole VM closure compiles `-fPIE`, which overrides
   toolchain `-fPIC`. Currently redirected to static. Unconsumed on linux/x64.
-- **In-Bazel `core_snapshot` / `kernel_service.dill` regeneration**: blocked on
+- ~~**In-Bazel `core_snapshot` / `kernel_service.dill` regeneration**: blocked on
   exec-config `third_party/zlib` strict-C++ failures and `record_use` DEPS drift.
-  Worked around via pre-staged blobs.
+  Worked around via pre-staged blobs.~~ **DONE:** both are now fully compiled natively from source inside Bazel (relying on `vm_platform_stripped.dill` and `kernel-service_snapshot_dill`).
 
 ## Out-of-band state (fragile, not in git)
 
