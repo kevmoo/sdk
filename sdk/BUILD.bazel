@@ -446,11 +446,26 @@ genrule(
 # TODO(M3): copy for copy_gen_snapshot_sym (gn type=copy)
 cc_library(name = "copy_gen_snapshot_sym")
 
-filegroup(
+# Copy the public C API headers into the SDK tree. This is a genrule (not a filegroup
+# forwarding //runtime/include:copy_headers) so the outputs root under THIS package and land
+# physically in bazel-bin/sdk/dart-sdk/include/ alongside the rest of the staged SDK; a
+# forwarding filegroup would leave them rooted under runtime/include/'s output dir, absent from
+# the assembled tree.
+genrule(
     name = "copy_headers",
     srcs = [
-        "//runtime/include:copy_headers",
+        "//runtime/include:dart_api.h",
+        "//runtime/include:dart_native_api.h",
+        "//runtime/include:dart_tools_api.h",
     ],
+    outs = [
+        "dart-sdk/include/dart_api.h",
+        "dart-sdk/include/dart_native_api.h",
+        "dart-sdk/include/dart_tools_api.h",
+    ],
+    cmd = "cp $(location //runtime/include:dart_api.h) $(location dart-sdk/include/dart_api.h) && " +
+          "cp $(location //runtime/include:dart_native_api.h) $(location dart-sdk/include/dart_native_api.h) && " +
+          "cp $(location //runtime/include:dart_tools_api.h) $(location dart-sdk/include/dart_tools_api.h)",
 )
 
 copy_sdk_library(

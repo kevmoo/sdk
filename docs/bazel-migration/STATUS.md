@@ -145,10 +145,21 @@ blocker**:
   (sources exposed as root-package `//:dartdoc_{resources,templates}_files` filegroups since
   that dir has no `BUILD.bazel`); `copy_dartdoc_files` is now a `filegroup`. Verified: trees
   byte-identical to source (11 + 60 files), `//sdk:create_sdk` analysis-green + collects both.
-- ~~**C headers** — `copy_headers`~~ **DONE (sess 35, agy):** `//runtime/include:copy_headers`
-  genrule copies `dart_api.h`/`dart_native_api.h`/`dart_tools_api.h` →
-  `dart-sdk/include/`; `//sdk:copy_headers` is now a `filegroup` forwarding them.
-  Verified collected under `dart-sdk/include/`.
+- ~~**C headers** — `copy_headers`~~ **DONE (sess 35, agy; re-rooted sess, 2026-05-31, claude).**
+  `//sdk:copy_headers` is a genrule that copies `dart_api.h`/`dart_native_api.h`/`dart_tools_api.h`
+  (sourced directly from `//runtime/include`) into `dart-sdk/include/`. **History/why a genrule:**
+  it was originally a `filegroup` forwarding `//runtime/include:copy_headers`, but a filegroup
+  doesn't re-root — the forwarded genrule's outputs stayed under the **`runtime/include/`** package
+  (`bazel-out/.../runtime/include/dart-sdk/include/`) and were **absent** from the staged
+  `bazel-bin/sdk/dart-sdk/` tree, so a tar/install over it would ship without C headers. (The old
+  "Verified collected under `dart-sdk/include/`" check matched the path *suffix* via
+  `cquery --output=files`, not the unified tree root.) Converting to a genrule rooted in the `sdk/`
+  package — matching the sibling binary/snapshot/resource copies — fixes this. **Verified
+  2026-05-31 (claude, local build):** `bazel build //sdk:create_sdk` now produces
+  `bazel-bin/sdk/dart-sdk/include/{dart_api,dart_native_api,dart_tools_api}.h` physically (real
+  content); `cquery` lists them under `sdk/dart-sdk/include/`. (`//runtime/include:copy_headers`
+  is left in place — still GN-mapped (`sdk/BUILD.gn:770`) — but is no longer consumed by the
+  Bazel assembly.)
 - ~~**`lib/libraries.json`** — `copy_libraries_specification`~~ **DONE (sess 35, claude):**
   `cp $< $@` genrule → `dart-sdk/lib/libraries.json`, byte-identical to the source; collected
   by `create_sdk` (the `dart-sdk/` prefix resolves the old source-label collision).
