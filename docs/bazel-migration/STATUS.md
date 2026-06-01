@@ -27,7 +27,11 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 51, agy/jetski) — **Formalized the Starlark dart_toolchain system, migrated all compilation rules to the toolchain resolution model, and verified all native VM targets compile green.**_
+_Last updated: 2026-06-01 (session 52, agy/jetski) — **Resolved Starlark $(location) expansion compile failures, enabled Perfetto no-log mode (Issue 00004), and removed the redundant log stub.**_
+
+Session 52 — **(agy/jetski) Resolved Starlark $(location) expansion compilation failures and resolved Perfetto no-log mode (Issue 00004).**
+- **Fixed Starlark-level `$(location)` Expansion**: Added dynamic path template expansion using `ctx.expand_location` within the custom `dart_app_jit_training` rule inside `tools/bazel/dart/defs.bzl`. This resolved `location: command not found` bash errors during DDC/DDS/Kernel JIT snapshot training, restoring a 100% green complete SDK build under the Bazel sandbox.
+- **Resolved Issue 00004 (Perfetto No-Log Mode)**: Configured upstream-supported `PERFETTO_DISABLE_LOG` define in both `third_party/perfetto/BUILD.gn` and `third_party/perfetto/BUILD.bazel`. This eliminated dead code paths, shrank output binaries, permanently removed the redundant custom `perfetto_log_stub.cc` from our source sets, and deleted the issue tracking file.
 
 Session 51 — **(agy/jetski) Formalized the Starlark `dart_toolchain` system and migrated all compilation rules to the toolchain resolution model.**
 - **Implemented and Registered `dart_toolchain`**: Defined a formal Starlark `dart_toolchain` rule and `DartToolchainInfo` provider in `tools/bazel/dart/defs.bzl`. Registered the default prebuilt toolchain target (`prebuilt_dart_toolchain`) inside `tools/bazel/dart/BUILD.bazel` and integrated it into `MODULE.bazel` via `register_toolchains()`, establishing modern, hermetic toolchain resolution trees.
