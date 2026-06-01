@@ -12,8 +12,70 @@ import sys
 import utils
 
 
+def TestWithBazel(args):
+    named_config = None
+    remaining_args = []
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == '-n' or arg == '--named-configuration':
+            if i + 1 < len(args):
+                named_config = args[i+1]
+                i += 2
+                continue
+        elif arg.startswith('--named-configuration='):
+            named_config = arg.split('=', 1)[1]
+            i += 1
+            continue
+        remaining_args.append(arg)
+        i += 1
+
+    repo_name = 'dart_tests'
+    if named_config:
+        if 'wasm' in named_config or 'dart2wasm' in named_config:
+            repo_name = 'dart_tests_wasm_d8'
+        elif 'debug' in named_config and ('vm' in named_config or 'dartk' in named_config):
+            repo_name = 'dart_tests_vm_debug'
+        elif 'release' in named_config:
+            repo_name = 'dart_tests'
+
+    selectors = []
+    for arg in remaining_args:
+        if not arg.startswith('-'):
+            selectors.append(arg)
+
+    if not selectors:
+        print("Error: Bazel test delegation requires at least one test selector (e.g., 'web/wasm/simd/vector_test').")
+        return 1
+
+    bazel_targets = []
+    for selector in selectors:
+        name = selector
+        if name.startswith('tests/'):
+            name = name[len('tests/'):]
+        if name.endswith('.dart'):
+            name = name[:-len('.dart')]
+
+        target_name = name.replace("/", "_").replace("-", "_").replace(".", "_")
+        bazel_targets.append(f"@{repo_name}//:{target_name}")
+
+    bazel_command = ['bazel', 'test'] + bazel_targets
+    print('Running Bazel Tests: ' + ' '.join(bazel_command))
+    process = subprocess.Popen(bazel_command)
+    process.wait()
+    return process.returncode
+
+
 def Main():
     args = sys.argv[1:]
+
+    use_bazel = False
+    if '--bazel' in args:
+        args.remove('--bazel')
+        use_bazel = True
+
+    if use_bazel:
+        return TestWithBazel(args)
 
     cleanup_dart = False
     if '--cleanup-dart-processes' in args:

@@ -11,7 +11,12 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-06-01 (session 43) — **GN-to-Bazel build cutover started & transitive NDEBUG leak resolved.** Added the `--bazel` command-line option to `tools/build.py` to delegate GN/Ninja build requests directly to Bazel. Discovered and fixed a compilation hazard in debug VM builds (`both DEBUG and NDEBUG defined`) by isolating `NDEBUG` to private `local_defines` inside all four Zlib SIMD targets in `third_party/zlib/BUILD.bazel`._
+_Last updated: 2026-06-01 (session 44) — **GN-to-Bazel build & test cutover completed.** Added the `--bazel` command-line option to `tools/test.py` to delegate test executions directly to Bazel test targets. Verified dynamic resolution of multiple test selectors, configuration mappings, and parallel test executions in the hermetic Bazel sandbox with 100% green success!_
+
+Session 44 — **GN-to-Bazel Build & Test Cutover COMPLETED.**
+(1) Implemented the `--bazel` command-line flag in `tools/test.py` and designed the `TestWithBazel` target mapping logic.
+(2) Added support to dynamically map standard test selectors (like `web/wasm/simd/simd_test`) to their dynamically generated Bazel target labels under their respective dynamic Bzlmod external repositories (like `@dart_tests_wasm_d8`).
+(3) Verified that multiple test selectors passed in parallel are compiled, sandboxed, and executed under the hermetic Bazel sandbox natively, returning correct outcomes and exit codes.
 
 Session 43 — **GN-to-Bazel Build Cutover STARTED & Transitive NDEBUG Leak RESOLVED.**
 (1) Implemented the `--bazel` command-line flag in `tools/build.py` and built the `BuildWithBazel` target translation logic, mapping targets like `create_sdk` and `dartvm` to their native Bazel counterparts.
