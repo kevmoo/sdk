@@ -23,3 +23,6 @@ register_toolchains(
 
 dart_tests = use_extension("//tools/bazel/dart:test_rules.bzl", "dart_tests_extension")
 use_repo(dart_tests, "dart_tests", "dart_tests_vm_debug", "dart_tests_wasm_d8")
+
+third_party = use_extension("//tools/bazel:third_party.bzl", "third_party_extension")
+use_repo(third_party, "icu", "zlib")

@@ -24,11 +24,12 @@ cc_library(
         "src/src/protozero/static_buffer.cc",
         "src/src/protozero/virtual_destructors.cc",
     ],
-    hdrs = glob(
+    hdrs = [
+        ":copy_perfetto_build_flags",
+    ] + glob(
         [
             "src/include/**/*.h",
             "src/src/protozero/**/*.h",  # protozero internal headers
-            "src/build_config/*.h",  # M3 codegen-output copies
             "protos/**/*.pbzero.h",  # M3: checked-in protozero codegen
         ],
         allow_empty = True,
@@ -44,4 +45,11 @@ cc_library(
         "src/build_config",
         "src/include",
     ],
+)
+
+genrule(
+    name = "copy_perfetto_build_flags",
+    srcs = ["perfetto_build_flags.h"],
+    outs = ["src/build_config/perfetto_build_flags.h"],
+    cmd = "cp $< $@",
 )

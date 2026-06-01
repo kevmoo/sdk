@@ -297,8 +297,8 @@ cc_library(
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib",
+        "@icu//:icuuc",
+        "@zlib",
     ],
 )
 
@@ -413,7 +413,7 @@ cc_library(
         "//build/config:dart_mode",
         "//runtime/bin:libdart_builtin",
         "//third_party/boringssl",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -529,7 +529,7 @@ cc_library(
         "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
         "//third_party/boringssl",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -890,8 +890,8 @@ cc_library(
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib",
+        "@icu//:icuuc",
+        "@zlib",
     ],
 )
 
@@ -1006,8 +1006,8 @@ cc_library(
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib",
+        "@icu//:icuuc",
+        "@zlib",
     ],
 )
 
@@ -1121,8 +1121,8 @@ cc_library(
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib",
+        "@icu//:icuuc",
+        "@zlib",
     ],
 )
 
@@ -1317,8 +1317,8 @@ cc_library(
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
-        "//third_party/zlib",
+        "@icu//:icuuc",
+        "@zlib",
     ],
 )
 
@@ -1804,7 +1804,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -1915,7 +1915,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -2028,7 +2028,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -2140,7 +2140,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -2254,7 +2254,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -2368,7 +2368,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -2482,7 +2482,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -2596,7 +2596,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -2694,7 +2694,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -2793,7 +2793,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -2894,7 +2894,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -2995,7 +2995,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -3096,7 +3096,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -3197,7 +3197,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ],
 )
 
@@ -3297,7 +3297,7 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -3396,7 +3396,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//third_party/zlib",
+        "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
 
@@ -3406,10 +3406,10 @@ cc_library(
 # "icudtl_linkable") + runtime/tools/bin_to_assembly.py.
 genrule(
     name = "dart_icudata_S",
-    srcs = ["//third_party/icu/flutter:icudtl.dat"],
+    srcs = ["@icu//flutter:icudtl.dat"],
     outs = ["dart_icudata.S"],
     cmd = "python3 $(location //runtime/tools:bin_to_assembly.py) " +
-          "--input $(location //third_party/icu/flutter:icudtl.dat) " +
+          "--input $(location @icu//flutter:icudtl.dat) " +
           "--output $@ " +
           "--symbol_name kIcuData " +
           select({
@@ -4858,7 +4858,7 @@ cc_library(
         "//build/config:dart_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
-        "//third_party/zlib",
+        "@zlib",
     ],
     alwayslink = True,
 )

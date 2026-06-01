@@ -102,6 +102,15 @@ def canonical_label(label):
         return label
     if "(" in label:
         return label
+
+    # Bzlmod mapping (Option 1)
+    if label == "//third_party/zlib" or label.startswith("//third_party/zlib:"):
+        return label.replace("//third_party/zlib", "@zlib//")
+    if label == "//third_party/icu" or label.startswith("//third_party/icu:"):
+        return label.replace("//third_party/icu", "@icu//")
+    if label.startswith("//third_party/icu/flutter:"):
+        return label.replace("//third_party/icu/flutter:", "@icu//flutter:")
+
     body = label[2:]
     if ":" in body:
         path, name = body.split(":", 1)

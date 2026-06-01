@@ -201,6 +201,32 @@
         }
       }
     },
+    "//tools/bazel:third_party.bzl%third_party_extension": {
+      "general": {
+        "bzlTransitiveDigest": "E2EIUcyBLbG3Ae1koKdRkgCeeXgtB7qqPCJUHMzB8cU=",
+        "usagesDigest": "k+VyByciEN7g6vVIT39dA9k9gjFtpr2pqmD7+XEFH8Q=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "icu": {
+            "repoRuleId": "@@//tools/bazel:third_party.bzl%local_overlay_repository",
+            "attributes": {
+              "repo_type": "icu",
+              "path": "third_party/icu",
+              "build_file": "@@//tools/bazel:out_of_band/snapshot/third_party/icu/BUILD.bazel.snap"
+            }
+          },
+          "zlib": {
+            "repoRuleId": "@@//tools/bazel:third_party.bzl%local_overlay_repository",
+            "attributes": {
+              "repo_type": "zlib",
+              "path": "third_party/zlib",
+              "prefix": "zlib",
+              "build_file": "@@//tools/bazel:out_of_band/snapshot/third_party/zlib/BUILD.bazel.snap"
+            }
+          }
+        }
+      }
+    },
     "//tools/bazel/dart:test_rules.bzl%dart_tests_extension": {
       "general": {
         "bzlTransitiveDigest": "eJDsqXpM3yapEXLKwH44ViuQ5K3QvjGzRTY8h4Phugc=",

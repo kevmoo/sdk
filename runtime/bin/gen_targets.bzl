@@ -1347,7 +1347,7 @@ def gen_targets():
             "//runtime/bin:run_vm_tests_set",
             "//third_party/boringssl",
             "//third_party/perfetto:libprotozero",
-            "//third_party/zlib",
+            "@zlib//:zlib",
             "//build/config:dart_mode",
         ],
         local_defines = [

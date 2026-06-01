@@ -1,5 +1,3 @@
-build --incompatible_enable_cc_toolchain_resolution
-build --noincompatible_strict_action_env
-
-# Per-repo Bazel state lives outside the source tree.
-startup --output_user_root=/var/tmp/bazel-dart-sdk
+# Ignores conflicting subpackage BUILD and WORKSPACE files from nested gclient checkouts
+# so we do not have to rename or modify them on the local filesystem.
+common --deleted_packages=third_party/boringssl/src,third_party/perfetto/src,third_party/perfetto/src/bazel,third_party/perfetto/src/python
