@@ -886,6 +886,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",

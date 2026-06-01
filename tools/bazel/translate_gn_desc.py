@@ -223,7 +223,8 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
             f'"{c}"'
             for c in t.get(key, [])
             if not c.startswith(("--sysroot=", "--target=", "-march=", "-mtune="))
-            and c not in ("-m64", "-msse", "-msse2", "-msse3", "-msse4", "-msse4.1", "-msse4.2", "-mavx", "-mavx2")
+            and (c not in ("-m64", "-msse", "-msse2", "-msse3", "-msse4", "-msse4.1", "-msse4.2", "-mavx", "-mavx2")
+                 or "zlib_crc32" in name)
         ]
     copts = include_copts + _flags("cflags")
     conlyopts = _flags("cflags_c")
@@ -234,7 +235,7 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
         defines = [d for d in defines if d != '"NDEBUG"']
         is_dedicated_product = "_product" in name
         has_product = '"PRODUCT"' in defines
-        if has_product and not is_dedicated_product:
+        if has_product:
             defines = [d for d in defines if d != '"PRODUCT"']
         dart_mode_dep = '"//build/config:dart_mode_no_arch"' if is_cross_target else '"//build/config:dart_mode"'
         other_dart_mode = '"//build/config:dart_mode"' if is_cross_target else '"//build/config:dart_mode_no_arch"'
@@ -244,9 +245,6 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
             deps.append(dart_mode_dep)
         if has_product:
             if is_dedicated_product:
-                if '"PRODUCT"' not in defines:
-                    defines.append('"PRODUCT"')
-            else:
                 if '"//build/config:dart_product_mode"' not in deps:
                     deps.append('"//build/config:dart_product_mode"')
         copts = [c for c in copts if c != '"-fno-ident"']

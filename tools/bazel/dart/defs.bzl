@@ -405,6 +405,7 @@ def dart_app_jit_snapshot(
         vm_args = None,
         training_srcs = None,
         out = None,
+        link_platform = False,
         **kwargs):
     """Build a Dart app-jit snapshot via a training run. Ports utils/application_snapshot.gni.
 
@@ -445,7 +446,7 @@ def dart_app_jit_snapshot(
         cmd = (
             "{dart} -Dsdk_hash={hash} $(location {boot}) " +
             "--packages={pkg} --platform=$(location {plat}) " +
-            "--no-aot --no-embed-sources --no-link-platform --output=$@ " +
+            "--no-aot --no-embed-sources {link_platform}--output=$@ " +
             "-Dsdk_hash={hash} -Ddart.vm.product={product} " +
             "-Ddart.vm.asan=false -Ddart.vm.msan=false -Ddart.vm.tsan=false " +
             "{extra}$(location {main})"
@@ -458,6 +459,7 @@ def dart_app_jit_snapshot(
             product = "true" if product else "false",
             extra = "".join([a + " " for a in gen_kernel_args]),
             main = main,
+            link_platform = "" if link_platform else "--no-link-platform ",
         ),
     )
 

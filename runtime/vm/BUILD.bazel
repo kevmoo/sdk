@@ -472,12 +472,12 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -1143,13 +1143,13 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILER",
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -2798,7 +2798,6 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILED_RUNTIME",
@@ -2813,6 +2812,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
     ],
@@ -3444,7 +3444,6 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "U_USING_ICU_NAMESPACE=0",
@@ -3457,6 +3456,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
     ],
@@ -4743,7 +4743,6 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILER",
@@ -4757,6 +4756,7 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
+        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",

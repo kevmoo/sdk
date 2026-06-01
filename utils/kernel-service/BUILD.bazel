@@ -123,6 +123,7 @@ dart_app_jit_snapshot(
     out = "kernel-service.dart.snapshot",
     dart_vm = "//runtime/bin:dartvm",
     gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    link_platform = True,
     main = "//:pkg/vm/bin/kernel_service.dart",
     platform_dill = "//runtime/vm:vm_platform.dill",
     product = False,
