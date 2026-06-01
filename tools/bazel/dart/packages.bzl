@@ -237,16 +237,6 @@ def dart_packages():
         deps = [],
     )
     dart_library(
-        name = "dart_pkg_dart_mcp",
-        srcs = native.glob(["third_party/pkg/ai/pkgs/dart_mcp/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_async", ":dart_pkg_collection", ":dart_pkg_json_rpc_2", ":dart_pkg_meta", ":dart_pkg_stream_channel", ":dart_pkg_stream_transform"],
-    )
-    dart_library(
-        name = "dart_pkg_dart_mcp_server",
-        srcs = native.glob(["third_party/pkg/ai/pkgs/dart_mcp_server/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_args", ":dart_pkg_async", ":dart_pkg_cli_util", ":dart_pkg_collection", ":dart_pkg_dart_mcp", ":dart_pkg_dds_service_extensions", ":dart_pkg_devtools_shared", ":dart_pkg_dtd", ":dart_pkg_file", ":dart_pkg_http", ":dart_pkg_json_rpc_2", ":dart_pkg_language_server_protocol", ":dart_pkg_meta", ":dart_pkg_mime", ":dart_pkg_package_config", ":dart_pkg_path", ":dart_pkg_pool", ":dart_pkg_process", ":dart_pkg_stream_channel", ":dart_pkg_unified_analytics", ":dart_pkg_vm_service", ":dart_pkg_watcher", ":dart_pkg_web_socket", ":dart_pkg_yaml"],
-    )
-    dart_library(
         name = "dart_pkg_dart_runtime_service",
         srcs = native.glob(["pkg/dart_runtime_service/lib/**/*.dart"], allow_empty = True),
         deps = [":dart_pkg_dds", ":dart_pkg_dds_service_extensions", ":dart_pkg_json_rpc_2", ":dart_pkg_logging", ":dart_pkg_meta", ":dart_pkg_pool", ":dart_pkg_shelf", ":dart_pkg_shelf_web_socket", ":dart_pkg_sse", ":dart_pkg_stream_channel", ":dart_pkg_vm_service", ":dart_pkg_web_socket_channel"],
@@ -269,12 +259,22 @@ def dart_packages():
     dart_library(
         name = "dart_pkg_dartdev",
         srcs = native.glob(["pkg/dartdev/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_analysis_server", ":dart_pkg_analysis_server_client", ":dart_pkg_analyzer", ":dart_pkg_args", ":dart_pkg_cli_util", ":dart_pkg_code_assets", ":dart_pkg_collection", ":dart_pkg_dart2native", ":dart_pkg_dart_data_home", ":dart_pkg_dart_mcp_server", ":dart_pkg_dart_style", ":dart_pkg_dartdoc", ":dart_pkg_data_assets", ":dart_pkg_dds", ":dart_pkg_dds_service_extensions", ":dart_pkg_dtd_impl", ":dart_pkg_file", ":dart_pkg_front_end", ":dart_pkg_frontend_server", ":dart_pkg_hooks", ":dart_pkg_hooks_runner", ":dart_pkg_http", ":dart_pkg_kernel", ":dart_pkg_logging", ":dart_pkg_meta", ":dart_pkg_package_config", ":dart_pkg_path", ":dart_pkg_perf_witness", ":dart_pkg_pub", ":dart_pkg_pub_formats", ":dart_pkg_unified_analytics", ":dart_pkg_vm", ":dart_pkg_vm_service", ":dart_pkg_yaml"],
+        deps = [":dart_pkg_analysis_server", ":dart_pkg_analysis_server_client", ":dart_pkg_analyzer", ":dart_pkg_args", ":dart_pkg_cli_util", ":dart_pkg_code_assets", ":dart_pkg_collection", ":dart_pkg_dart2native", ":dart_pkg_dart_data_home", ":dart_pkg_dart_style", ":dart_pkg_dartdoc", ":dart_pkg_data_assets", ":dart_pkg_dds", ":dart_pkg_dds_service_extensions", ":dart_pkg_dtd_impl", ":dart_pkg_file", ":dart_pkg_front_end", ":dart_pkg_frontend_server", ":dart_pkg_hooks", ":dart_pkg_hooks_runner", ":dart_pkg_http", ":dart_pkg_kernel", ":dart_pkg_logging", ":dart_pkg_meta", ":dart_pkg_package_config", ":dart_pkg_path", ":dart_pkg_perf_witness", ":dart_pkg_pub", ":dart_pkg_pub_formats", ":dart_pkg_unified_analytics", ":dart_pkg_vm", ":dart_pkg_vm_service", ":dart_pkg_yaml"],
     )
     dart_library(
         name = "dart_pkg_dartdoc",
         srcs = native.glob(["third_party/pkg/dartdoc/lib/**/*.dart"], allow_empty = True),
         deps = [":dart_pkg_analyzer", ":dart_pkg_args", ":dart_pkg_collection", ":dart_pkg_crypto", ":dart_pkg_glob", ":dart_pkg_html", ":dart_pkg_logging", ":dart_pkg_markdown", ":dart_pkg_meta", ":dart_pkg_package_config", ":dart_pkg_path", ":dart_pkg_pub_semver", ":dart_pkg_source_span", ":dart_pkg_yaml"],
+    )
+    dart_library(
+        name = "dart_pkg_dartpad",
+        srcs = native.glob(["pkg/dartpad/lib/**/*.dart"], allow_empty = True),
+        deps = [":dart_pkg_json_rpc_2", ":dart_pkg_stream_channel", ":dart_pkg_web"],
+    )
+    dart_library(
+        name = "dart_pkg_dartpad_worker",
+        srcs = native.glob(["pkg/dartpad_worker/lib/**/*.dart"], allow_empty = True),
+        deps = [":dart_pkg_analysis_server", ":dart_pkg_analyzer", ":dart_pkg_args", ":dart_pkg_async", ":dart_pkg_dartpad", ":dart_pkg_dev_compiler", ":dart_pkg_file", ":dart_pkg_front_end", ":dart_pkg_http", ":dart_pkg_json_rpc_2", ":dart_pkg_kernel", ":dart_pkg_path", ":dart_pkg_pub", ":dart_pkg_stream_channel", ":dart_pkg_tar", ":dart_pkg_unified_analytics", ":dart_pkg_web"],
     )
     dart_library(
         name = "dart_pkg_data_assets",
