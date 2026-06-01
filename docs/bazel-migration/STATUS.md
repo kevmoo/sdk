@@ -11,7 +11,13 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-06-01 (session 39) — **Phase 1 of Testing Roadmap STARTED (`ef97598f6c1`).** Reorganized documentation workspace to establish specialized testing deep-dive. Verified macOS Silicon compiler configurations 100% green on Linux RIG. Prepared stage to implement `--dump-test-metadata` in `pkg/test_runner`._
+_Last updated: 2026-06-01 (session 40) — **Phase 1 of Testing Roadmap COMPLETED (`5d1b87055de`).** Implemented CLI option `--dump-test-metadata` in `pkg/test_runner` to export test suites, expectations, and commands list to JSON without executing or compiling tests. Verified discovery natively on Linux VM._
+
+Session 40 — **Phase 1 of Testing Roadmap COMPLETED (`5d1b87055de`).**
+(1) Implemented `--dump-test-metadata=<json-file>` CLI option and parser mapping in `pkg/test_runner` to synchronously discover and dump resolved test configurations, expectations, and process commands to structured JSON.
+(2) Updated `pkg/test_runner/bin/test_runner.dart` to bypass target compilation and build steps if metadata dumping is active, reducing discovery time to ~2 seconds.
+(3) Audited the exported JSON schema and verified that absolute file paths, outcomes, and native process command lists match target executor specifications.
+(4) Committed all 4 modified test runner source files to the local branch `kevmoo/bazel-m1-cc-toolchain`.
 
 Session 39 — **Phase 1 of Testing Roadmap STARTED (`ef97598f6c1`).**
 (1) Consolidated all planning, status, and deep-dive files into `docs/bazel-migration/` (retaining full Git commit history).
