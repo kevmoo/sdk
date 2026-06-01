@@ -203,7 +203,7 @@
     },
     "//tools/bazel:third_party.bzl%third_party_extension": {
       "general": {
-        "bzlTransitiveDigest": "E2EIUcyBLbG3Ae1koKdRkgCeeXgtB7qqPCJUHMzB8cU=",
+        "bzlTransitiveDigest": "usny3xmoTAC1YJWrtBFs0mCJbwGmj1QsOY8E98Za1W4=",
         "usagesDigest": "k+VyByciEN7g6vVIT39dA9k9gjFtpr2pqmD7+XEFH8Q=",
         "recordedInputs": [],
         "generatedRepoSpecs": {

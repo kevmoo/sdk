@@ -160,14 +160,23 @@ genrule(
     name = "copy_dart",
     srcs = ["//runtime/bin:dart"],
     outs = ["dart-sdk/bin/dart"],
-    cmd = "strip --strip-all -o $@ $<",
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
 )
 
 genrule(
     name = "copy_dart_sym",
-    srcs = ["//runtime/bin:dart"],
+    srcs = [
+        "//runtime/bin:dart",
+        "//runtime/tools:dart_profiler_symbols.py",
+    ],
     outs = ["dart-sdk/bin/dart.sym"],
-    cmd = "objcopy --only-keep-debug $< $@",
+    cmd = select({
+        "//build/config:os_macos": "python3 $(location //runtime/tools:dart_profiler_symbols.py) --nm nm --output $@ --binary $$(echo '$(SRCS)' | cut -d' ' -f1)",
+        "//conditions:default": "objcopy --only-keep-debug $$(echo '$(SRCS)' | cut -d' ' -f1) $@",
+    }),
 )
 
 genrule(
@@ -227,7 +236,10 @@ genrule(
         "//conditions:default": ["//runtime/bin:dartaotruntime"],
     }),
     outs = ["dart-sdk/bin/dartaotruntime"],
-    cmd = "strip --strip-all -o $@ $<",
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
 )
 
 # TODO(M3): copy for copy_dart_aotruntime_asan (gn type=copy)
@@ -238,9 +250,21 @@ cc_library(name = "copy_dart_aotruntime_msan")
 
 genrule(
     name = "copy_dart_aotruntime_sym",
-    srcs = ["//runtime/bin:dartaotruntime_product"],
+    srcs = select({
+        "//build/config:product": [
+            "//runtime/bin:dartaotruntime_product",
+            "//runtime/tools:dart_profiler_symbols.py",
+        ],
+        "//conditions:default": [
+            "//runtime/bin:dartaotruntime",
+            "//runtime/tools:dart_profiler_symbols.py",
+        ],
+    }),
     outs = ["dart-sdk/bin/dartaotruntime.sym"],
-    cmd = "objcopy --only-keep-debug $< $@",
+    cmd = select({
+        "//build/config:os_macos": "python3 $(location //runtime/tools:dart_profiler_symbols.py) --nm nm --output $@ --binary $$(echo '$(SRCS)' | cut -d' ' -f1)",
+        "//conditions:default": "objcopy --only-keep-debug $$(echo '$(SRCS)' | cut -d' ' -f1) $@",
+    }),
 )
 
 # TODO(M3): copy for copy_dart_aotruntime_tsan (gn type=copy)
@@ -306,14 +330,23 @@ genrule(
     name = "copy_dartvm",
     srcs = ["//runtime/bin:dartvm"],
     outs = ["dart-sdk/bin/dartvm"],
-    cmd = "strip --strip-all -o $@ $<",
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
 )
 
 genrule(
     name = "copy_dartvm_sym",
-    srcs = ["//runtime/bin:dartvm"],
+    srcs = [
+        "//runtime/bin:dartvm",
+        "//runtime/tools:dart_profiler_symbols.py",
+    ],
     outs = ["dart-sdk/bin/dartvm.sym"],
-    cmd = "objcopy --only-keep-debug $< $@",
+    cmd = select({
+        "//build/config:os_macos": "python3 $(location //runtime/tools:dart_profiler_symbols.py) --nm nm --output $@ --binary $$(echo '$(SRCS)' | cut -d' ' -f1)",
+        "//conditions:default": "objcopy --only-keep-debug $$(echo '$(SRCS)' | cut -d' ' -f1) $@",
+    }),
 )
 
 genrule(
@@ -460,14 +493,29 @@ genrule(
         "//conditions:default": ["//runtime/bin:gen_snapshot"],
     }),
     outs = ["dart-sdk/bin/utils/gen_snapshot"],
-    cmd = "strip --strip-all -o $@ $<",
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
 )
 
 genrule(
     name = "copy_gen_snapshot_sym",
-    srcs = ["//runtime/bin:gen_snapshot_product"],
+    srcs = select({
+        "//build/config:product": [
+            "//runtime/bin:gen_snapshot_product",
+            "//runtime/tools:dart_profiler_symbols.py",
+        ],
+        "//conditions:default": [
+            "//runtime/bin:gen_snapshot",
+            "//runtime/tools:dart_profiler_symbols.py",
+        ],
+    }),
     outs = ["dart-sdk/bin/utils/gen_snapshot.sym"],
-    cmd = "objcopy --only-keep-debug $< $@",
+    cmd = select({
+        "//build/config:os_macos": "python3 $(location //runtime/tools:dart_profiler_symbols.py) --nm nm --output $@ --binary $$(echo '$(SRCS)' | cut -d' ' -f1)",
+        "//conditions:default": "objcopy --only-keep-debug $$(echo '$(SRCS)' | cut -d' ' -f1) $@",
+    }),
 )
 
 # Copy the public C API headers into the SDK tree. This is a genrule (not a filegroup

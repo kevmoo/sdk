@@ -1,3 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["bin_to_assembly.py"])
+exports_files([
+    "bin_to_assembly.py",
+    "dart_profiler_symbols.py",
+])
