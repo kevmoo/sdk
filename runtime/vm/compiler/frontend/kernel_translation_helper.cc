@@ -1967,6 +1967,9 @@ ObfuscationProhibitionsMetadataHelper::ObfuscationProhibitionsMetadataHelper(
     : MetadataHelper(helper, tag(), /* precompiler_only = */ true) {}
 
 void ObfuscationProhibitionsMetadataHelper::ReadMetadata(intptr_t node_offset) {
+  if (!Thread::Current()->isolate_group()->obfuscate()) {
+    return;
+  }
   intptr_t md_offset = GetNextMetadataPayloadOffset(node_offset);
   if (md_offset < 0) {
     return;
