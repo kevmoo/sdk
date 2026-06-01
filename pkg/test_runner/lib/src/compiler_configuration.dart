@@ -575,6 +575,7 @@ class Dart2WasmCompilerConfiguration extends CompilerConfiguration {
       ..._configuration.sharedOptions,
       ..._experimentsArgument(_configuration, testFile),
       ...testFile.dart2wasmOptions,
+      ...args.where((name) => name.startsWith('--packages=')),
       // The file being compiled is the last argument.
       args.last,
     ];
