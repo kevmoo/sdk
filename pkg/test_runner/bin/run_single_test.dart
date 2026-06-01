@@ -77,7 +77,10 @@ void main(List<String> args) async {
 
     if (executable == 'pkg/dart2wasm/tool/compile_benchmark' &&
         testSrcdir != null) {
-      final sdkDir = '$testSrcdir/_main/tools/sdks/dart-sdk';
+      var sdkDir = '$testSrcdir/_main/sdk/dart-sdk';
+      if (!Directory(sdkDir).existsSync()) {
+        sdkDir = '$testSrcdir/_main/tools/sdks/dart-sdk';
+      }
       executable = '$sdkDir/bin/dartaotruntime';
       final newArgs = [
         '$sdkDir/bin/snapshots/dart2wasm_product.snapshot',

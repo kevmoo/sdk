@@ -11,7 +11,12 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-06-01 (session 44) — **GN-to-Bazel build & test cutover completed.** Added the `--bazel` command-line option to `tools/test.py` to delegate test executions directly to Bazel test targets. Verified dynamic resolution of multiple test selectors, configuration mappings, and parallel test executions in the hermetic Bazel sandbox with 100% green success!_
+_Last updated: 2026-06-01 (session 45) — **Dynamic sandbox testing prebuilt SDK dependency eliminated (Phase 4).** Replaced static prebuilt SDK dependencies with the live compiled SDK in the test sandbox, verified standard library change propagation and incremental compilation._
+
+Session 45 — **Dynamic Sandbox Testing Prebuilt SDK Dependency ELIMINATED (Phase 4).**
+(1) Replaced static prebuilt SDK targets (`@//tools/sdks/dart-sdk:sdk_files`, `@//tools/sdks/dart-sdk:bin/dart`) in `tools/bazel/dart/test_rules.bzl` data dependencies with the live compiled target `@//sdk:create_sdk`.
+(2) Updated `pkg/test_runner/bin/run_single_test.dart` to dynamically locate and resolve the live compiled SDK layout (`sdk/dart-sdk`) inside the `$TEST_SRCDIR` sandbox runfiles, falling back to the prebuilt SDK only if not found.
+(3) Verified that modifying a core SDK Wasm library file (`sdk/lib/_wasm/wasm_types.dart`) triggers a standard incremental compile of the platform `.dill` file, propagating the changes dynamically to parallel test executions successfully.
 
 Session 44 — **GN-to-Bazel Build & Test Cutover COMPLETED.**
 (1) Implemented the `--bazel` command-line flag in `tools/test.py` and designed the `TestWithBazel` target mapping logic.

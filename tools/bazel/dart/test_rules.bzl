@@ -99,8 +99,7 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
         # Construct list of sandbox data dependencies
         data_deps = [
             "@//pkg/test_runner/bin:run_single_test.dart",
-            "@//tools/sdks/dart-sdk:sdk_files",
-            "@//tools/sdks/dart-sdk:bin/dart",
+            "@//sdk:create_sdk",
             test_file_label,
             ":" + json_filename,
         ]
