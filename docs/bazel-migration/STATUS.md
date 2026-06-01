@@ -2,7 +2,7 @@
 
 > **Not an `issue_NNNNN` file.** This is the living progress tracker for the
 > GN+Ninja → Bazel migration on branch `kevmoo/bazel-m1-cc-toolchain`. It lives
-> here because `docs/todo_issues/` is where this work stream keeps its durable,
+> here because `docs/bazel-migration/` is where this work stream keeps its durable,
 > reviewable artifacts. The `issue_*.md` files are *discovered SDK improvements*;
 > this file is *where the migration itself stands*.
 >
@@ -11,7 +11,14 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-05-31 (session 38) — **Rock 2 (M4 Arch Axis A — True Cross-Compilation) FULLY COMPLETED (`agy`) — 5 local commits, NOT pushed.** Resolved all remaining cross-compilation gaps targeting `linux_arm64`: manually parameterized `runtime/bin/BUILD.bazel` (43 targets) and third-party library builds (`third_party/boringssl`, `third_party/fallback_root_certificates`, `third_party/binaryen`) to strip hardcoded x86_64 host compiler flags and target triples; restructured BoringSSL assembly target `boringssl_asm` using Bazel `select()` to compile AArch64 assembly on ARM64 and x86_64 assembly on x86_64; fixed Zlib's transitive `defines` propagation to pass `ARMV8_OS_LINUX` upward to `cpu_features.c`. Full `bazel build --platforms=//build/platforms:linux_arm64 //runtime/bin:dartvm` completes green, producing a pristine, genuine ARM64 ELF pie binary under the sandbox!
+_Last updated: 2026-06-01 (session 39) — **Phase 1 of Testing Roadmap STARTED (`ef97598f6c1`).** Reorganized documentation workspace to establish specialized testing deep-dive. Verified macOS Silicon compiler configurations 100% green on Linux RIG. Prepared stage to implement `--dump-test-metadata` in `pkg/test_runner`._
+
+Session 39 — **Phase 1 of Testing Roadmap STARTED (`ef97598f6c1`).**
+(1) Consolidated all planning, status, and deep-dive files into `docs/bazel-migration/` (retaining full Git commit history).
+(2) Created `docs/bazel-migration/deep_dives/testing_migration_roadmap.md` outlining the 4-phase dynamic Bazel testing architecture.
+(3) Evolved `DESIGN.md §3.5` to remove the obsolete Starlark-driven status file parsing rule sketch and linked directly to the new roadmap.
+(4) Audited and reviewed macOS Apple Silicon unified platform compiler and BoringSSL assembly configurations natively on Linux: standalone `dart` binary and packaged `create_sdk` completed successfully with 100% cache hit rates.
+(5) Began core architectural research into `pkg/test_runner` to implement `--dump-test-metadata`.
 
 Session 38 — **Rock 2 (M4 Arch Axis A — True Cross-Compilation) FULLY COMPLETED (`agy`) — 5 local commits, NOT pushed.**
 (1) Surgically stripped hardcoded host-specific target/compiler flags (`-m64`, `-march=x86-64`, `-msse2`, `--target=x86_64-linux-gnu`) from all 43 targets in `runtime/bin/BUILD.bazel` and committed locally.
