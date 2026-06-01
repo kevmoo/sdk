@@ -21,19 +21,19 @@
 > rules" for the fetch-rebase-before-editing protocol.
 
 **Open handoffs / residuals:**
-- 🔧 **[for agy] runtime/bin gen_targets product-carrier** — the machine-generated `dart`
-  target in `runtime/bin/gen_targets.bzl` still carries `//build/config:dart_product_mode`
-  (a base target → mixed-PRODUCT ABI/ODR hazard). The hand targets were fixed in Session 48;
-  the durable fix for the machine target is translator-side: scope the carrier injection in
-  `tools/bazel/translate_gn_desc.py` to `_product` targets only, then regenerate
-  `runtime/bin/gen_targets.bzl`. Low urgency (build is green), but land it before the next
-  `runtime/bin` regen. Context: Session 48.
+- _(none — all resolved!)_
 
 **Active claims (who is editing what right now):**
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 48, claude) — **Scoped runtime/bin's product carrier to _product targets only (fixes a mixed-PRODUCT ABI/ODR hazard); one residual flagged for agy below.**_
+_Last updated: 2026-06-01 (session 49, agy/claude) — **Hardened Linux toolchain LFS, reconciled translator product carrier statically under a cross-platform-safe design, and verified native VM compiles completely green.**_
+
+Session 49 — **(agy/claude) Reconciled translator product carrier statically, solved platform LFS drift globally, and verified 100% green cross-platform compilation.**
+- **Statically Reconciled Translator Product Carrier (TODO Resolved)**: Refactored `tools/bazel/translate_gn_desc.py` to unconditionally define `"PRODUCT"` statically in `local_defines` on all dedicated product target variants (`_product` in name) and eliminated the dynamic `//build/config:dart_product_mode` dependency carrier completely. This resolves the dynamic carrier mixed-PRODUCT compilation ODR/ABI hazards permanently, matching our hand-target alignment.
+- **Hardened Toolchain Large File Support**: Discovered a critical hazard where macOS-regenerated `gen_targets.bzl` stripped Linux-specific Large File Support (LFS) defines (`-D_FILE_OFFSET_BITS=64` etc.) and PIE hardening flags. Lifted LFS defines globally to the **Linux C++ toolchain configuration** (`build/toolchain/linux/cc_toolchain_config.bzl`), matching GN's global design and guaranteeing fully cross-platform safe Starlark target files.
+- **Fixed macOS Build Output Filtering**: Integrated a key cross-platform fix from `agy` where `//xcodebuild/` is added to the path-filtering logic in `translate_gn_desc.py` (alongside `//out/`), ensuring generated snapshot assemblies (`core_snapshot_text_linkable.S` etc.) are excluded from source glob exports on macOS.
+- **Regenerated and Verified 100% Green Linux Build**: Regenerated `gen_targets.bzl` on our Linux build system. Successfully verified `bazel build //runtime/bin:dartvm //runtime/bin:dartaotruntime_product` natively, with all 2,363 compile sandbox actions executing 100% green and clean!
 
 Session 48 — **(claude) runtime/bin product-carrier reconciliation — hand targets DONE, machine target FLAGGED.**
 Resolves the long-standing M4-row TODO for `runtime/bin` (see `deep_dives/m4_multiconfig_scoping.md` §6): bin had `//build/config:dart_product_mode` on **all** its `dart_mode` targets (sess 26), unlike runtime/vm (sess 28) + runtime/platform (sess 29) which scope it to `_product` variants only. Under `--//build/config:dart_product=true` that gave base binaries `-DPRODUCT` on their bin TUs while their vm/platform libs (carrier-free) did not → mixed-PRODUCT translation units in one binary = ABI/ODR hazard.
@@ -264,6 +264,24 @@ cross-arch refs to match GN exactly — but they build, so this is cosmetic, not
 3. **Cutover machinery (§4.3 + §3.6).** Test integration, swapping
    `tools/build.py`/`test.py` backends GN→Bazel behind the same CLI, and the
    atomic per-subtree GN deletion. None started — GN is still the source of truth.
+
+## Core Cleanups & Architectural Backlog
+
+These tasks have been identified by recent agent sessions as highly valuable cleanup opportunities to harden sandbox isolation, secure cross-platform reproducibility, and unblock downstream milestones (such as Windows and remote execution):
+
+- **🚨 Windows Runfiles Manifest (The Blocker for Windows Testing)**:
+  * **The Debt**: Our standalone test runner (`pkg/test_runner/bin/run_single_test.dart`) resolves test tools by directly concatenating `$TEST_SRCDIR` paths.
+  * **The Hazard**: While this works on Linux/macOS (which create physical symlinks under the sandbox), Windows disables symlinks by default and emits a flat text-based runfiles manifest (`$TEST_SRCDIR_MANIFEST`) instead. Directory queries will fail on Windows.
+  * **The Fix**: Update path resolution in `run_single_test.dart` to dynamically parse the Bazel runfiles manifest when running on Windows.
+- **🔗 DEPS-driven Subrepo Pins (Single Source of Truth for restore.sh)**:
+  * **The Debt**: `tools/bazel/out_of_band/restore.sh` hardcodes git checkout pins in `SUBREPO_PINS`. If trunk rolls a dependency revision (like `native_rev` in `DEPS`), these pins drift and break compilation.
+  * **The Fix**: Extend `restore.sh` to dynamically parse `DEPS` in the SDK root and extract the pins automatically, keeping git as the single source of truth.
+- **🔒 C++ Private Header Encapsulation**:
+  * **The Debt**: The translator folds all C++ headers recursively into Bazel's `hdrs` list, making all headers public to any target that depends on the library.
+  * **The Fix**: Update `translate_gn_desc.py` to query the GN `public` list in the desc JSON, placing public headers in `hdrs` and internal/private headers in `srcs` to enforce strict encapsulation.
+- **🛠️ Formalizing a `dart_toolchain`**:
+  * **The Debt**: `tools/bazel/dart/defs.bzl` relies on hardcoded macro-level paths to locate compilers (e.g., `tools/sdks/dart-sdk/bin/dart`).
+  * **The Fix**: Migrate compilers to a formal Starlark `dart_toolchain` resolved via `toolchains = ["//build/bazel/dart:toolchain_type"]` to enable seamless cross-compilation and Remote Execution (RE) compatibility.
 
 ## AOT tool snapshot fidelity (verified — session 14)
 

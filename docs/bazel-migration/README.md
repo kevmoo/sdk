@@ -68,6 +68,8 @@ Architectural characterization of core migration seams:
 * **[deep_dives/m4_multiconfig_scoping.md](deep_dives/m4_multiconfig_scoping.md)** — Scoping of the Debug/Release and Product compilation axes.
 * **[deep_dives/m4_arch_axis_scoping.md](deep_dives/m4_arch_axis_scoping.md)** — Cross-compilation mapping (x64 host to ARM64 target).
 * **[deep_dives/other_agent_review.md](deep_dives/other_agent_review.md)** — Multi-agent execution reviews.
+* **[deep_dives/agent_c_migration_guide_reflection_mac_agy.md](deep_dives/agent_c_migration_guide_reflection_mac_agy.md)** — Architectural reflection on Bzlmod, macros, overlays, toolchains, and analysis latencies.
+* **[deep_dives/agent_g_migration_guide_reflection_mac_agy.md](deep_dives/agent_g_migration_guide_reflection_mac_agy.md)** — Architectural reflection on Windows runfiles manifests, private header encapsulation, and include flag propagation.
 * **[deep_dives/flutter_bazel_history.md](deep_dives/flutter_bazel_history.md)** — Analysis of historical context and prior art in rules_dart.
 
 ### 🛠️ Local Tooling & Verification
