@@ -78,3 +78,12 @@ Discovered when wiring `make_version.py` into a Bazel genrule. The genrule
 must declare every input file in `srcs`; matching that list against the
 Python-side `VM_SNAPSHOT_FILES` was the only way to know what to declare. See
 M5 hand-off memory bucket #4 for the workaround that landed.
+
+## Resolution
+
+On 2026-06-01 (Session ID: `a9fd9edd-2a96-4825-81a3-2b2cbc3bdde0`), the Bazel-side and Python script overrides were fully implemented and plumbed:
+- Added and plumbed `--dart-dir`, `--version-file`, `--snapshot-files`, and `--git-hash` into `tools/make_version.py` and `tools/utils.py`.
+- Updated `run_single_test.dart` and `test_rules.bzl` to utilize these explicit overrides dynamically inside the sandboxed Bazel sh_test targets.
+- Successfully bypassed host-bound git shelling and snapshot file coupling for Bazel-driven dynamic executions.
+
+The issue remains open for resolving the GN-side configuration coupling (`runtime/BUILD.gn`).
