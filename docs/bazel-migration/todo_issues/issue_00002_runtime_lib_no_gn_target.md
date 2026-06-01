@@ -57,3 +57,13 @@ On 2026-06-01 (Session ID: `b9e89cb8-0cfd-483f-b161-ceadc8665400`), the GN targe
 - Refactored `runtime/vm/BUILD.gn` to remove the redundant imports of `runtime/lib/*_sources.gni` and the `libdart_lib` target definition.
 - Updated `runtime/BUILD.gn` to depend on `lib:libdart_lib` instead of `vm:libdart_lib`.
 - Verified that the GN build configuration is correct and compiles successfully.
+- In Session `4c2ae753-e033-480a-a580-b7fad5393a0d` (current), the Bazel-side resolution was completed:
+  - Registered `runtime/lib` as a translated package by adding it to the allowlist in `translate_gn_desc.py`.
+  - Hand-authored a clean `runtime/lib/BUILD.bazel` overlay to call the generated `gen_targets()` macro.
+  - Cleaned up and excised over 1,600 lines of obsolete/orphaned `libdart_lib_...` targets from `runtime/vm/BUILD.bazel`.
+  - Resolved header isolation compiler failures under Bazel's strict sandboxing by adding direct dependencies on `//runtime/platform:libdart_platform` and `//runtime:dart_api` inside `runtime/lib/BUILD.gn`'s `configurable_deps` and `extra_deps`, propagating them cleanly to generated Bazel targets.
+  - Fixed cross-compilation target-architecture define clashes by updating the GN-to-Bazel translator to avoid stripping architecture and OS defines for explicit cross-targeting targets (`_linux_arm`, `_linux_arm64`, `_linux_riscv64`, `_linux_x64`) and correctly injecting `//build/config:dart_mode_no_arch` into their dependencies.
+  - Fully compiled and validated the final SDK build (`bazel build //sdk:create_sdk`) cleanly with zero errors.
+
+This issue is now fully resolved and closed on both the GN and Bazel build sides.
+

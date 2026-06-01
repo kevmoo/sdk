@@ -86,4 +86,10 @@ On 2026-06-01 (Session ID: `a9fd9edd-2a96-4825-81a3-2b2cbc3bdde0`), the Bazel-si
 - Updated `run_single_test.dart` and `test_rules.bzl` to utilize these explicit overrides dynamically inside the sandboxed Bazel sh_test targets.
 - Successfully bypassed host-bound git shelling and snapshot file coupling for Bazel-driven dynamic executions.
 
-The issue remains open for resolving the GN-side configuration coupling (`runtime/BUILD.gn`).
+- In Session `4c2ae753-e033-480a-a580-b7fad5393a0d` (current), the GN-side and final Bazel-side action integrations were fully completed:
+  - Updated `runtime/BUILD.gn`'s `action("generate_version_cc_file")` to explicitly construct and pass the comma-separated `--snapshot-files` list from the GN `snapshot_files` array, eliminating the implicit VM file read dependency in `make_version.py`.
+  - Hand-authored the version regeneration action wrapper target inside `runtime/BUILD.bazel` to construct the `--snapshot-files` parameter dynamically from the `:vm_snapshot_files` `filegroup` utilizing `$$(echo $(execpaths :vm_snapshot_files) | tr ' ' ',')`.
+  - Verified both builds regenerate `version.cc` hermetically and correctly, and compile successfully.
+
+This issue is now fully resolved and closed.
+

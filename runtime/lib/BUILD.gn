@@ -17,7 +17,11 @@ import("vmservice_sources.gni")
 library_for_all_configs("libdart_lib") {
   target_type = "source_set"
   extra_nonproduct_deps = []
-  extra_deps = []
+  configurable_deps = [
+    "../vm:libdart_vm",
+    "../platform:libdart_platform",
+  ]
+  extra_deps = [ "../:dart_api" ]
   if (is_fuchsia) {
     extra_deps += [ "$fuchsia_sdk/pkg/trace-engine" ]
   }

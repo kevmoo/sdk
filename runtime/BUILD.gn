@@ -411,15 +411,7 @@ shared_library("dart_jit_library") {
 }
 
 action("generate_version_cc_file") {
-  inputs = [
-    "../tools/utils.py",
-    "../tools/VERSION",
-    "vm/version_in.cc",
-  ]
-
-  # This list must be kept in sync with the VM_SNAPSHOT_FILES in
-  # tools/make_version.py.
-  inputs += [
+  snapshot_files = [
     "vm/app_snapshot.cc",
     "vm/app_snapshot.h",
     "vm/dart.cc",
@@ -436,6 +428,12 @@ action("generate_version_cc_file") {
     "vm/symbols.cc",
     "vm/symbols.h",
   ]
+
+  inputs = [
+    "../tools/utils.py",
+    "../tools/VERSION",
+    "vm/version_in.cc",
+  ] + snapshot_files
   deps = [ "../utils:git_version" ]
   output = "$target_gen_dir/version.cc"
   outputs = [ output ]
@@ -447,6 +445,8 @@ action("generate_version_cc_file") {
     rebase_path(output, root_build_dir),
     "--input",
     rebase_path("vm/version_in.cc", root_build_dir),
+    "--snapshot-files",
+    string_join(",", rebase_path(snapshot_files, root_build_dir)),
   ]
   if (!dart_version_git_info) {
     args += [ "--no-git-hash" ]

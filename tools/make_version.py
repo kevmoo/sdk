@@ -85,8 +85,9 @@ def FormatVersionString(version, no_git_hash, no_sdk_hash, version_file=None, gi
         version_time = 'Unknown timestamp'
     version = version.replace('{{COMMIT_TIME}}', version_time)
 
-    snapshot_hash = MakeSnapshotHashString(snapshot_files)
-    version = version.replace('{{SNAPSHOT_HASH}}', snapshot_hash)
+    if '{{SNAPSHOT_HASH}}' in version:
+        snapshot_hash = MakeSnapshotHashString(snapshot_files)
+        version = version.replace('{{SNAPSHOT_HASH}}', snapshot_hash)
 
     return version
 

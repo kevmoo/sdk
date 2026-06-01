@@ -6,4 +6,5 @@
 ffi_runtime_cc_files = [
   "ffi.cc",
   "ffi_dynamic_library.cc",
+  "ffi_dynamic_library.h",
 ]

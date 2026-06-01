@@ -66,11 +66,7 @@ cc_library(
         "-ffunction-sections",
         "-g3",
         "-ggdb3",
-        "-fvisibility-inlines-hidden",
         "-fno-omit-frame-pointer",
-        "-std=c++20",
-        "-std=c++20",
-        "-fno-rtti",
     ],
     implementation_deps = [
         "//runtime/include:headers",
@@ -96,12 +92,9 @@ cc_library(
 # TODO(M3): copy for dart_jit_library_copy (gn type=copy)
 cc_library(name = "dart_jit_library_copy")
 
-genrule(
-    name = "gen_version_cc",
+filegroup(
+    name = "vm_snapshot_files",
     srcs = [
-        "//runtime/vm:version_in.cc",
-        "//tools:VERSION",
-        "//tools:utils.py",
         "//runtime/vm:app_snapshot.cc",
         "//runtime/vm:app_snapshot.h",
         "//runtime/vm:dart.cc",
@@ -118,8 +111,18 @@ genrule(
         "//runtime/vm:symbols.cc",
         "//runtime/vm:symbols.h",
     ],
+)
+
+genrule(
+    name = "gen_version_cc",
+    srcs = [
+        "//runtime/vm:version_in.cc",
+        "//tools:VERSION",
+        "//tools:utils.py",
+        ":vm_snapshot_files",
+    ],
     outs = ["version.cc"],
-    cmd = "python3 $(execpath //tools:make_version.py) --quiet --no-git-hash --no-sdk-hash --output $@ --input $(execpath //runtime/vm:version_in.cc) --version-file $(execpath //tools:VERSION)",
+    cmd = "python3 $(execpath //tools:make_version.py) --quiet --no-git-hash --no-sdk-hash --output $@ --input $(execpath //runtime/vm:version_in.cc) --version-file $(execpath //tools:VERSION) --snapshot-files $$(echo $(execpaths :vm_snapshot_files) | tr ' ' ',')",
     tools = ["//tools:make_version.py"],
 )
 
@@ -232,8 +235,8 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_aotruntime",
         "//runtime/platform:libdart_platform_aotruntime",
-        "//runtime/vm:libdart_lib_aotruntime",
         "//runtime/vm:libdart_vm_aotruntime",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -332,8 +335,8 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_aotruntime_product",
         "//runtime/platform:libdart_platform_aotruntime_product",
-        "//runtime/vm:libdart_lib_aotruntime_product",
         "//runtime/vm:libdart_vm_aotruntime_product",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -429,9 +432,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_jit",
         "//runtime/platform:libdart_platform_jit",
         "//runtime/vm:libdart_compiler_jit",
-        "//runtime/vm:libdart_lib_jit",
         "//runtime/vm:libdart_vm_jit",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -528,9 +531,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_jit_product",
         "//runtime/platform:libdart_platform_jit_product",
         "//runtime/vm:libdart_compiler_jit_product",
-        "//runtime/vm:libdart_lib_jit_product",
         "//runtime/vm:libdart_vm_jit_product",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -628,9 +631,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_libfuzzer",
         "//runtime/platform:libdart_platform_libfuzzer",
         "//runtime/vm:libdart_compiler_libfuzzer",
-        "//runtime/vm:libdart_lib_libfuzzer",
         "//runtime/vm:libdart_vm_libfuzzer",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -728,9 +731,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler",
         "//runtime/platform:libdart_platform_precompiler",
         "//runtime/vm:libdart_compiler_precompiler",
-        "//runtime/vm:libdart_lib_precompiler",
         "//runtime/vm:libdart_vm_precompiler",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -827,9 +830,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_host_targeting_host",
         "//runtime/platform:libdart_platform_precompiler_host_targeting_host",
         "//runtime/vm:libdart_compiler_precompiler_host_targeting_host",
-        "//runtime/vm:libdart_lib_precompiler_host_targeting_host",
         "//runtime/vm:libdart_vm_precompiler_host_targeting_host",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -928,9 +931,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_product",
         "//runtime/platform:libdart_platform_precompiler_product",
         "//runtime/vm:libdart_compiler_precompiler_product",
-        "//runtime/vm:libdart_lib_precompiler_product",
         "//runtime/vm:libdart_vm_precompiler_product",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -1028,9 +1031,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_product_host_targeting_host",
         "//runtime/platform:libdart_platform_precompiler_product_host_targeting_host",
         "//runtime/vm:libdart_compiler_precompiler_product_host_targeting_host",
-        "//runtime/vm:libdart_lib_precompiler_product_host_targeting_host",
         "//runtime/vm:libdart_vm_precompiler_product_host_targeting_host",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -1130,9 +1133,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_product_linux_arm",
         "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_arm",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_arm",
         "//runtime/vm:libdart_vm_precompiler_product_linux_arm",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -1232,9 +1235,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_product_linux_arm64",
         "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_arm64",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_arm64",
         "//runtime/vm:libdart_vm_precompiler_product_linux_arm64",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -1334,9 +1337,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_product_linux_riscv64",
         "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_riscv64",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_riscv64",
         "//runtime/vm:libdart_vm_precompiler_product_linux_riscv64",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -1436,9 +1439,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode_no_arch",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_product_linux_x64",
         "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
         "//runtime/vm:libdart_compiler_precompiler_product_linux_x64",
-        "//runtime/vm:libdart_lib_precompiler_product_linux_x64",
         "//runtime/vm:libdart_vm_precompiler_product_linux_x64",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",
@@ -1537,9 +1540,9 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//runtime:generate_version_cc_file",
+        "//runtime/lib:libdart_lib_precompiler_testing",
         "//runtime/platform:libdart_platform_precompiler_testing",
         "//runtime/vm:libdart_compiler_precompiler_testing",
-        "//runtime/vm:libdart_lib_precompiler_testing",
         "//runtime/vm:libdart_vm_precompiler_testing",
         "//third_party/double-conversion/src:libdouble_conversion",
         "//third_party/perfetto:libprotozero",

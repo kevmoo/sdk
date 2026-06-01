@@ -63,7 +63,7 @@ exports_files(glob(
 # what it owns). GEN_TARGETS_DROP suppresses obsolete GN targets
 # the hand file replaced (e.g. `copy` actions superseded by real .so rules) so a
 # regen does not resurrect them.
-GEN_TARGETS_PACKAGES = {"runtime/bin", "runtime/vm"}
+GEN_TARGETS_PACKAGES = {"runtime/bin", "runtime/vm", "runtime/lib"}
 
 GEN_TARGETS_DROP = {
     # Obsolete GN `copy` targets that runtime/bin/BUILD.bazel replaced with real
@@ -196,11 +196,12 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     # own, and the per-box CIPD id made every generated BUILD.bazel diverge across
     # checkouts — the reproducibility killer. Strip so output is toolchain-pin
     # independent.
+    is_cross_target = any(suffix in name for suffix in ("_linux_arm", "_linux_arm64", "_linux_riscv64", "_linux_x64"))
     defines = [
         f'"{d}"'
         for d in t.get("defines", [])
         if not d.startswith(("TOOLCHAIN_VERSION=", "SYSROOT_VERSION="))
-        and d not in ("DART_TARGET_OS_LINUX", "DART_TARGET_OS_MACOS", "TARGET_ARCH_X64", "TARGET_ARCH_ARM64")
+        and (is_cross_target or d not in ("DART_TARGET_OS_LINUX", "DART_TARGET_OS_MACOS", "TARGET_ARCH_X64", "TARGET_ARCH_ARM64"))
     ]
     include_copts = []
     for inc in t.get("include_dirs", []):
@@ -235,8 +236,12 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
         has_product = '"PRODUCT"' in defines
         if has_product and not is_dedicated_product:
             defines = [d for d in defines if d != '"PRODUCT"']
-        if '"//build/config:dart_mode"' not in deps:
-            deps.append('"//build/config:dart_mode"')
+        dart_mode_dep = '"//build/config:dart_mode_no_arch"' if is_cross_target else '"//build/config:dart_mode"'
+        other_dart_mode = '"//build/config:dart_mode"' if is_cross_target else '"//build/config:dart_mode_no_arch"'
+        if other_dart_mode in deps:
+            deps = [d for d in deps if d != other_dart_mode]
+        if dart_mode_dep not in deps:
+            deps.append(dart_mode_dep)
         if has_product:
             if is_dedicated_product:
                 if '"PRODUCT"' not in defines:

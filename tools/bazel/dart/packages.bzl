@@ -122,11 +122,6 @@ def dart_packages():
         deps = [":dart_pkg_kernel", ":dart_pkg_meta"],
     )
     dart_library(
-        name = "dart_pkg_characters",
-        srcs = native.glob(["third_party/pkg/core/pkgs/characters/lib/**/*.dart"], allow_empty = True),
-        deps = [],
-    )
-    dart_library(
         name = "dart_pkg_checks",
         srcs = native.glob(["third_party/pkg/test/pkgs/checks/lib/**/*.dart"], allow_empty = True),
         deps = [":dart_pkg_async", ":dart_pkg_meta", ":dart_pkg_test_api"],
@@ -327,11 +322,6 @@ def dart_packages():
         deps = [],
     )
     dart_library(
-        name = "dart_pkg_engine",
-        srcs = native.glob(["third_party/flute/engine/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_js", ":dart_pkg_meta"],
-    )
-    dart_library(
         name = "dart_pkg_expect",
         srcs = native.glob(["pkg/expect/lib/**/*.dart"], allow_empty = True),
         deps = [":dart_pkg_smith"],
@@ -365,21 +355,6 @@ def dart_packages():
         name = "dart_pkg_fixnum",
         srcs = native.glob(["third_party/pkg/core/pkgs/fixnum/lib/**/*.dart"], allow_empty = True),
         deps = [],
-    )
-    dart_library(
-        name = "dart_pkg_flute",
-        srcs = native.glob(["third_party/flute/framework/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_characters", ":dart_pkg_collection", ":dart_pkg_engine", ":dart_pkg_material_color_utilities", ":dart_pkg_meta", ":dart_pkg_vector_math", ":dart_pkg_web"],
-    )
-    dart_library(
-        name = "dart_pkg_flute_benchmarks",
-        srcs = native.glob(["third_party/flute/benchmarks/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_engine", ":dart_pkg_flute"],
-    )
-    dart_library(
-        name = "dart_pkg_flute_script",
-        srcs = native.glob(["third_party/flute/script/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_async", ":dart_pkg_file", ":dart_pkg_meta", ":dart_pkg_path", ":dart_pkg_platform", ":dart_pkg_process"],
     )
     dart_library(
         name = "dart_pkg_front_end",
@@ -555,11 +530,6 @@ def dart_packages():
         name = "dart_pkg_matcher",
         srcs = native.glob(["third_party/pkg/test/pkgs/matcher/lib/**/*.dart"], allow_empty = True),
         deps = [":dart_pkg_async", ":dart_pkg_meta", ":dart_pkg_stack_trace", ":dart_pkg_term_glyph", ":dart_pkg_test_api"],
-    )
-    dart_library(
-        name = "dart_pkg_material_color_utilities",
-        srcs = native.glob(["third_party/pkg/material_color_utilities/dart/lib/**/*.dart"], allow_empty = True),
-        deps = [":dart_pkg_collection"],
     )
     dart_library(
         name = "dart_pkg_memory_usage",
