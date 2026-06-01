@@ -18,6 +18,7 @@ use_repo(dart_clang, "dart_linux_x64_clang")
 register_toolchains(
     "//build/toolchain/linux:clang_x64_toolchain",
     "//build/toolchain/linux:clang_arm64_toolchain",
+    "//tools/bazel/dart:prebuilt_dart_toolchain",
 )
 
 dart_tests = use_extension("//tools/bazel/dart:test_rules.bzl", "dart_tests_extension")

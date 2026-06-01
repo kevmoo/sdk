@@ -7,3 +7,20 @@ exports_files([
     "defs.bzl",
     "copytree.py",
 ])
+
+load(":defs.bzl", "dart_toolchain")
+
+toolchain_type(name = "toolchain_type")
+
+dart_toolchain(
+    name = "prebuilt_dart_toolchain_impl",
+    dart_executable = "//tools/sdks/dart-sdk:bin/dart",
+    sdk_files = "//tools/sdks/dart-sdk:sdk_files",
+    sdk_hash = "0000000000",
+)
+
+toolchain(
+    name = "prebuilt_dart_toolchain",
+    toolchain = ":prebuilt_dart_toolchain_impl",
+    toolchain_type = ":toolchain_type",
+)

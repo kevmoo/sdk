@@ -17,8 +17,34 @@ both bake sdk_hash=0000000000, so every snapshot here must compile with the
 same hash or the VM rejects it at load. The default below matches.
 """
 
-_PREBUILT_DART = "tools/sdks/dart-sdk/bin/dart"
-_SDK_FILES = "//tools/sdks/dart-sdk:sdk_files"
+DartToolchainInfo = provider(
+    doc = "Information about the Dart toolchain (compiler and SDK files).",
+    fields = {
+        "dart_executable": "File object representing the prebuilt dart compiler",
+        "sdk_files": "Target representing the SDK standard library files",
+        "sdk_hash": "String configuration for sdk_hash",
+    },
+)
+
+def _dart_toolchain_impl(ctx):
+    toolchain_info = platform_common.ToolchainInfo(
+        dartinfo = DartToolchainInfo(
+            dart_executable = ctx.file.dart_executable,
+            sdk_files = ctx.attr.sdk_files,
+            sdk_hash = ctx.attr.sdk_hash,
+        ),
+    )
+    return [toolchain_info]
+
+dart_toolchain = rule(
+    implementation = _dart_toolchain_impl,
+    attrs = {
+        "dart_executable": attr.label(mandatory = True, allow_single_file = True, executable = True, cfg = "exec"),
+        "sdk_files": attr.label(mandatory = True),
+        "sdk_hash": attr.string(default = "0000000000"),
+    },
+)
+
 _PACKAGE_CONFIG = ".dart_tool/package_config.json"
 
 # The package map as a standalone filegroup input. Since `sources` is a per-package
@@ -208,19 +234,11 @@ def dart_kernel_snapshot(name, main, sources, sdk_hash = "0000000000", **kwargs)
     `dart --snapshot-kind=kernel --snapshot=OUT <main>`. Used to (re)build
     bootstrap_gen_kernel.dill itself, avoiding the stale checked-in blob.
     """
-    native.genrule(
+    dart_kernel_snapshot_rule(
         name = name,
-        srcs = [main, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE],
-        outs = [name + ".dill"],
-        cmd = (
-            "{dart} --snapshot-kind=kernel --snapshot=$@ " +
-            "-Dsdk_hash={hash} --packages={pkg} $(location {main})"
-        ).format(
-            dart = _PREBUILT_DART,
-            hash = sdk_hash,
-            pkg = _PACKAGE_CONFIG,
-            main = main,
-        ),
+        main = main,
+        sources = sources,
+        out = name + ".dill",
         **kwargs
     )
 
@@ -240,89 +258,22 @@ def dart_compile_platform(
         single_root_base = None,
         deps_outline = None,
         **kwargs):
-    """Compile a platform .dill + outline with the prebuilt SDK.
-
-    Ports utils/compile_platform.gni (the prebuilt_dart_action branch). Runs the
-    prebuilt `dart` on pkg/front_end/tool/compile_platform.dart, which reads the
-    SDK libraries (dart:core et al., in `sdk_sources`) plus the CFE and its
-    package closure (in `sources`) and writes two outputs: the full platform dill
-    and the summary outline.
-
-    Default (no web params) = the VM platform (runtime/vm/BUILD.gn:gen_vm_platform),
-    proven byte-identical to GN. The trailing positional arg order — outline,
-    platform, outline — is exactly what GN passes (compile_platform.gni:90-91):
-    restArguments[2] is the host platform read for the deps file (Bazel drops the
-    undeclared .d, so it only needs to be readable), restArguments[4] is the
-    outline output, and the platform output sits between them. sdk_hash must match
-    the dartvm / gen_snapshot that consume the dill, or the VM rejects it at load.
-
-    Web/Wasm variants (ddc_platform, compile_dart2js{,_server}_platform,
-    compile_dart2wasm_*_platform) differ from the VM call in four ways, expressed
-    additively so the VM caller is untouched:
-      * `platform_args` — the leading args (e.g. `["--target=dartdevc", "dart:core"]`)
-        that REPLACE the VM's `dart:core -Ddart.vm.* -Ddart.isVM=true` block.
-      * `single_root_base` — the org-dartlang-sdk root; VM uses the execroot ($$(pwd),
-        spec `…:///sdk/lib/…`), web uses `sdk` (spec `…:///lib/…`). Both resolve to
-        sdk/lib; the embedded URIs are the canonical scheme, so output stays
-        byte-identical to GN regardless of the on-disk base (same as vm_platform).
-      * `deps_outline` — GN's add_implicit_vm_platform_dependency: web variants read
-        the VM outline (//runtime/vm:vm_platform_outline.dill) for their depfile and
-        dep on it; the VM self-build instead uses its own outline (None → default).
-      * `platform_out` / `outline` — GN names the outputs after the *tool*
-        (dart2js_platform.dill / dart2js_outline.dill), not the target, so both
-        output filenames are overridable.
-    """
-    platform_out = platform_out or (name + ".dill")
-    outline_out = outline or (name + "_outline.dill")
-    base = single_root_base or "$$(pwd)"
-
-    # _PACKAGE_CONFIG_FILE materializes .dart_tool/package_config.json for the
-    # --packages flag. Required because `sources` is a per-package dart_library
-    # closure (.dart only).
-    srcs = [_SDK_FILES, sources, sdk_sources, _PACKAGE_CONFIG_FILE]
-
-    if platform_args == None:
-        # VM platform: dart:core + the VM defines (+ optional --exclude-source).
-        mid = (
-            "dart:core -Ddart.vm.product={product} -Ddart.vm.asan=false " +
-            "-Ddart.vm.msan=false -Ddart.vm.tsan=false -Ddart.isVM=true {exclude}"
-        ).format(
-            product = "true" if product else "false",
-            exclude = "--exclude-source " if exclude_source else "",
-        )
-    else:
-        # Web/Wasm platform: the caller's --target=… args verbatim.
-        mid = " ".join(platform_args) + " "
-
-    if deps_outline == None:
-        # VM self-build: the deps-read outline positional is its own outline.
-        deps_pos = "$(location {})".format(outline_out)
-    else:
-        # Web variants read the VM outline (GN add_implicit_vm_platform_dependency).
-        srcs = srcs + [deps_outline]
-        deps_pos = "$(location {})".format(deps_outline)
-
-    native.genrule(
+    """Compile a platform .dill + outline with the prebuilt SDK."""
+    platform_out_file = platform_out or (name + ".dill")
+    outline_out_file = outline or (name + "_outline.dill")
+    
+    dart_compile_platform_rule(
         name = name,
-        srcs = srcs,
-        outs = [platform_out, outline_out],
-        cmd = (
-            "{dart} -Dsdk_hash={hash} --packages={pkg} {tool} " +
-            "{mid}" +
-            "--single-root-scheme=org-dartlang-sdk --single-root-base={base} " +
-            "{spec} {deps_pos} $(location {platform}) $(location {outline})"
-        ).format(
-            dart = _PREBUILT_DART,
-            hash = sdk_hash,
-            pkg = _PACKAGE_CONFIG,
-            tool = _COMPILE_PLATFORM,
-            mid = mid,
-            base = base,
-            spec = libraries_spec,
-            deps_pos = deps_pos,
-            outline = outline_out,
-            platform = platform_out,
-        ),
+        sources = sources,
+        sdk_sources = sdk_sources,
+        libraries_spec = libraries_spec,
+        product = product,
+        exclude_source = exclude_source,
+        platform_args = platform_args,
+        single_root_base = single_root_base,
+        deps_outline = deps_outline,
+        platform_out = platform_out_file,
+        outline_out = outline_out_file,
         **kwargs
     )
 
@@ -339,55 +290,29 @@ def dart_aot_snapshot(
         gen_snapshot_args = None,
         out = None,
         **kwargs):
-    """Build a Dart AOT (app-aot-elf) snapshot. Ports utils/aot_snapshot.gni.
-
-    Two stages:
-      1. prebuilt `dart` + `gen_kernel_dill` compiles `main` (+ its package
-         closure in `sources`) to a `.dart.dill`, with --aot.
-      2. the Bazel-built `gen_snapshot` (pass gen_snapshot_product for product
-         mode) turns the dill into an AOT ELF.
-    """
-    dill = name + ".dart.dill"
-    gen_kernel_args = gen_kernel_args or []
-    gen_snapshot_args = gen_snapshot_args or []
-
-    # Stage 1: kernel compile (mirrors the *_dill prebuilt_dart_action).
-    native.genrule(
-        name = name + "_dill",
-        srcs = [main, gen_kernel_dill, platform_dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE],
-        outs = [dill],
-        cmd = (
-            "{dart} -Dsdk_hash={hash} $(location {boot}) " +
-            "--packages={pkg} --platform=$(location {plat}) --aot --output=$@ " +
-            "-Dsdk_hash={hash} -Ddart.vm.product={product} " +
-            "-Ddart.vm.asan=false -Ddart.vm.msan=false -Ddart.vm.tsan=false " +
-            "{extra}$(location {main})"
-        ).format(
-            dart = _PREBUILT_DART,
-            hash = sdk_hash,
-            boot = gen_kernel_dill,
-            pkg = _PACKAGE_CONFIG,
-            plat = platform_dill,
-            product = "true" if product else "false",
-            extra = "".join([a + " " for a in gen_kernel_args]),
-            main = main,
-        ),
+    """Build a Dart AOT (app-aot-elf) snapshot. Ports utils/aot_snapshot.gni."""
+    dill_target = name + "_dill"
+    dill_file = name + ".dart.dill"
+    out_snapshot = out or (name + ".snapshot")
+    
+    dart_compile_dill(
+        name = dill_target,
+        main = main,
+        sources = sources,
+        gen_kernel_dill = gen_kernel_dill,
+        platform_dill = platform_dill,
+        product = product,
+        mode_flags = ["--aot"],
+        gen_kernel_args = gen_kernel_args or [],
+        out = dill_file,
     )
-
-    # Stage 2: AOT ELF (mirrors the *_gen_snapshot gen_snapshot_action). The
-    # genrule is named `name` (not `name + "_snapshot"`) so it is a drop-in for
-    # the GN aot_snapshot() target of the same name — e.g. cross-package refs
-    # like dds_aot -> //utils/dtd:dtd_aot_snapshot resolve unchanged.
-    native.genrule(
+    
+    dart_aot_elf(
         name = name,
-        srcs = [dill],
-        outs = [out or (name + ".snapshot")],
-        tools = [gen_snapshot],
-        cmd = "$(location {gs}) --deterministic --snapshot-kind=app-aot-elf --elf=$@ {gsargs}$(location {dill})".format(
-            gs = gen_snapshot,
-            gsargs = "".join([a + " " for a in gen_snapshot_args]),
-            dill = dill,
-        ),
+        dill = dill_target,
+        gen_snapshot = gen_snapshot,
+        gen_snapshot_args = gen_snapshot_args or [],
+        out = out_snapshot,
         **kwargs
     )
 
@@ -407,90 +332,310 @@ def dart_app_jit_snapshot(
         out = None,
         link_platform = False,
         **kwargs):
-    """Build a Dart app-jit snapshot via a training run. Ports utils/application_snapshot.gni.
-
-    Two stages:
-      1. prebuilt `dart` + `gen_kernel_dill` compiles `main` to a *non-AOT*
-         `.dart.dill` (`--no-aot --no-embed-sources --no-link-platform`, unlike
-         dart_aot_snapshot's `--aot`).
-      2. the Bazel-built `dart_vm` (//runtime/bin:dartvm) *executes* that dill
-         with `training_args` under `--snapshot-kind=app-jit`, writing the
-         app-jit snapshot. This mirrors the GN `dart_action` (APP_JIT) step --
-         note it is the JIT VM doing a training run, NOT gen_snapshot. DFE is
-         pinned to NEVER_LOADED so the VM doesn't pull in the kernel service
-         (which would be a circular dep for kernel-service's own snapshot).
-
-    training_srcs: extra inputs the *training run* reads but that aren't in the
-    `sources` closure — GN's training_inputs/training_deps. GN's training runs
-    read these non-hermetically from the checkout (e.g. analysis_server reads
-    sdk/lib via --sdk); under the Bazel sandbox they must be declared, or the
-    training run can't open them and the genrule fails.
-    """
-    dill = name + ".dart.dill"
-    gen_kernel_args = gen_kernel_args or []
-    vm_args = list(vm_args or [])
-    training_srcs = training_srcs or []
-
-    # GN injects --coverage=false (+ --ignore-unrecognized-flags, since
-    # --coverage is unrecognized in product mode) unless --coverage is already
-    # set. Mirror that here (application_snapshot.gni:75-90).
-    if not [a for a in vm_args if a.startswith("--coverage")]:
-        vm_args = vm_args + ["--coverage=false", "--ignore-unrecognized-flags"]
-
-    # Stage 1: kernel compile (mirrors the *_dill prebuilt_dart_action). Same
-    # shape as dart_aot_snapshot's stage 1 but with the app-jit gen_kernel flags.
-    native.genrule(
-        name = name + "_dill",
-        srcs = [main, gen_kernel_dill, platform_dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE],
-        outs = [dill],
-        cmd = (
-            "{dart} -Dsdk_hash={hash} $(location {boot}) " +
-            "--packages={pkg} --platform=$(location {plat}) " +
-            "--no-aot --no-embed-sources {link_platform}--output=$@ " +
-            "-Dsdk_hash={hash} -Ddart.vm.product={product} " +
-            "-Ddart.vm.asan=false -Ddart.vm.msan=false -Ddart.vm.tsan=false " +
-            "{extra}$(location {main})"
-        ).format(
-            dart = _PREBUILT_DART,
-            hash = sdk_hash,
-            boot = gen_kernel_dill,
-            pkg = _PACKAGE_CONFIG,
-            plat = platform_dill,
-            product = "true" if product else "false",
-            extra = "".join([a + " " for a in gen_kernel_args]),
-            main = main,
-            link_platform = "" if link_platform else "--no-link-platform ",
-        ),
+    """Build a Dart app-jit snapshot via a training run. Ports utils/application_snapshot.gni."""
+    dill_target = name + "_dill"
+    dill_file = name + ".dart.dill"
+    out_snapshot = out or (name + ".dart.snapshot")
+    
+    mode_flags = ["--no-aot", "--no-embed-sources"]
+    if not link_platform:
+        mode_flags.append("--no-link-platform")
+        
+    dart_compile_dill(
+        name = dill_target,
+        main = main,
+        sources = sources,
+        gen_kernel_dill = gen_kernel_dill,
+        platform_dill = platform_dill,
+        product = product,
+        mode_flags = mode_flags,
+        gen_kernel_args = gen_kernel_args or [],
+        out = dill_file,
     )
-
-    # Stage 2: app-jit training run (mirrors the dart_action APP_JIT step). The
-    # genrule is named `name` so it is a drop-in for the GN target. `sources`
-    # is included so .dart_tool/package_config.json (part of the opaque
-    # filegroup) is materialized for --packages.
-    # `main` is included so a training run that re-reads the entry source (e.g.
-    # DDC compiling its own bin/dartdevc.dart) finds it: the entry lives in bin/,
-    # outside the package's lib/ closure, so a per-package `sources` no longer
-    # materializes it the way the opaque blob did. Dedupe — some tools already
-    # list main in training_srcs (e.g. frontend_server/kernel-service pass it via
-    # $(location)), and genrule srcs rejects a duplicated label.
-    training_stage_srcs = [dill, _SDK_FILES, sources, _PACKAGE_CONFIG_FILE] + training_srcs
-    if main not in training_stage_srcs:
-        training_stage_srcs = training_stage_srcs + [main]
-    native.genrule(
+    
+    dart_app_jit_training(
         name = name,
-        srcs = training_stage_srcs,
-        outs = [out or (name + ".dart.snapshot")],
-        tools = [dart_vm],
-        cmd = (
-            "$(location {vm}) --deterministic --packages={pkg} " +
-            "--snapshot=$@ --snapshot-kind=app-jit --dfe=NEVER_LOADED " +
-            "{vmargs}$(location {dill}) {targs}"
-        ).format(
-            vm = dart_vm,
-            pkg = _PACKAGE_CONFIG,
-            vmargs = "".join([a + " " for a in vm_args]),
-            dill = dill,
-            targs = " ".join(training_args),
-        ),
+        dill = dill_target,
+        dart_vm = dart_vm,
+        sources = sources,
+        main = main,
+        training_srcs = training_srcs or [],
+        vm_args = vm_args or [],
+        training_args = training_args,
+        out = out_snapshot,
         **kwargs
     )
+
+# Custom Starlark rules utilizing the Dart toolchain system
+
+dart_compile_dill = rule(
+    implementation = lambda ctx: _dart_compile_dill_impl(ctx),
+    attrs = {
+        "main": attr.label(mandatory = True, allow_single_file = [".dart"]),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "gen_kernel_dill": attr.label(mandatory = True, allow_single_file = True),
+        "platform_dill": attr.label(mandatory = True, allow_single_file = True),
+        "product": attr.bool(default = False),
+        "gen_kernel_args": attr.string_list(default = []),
+        "mode_flags": attr.string_list(default = []),
+        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
+        "out": attr.output(mandatory = True),
+    },
+    toolchains = ["//tools/bazel/dart:toolchain_type"],
+)
+
+def _dart_compile_dill_impl(ctx):
+    toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
+    out_file = ctx.outputs.out
+        
+    inputs = depset(
+        direct = [
+            ctx.file.main,
+            ctx.file.gen_kernel_dill,
+            ctx.file.platform_dill,
+            ctx.file.package_config,
+            toolchain.dart_executable,
+        ],
+        transitive = [
+            toolchain.sdk_files[DefaultInfo].files,
+            ctx.attr.sources[DartLibraryInfo].transitive_srcs,
+        ],
+    )
+    
+    extra_args = " ".join(ctx.attr.gen_kernel_args)
+    
+    ctx.actions.run_shell(
+        outputs = [out_file],
+        inputs = inputs,
+        command = (
+            "{dart} -Dsdk_hash={hash} {boot} " +
+            "--packages={pkg} --platform={plat} {mode_flags} --output={out} " +
+            "-Dsdk_hash={hash} -Ddart.vm.product={product} " +
+            "-Ddart.vm.asan=false -Ddart.vm.msan=false -Ddart.vm.tsan=false " +
+            "{extra} {main}"
+        ).format(
+            dart = toolchain.dart_executable.path,
+            hash = toolchain.sdk_hash,
+            boot = ctx.file.gen_kernel_dill.path,
+            pkg = ctx.file.package_config.path,
+            plat = ctx.file.platform_dill.path,
+            mode_flags = " ".join(ctx.attr.mode_flags),
+            out = out_file.path,
+            product = "true" if ctx.attr.product else "false",
+            extra = extra_args,
+            main = ctx.file.main.path,
+        ),
+        mnemonic = "DartCompileDill",
+        progress_message = "Compiling Dart kernel dill %{label}",
+    )
+    
+    return [DefaultInfo(files = depset([out_file]))]
+
+dart_aot_elf = rule(
+    implementation = lambda ctx: _dart_aot_elf_impl(ctx),
+    attrs = {
+        "dill": attr.label(mandatory = True, allow_single_file = True),
+        "gen_snapshot": attr.label(mandatory = True, executable = True, cfg = "exec"),
+        "gen_snapshot_args": attr.string_list(default = []),
+        "out": attr.output(mandatory = True),
+    },
+)
+
+def _dart_aot_elf_impl(ctx):
+    out_snapshot = ctx.outputs.out
+    
+    args = ctx.actions.args()
+    args.add("--deterministic")
+    args.add("--snapshot-kind=app-aot-elf")
+    args.add("--elf=" + out_snapshot.path)
+    if ctx.attr.gen_snapshot_args:
+        args.add_all(ctx.attr.gen_snapshot_args)
+    args.add(ctx.file.dill.path)
+    
+    ctx.actions.run(
+        outputs = [out_snapshot],
+        inputs = [ctx.file.dill],
+        executable = ctx.executable.gen_snapshot,
+        arguments = [args],
+        mnemonic = "DartAotElf",
+        progress_message = "Generating Dart AOT ELF snapshot %{label}",
+    )
+    
+    return [DefaultInfo(files = depset([out_snapshot]))]
+
+dart_app_jit_training = rule(
+    implementation = lambda ctx: _dart_app_jit_training_impl(ctx),
+    attrs = {
+        "dill": attr.label(mandatory = True, allow_single_file = True),
+        "dart_vm": attr.label(mandatory = True, executable = True, cfg = "exec"),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "main": attr.label(mandatory = True, allow_single_file = True),
+        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
+        "training_srcs": attr.label_list(allow_files = True, default = []),
+        "vm_args": attr.string_list(default = []),
+        "training_args": attr.string_list(default = []),
+        "out": attr.output(mandatory = True),
+    },
+    toolchains = ["//tools/bazel/dart:toolchain_type"],
+)
+
+def _dart_app_jit_training_impl(ctx):
+    toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
+    out_snapshot = ctx.outputs.out
+    
+    inputs = depset(
+        direct = [ctx.file.dill, ctx.file.package_config, ctx.file.main] + ctx.files.training_srcs + [toolchain.dart_executable],
+        transitive = [
+            toolchain.sdk_files[DefaultInfo].files,
+            ctx.attr.sources[DartLibraryInfo].transitive_srcs,
+        ],
+    )
+    
+    vm_args = list(ctx.attr.vm_args)
+    if not [a for a in vm_args if a.startswith("--coverage")]:
+        vm_args = vm_args + ["--coverage=false", "--ignore-unrecognized-flags"]
+        
+    ctx.actions.run_shell(
+        outputs = [out_snapshot],
+        inputs = inputs,
+        command = (
+            "{vm} --deterministic --packages={pkg} " +
+            "--snapshot={out} --snapshot-kind=app-jit --dfe=NEVER_LOADED " +
+            "{vmargs} {dill} {targs}"
+        ).format(
+            vm = ctx.executable.dart_vm.path,
+            pkg = ctx.file.package_config.path,
+            out = out_snapshot.path,
+            vmargs = " ".join(vm_args),
+            dill = ctx.file.dill.path,
+            targs = " ".join(ctx.attr.training_args),
+        ),
+        tools = [ctx.executable.dart_vm],
+        mnemonic = "DartAppJitTraining",
+        progress_message = "Running JIT training for %{label}",
+    )
+    
+    return [DefaultInfo(files = depset([out_snapshot]))]
+
+dart_compile_platform_rule = rule(
+    implementation = lambda ctx: _dart_compile_platform_rule_impl(ctx),
+    attrs = {
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "sdk_sources": attr.label(mandatory = True),
+        "tool": attr.label(default = "//:pkg/front_end/tool/compile_platform.dart", allow_single_file = True),
+        "libraries_spec": attr.string(default = "org-dartlang-sdk:///sdk/lib/libraries.json"),
+        "product": attr.bool(default = False),
+        "exclude_source": attr.bool(default = False),
+        "platform_args": attr.string_list(default = []),
+        "single_root_base": attr.string(default = ""),
+        "deps_outline": attr.label(allow_single_file = True),
+        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
+        "platform_out": attr.output(mandatory = True),
+        "outline_out": attr.output(mandatory = True),
+    },
+    toolchains = ["//tools/bazel/dart:toolchain_type"],
+)
+
+def _dart_compile_platform_rule_impl(ctx):
+    toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
+    platform_out = ctx.outputs.platform_out
+    outline_out = ctx.outputs.outline_out
+    
+    inputs_list = [ctx.file.tool, ctx.file.package_config]
+    if ctx.file.deps_outline:
+        inputs_list.append(ctx.file.deps_outline)
+        
+    inputs = depset(
+        direct = inputs_list + [toolchain.dart_executable] + ctx.files.sdk_sources,
+        transitive = [
+            toolchain.sdk_files[DefaultInfo].files,
+            ctx.attr.sources[DartLibraryInfo].transitive_srcs,
+        ],
+    )
+    
+    base = ctx.attr.single_root_base or "$(pwd)"
+    
+    if not ctx.attr.platform_args:
+        mid = (
+            "dart:core -Ddart.vm.product={product} -Ddart.vm.asan=false " +
+            "-Ddart.vm.msan=false -Ddart.vm.tsan=false -Ddart.isVM=true {exclude}"
+        ).format(
+            product = "true" if ctx.attr.product else "false",
+            exclude = "--exclude-source " if ctx.attr.exclude_source else "",
+        )
+    else:
+        mid = " ".join(ctx.attr.platform_args) + " "
+        
+    if not ctx.file.deps_outline:
+        deps_pos = outline_out.path
+    else:
+        deps_pos = ctx.file.deps_outline.path
+        
+    ctx.actions.run_shell(
+        outputs = [platform_out, outline_out],
+        inputs = inputs,
+        command = (
+            "{dart} -Dsdk_hash={hash} --packages={pkg} {tool} " +
+            "{mid}" +
+            "--single-root-scheme=org-dartlang-sdk --single-root-base={base} " +
+            "{spec} {deps_pos} {platform} {outline}"
+        ).format(
+            dart = toolchain.dart_executable.path,
+            hash = toolchain.sdk_hash,
+            pkg = ctx.file.package_config.path,
+            tool = ctx.file.tool.path,
+            mid = mid,
+            base = base,
+            spec = ctx.attr.libraries_spec,
+            deps_pos = deps_pos,
+            outline = outline_out.path,
+            platform = platform_out.path,
+        ),
+        mnemonic = "DartCompilePlatform",
+        progress_message = "Compiling Dart platform dill %{label}",
+    )
+    
+    return [DefaultInfo(files = depset([platform_out, outline_out]))]
+
+dart_kernel_snapshot_rule = rule(
+    implementation = lambda ctx: _dart_kernel_snapshot_rule_impl(ctx),
+    attrs = {
+        "main": attr.label(mandatory = True, allow_single_file = [".dart"]),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
+        "out": attr.output(mandatory = True),
+    },
+    toolchains = ["//tools/bazel/dart:toolchain_type"],
+)
+
+def _dart_kernel_snapshot_rule_impl(ctx):
+    toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
+    out_dill = ctx.outputs.out
+    
+    inputs = depset(
+        direct = [ctx.file.main, ctx.file.package_config, toolchain.dart_executable],
+        transitive = [
+            toolchain.sdk_files[DefaultInfo].files,
+            ctx.attr.sources[DartLibraryInfo].transitive_srcs,
+        ],
+    )
+    
+    ctx.actions.run_shell(
+        outputs = [out_dill],
+        inputs = inputs,
+        command = (
+            "{dart} --snapshot-kind=kernel --snapshot={out} " +
+            "-Dsdk_hash={hash} --packages={pkg} {main}"
+        ).format(
+            dart = toolchain.dart_executable.path,
+            out = out_dill.path,
+            hash = toolchain.sdk_hash,
+            pkg = ctx.file.package_config.path,
+            main = ctx.file.main.path,
+        ),
+        mnemonic = "DartKernelSnapshot",
+        progress_message = "Compiling Dart kernel snapshot %{label}",
+    )
+    return [DefaultInfo(files = depset([out_dill]))]
+
+
