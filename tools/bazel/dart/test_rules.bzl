@@ -133,8 +133,7 @@ dynamic_test_repository = repository_rule(
 
 # Bzlmod module extension wrapper to instantiate the test repository
 def _test_ext_impl(ctx):
-    # We instantiate our dynamic test repository named "dart_tests".
-    # Let's register language/class_modifiers and language/class as the initial suites.
+    # 1. VM JIT Release (default)
     dynamic_test_repository(
         name = "dart_tests",
         suites = [
@@ -142,6 +141,18 @@ def _test_ext_impl(ctx):
             "corelib",
         ],
         mode = "release",
+        compiler = "dartk",
+        runtime = "vm",
+    )
+
+    # 2. VM JIT Debug
+    dynamic_test_repository(
+        name = "dart_tests_vm_debug",
+        suites = [
+            "language",
+            "corelib",
+        ],
+        mode = "debug",
         compiler = "dartk",
         runtime = "vm",
     )
