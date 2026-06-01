@@ -11,6 +11,7 @@ config("libprotozero_config") {
     "$perfetto_root_path/include",
     "$root_gen_dir/$perfetto_root_path/build_config",
   ]
+  defines = [ "PERFETTO_DISABLE_LOG" ]
 }
 
 # This target includes Perfetto's protozero target, which we need to serialize
