@@ -27,7 +27,12 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 49, agy/claude) — **Hardened Linux toolchain LFS, reconciled translator product carrier statically under a cross-platform-safe design, and verified native VM compiles completely green.**_
+_Last updated: 2026-06-01 (session 50, agy/jetski) — **Resolved broken GN-side Irregexp generator target, documented VM snapshot embeddings natively, and finalized dynamic subrepo pins in restore.sh.**_
+
+Session 50 — **(agy/jetski) Resolved GN-side generator target reference, documented snapshot embeddings, and marked subrepo pin task as DONE.**
+- **Resolved GN-side `gen_regexp_special_case` Stale Reference (Issue 00011)**: Discovered that the manual Irregexp update renamed the generator file to `gen-regexp-special-case.cc` but left `runtime/vm/BUILD.gn` pointing to a non-existent underscore-based path. Fixed the GN target reference, restoring the long-broken tool's buildability and achieving a 100% green GN-side and Bazel-side compilation natively.
+- **Documented Snapshot Embeddings and Routing (Issue 00010)**: Authored `runtime/bin/snapshots.md` mapping snapshot preprocessor symbols, Bazel targets, and JIT/AOT routing paths. Linked this documentation directly via comments in `runtime/bin/BUILD.gn` and `runtime/bin/snapshot_empty.cc` to guide future developers.
+- **Marked DEPS-driven Subrepo Pins as DONE**: Updated the architectural backlog to mark the dynamic `DEPS` resolution inside `restore.sh` as fully resolved, cementing Git as the single source of truth.
 
 Session 49 — **(agy/claude) Reconciled translator product carrier statically, solved platform LFS drift globally, and verified 100% green cross-platform compilation.**
 - **Statically Reconciled Translator Product Carrier (TODO Resolved)**: Refactored `tools/bazel/translate_gn_desc.py` to unconditionally define `"PRODUCT"` statically in `local_defines` on all dedicated product target variants (`_product` in name) and eliminated the dynamic `//build/config:dart_product_mode` dependency carrier completely. This resolves the dynamic carrier mixed-PRODUCT compilation ODR/ABI hazards permanently, matching our hand-target alignment.
@@ -273,9 +278,9 @@ These tasks have been identified by recent agent sessions as highly valuable cle
   * **The Debt**: Our standalone test runner (`pkg/test_runner/bin/run_single_test.dart`) resolves test tools by directly concatenating `$TEST_SRCDIR` paths.
   * **The Hazard**: While this works on Linux/macOS (which create physical symlinks under the sandbox), Windows disables symlinks by default and emits a flat text-based runfiles manifest (`$TEST_SRCDIR_MANIFEST`) instead. Directory queries will fail on Windows.
   * **The Fix**: Update path resolution in `run_single_test.dart` to dynamically parse the Bazel runfiles manifest when running on Windows.
-- **🔗 DEPS-driven Subrepo Pins (Single Source of Truth for restore.sh)**:
+- **🔗 DEPS-driven Subrepo Pins (Single Source of Truth for restore.sh) [DONE]**:
   * **The Debt**: `tools/bazel/out_of_band/restore.sh` hardcodes git checkout pins in `SUBREPO_PINS`. If trunk rolls a dependency revision (like `native_rev` in `DEPS`), these pins drift and break compilation.
-  * **The Fix**: Extend `restore.sh` to dynamically parse `DEPS` in the SDK root and extract the pins automatically, keeping git as the single source of truth.
+  * **The Fix**: Extended `restore.sh` (in commit `366d570fb3c`) to dynamically parse `DEPS` in the SDK root and extract pins automatically, keeping git as the single source of truth.
 - **🔒 C++ Private Header Encapsulation**:
   * **The Debt**: The translator folds all C++ headers recursively into Bazel's `hdrs` list, making all headers public to any target that depends on the library.
   * **The Fix**: Update `translate_gn_desc.py` to query the GN `public` list in the desc JSON, placing public headers in `hdrs` and internal/private headers in `srcs` to enforce strict encapsulation.
