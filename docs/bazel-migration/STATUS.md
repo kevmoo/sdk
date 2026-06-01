@@ -27,7 +27,11 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 57, jetski) — **Completed CLI Flag Parity & Dynamic Configuration Mapping for test.py, registered the product test repository, and implemented robust, environment-independent Bazel executable path resolution.**_
+_Last updated: 2026-06-01 (session 58, jetski) — **Verified dart2wasm compiler soundness fix for contravariant covariance checks (Issue 00014) under Bazel test sandbox.**_
+
+Session 58 — **(jetski) Verified dart2wasm compiler soundness fix (Issue 00014) under Bazel.**
+- **Verified Sound Covariance checks**: Verified that the dynamic test runner successfully compiles and executes the previously failing covariant class tests (`tests/language/covariant/callable_class_field_getter_test.dart`) completely green inside the Bazel sandbox environment. This confirms that the compiler now correctly emits runtime type check code for contravariant getter checks by treating operand types as nullable objects when `isCovarianceCheck` is true.
+- **Cleaned Stale Issues Checklist**: Recorded the upstream deletion of the issue tracking file for Issue 00014.
 
 Session 57 — **(jetski) Completed CLI Flag Parity & Dynamic Configuration Mapping (Option C, Phase 1 & 2).**
 - **CLI Flag Translation**: Implemented robust translation of canonical test runner flags (`-v`/`--verbose` $\rightarrow$ `--test_output=streamed`, `--test-output=all/errors` $\rightarrow$ `--test_output=all/errors`, `--workers`/`-j` $\rightarrow$ `--local_test_jobs=N`, etc.) inside `tools/test.py`. Unsupported flags are skipped gracefully while test selectors are gathered.
