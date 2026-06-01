@@ -20,13 +20,23 @@ The Quick Start tells you *what to read*; this tells you *what will break you* a
 another agent.
 
 * **You may not be alone in here.** More than one agent works this branch concurrently.
-  There is **no realtime channel — git is the coordination bus.** Before starting:
-  `git log --oneline -20` and look for `TAG=` trailers (e.g. `TAG=agy`) to see who did
-  what recently. When you finish *or* discover something the other agent needs, write it
-  into **`STATUS.md`** as a session entry — that is how the other agent finds out. If you
-  intend to take a chunk of work, say so in `STATUS.md` as a **soft claim** so two agents
-  don't grab the same thing. The human relays pushes between forks; don't assume your
-  local commits are visible to the other agent until pushed.
+  There is **no realtime channel — git is the coordination bus.**
+  * **`git fetch` and rebase onto the remote tip BEFORE you start editing — not after.**
+    The other agent is probably already ahead of your local tip. If you base work on a
+    stale commit you *will* have to rebase later, and the hot files (`runtime/bin/BUILD.bazel`,
+    `STATUS.md`) conflict badly — partly because both agents run `buildifier`, so two
+    whole-file canonicalizations of the same drifted file overlap textually even when the
+    edits are semantically independent. Starting from the live tip avoids the whole mess.
+  * Then `git log --oneline -20` and look for `TAG=` trailers (e.g. `TAG=agy`) to see who
+    did what recently, and read the **Cross-agent notes** block at the top of `STATUS.md`
+    for open claims/handoffs.
+  * When you finish *or* discover something the other agent needs, write it into
+    **`STATUS.md`** — a session entry for completed work, and the **Cross-agent notes**
+    block for live claims/residuals. That is how the other agent finds out.
+  * If you intend to take a chunk of work, post a **soft claim** in the Cross-agent notes
+    block so two agents don't grab the same thing.
+  * The human relays pushes between forks; don't assume your local commits are visible to
+    the other agent until pushed, and don't assume the remote is idle while you work.
 * **⚠️ The translator clobbers the tree.** Running `tools/bazel/translate_gn_desc.py`
   regenerates SDK `BUILD.bazel` files **and** overwrites the hand-authored
   `third_party/*/BUILD.bazel` shims (zlib especially → build then dies with
