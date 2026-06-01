@@ -48,6 +48,15 @@ def TestWithBazel(args):
         print("Error: Bazel test delegation requires at least one test selector (e.g., 'web/wasm/simd/vector_test').")
         return 1
 
+    # Query all targets in the dynamic test repository
+    query_command = ['bazel', 'query', f'@{repo_name}//:all']
+    process = subprocess.Popen(query_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    if process.returncode != 0:
+        print("Error: Failed to query Bazel targets. Make sure the named configuration is valid.")
+        return 1
+    all_targets = [t.strip() for t in out.decode('utf-8').splitlines() if t.strip()]
+
     bazel_targets = []
     for selector in selectors:
         name = selector
@@ -57,7 +66,23 @@ def TestWithBazel(args):
             name = name[:-len('.dart')]
 
         target_name = name.replace("/", "_").replace("-", "_").replace(".", "_")
-        bazel_targets.append(f"@{repo_name}//:{target_name}")
+        
+        exact_target = f"@{repo_name}//:{target_name}"
+        prefix_target = f"@{repo_name}//:{target_name}_"
+        
+        if exact_target in all_targets:
+            bazel_targets.append(exact_target)
+        else:
+            # Check if the selector acts as a directory prefix (e.g. web_wasm_simd)
+            matches = [t for t in all_targets if t.startswith(prefix_target)]
+            if matches:
+                bazel_targets.extend(matches)
+            else:
+                print(f"Warning: No matching Bazel test targets found for selector '{selector}' under configuration '{repo_name}'")
+
+    if not bazel_targets:
+        print("Error: No valid Bazel test targets were resolved from the selectors.")
+        return 1
 
     bazel_command = ['bazel', 'test'] + bazel_targets
     print('Running Bazel Tests: ' + ' '.join(bazel_command))
