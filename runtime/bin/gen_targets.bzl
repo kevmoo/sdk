@@ -99,9 +99,6 @@ def gen_targets():
         ],
     )
 
-    # TODO(M3): genrule for core_snapshot_bin (gn type=action)
-    cc_library(name = "core_snapshot_bin")
-
     cc_library(
         name = "core_snapshot_cc",
         deps = [

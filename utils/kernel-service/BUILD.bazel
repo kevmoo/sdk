@@ -141,5 +141,8 @@ dart_app_jit_snapshot(
 # kernel-service_snapshot_dill is now emitted by the dart_app_jit_snapshot macro
 # above (its stage-1 kernel compile), so the translator stub is dropped.
 
-# TODO(M3): genrule for kernel_service_dill (gn type=action)
-cc_library(name = "kernel_service_dill")
+# In-Bazel compilation of kernel_service.dill.
+filegroup(
+    name = "kernel_service_dill",
+    srcs = [":kernel-service_snapshot_dill"],
+)

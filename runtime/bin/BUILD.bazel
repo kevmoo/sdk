@@ -3475,34 +3475,32 @@ cc_library(
 # assembler can resolve the .incbin path.
 genrule(
     name = "dart_kernel_service_dill_S",
-    srcs = ["//out/ReleaseX64/gen:kernel_service.dill"],
+    srcs = ["//utils/kernel-service:kernel_service_dill"],
     outs = [
         "dart_kernel_service_dill.S",
         "dart_kernel_service.dill",
     ],
-    cmd = "cp $(execpath //out/ReleaseX64/gen:kernel_service.dill) $(RULEDIR)/dart_kernel_service.dill && " +
+    cmd = "cp $(execpath //utils/kernel-service:kernel_service_dill) $(RULEDIR)/dart_kernel_service.dill && " +
           "SIZE=$$(python3 -c \"import os; print(os.path.getsize('$(RULEDIR)/dart_kernel_service.dill'))\") && " +
           "{" + select({
-              "@platforms//os:macos":
-                  "  echo '.const'; " +
-                  "  echo '.global _kKernelServiceDill'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo '_kKernelServiceDill:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_kernel_service.dill\\\"\"; " +
-                  "  echo '.global _kKernelServiceDillSize'; " +
-                  "  echo '_kKernelServiceDillSize:'; " +
-                  "  echo \".quad $$SIZE\"; ",
-              "//conditions:default":
-                  "  echo '.section .rodata'; " +
-                  "  echo '.type kKernelServiceDill STT_OBJECT'; " +
-                  "  echo '.global kKernelServiceDill'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo 'kKernelServiceDill:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_kernel_service.dill\\\"\"; " +
-                  "  echo '.size kKernelServiceDill, .-kKernelServiceDill'; " +
-                  "  echo '.global kKernelServiceDillSize'; " +
-                  "  echo 'kKernelServiceDillSize:'; " +
-                  "  echo \".quad $$SIZE\"; ",
+              "@platforms//os:macos": "  echo '.const'; " +
+                                      "  echo '.global _kKernelServiceDill'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo '_kKernelServiceDill:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_kernel_service.dill\\\"\"; " +
+                                      "  echo '.global _kKernelServiceDillSize'; " +
+                                      "  echo '_kKernelServiceDillSize:'; " +
+                                      "  echo \".quad $$SIZE\"; ",
+              "//conditions:default": "  echo '.section .rodata'; " +
+                                      "  echo '.type kKernelServiceDill STT_OBJECT'; " +
+                                      "  echo '.global kKernelServiceDill'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo 'kKernelServiceDill:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_kernel_service.dill\\\"\"; " +
+                                      "  echo '.size kKernelServiceDill, .-kKernelServiceDill'; " +
+                                      "  echo '.global kKernelServiceDillSize'; " +
+                                      "  echo 'kKernelServiceDillSize:'; " +
+                                      "  echo \".quad $$SIZE\"; ",
           }) +
           "} > $(RULEDIR)/dart_kernel_service_dill.S",
 )
@@ -4489,26 +4487,24 @@ genrule(
     cmd = "cp $(execpath //runtime/vm:vm_platform.dill) $(RULEDIR)/dart_vm_platform.dill && " +
           "SIZE=$$(python3 -c \"import os; print(os.path.getsize('$(RULEDIR)/dart_vm_platform.dill'))\") && " +
           "{" + select({
-              "@platforms//os:macos":
-                  "  echo '.const'; " +
-                  "  echo '.global _kPlatformDill'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo '_kPlatformDill:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_vm_platform.dill\\\"\"; " +
-                  "  echo '.global _kPlatformDillSize'; " +
-                  "  echo '_kPlatformDillSize:'; " +
-                  "  echo \".quad $$SIZE\"; ",
-              "//conditions:default":
-                  "  echo '.section .rodata'; " +
-                  "  echo '.type kPlatformDill STT_OBJECT'; " +
-                  "  echo '.global kPlatformDill'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo 'kPlatformDill:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_vm_platform.dill\\\"\"; " +
-                  "  echo '.size kPlatformDill, .-kPlatformDill'; " +
-                  "  echo '.global kPlatformDillSize'; " +
-                  "  echo 'kPlatformDillSize:'; " +
-                  "  echo \".quad $$SIZE\"; ",
+              "@platforms//os:macos": "  echo '.const'; " +
+                                      "  echo '.global _kPlatformDill'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo '_kPlatformDill:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_vm_platform.dill\\\"\"; " +
+                                      "  echo '.global _kPlatformDillSize'; " +
+                                      "  echo '_kPlatformDillSize:'; " +
+                                      "  echo \".quad $$SIZE\"; ",
+              "//conditions:default": "  echo '.section .rodata'; " +
+                                      "  echo '.type kPlatformDill STT_OBJECT'; " +
+                                      "  echo '.global kPlatformDill'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo 'kPlatformDill:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_vm_platform.dill\\\"\"; " +
+                                      "  echo '.size kPlatformDill, .-kPlatformDill'; " +
+                                      "  echo '.global kPlatformDillSize'; " +
+                                      "  echo 'kPlatformDillSize:'; " +
+                                      "  echo \".quad $$SIZE\"; ",
           }) +
           "} > $(RULEDIR)/dart_platform_dill.S",
 )
@@ -4545,39 +4541,46 @@ cc_library(
 # Mirrors runtime/bin/BUILD.gn:core_snapshot_data_linkable /
 # core_snapshot_text_linkable.
 #
-# Sources are pre-built core snapshot bytes in out/ReleaseX64/gen/runtime/bin/
-# (regenerable via `bazel-bin/runtime/bin/gen_snapshot --snapshot_kind=core
-# --snapshot_data=out/ReleaseX64/gen/runtime/bin/core_snapshot_data.bin
-# --snapshot_text=out/ReleaseX64/gen/runtime/bin/core_snapshot_text.bin
-# out/ReleaseX64/vm_platform_stripped.dill`). We don't drive gen_snapshot
-# from a Bazel genrule because that would force gen_snapshot's full
-# dependency graph to build in exec configuration, which exposes a number
-# of strict-C++ failures in third_party/zlib (.c files treated as C++ by
-# clang++ as driver). Mirrors the kPlatformDill / kKernelServiceDill
-# pattern (also pre-built blobs from out/).
+# Generated natively in Bazel by running gen_snapshot_product in host config
+# over the stripped VM platform dill.
+genrule(
+    name = "core_snapshot_bin",
+    srcs = [
+        "//runtime/vm:vm_platform_stripped.dill",
+    ],
+    outs = [
+        "core_snapshot_data.bin",
+        "core_snapshot_text.bin",
+    ],
+    cmd = "$(location //runtime/bin:gen_snapshot) --deterministic --snapshot_kind=core " +
+          "--snapshot_data=$(location core_snapshot_data.bin) --snapshot_text=$(location core_snapshot_text.bin) " +
+          "$(location //runtime/vm:vm_platform_stripped.dill)",
+    tools = [
+        "//runtime/bin:gen_snapshot",
+    ],
+)
+
 genrule(
     name = "dart_core_snapshot_data_S",
-    srcs = ["//out/ReleaseX64/gen/runtime/bin:core_snapshot_data.bin"],
+    srcs = [":core_snapshot_data.bin"],
     outs = [
         "core_snapshot_data.S",
         "dart_core_snapshot_data.bin",
     ],
-    cmd = "cp $(execpath //out/ReleaseX64/gen/runtime/bin:core_snapshot_data.bin) $(RULEDIR)/dart_core_snapshot_data.bin && " +
+    cmd = "cp $(execpath :core_snapshot_data.bin) $(RULEDIR)/dart_core_snapshot_data.bin && " +
           "{" + select({
-              "@platforms//os:macos":
-                  "  echo '.const'; " +
-                  "  echo '.global _kDartCoreSnapshotData'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo '_kDartCoreSnapshotData:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_data.bin\\\"\"; ",
-              "//conditions:default":
-                  "  echo '.section .rodata'; " +
-                  "  echo '.type kDartCoreSnapshotData STT_OBJECT'; " +
-                  "  echo '.global kDartCoreSnapshotData'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo 'kDartCoreSnapshotData:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_data.bin\\\"\"; " +
-                  "  echo '.size kDartCoreSnapshotData, .-kDartCoreSnapshotData'; ",
+              "@platforms//os:macos": "  echo '.const'; " +
+                                      "  echo '.global _kDartCoreSnapshotData'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo '_kDartCoreSnapshotData:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_data.bin\\\"\"; ",
+              "//conditions:default": "  echo '.section .rodata'; " +
+                                      "  echo '.type kDartCoreSnapshotData STT_OBJECT'; " +
+                                      "  echo '.global kDartCoreSnapshotData'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo 'kDartCoreSnapshotData:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_data.bin\\\"\"; " +
+                                      "  echo '.size kDartCoreSnapshotData, .-kDartCoreSnapshotData'; ",
           }) +
           "} > $(RULEDIR)/core_snapshot_data.S",
 )
@@ -4587,27 +4590,25 @@ genrule(
 # checks see a valid pointer.
 genrule(
     name = "dart_core_snapshot_text_S",
-    srcs = ["//out/ReleaseX64/gen/runtime/bin:core_snapshot_text.bin"],
+    srcs = [":core_snapshot_text.bin"],
     outs = [
         "core_snapshot_text.S",
         "dart_core_snapshot_text.bin",
     ],
-    cmd = "cp $(execpath //out/ReleaseX64/gen/runtime/bin:core_snapshot_text.bin) $(RULEDIR)/dart_core_snapshot_text.bin && " +
+    cmd = "cp $(execpath :core_snapshot_text.bin) $(RULEDIR)/dart_core_snapshot_text.bin && " +
           "{" + select({
-              "@platforms//os:macos":
-                  "  echo '.const'; " +
-                  "  echo '.global _kDartCoreSnapshotText'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo '_kDartCoreSnapshotText:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_text.bin\\\"\"; ",
-              "//conditions:default":
-                  "  echo '.section .rodata'; " +
-                  "  echo '.type kDartCoreSnapshotText STT_OBJECT'; " +
-                  "  echo '.global kDartCoreSnapshotText'; " +
-                  "  echo '.balign 32'; " +
-                  "  echo 'kDartCoreSnapshotText:'; " +
-                  "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_text.bin\\\"\"; " +
-                  "  echo '.size kDartCoreSnapshotText, .-kDartCoreSnapshotText'; ",
+              "@platforms//os:macos": "  echo '.const'; " +
+                                      "  echo '.global _kDartCoreSnapshotText'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo '_kDartCoreSnapshotText:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_text.bin\\\"\"; ",
+              "//conditions:default": "  echo '.section .rodata'; " +
+                                      "  echo '.type kDartCoreSnapshotText STT_OBJECT'; " +
+                                      "  echo '.global kDartCoreSnapshotText'; " +
+                                      "  echo '.balign 32'; " +
+                                      "  echo 'kDartCoreSnapshotText:'; " +
+                                      "  echo \".incbin \\\"$(RULEDIR)/dart_core_snapshot_text.bin\\\"\"; " +
+                                      "  echo '.size kDartCoreSnapshotText, .-kDartCoreSnapshotText'; ",
           }) +
           "} > $(RULEDIR)/core_snapshot_text.S",
 )
