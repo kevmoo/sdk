@@ -23,18 +23,7 @@ import("../../utils/compile_platform.gni")
 import("../bin/cli_sources.gni")
 import("../bin/io_sources.gni")
 import("../configs.gni")
-import("../lib/async_sources.gni")
-import("../lib/concurrent_sources.gni")
-import("../lib/convert_sources.gni")
-import("../lib/core_sources.gni")
-import("../lib/developer_sources.gni")
-import("../lib/ffi_sources.gni")
-import("../lib/isolate_sources.gni")
-import("../lib/math_sources.gni")
-import("../lib/mirrors_sources.gni")
-import("../lib/profiler_sources.gni")
-import("../lib/typed_data_sources.gni")
-import("../lib/vmservice_sources.gni")
+
 import("../runtime_args.gni")
 import("compiler/compiler_sources.gni")
 import("ffi/ffi_sources.gni")
@@ -133,26 +122,11 @@ library_for_all_configs_with_compiler("libdart_compiler") {
   }
 }
 
-library_for_all_configs("libdart_lib") {
-  target_type = "source_set"
-  extra_nonproduct_deps = []
-  extra_deps = []
-  if (is_fuchsia) {
-    extra_deps += [ "$fuchsia_sdk/pkg/trace-engine" ]
-  }
-  if (dart_support_perfetto) {
-    extra_deps += [ "//third_party/perfetto:libprotozero" ]
-  }
-  include_dirs = [ ".." ]
-  allsources = async_runtime_cc_files + concurrent_runtime_cc_files +
-               core_runtime_cc_files + developer_runtime_cc_files +
-               ffi_runtime_cc_files + isolate_runtime_cc_files +
-               math_runtime_cc_files + mirrors_runtime_cc_files +
-               typed_data_runtime_cc_files + vmservice_runtime_cc_files
+# 🚨 BAZEL MIGRATION NOTE:
+# Sibling C++ sources from ../lib/ (e.g., async.cc, core.cc) and the
+# "libdart_lib" target have been moved to //runtime/lib/BUILD.gn.
+# Do NOT import runtime/lib/*_sources.gni or define libdart_lib here.
 
-  sources = [ "bootstrap.cc" ] + rebase_path(allsources, ".", "../lib")
-  snapshot_sources = []
-}
 
 template("gen_vm_platform") {
   assert(defined(invoker.output_postfix),

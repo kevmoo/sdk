@@ -379,7 +379,10 @@ library_for_all_configs("libdart") {
   }
   configurable_deps = [
     "platform:libdart_platform",
-    "vm:libdart_lib",
+
+    # 🚨 BAZEL MIGRATION: Moved from "vm:libdart_lib" to "lib:libdart_lib"
+    # to encapsulate runtime/lib sources explicitly for hermeticity.
+    "lib:libdart_lib",
     "vm:libdart_vm",
   ]
   compiler_lib = "vm:libdart_compiler"

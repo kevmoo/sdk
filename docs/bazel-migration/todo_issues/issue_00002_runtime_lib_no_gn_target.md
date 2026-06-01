@@ -48,3 +48,12 @@ Discovered during the M3 Bazel migration — see hand-off memory note about
 affects other directories whose headers are reached via implicit include
 paths rather than explicit deps; this issue covers `runtime/lib/` specifically
 but the pattern deserves an audit.
+
+## Resolution
+
+On 2026-06-01 (Session ID: `b9e89cb8-0cfd-483f-b161-ceadc8665400`), the GN target structure for `runtime/lib/` was resolved:
+- Created a proper `runtime/lib/BUILD.gn` file.
+- Defined the `libdart_lib` target inside `runtime/lib/BUILD.gn` using `library_for_all_configs`, encapsulating all C++ sources in `runtime/lib/` (via importing the local `*_sources.gni` files) and `../vm/bootstrap.cc`.
+- Refactored `runtime/vm/BUILD.gn` to remove the redundant imports of `runtime/lib/*_sources.gni` and the `libdart_lib` target definition.
+- Updated `runtime/BUILD.gn` to depend on `lib:libdart_lib` instead of `vm:libdart_lib`.
+- Verified that the GN build configuration is correct and compiles successfully.

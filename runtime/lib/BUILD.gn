@@ -1,0 +1,37 @@
+# Copyright (c) 2026, the Dart project authors.  Please see the AUTHORS file
+# for details. All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+import("../configs.gni")
+import("async_sources.gni")
+import("concurrent_sources.gni")
+import("core_sources.gni")
+import("developer_sources.gni")
+import("ffi_sources.gni")
+import("isolate_sources.gni")
+import("math_sources.gni")
+import("mirrors_sources.gni")
+import("typed_data_sources.gni")
+import("vmservice_sources.gni")
+
+library_for_all_configs("libdart_lib") {
+  target_type = "source_set"
+  extra_nonproduct_deps = []
+  extra_deps = []
+  if (is_fuchsia) {
+    extra_deps += [ "$fuchsia_sdk/pkg/trace-engine" ]
+  }
+  if (dart_support_perfetto) {
+    extra_deps += [ "//third_party/perfetto:libprotozero" ]
+  }
+  include_dirs = [ ".." ]
+
+  allsources = async_runtime_cc_files + concurrent_runtime_cc_files +
+               core_runtime_cc_files + developer_runtime_cc_files +
+               ffi_runtime_cc_files + isolate_runtime_cc_files +
+               math_runtime_cc_files + mirrors_runtime_cc_files +
+               typed_data_runtime_cc_files + vmservice_runtime_cc_files
+
+  sources = [ "../vm/bootstrap.cc" ] + allsources
+  snapshot_sources = []
+}
