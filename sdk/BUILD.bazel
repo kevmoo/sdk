@@ -160,7 +160,14 @@ genrule(
     name = "copy_dart",
     srcs = ["//runtime/bin:dart"],
     outs = ["dart-sdk/bin/dart"],
-    cmd = "cp $< $@",
+    cmd = "strip --strip-all -o $@ $<",
+)
+
+genrule(
+    name = "copy_dart_sym",
+    srcs = ["//runtime/bin:dart"],
+    outs = ["dart-sdk/bin/dart.sym"],
+    cmd = "objcopy --only-keep-debug $< $@",
 )
 
 genrule(
@@ -214,7 +221,7 @@ genrule(
     name = "copy_dart_aotruntime",
     srcs = ["//runtime/bin:dartaotruntime_product"],
     outs = ["dart-sdk/bin/dartaotruntime"],
-    cmd = "cp $< $@",
+    cmd = "strip --strip-all -o $@ $<",
 )
 
 # TODO(M3): copy for copy_dart_aotruntime_asan (gn type=copy)
@@ -223,8 +230,12 @@ cc_library(name = "copy_dart_aotruntime_asan")
 # TODO(M3): copy for copy_dart_aotruntime_msan (gn type=copy)
 cc_library(name = "copy_dart_aotruntime_msan")
 
-# TODO(M3): copy for copy_dart_aotruntime_sym (gn type=copy)
-cc_library(name = "copy_dart_aotruntime_sym")
+genrule(
+    name = "copy_dart_aotruntime_sym",
+    srcs = ["//runtime/bin:dartaotruntime_product"],
+    outs = ["dart-sdk/bin/dartaotruntime.sym"],
+    cmd = "objcopy --only-keep-debug $< $@",
+)
 
 # TODO(M3): copy for copy_dart_aotruntime_tsan (gn type=copy)
 cc_library(name = "copy_dart_aotruntime_tsan")
@@ -289,7 +300,14 @@ genrule(
     name = "copy_dartvm",
     srcs = ["//runtime/bin:dartvm"],
     outs = ["dart-sdk/bin/dartvm"],
-    cmd = "cp $< $@",
+    cmd = "strip --strip-all -o $@ $<",
+)
+
+genrule(
+    name = "copy_dartvm_sym",
+    srcs = ["//runtime/bin:dartvm"],
+    outs = ["dart-sdk/bin/dartvm.sym"],
+    cmd = "objcopy --only-keep-debug $< $@",
 )
 
 genrule(
@@ -420,9 +438,9 @@ genrule(
     cmd = "cp $< $@",
 )
 
-cc_library(
+filegroup(
     name = "copy_gen_snapshot",
-    deps = [
+    srcs = [
         "//sdk:copy_gen_snapshot_exe",
         "//sdk:copy_gen_snapshot_sym",
     ],
@@ -433,11 +451,15 @@ genrule(
     name = "copy_gen_snapshot_exe",
     srcs = ["//runtime/bin:gen_snapshot_product"],
     outs = ["dart-sdk/bin/utils/gen_snapshot"],
-    cmd = "cp $< $@",
+    cmd = "strip --strip-all -o $@ $<",
 )
 
-# TODO(M3): copy for copy_gen_snapshot_sym (gn type=copy)
-cc_library(name = "copy_gen_snapshot_sym")
+genrule(
+    name = "copy_gen_snapshot_sym",
+    srcs = ["//runtime/bin:gen_snapshot_product"],
+    outs = ["dart-sdk/bin/utils/gen_snapshot.sym"],
+    cmd = "objcopy --only-keep-debug $< $@",
+)
 
 # Copy the public C API headers into the SDK tree. This is a genrule (not a filegroup
 # forwarding //runtime/include:copy_headers) so the outputs root under THIS package and land
@@ -682,8 +704,10 @@ filegroup(
     srcs = [
         "//sdk:copy_api_readme",
         "//sdk:copy_dart",
+        "//sdk:copy_dart_sym",
         "//sdk:copy_dartdoc_files",
         "//sdk:copy_dartvm",
+        "//sdk:copy_dartvm_sym",
         "//sdk:copy_headers",
         "//sdk:copy_libraries_specification",
         "//sdk:copy_license",
