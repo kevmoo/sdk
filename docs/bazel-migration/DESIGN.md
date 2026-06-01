@@ -1218,17 +1218,22 @@ selection mechanism (`linux-intel.cfg` vs `unix.cfg` vs
 
 ### 3.5 Test integration
 
+> [!IMPORTANT]
+> **The target test integration design has evolved to a unified 4-Phase pure Bazel testing roadmap.**
+> Instead of executing status file parsing natively inside Starlark at analysis time, we utilize a dynamic dry-run JSON metadata exporter from the Dart test runner and a standalone hermetic wrapper executor.
+> For the comprehensive architecture, phase breakdown, and immediate refactoring items, see the dedicated deep-dive: **[Testing Migration Roadmap](deep_dives/testing_migration_roadmap.md)**.
+
 **Capability-by-capability mapping** of `tools/test.py` + `pkg/test_runner`
 against `bazel test` (sdk-9jz, **high** confidence on the structural
 inventory; **medium** on Bazel-side cost estimates):
 
 | Capability | Bazel native? | Mapping |
 |---|---|---|
-| FS-walk discovery | **No** | `dart_test_suite(name=..., srcs=glob(["**/*_test.dart"]))` macro emitting one `dart_test` per match. Zero per-test BUILD authorship overhead — same UX as today. |
+| FS-walk discovery | **No** | Custom Starlark repository rule dynamically generates `BUILD.bazel` targets by invoking the Phase 1 dry-run JSON metadata exporter at analysis time (Phase 3). |
 | `// VMOptions=` / `// SharedOptions=` / `// Environment=` magic comments | **No** | Test runner keeps parsing them at runtime; the `dart_test` rule doesn't need to know. |
 | 8-dim Smith matrix | **Partial** | `--config=dart_<compiler>_<mode>_<arch>` flag space; hundreds of `.bazelrc` entries (or generated config). `bazel cquery` exposes per-config. |
-| `.status` file evaluation | **No** | New Starlark rule `dart_status_file()` parses at analysis time, evaluates `[ $compiler == ... ]` predicates against the current `--config`, emits per-test `tags = ["skip", ...]` + expected-outcome metadata. ~200–500 lines of Starlark (sdk-9jz **medium-low** confidence on the line count). |
-| Outcome semantics beyond pass/fail (`RuntimeError`, `MissingRuntimeError`, …) | **No** | Test runner stays as the executable; it reads `.status` for the current Bazel config and maps process state → expected outcome → Bazel binary pass/fail. The dart test runner becomes the Bazel test executable, not `dart` directly. |
+| `.status` file evaluation | **No** | Handled dynamically by the dynamic JSON metadata exporter and hermetic executor (Phases 1-2). Evaluated at execution time under the sandbox rather than Starlark analysis time. |
+| Outcome semantics beyond pass/fail (`RuntimeError`, `MissingRuntimeError`, …) | **No** | Standalone hermetic executor `run_single_test.dart` accepts a single resolved test config and translates outcomes against expected outcomes to exit code 0 (Phase 2). |
 | Multitests (synthetic file expansion) | **No** | Either keep runtime expansion in the runner (simpler) or move to a build-time `genrule` per `_test.dart` (more Bazel-native). |
 | Sharding | **Partial** | Bazel's `shard_count = N` shards a single rule's cases; Dart's sharding shards the SUITE LIST across CI machines. Different scope — CI orchestration computes `--test_filter` partitions per shard and invokes `bazel test` N times. Bazel itself doesn't need to know it's being sharded. |
 | Deflaking (per-test repeat + timeout JSON) | **Partial** | `bazel test --runs_per_test=N --runs_per_test_detects_flakes` covers coarse retry; per-test override stays an out-of-band CI step driven by `bazel test --runs_per_test=N //tests/language:specific_test` per item. |
@@ -1236,13 +1241,6 @@ inventory; **medium** on Bazel-side cost estimates):
 | `results.json` / `logs.json` schema | **No** | Wrapper script (or runner-internal write) emits the file alongside Bazel's `test.log` / `test.xml`. **Format must survive byte-for-byte** — the `dart-current-results.appspot.com` dashboard and the deflake bot are out-of-band consumers (sdk-9jz). |
 | Core-dump archival, FD limit, adb path | **No** | Per-test wrapper script does the equivalent. Trivial. |
 | `--test-list` (run only named tests) | **Yes** | `bazel test --test_filter='regex'` covers it; the runner-as-bazel-executable reads `TESTBRIDGE_TEST_ONLY` and filters accordingly. |
-
-**`dart_status_file()` rule sketch.** The closed expectation
-vocabulary (~25 tokens) maps to a Starlark-defined enum. The 1996
-lines of `.status` parse cheaply at analysis time; `[ $var == value ]`
-predicates evaluate against `select()`-style config_settings. Output:
-a manifest the test runner ingests at runtime to compute pass/fail
-semantics (sdk-9jz).
 
 **Dart library generation from pubspecs.** Two viable strategies for
 the pubspec → Bazel deps translation (sdk-rsv, **medium** confidence

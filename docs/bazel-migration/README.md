@@ -22,6 +22,7 @@ If you are an autonomous agent or human contributor picking up this migration wo
 ### 🔍 Deep-Dives & Scoping
 Architectural characterization of core migration seams:
 * **[deep_dives/rules_dart_scoping.md](deep_dives/rules_dart_scoping.md)** — Design of the per-package dependencies graph (`packages.bzl`).
+* **[deep_dives/testing_migration_roadmap.md](deep_dives/testing_migration_roadmap.md)** — Dynamic dry-run metadata JSON and hermetic sandbox executor roadmap.
 * **[deep_dives/m4_multiconfig_scoping.md](deep_dives/m4_multiconfig_scoping.md)** — Scoping of the Debug/Release and Product compilation axes.
 * **[deep_dives/m4_arch_axis_scoping.md](deep_dives/m4_arch_axis_scoping.md)** — Cross-compilation mapping (x64 host to ARM64 target).
 * **[deep_dives/other_agent_review.md](deep_dives/other_agent_review.md)** — Multi-agent execution reviews.
