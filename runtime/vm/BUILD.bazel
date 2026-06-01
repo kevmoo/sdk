@@ -125,7 +125,7 @@ cc_binary(
         "//build/config/sanitizers:deps",
         "//runtime/platform:libdart_platform_jit",
         "//runtime/vm:headers",
-        "//third_party/icu:icuuc",
+        "@icu//:icuuc",
     ],
 )
 
@@ -474,6 +474,7 @@ cc_library(
     local_defines = [
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
@@ -1146,6 +1147,7 @@ cc_library(
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILER",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
@@ -1314,6 +1316,7 @@ cc_library(
     local_defines = [
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
@@ -1484,6 +1487,7 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
         "DART_PRECOMPILER",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
@@ -1654,6 +1658,7 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
         "DART_PRECOMPILER",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
@@ -1824,6 +1829,7 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
         "DART_PRECOMPILER",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
@@ -1994,6 +2000,7 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_" + "X64",
         "DART_PRECOMPILER",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
@@ -2489,8 +2496,8 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -2809,12 +2816,13 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -3135,8 +3143,8 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -3453,12 +3461,13 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -3780,8 +3789,8 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -4108,8 +4117,8 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -4432,8 +4441,8 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -4753,13 +4762,14 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -5078,13 +5088,14 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode",
         "//build/config:dart_product_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -5405,13 +5416,14 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -5732,13 +5744,14 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -6059,13 +6072,14 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -6386,13 +6400,14 @@ cc_library(
         "U_ENABLE_RESOURCE_TRACING=0",
         "U_STATIC_IMPLEMENTATION",
         "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE",
+        "PRODUCT",
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
         "//build/config:dart_product_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
@@ -6717,8 +6732,8 @@ cc_library(
     deps = [
         "//build/config:dart_mode",
         "//third_party/boringssl",
-        "//third_party/icu:icuuc",
         "//third_party/perfetto:libprotozero",
+        "@icu//:icuuc",
     ],
 )
 
