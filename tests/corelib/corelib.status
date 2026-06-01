@@ -69,6 +69,9 @@ error_stack_trace1_test: SkipByDesign # Relies on symbol names in stack traces.
 [ $runtime == dart_precompiled || $runtime == vm ]
 regexp/global_test: Skip # Issue 21709
 regexp/pcre_test: Slow, Pass
+unicode_test: RuntimeError # Standalone VM casing is strictly 1-to-1 (does not use ICU for String.toUpperCase U+00DF -> SS expansion). See issue_00012 in docs/bazel-migration.
+string_case_test/01: RuntimeError # Standalone VM casing is strictly 1-to-1. See issue_00012 in docs/bazel-migration.
+
 
 [ $hot_reload || $hot_reload_rollback ]
 bigint_test: SkipSlow
