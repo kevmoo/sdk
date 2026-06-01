@@ -131,6 +131,7 @@ class OptionsParser {
     'minified',
     'vm-options',
     'dart2js-options',
+    'dart2wasm-options',
     'enable-experiment',
     'builder-tag',
     'use-qemu',
@@ -301,6 +302,7 @@ class OptionsParser {
     }
 
     var dart2jsOptions = listOption("dart2js-options");
+    var dart2wasmOptions = listOption("dart2wasm-options");
     var ddcOptions = listOption("ddc-options");
     var vmOptions = listOption("vm-options");
     var sharedOptions = listOption("shared-options");
@@ -546,8 +548,9 @@ class OptionsParser {
                   isCsp: data["csp"] as bool,
                   isMinified: data["minified"] as bool,
                   genSnapshotFormat: format,
-                  vmOptions: vmOptions,
+                   vmOptions: vmOptions,
                   dart2jsOptions: dart2jsOptions,
+                  dart2wasmOptions: dart2wasmOptions,
                   ddcOptions: ddcOptions,
                   experiments: experiments,
                   builderTag: data["builder-tag"] as String?,
@@ -1044,6 +1047,12 @@ options. Used to be able to make sane updates to the status files.''',
     aliases: ['dart2js_options'],
     hide: !verbose,
     help: 'Extra options for dart2js compilation step.',
+  )
+  ..addMultiOption(
+    'dart2wasm-options',
+    aliases: ['dart2wasm_options'],
+    hide: !verbose,
+    help: 'Extra options for dart2wasm compilation step.',
   )
   ..addMultiOption(
     'ddc-options',
