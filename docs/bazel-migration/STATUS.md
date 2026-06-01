@@ -27,7 +27,13 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 53, agy/jetski) — **Implemented binary stripping and companion debug symbols extraction for all core SDK binaries (Option 2), completing key assembly gaps.**_
+_Last updated: 2026-06-01 (session 54, jetski) — **Completed platform-aware binary stripping/symbol extraction (macOS Xcode + Linux GNU), resolved critical non-product AOT compiler segfaults, and synchronized packages mapping.**_
+
+Session 54 — **(jetski) Resolved macOS stripping & symbol extraction compatibility, fixed critical VM precompiler segfault, and synchronized Starlark packages.**
+- **Completed Platform-Aware Binary Stripping & Symbol Extraction**: Made all 8 copy/strip/symbol extraction rules in `sdk/BUILD.bazel` platform-aware via `select()`. On macOS, it dynamically uses Xcode's `strip -x -o` and runs the native `dart_profiler_symbols.py` script with `nm` to extract debug symbols, fully replicating the canonical GN packaging pipeline.
+- **Surgically Fixed macOS Sandbox Break**: Discovered and resolved an unused `import utils` in `dart_profiler_symbols.py` that was missing from the Bazel genrules, preventing immediate `ModuleNotFoundError` crashes inside hermetic macOS sandboxes.
+- **Resolved VM Precompiler Segfault (Issue Resolved)**: Diagnosed and resolved a critical null-pointer dereference in the precompiler's `Obfuscator` when running in non-product AOT configurations by adding a safe early return in `kernel_translation_helper.cc`. Verified the fix completely green via parallel integration test suites.
+- **Synchronized Packages Mapping & Bazel lockfile**: Synchronized dynamic package references in `tools/bazel/dart/packages.bzl` and committed Bazel's transitively regenerated `MODULE.bazel.lock` digest.
 
 Session 53 — **(agy/jetski) Implemented binary stripping and companion debug symbols extraction for SDK assembly (Option 2).**
 - **Implemented Binary Stripping (`strip --strip-all`)**: Replaced standard file copy commands in `sdk/BUILD.bazel` with dynamic, in-sandbox calls to system `strip --strip-all -o $@ $<` for the core SDK binaries (`dart`, `dartvm`, `dartaotruntime`, `gen_snapshot`), bringing them into full alignment with official GN-packaged size standards.
