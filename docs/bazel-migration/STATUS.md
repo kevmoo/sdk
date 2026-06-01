@@ -11,7 +11,13 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-06-01 (session 46, claude) — **End-to-end build/test verification + C-headers staging fix + cross-agent handoff to agy on a `runtime/lib` Bazel divergence.**_
+_Last updated: 2026-06-01 (session 47, agy) — **Reconciled runtime/lib GN-to-Bazel package decoupling, resolved sandbox isolation, fixed cross-compilation architecture-define clashes in translator, and achieved fully green Bazel SDK build.**_
+
+Session 47 — **(agy) Reconciled runtime/lib GN-to-Bazel package decoupling, resolved sandbox isolation compile errors, and fixed cross-compilation architecture-define clashes.**
+- **Reconciled `runtime/lib` Overlay**: Completed the manual reconciliation flagged by Claude in Session 46. Registered `runtime/lib` as a translated package in `translate_gn_desc.py`, hand-authored the clobber-safe `runtime/lib/BUILD.bazel` overlay, excised 1,630 lines of obsolete `libdart_lib` targets from `runtime/vm/BUILD.bazel`, and globally redirected all dependency references to `//runtime/lib:libdart_lib_`.
+- **Resolved Sandbox Header Isolation**: Fixed compilation errors under Bazel's strict sandboxing by adding direct dependencies on `//runtime/platform:libdart_platform` and `//runtime:dart_api` in `runtime/lib/BUILD.gn`, ensuring all necessary headers are correctly visible to the compilation sandbox. Added missing source headers (`integers.h` and `ffi_dynamic_library.h`) to `.gni` lists.
+- **Fixed Cross-Compilation target-arch Defines**: Resolved a critical conflict where cross-targeting precompiler libraries (like `_linux_arm`, `_linux_arm64`, etc.) had their architecture defines stripped and fell back to the host architecture (e.g., `TARGET_ARCH_X64`). Updated the translator (`translate_gn_desc.py`) to bypass stripping of architecture/OS defines for dedicated cross-targeting targets, and correctly injected `//build/config:dart_mode_no_arch` into their dependencies.
+- **Verified Pristine Sandbox Build**: Successfully executed `bazel build //sdk:create_sdk`, completing all 297 processes with a 100% clean, error-free build of all baseline snapshots, default runtimes, and cross-compiled binaries.
 
 Session 46 — **(claude) Empirical full-stack verification, a landed fix, and a cross-agent flag for agy.**
 **(1) Verified the whole stack builds + runs from source** (local, not inherited claims): `//runtime/bin:dartvm` green + runs real async/generics/exception Dart; `//sdk:create_sdk` green (default AND `--//build/config:dart_product=true`) and the *assembled* `dart-sdk/bin/dart run` executes a real program (kernel-service snapshot live); test track green — `@dart_tests` = 7110 targets, `corelib_apply_test` PASSES via both `bazel test` and `tools/test.py --bazel`.
