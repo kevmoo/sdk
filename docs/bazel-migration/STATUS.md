@@ -302,14 +302,14 @@ cross-arch refs to match GN exactly — but they build, so this is cosmetic, not
 
 These tasks have been identified by recent agent sessions as highly valuable cleanup opportunities to harden sandbox isolation, secure cross-platform reproducibility, and unblock downstream milestones (such as Windows and remote execution):
 
-- **🚨 Windows Runfiles Manifest (The Blocker for Windows Testing)**:
+- **🚨 Windows Runfiles Manifest (The Blocker for Windows Testing) [DONE]**:
   * **The Debt**: Our standalone test runner (`pkg/test_runner/bin/run_single_test.dart`) resolves test tools by directly concatenating `$TEST_SRCDIR` paths.
   * **The Hazard**: While this works on Linux/macOS (which create physical symlinks under the sandbox), Windows disables symlinks by default and emits a flat text-based runfiles manifest (`$TEST_SRCDIR_MANIFEST`) instead. Directory queries will fail on Windows.
   * **The Fix**: Update path resolution in `run_single_test.dart` to dynamically parse the Bazel runfiles manifest when running on Windows.
 - **🔗 DEPS-driven Subrepo Pins (Single Source of Truth for restore.sh) [DONE]**:
   * **The Debt**: `tools/bazel/out_of_band/restore.sh` hardcodes git checkout pins in `SUBREPO_PINS`. If trunk rolls a dependency revision (like `native_rev` in `DEPS`), these pins drift and break compilation.
   * **The Fix**: Extended `restore.sh` (in commit `366d570fb3c`) to dynamically parse `DEPS` in the SDK root and extract pins automatically, keeping git as the single source of truth.
-- **🔒 C++ Private Header Encapsulation**:
+- **🔒 C++ Private Header Encapsulation [DONE]**:
   * **The Debt**: The translator folds all C++ headers recursively into Bazel's `hdrs` list, making all headers public to any target that depends on the library.
   * **The Fix**: Update `translate_gn_desc.py` to query the GN `public` list in the desc JSON, placing public headers in `hdrs` and internal/private headers in `srcs` to enforce strict encapsulation.
 - **🛠️ Formalizing a `dart_toolchain` [DONE]**:
