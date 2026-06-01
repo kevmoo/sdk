@@ -3,8 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+
+import 'command.dart';
+import 'test_case.dart';
+import 'test_file.dart';
 
 import 'android.dart';
 import 'browser_controller.dart';
@@ -67,10 +72,17 @@ final class SuiteDirectory {
 
 // TODO(26372): Ensure that the returned future awaits on all started tasks.
 Future testConfigurations(List<TestConfiguration> configurations) async {
-  var startTime = DateTime.now();
-
   // Extract global options from first configuration.
   var firstConf = configurations[0];
+  if (firstConf.dumpTestMetadata != null) {
+    await dumpConfigurationsMetadata(
+      configurations,
+      firstConf.dumpTestMetadata!,
+    );
+    return;
+  }
+
+  var startTime = DateTime.now();
   var maxProcesses = firstConf.taskCount;
   var progress = firstConf.progress;
   var verbose = firstConf.isVerbose;
@@ -313,5 +325,86 @@ Future testConfigurations(List<TestConfiguration> configurations) async {
     allTestsFinished,
     verbose,
     adbDevicePool,
+  );
+}
+
+Future<void> dumpConfigurationsMetadata(
+  List<TestConfiguration> configurations,
+  String outputPath,
+) async {
+  var testSuites = <TestSuite>[];
+  for (var configuration in configurations) {
+    if (configuration.suiteDirectory != null) {
+      var suitePath = Path(configuration.suiteDirectory!);
+      testSuites.add(PackageTestSuite(configuration, suitePath));
+    } else {
+      for (var testSuiteDir in testSuiteDirectories) {
+        var name = testSuiteDir.directory.filename;
+        if (configuration.selectors.containsKey(name)) {
+          testSuites.add(
+            StandardTestSuite.forDirectory(
+              configuration,
+              testSuiteDir.directory,
+              testSuiteDir.testSubdirectory,
+            ),
+          );
+        }
+      }
+
+      for (var key in configuration.selectors.keys) {
+        if (key == 'co19') {
+          testSuites.add(Co19TestSuite(configuration, key));
+        } else if ((configuration.compiler == Compiler.dartk ||
+                configuration.compiler == Compiler.dart2bytecode) &&
+            configuration.runtime == Runtime.vm &&
+            key == 'vm') {
+          testSuites.add(VMTestSuite(configuration));
+        } else if (key == 'ffi_unit') {
+          testSuites.add(FfiTestSuite(configuration));
+        } else if (configuration.compiler == Compiler.dart2analyzer) {
+          if (key == 'analyze_library') {
+            testSuites.add(AnalyzeLibraryTestSuite(configuration));
+          }
+        }
+      }
+    }
+  }
+
+  var allTestCases = <Map<String, dynamic>>[];
+
+  for (var suite in testSuites) {
+    var testCache = <String, List<TestFile>>{};
+    suite.findTestCases((TestCase testCase) {
+      allTestCases.add({
+        "name": testCase.displayName,
+        "file_path": testCase.testFile.path.toNativePath(),
+        "expected_outcome": testCase.expectedOutcomes
+            .map((e) => e.toString())
+            .toList(),
+        "commands": testCase.commands.map((cmd) {
+          if (cmd is ProcessCommand) {
+            return {
+              "executable": cmd.executable,
+              "arguments": cmd.arguments,
+              if (cmd.workingDirectory != null)
+                "working_directory": cmd.workingDirectory,
+              if (cmd.environmentOverrides.isNotEmpty)
+                "environment": cmd.environmentOverrides,
+            };
+          }
+          return {
+            "displayName": cmd.displayName,
+            "reproducing_command": cmd.reproductionCommand,
+          };
+        }).toList(),
+      });
+    }, testCache);
+  }
+
+  var jsonEncoder = const JsonEncoder.withIndent('  ');
+  var file = File(outputPath);
+  await file.writeAsString(jsonEncoder.convert(allTestCases));
+  print(
+    "Successfully dumped ${allTestCases.length} test cases metadata to $outputPath",
   );
 }

@@ -38,10 +38,13 @@ void main(List<String> arguments) async {
     print(exception.message);
     exit(1);
   }
-  final buildSuccess = await buildConfigurations(configurations);
-  if (!buildSuccess) {
-    print("ERROR: Build failed.");
-    exit(1);
+  var needsBuild = configurations.any((c) => c.dumpTestMetadata == null);
+  if (needsBuild) {
+    final buildSuccess = await buildConfigurations(configurations);
+    if (!buildSuccess) {
+      print("ERROR: Build failed.");
+      exit(1);
+    }
   }
 
   if (configurations.isEmpty) {

@@ -57,6 +57,7 @@ class TestConfiguration {
     this.dartPath,
     this.dartPrecompiledPath,
     this.genSnapshotPath,
+    this.dumpTestMetadata,
     this.taskCount = 1,
     this.shardCount = 1,
     this.shard = 1,
@@ -140,6 +141,7 @@ class TestConfiguration {
   final String? dartPath;
   final String? dartPrecompiledPath;
   final String? genSnapshotPath;
+  final String? dumpTestMetadata;
   final List<String>? testList;
   final Map<String, DeflakeInfo> deflakeInfoMap;
 

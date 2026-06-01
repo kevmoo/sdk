@@ -384,6 +384,7 @@ class OptionsParser {
         dartPath: data["dart"] as String?,
         dartPrecompiledPath: data["dart-precompiled"] as String?,
         genSnapshotPath: data["gen-snapshot"] as String?,
+        dumpTestMetadata: data["dump-test-metadata"] as String?,
         keepGeneratedFiles: data["keep-generated-files"] as bool,
         taskCount: int.parse(data["tasks"] as String),
         shardCount: int.parse(data["shards"] as String),
@@ -849,6 +850,12 @@ test options, specifying how tests should be run.''',
     aliases: ['no_tree_shake'],
     hide: !verbose,
     help: 'Disable kernel IR tree shaking.',
+  )
+  ..addOption(
+    'dump-test-metadata',
+    aliases: ['dump_test_metadata'],
+    help:
+        'Dump all resolved test metadata to a JSON file instead of running tests.',
   )
   ..addFlag('list', help: 'List tests only, do not run them.')
   ..addFlag(
