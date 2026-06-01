@@ -104,11 +104,25 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
             ":" + json_filename,
         ]
 
-        if repository_ctx.attr.compiler == "dart2wasm":
+        if repository_ctx.attr.runtime == "d8" or repository_ctx.attr.compiler == "dart2wasm":
             data_deps += [
                 "@//third_party/d8:d8_files",
                 "@//:pkg/dart2wasm/bin/run_wasm.js",
             ]
+
+        # Map hermetic browser toolchains dynamically if they exist in the workspace
+        if repository_ctx.attr.runtime in ["chrome", "chromeOnAndroid", "chromedriver"]:
+            chrome_build = workspace_dir.get_child("third_party").get_child("browsers").get_child("chrome").get_child("BUILD.bazel")
+            if chrome_build.exists:
+                data_deps.append("@//third_party/browsers/chrome:chrome_files")
+        elif repository_ctx.attr.runtime in ["firefox", "jsshell"]:
+            firefox_build = workspace_dir.get_child("third_party").get_child("browsers").get_child("firefox").get_child("BUILD.bazel")
+            if firefox_build.exists:
+                data_deps.append("@//third_party/browsers/firefox:firefox_files")
+        elif repository_ctx.attr.runtime == "firefox_jsshell":
+            jsshell_build = workspace_dir.get_child("third_party").get_child("firefox_jsshell").get_child("BUILD.bazel")
+            if jsshell_build.exists:
+                data_deps.append("@//third_party/firefox_jsshell:firefox_jsshell_files")
 
         data_list_str = ",\n        ".join(['"{}"'.format(d) for d in data_deps])
 

@@ -728,6 +728,7 @@ test options, specifying how tests should be run.''',
   )
   ..addFlag(
     'build',
+    defaultsTo: true,
     help: 'Build the necessary targets to test this configuration',
   )
   ..addFlag(

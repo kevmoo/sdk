@@ -126,13 +126,17 @@ def load_source(modname, filename):
     return module
 
 
-def GetBotUtils(repo_path=DART_DIR):
+def GetBotUtils(repo_path=None):
+    if repo_path is None:
+        repo_path = DART_DIR
     '''Dynamically load the tools/bots/bot_utils.py python module.'''
     return load_source('bot_utils',
                        os.path.join(repo_path, 'tools', 'bots', 'bot_utils.py'))
 
 
-def GetMinidumpUtils(repo_path=DART_DIR):
+def GetMinidumpUtils(repo_path=None):
+    if repo_path is None:
+        repo_path = DART_DIR
     '''Dynamically load the tools/minidump.py python module.'''
     return load_source('minidump',
                        os.path.join(repo_path, 'tools', 'minidump.py'))
@@ -359,14 +363,15 @@ def GetBuildRoot(host_os, mode=None, arch=None, target_os=None, sanitizer=None):
     return build_root
 
 
-def GetVersion(no_git_hash=False, version_file=None):
+def GetVersion(no_git_hash=False, version_file=None, git_revision=None):
     version = ReadVersionFile(version_file)
     if not version:
         return None
 
     suffix = ''
     if version.channel in ['main', 'be']:
-        suffix = '-edge' if no_git_hash else '-edge.{}'.format(GetGitRevision())
+        git_rev = git_revision or (None if no_git_hash else GetGitRevision())
+        suffix = '-edge' if git_rev is None else '-edge.{}'.format(git_rev)
     elif version.channel in ('beta', 'dev'):
         suffix = '-{}.{}.{}'.format(version.prerelease,
                                     version.prerelease_patch, version.channel)
@@ -416,7 +421,9 @@ def ReadVersionFile(version_file=None):
     return None
 
 
-def GetGitRevision(repo_path=DART_DIR):
+def GetGitRevision(repo_path=None):
+    if repo_path is None:
+        repo_path = DART_DIR
     p = subprocess.Popen(['git', 'rev-parse', 'HEAD'],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
@@ -436,7 +443,9 @@ def GetGitRevision(repo_path=DART_DIR):
     return revision
 
 
-def GetShortGitHash(repo_path=DART_DIR):
+def GetShortGitHash(repo_path=None):
+    if repo_path is None:
+        repo_path = DART_DIR
     p = subprocess.Popen(['git', 'rev-parse', '--short=10', 'HEAD'],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
@@ -451,7 +460,9 @@ def GetShortGitHash(repo_path=DART_DIR):
     return revision
 
 
-def GetGitTimestamp(repo_path=DART_DIR):
+def GetGitTimestamp(repo_path=None):
+    if repo_path is None:
+        repo_path = DART_DIR
     p = subprocess.Popen(['git', 'log', '-n', '1', '--pretty=format:%cd'],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
@@ -466,7 +477,9 @@ def GetGitTimestamp(repo_path=DART_DIR):
     return timestamp
 
 
-def GetGitTimestampForDpkg(repo_path=DART_DIR):
+def GetGitTimestampForDpkg(repo_path=None):
+    if repo_path is None:
+        repo_path = DART_DIR
     p = subprocess.Popen(['git', 'log', '-n', '1', '--pretty=format:%cD'],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,

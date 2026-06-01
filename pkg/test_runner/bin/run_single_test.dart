@@ -96,7 +96,23 @@ void main(List<String> args) async {
       arguments = newArgs;
     } else if (executable == 'pkg/dart2wasm/tool/run_benchmark' &&
         testSrcdir != null) {
-      final d8Bin = '$testSrcdir/_main/third_party/d8/linux/x64/d8';
+      String osDir;
+      if (Platform.isLinux) {
+        osDir = 'linux/x64';
+      } else if (Platform.isMacOS) {
+        final isArm64 = Platform.version.contains('arm64') || Platform.version.contains('aarch64');
+        if (isArm64 && Directory('$testSrcdir/_main/third_party/d8/macos/arm64').existsSync()) {
+          osDir = 'macos/arm64';
+        } else {
+          osDir = 'macos/x64';
+        }
+      } else if (Platform.isWindows) {
+        osDir = 'windows/x64';
+      } else {
+        throw UnsupportedError('Unsupported OS: ${Platform.operatingSystem}');
+      }
+      final d8Ext = Platform.isWindows ? '.exe' : '';
+      final d8Bin = '$testSrcdir/_main/third_party/d8/$osDir/d8$d8Ext';
       final runWasmJs = '$testSrcdir/_main/pkg/dart2wasm/bin/run_wasm.js';
       executable = d8Bin;
 
@@ -123,6 +139,69 @@ void main(List<String> args) async {
       } else if (executable.endsWith('/dartaotruntime')) {
         final sdkBinDir = File(dartBinEnv).parent.path;
         executable = '$sdkBinDir/dartaotruntime';
+      }
+    } else if (testSrcdir != null &&
+               (executable == 'third_party/d8/linux/x64/d8' ||
+                executable.endsWith('/d8') ||
+                executable.endsWith('/d8.exe'))) {
+      String osDir;
+      if (Platform.isLinux) {
+        osDir = 'linux/x64';
+      } else if (Platform.isMacOS) {
+        final isArm64 = Platform.version.contains('arm64') || Platform.version.contains('aarch64');
+        if (isArm64 && Directory('$testSrcdir/_main/third_party/d8/macos/arm64').existsSync()) {
+          osDir = 'macos/arm64';
+        } else {
+          osDir = 'macos/x64';
+        }
+      } else if (Platform.isWindows) {
+        osDir = 'windows/x64';
+      } else {
+        throw UnsupportedError('Unsupported OS: ${Platform.operatingSystem}');
+      }
+      final d8Ext = Platform.isWindows ? '.exe' : '';
+      executable = '$testSrcdir/_main/third_party/d8/$osDir/d8$d8Ext';
+    } else if (testSrcdir != null &&
+               (executable == '/usr/bin/google-chrome' ||
+                executable.endsWith('/google-chrome') ||
+                executable.endsWith('/chrome.exe') ||
+                executable.contains('/Google Chrome.app/'))) {
+      final hermeticChromeDir = '$testSrcdir/_main/third_party/browsers/chrome';
+      if (Directory(hermeticChromeDir).existsSync()) {
+        final String chromePath;
+        if (Platform.isLinux) {
+          chromePath = '$hermeticChromeDir/chrome';
+        } else if (Platform.isMacOS) {
+          chromePath = '$hermeticChromeDir/chrome';
+        } else if (Platform.isWindows) {
+          chromePath = '$hermeticChromeDir/chrome.exe';
+        } else {
+          chromePath = '';
+        }
+        if (chromePath.isNotEmpty && File(chromePath).existsSync()) {
+          executable = chromePath;
+        }
+      }
+    } else if (testSrcdir != null &&
+               (executable == '/usr/bin/firefox' ||
+                executable.endsWith('/firefox') ||
+                executable.endsWith('/firefox.exe') ||
+                executable.contains('/Firefox.app/'))) {
+      final hermeticFirefoxDir = '$testSrcdir/_main/third_party/browsers/firefox';
+      if (Directory(hermeticFirefoxDir).existsSync()) {
+        final String firefoxPath;
+        if (Platform.isLinux) {
+          firefoxPath = '$hermeticFirefoxDir/firefox';
+        } else if (Platform.isMacOS) {
+          firefoxPath = '$hermeticFirefoxDir/firefox';
+        } else if (Platform.isWindows) {
+          firefoxPath = '$hermeticFirefoxDir/firefox.exe';
+        } else {
+          firefoxPath = '';
+        }
+        if (firefoxPath.isNotEmpty && File(firefoxPath).existsSync()) {
+          executable = firefoxPath;
+        }
       }
     }
     var workingDirectory = cmd['working_directory'] as String?;

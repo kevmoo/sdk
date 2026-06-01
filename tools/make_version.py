@@ -36,10 +36,14 @@ VM_SNAPSHOT_FILES = [
 ]
 
 
-def MakeSnapshotHashString():
+def MakeSnapshotHashString(snapshot_files=None):
     vmhash = hashlib.md5()
-    for vmfilename in VM_SNAPSHOT_FILES:
-        vmfilepath = os.path.join(utils.DART_DIR, 'runtime', 'vm', vmfilename)
+    files = snapshot_files if snapshot_files is not None else VM_SNAPSHOT_FILES
+    for vmfilename in files:
+        if os.path.exists(vmfilename):
+            vmfilepath = vmfilename
+        else:
+            vmfilepath = os.path.join(utils.DART_DIR, 'runtime', 'vm', vmfilename)
         with open(vmfilepath, 'rb') as vmfile:
             vmhash.update(vmfile.read())
     return vmhash.hexdigest()
@@ -50,8 +54,8 @@ def GetSemanticVersionFormat(no_git_hash):
     return version_format
 
 
-def FormatVersionString(version, no_git_hash, no_sdk_hash, version_file=None):
-    semantic_sdk_version = utils.GetVersion(no_git_hash, version_file)
+def FormatVersionString(version, no_git_hash, no_sdk_hash, version_file=None, git_hash=None, snapshot_files=None):
+    semantic_sdk_version = utils.GetVersion(no_git_hash, version_file, git_hash)
     semantic_version_format = GetSemanticVersionFormat(no_git_hash)
     version_str = (semantic_sdk_version
                    if version_file else semantic_version_format)
@@ -60,13 +64,16 @@ def FormatVersionString(version, no_git_hash, no_sdk_hash, version_file=None):
 
     version = version.replace('{{SEMANTIC_SDK_VERSION}}', semantic_sdk_version)
 
-    git_hash = None
-    # If we need SDK hash and git usage is not suppressed then try to get it.
-    if not no_sdk_hash and not no_git_hash:
-        git_hash = utils.GetShortGitHash()
-    if git_hash is None or len(git_hash) != 10:
-        git_hash = '0000000000'
-    version = version.replace('{{GIT_HASH}}', git_hash)
+    git_hash_val = git_hash
+    if git_hash_val is not None:
+        if len(git_hash_val) > 10:
+            git_hash_val = git_hash_val[:10]
+    else:
+        if not no_sdk_hash and not no_git_hash:
+            git_hash_val = utils.GetShortGitHash()
+    if git_hash_val is None or len(git_hash_val) != 10:
+        git_hash_val = '0000000000'
+    version = version.replace('{{GIT_HASH}}', git_hash_val)
 
     channel = utils.GetChannel()
     version = version.replace('{{CHANNEL}}', channel)
@@ -78,7 +85,7 @@ def FormatVersionString(version, no_git_hash, no_sdk_hash, version_file=None):
         version_time = 'Unknown timestamp'
     version = version.replace('{{COMMIT_TIME}}', version_time)
 
-    snapshot_hash = MakeSnapshotHashString()
+    snapshot_hash = MakeSnapshotHashString(snapshot_files)
     version = version.replace('{{SNAPSHOT_HASH}}', snapshot_hash)
 
     return version
@@ -111,8 +118,19 @@ def main():
             '--format',
             default='{{VERSION_STR}}',
             help='Version format used if no input template is given.')
+        parser.add_argument('--dart-dir', help='Path to the DART_DIR.')
+        parser.add_argument('--git-hash', help='Explicit SDK git hash.')
+        parser.add_argument('--snapshot-files', help='Comma-separated list of snapshot files.')
 
         args = parser.parse_args()
+
+        if args.dart_dir:
+            utils.DART_DIR = os.path.abspath(args.dart_dir)
+            utils.VERSION_FILE = os.path.join(utils.DART_DIR, 'tools', 'VERSION')
+
+        snapshot_files = None
+        if args.snapshot_files:
+            snapshot_files = [f.strip() for f in args.snapshot_files.split(',') if f.strip()]
 
         # If there is no input template, then write the bare version string to
         # args.output. If there is no args.output, then write the version
@@ -127,7 +145,9 @@ def main():
             raise 'No version template given! Set either --input or --format.'
 
         version = FormatVersionString(version_template, args.no_git_hash,
-                                      args.no_sdk_hash, args.version_file)
+                                       args.no_sdk_hash, args.version_file,
+                                       git_hash=args.git_hash,
+                                       snapshot_files=snapshot_files)
 
         if args.output:
             # If the output already exists and there is no change, don't even

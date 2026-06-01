@@ -38,7 +38,7 @@ void main(List<String> arguments) async {
     print(exception.message);
     exit(1);
   }
-  var needsBuild = configurations.any((c) => c.dumpTestMetadata == null);
+  var needsBuild = configurations.any((c) => c.build && c.dumpTestMetadata == null);
   if (needsBuild) {
     final buildSuccess = await buildConfigurations(configurations);
     if (!buildSuccess) {
