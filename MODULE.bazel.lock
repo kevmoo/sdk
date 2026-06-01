@@ -203,7 +203,7 @@
     },
     "//tools/bazel/dart:test_rules.bzl%dart_tests_extension": {
       "general": {
-        "bzlTransitiveDigest": "uBlUbktpYepZkGAAQ6WJMNgQzKf1gN/SV05O/p+p5JU=",
+        "bzlTransitiveDigest": "cFuFbkn6t8S6S4wDpLtLwXIjuvcjLv+wzQdsFD6CfRs=",
         "usagesDigest": "4cbj3Mjb6MHThB17IyomR8ZTjCcOUe6Pw3pQLSUfb0g=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
@@ -235,7 +235,8 @@
             "repoRuleId": "@@//tools/bazel/dart:test_rules.bzl%dynamic_test_repository",
             "attributes": {
               "suites": [
-                "language/class"
+                "language/class",
+                "web/wasm/simd"
               ],
               "mode": "release",
               "compiler": "dart2wasm",

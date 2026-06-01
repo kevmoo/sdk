@@ -175,6 +175,7 @@ def _test_ext_impl(ctx):
         name = "dart_tests_wasm_d8",
         suites = [
             "language/class",
+            "web/wasm/simd",
         ],
         mode = "release",
         compiler = "dart2wasm",

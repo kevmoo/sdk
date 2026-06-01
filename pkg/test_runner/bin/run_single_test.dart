@@ -82,8 +82,14 @@ void main(List<String> args) async {
       final newArgs = [
         '$sdkDir/bin/snapshots/dart2wasm_product.snapshot',
         '--platform=$sdkDir/lib/_internal/dart2wasm_platform.dill',
-        ...arguments,
       ];
+      for (final arg in arguments) {
+        if (arg.startsWith('--extra-compiler-option=')) {
+          newArgs.add(arg.substring('--extra-compiler-option='.length));
+        } else {
+          newArgs.add(arg);
+        }
+      }
       arguments = newArgs;
     } else if (executable == 'pkg/dart2wasm/tool/run_benchmark' &&
         testSrcdir != null) {
