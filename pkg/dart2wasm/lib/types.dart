@@ -6,6 +6,7 @@ import 'dart:math' show max;
 
 import 'package:kernel/ast.dart';
 import 'package:kernel/core_types.dart';
+import 'package:kernel/src/bounds_checks.dart' show calculateBounds;
 import 'package:kernel/type_environment.dart' as type_env;
 import 'package:wasm_builder/wasm_builder.dart' as w;
 
@@ -524,6 +525,40 @@ class Types {
     }
   }
 
+  /// Safely rewrites the static [operandType] of a covariance check to a
+  /// version that is safe to trust for optimizations, while preserving
+  /// class structure and nullability.
+  ///
+  /// During covariance checks (inserted by the CFE for covariant overrides),
+  /// we cannot trust the static type arguments of the operand because the
+  /// runtime type might be a subtype with different type arguments that
+  /// violate soundness.
+  ///
+  /// To ensure soundness while still allowing class-check optimizations:
+  /// - If [operandType] is an [InterfaceType], we keep the class node and
+  ///   nullability, but rewrite all its type arguments to their upper bounds
+  ///   using [calculateBounds].
+  /// - Otherwise, we fall back to [Object?] or [Object] depending on
+  ///   whether [operandType] is potentially nullable.
+  DartType _safeCovarianceOperandType(DartType operandType) {
+    if (operandType is InterfaceType) {
+      if (operandType.classNode.typeParameters.isEmpty) {
+        return operandType;
+      }
+      return InterfaceType(
+        operandType.classNode,
+        operandType.nullability,
+        calculateBounds(
+          operandType.classNode.typeParameters,
+          translator.coreTypes.objectClass,
+        ),
+      );
+    }
+    return operandType.isPotentiallyNullable
+        ? translator.coreTypes.objectNullableRawType
+        : translator.coreTypes.objectNonNullableRawType;
+  }
+
   w.ValueType emitAsCheck(
     AstCodeGenerator codeGen,
     bool isCovarianceCheck,
@@ -542,9 +577,7 @@ class Types {
     final asCheckers = asCheckersForModule(b.moduleBuilder);
     final (typeToCheck, :checkArguments) = asCheckers.canUseTypeCheckHelper(
       testedAgainstType,
-      isCovarianceCheck
-          ? translator.coreTypes.objectNullableRawType
-          : operandType,
+      isCovarianceCheck ? _safeCovarianceOperandType(operandType) : operandType,
     );
     if (!checkOnlyNullAssignability && typeToCheck != null) {
       if (checkArguments) {
