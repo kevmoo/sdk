@@ -21,4 +21,4 @@ register_toolchains(
 )
 
 dart_tests = use_extension("//tools/bazel/dart:test_rules.bzl", "dart_tests_extension")
-use_repo(dart_tests, "dart_tests", "dart_tests_vm_debug")
+use_repo(dart_tests, "dart_tests", "dart_tests_vm_debug", "dart_tests_wasm_d8")

@@ -96,23 +96,36 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
         else:
             fail("Test file is neither in workspace nor in external repository: " + file_path_abs)
 
+        # Construct list of sandbox data dependencies
+        data_deps = [
+            "@//pkg/test_runner/bin:run_single_test.dart",
+            "@//tools/sdks/dart-sdk:sdk_files",
+            "@//tools/sdks/dart-sdk:bin/dart",
+            test_file_label,
+            ":" + json_filename,
+        ]
+
+        if repository_ctx.attr.compiler == "dart2wasm":
+            data_deps += [
+                "@//third_party/d8:d8_files",
+                "@//:pkg/dart2wasm/bin/run_wasm.js",
+            ]
+
+        data_list_str = ",\n        ".join(['"{}"'.format(d) for d in data_deps])
+
         # Generate the individual sh_test target
         build_content += """
 sh_test(
     name = "{target_name}",
     srcs = [":run_single_test.sh"],
     data = [
-        "@//pkg/test_runner/bin:run_single_test.dart",
-        "@//tools/sdks/dart-sdk:sdk_files",
-        "@//tools/sdks/dart-sdk:bin/dart",
-        "{test_file_label}",
-        ":{json_filename}",
+        {data_list_str}
     ],
     args = ["--config-json=$(location :{json_filename})"],
 )
 """.format(
             target_name = target_name,
-            test_file_label = test_file_label,
+            data_list_str = data_list_str,
             json_filename = json_filename,
         )
 
@@ -155,6 +168,17 @@ def _test_ext_impl(ctx):
         mode = "debug",
         compiler = "dartk",
         runtime = "vm",
+    )
+
+    # 3. Dart2Wasm on D8 Release
+    dynamic_test_repository(
+        name = "dart_tests_wasm_d8",
+        suites = [
+            "language/class",
+        ],
+        mode = "release",
+        compiler = "dart2wasm",
+        runtime = "d8",
     )
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
