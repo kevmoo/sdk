@@ -11,6 +11,28 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
+## 🤝 Cross-agent notes / open handoffs
+
+> **The live coordination surface.** More than one agent works this branch (no realtime
+> channel — git is the bus). Read this block FIRST on arrival and update it LAST before you
+> stop. It is distinct from the per-session log below: this holds only what is **open right
+> now** — active claims + unresolved handoffs. When an item is resolved, delete it (the
+> per-session entry preserves the history). Keep it short. See `README.md` → "operational
+> rules" for the fetch-rebase-before-editing protocol.
+
+**Open handoffs / residuals:**
+- 🔧 **[for agy] runtime/bin gen_targets product-carrier** — the machine-generated `dart`
+  target in `runtime/bin/gen_targets.bzl` still carries `//build/config:dart_product_mode`
+  (a base target → mixed-PRODUCT ABI/ODR hazard). The hand targets were fixed in Session 48;
+  the durable fix for the machine target is translator-side: scope the carrier injection in
+  `tools/bazel/translate_gn_desc.py` to `_product` targets only, then regenerate
+  `runtime/bin/gen_targets.bzl`. Low urgency (build is green), but land it before the next
+  `runtime/bin` regen. Context: Session 48.
+
+**Active claims (who is editing what right now):**
+- _(none — post a soft claim here before you grab a chunk of work, e.g._
+  `[claude] editing sdk/ assembly targets — devtools staging`_)_
+
 _Last updated: 2026-06-01 (session 48, claude) — **Scoped runtime/bin's product carrier to _product targets only (fixes a mixed-PRODUCT ABI/ODR hazard); one residual flagged for agy below.**_
 
 Session 48 — **(claude) runtime/bin product-carrier reconciliation — hand targets DONE, machine target FLAGGED.**
