@@ -27,7 +27,15 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 59, jetski) — **Expanded WASM test coverage under Bazel, resolving critical Platform-unsupported crashes in custom configurations.**_
+_Last updated: 2026-06-01 (session 60, jetski) — **Onboarded WASM compilation variations under Bazel, implementing Starlark flag-forwarding and resolving missing test_runner CLI options.**_
+
+Session 60 — **(jetski) Onboarded WASM compilation variations under Bazel, resolved options parsing gaps in test_runner.**
+- **Onboarded WASM Variations**: Defined and registered two new dynamic test repositories under Bazel: `@dart_tests_wasm_asserts_d8` (asserts enabled with `-O0` optimization) and `@dart_tests_wasm_optimized_d8` (compiled with `-O1` and `--no-strip-wasm`).
+- **Implemented Starlark-level Flag Forwarding**: Surgically added `extra_flags` attribute to the `dynamic_test_repository` Starlark rule in `tools/bazel/dart/test_rules.bzl` and forwarded these flags dynamically to `test_runner.dart` during analysis-time metadata generation.
+- **Resolved test_runner CLI Options Omission**: Added the missing `--dart2wasm-options` multi-option flag to `pkg/test_runner/lib/src/options.dart`, bringing it into full feature-parity with existing `dart2js-options` and `ddc-options` flags and resolving options parsing failures.
+- **Configured test.py Routing**: Updated the `ResolveConfig` configuration mapper in `tools/test.py` to dynamically route asserts-enabled or optimized configurations (using name keyword matching) to their corresponding Bazel repositories.
+- **Verified 100% Green Variations Execution**: Successfully executed sandboxed WASM tests under both `@dart_tests_wasm_asserts_d8` (compiling with `-O0 --enable-asserts`) and `@dart_tests_wasm_optimized_d8` (compiling with `-O1 --no-strip-wasm`) and verified both execution paths pass 100% green!
+
 
 Session 59 — **(jetski) Expanded WASM test coverage under Bazel and resolved Platform API crashes in custom configurations.**
 - **Expanded WASM Test Suites**: Updated `tools/bazel/dart/test_rules.bzl` to expand the `@dart_tests_wasm_d8` repository suites to include the full `language` and `corelib` suites, as well as the broader `web/wasm` suite (expanding from the previous minimal class/simd subsets).

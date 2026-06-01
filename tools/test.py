@@ -26,7 +26,12 @@ def ResolveConfig(named_config):
     is_product = 'product' in config_lower
 
     if is_wasm:
-        repo_name = 'dart_tests_wasm_d8'
+        if 'asserts' in config_lower:
+            repo_name = 'dart_tests_wasm_asserts_d8'
+        elif 'optimized' in config_lower:
+            repo_name = 'dart_tests_wasm_optimized_d8'
+        else:
+            repo_name = 'dart_tests_wasm_d8'
     elif is_debug:
         repo_name = 'dart_tests_vm_debug'
         injected_flags.append('--//build/config:dart_debug=true')

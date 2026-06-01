@@ -34,7 +34,7 @@ def _dynamic_test_repo_impl(repository_ctx):
         "-r",
         repository_ctx.attr.runtime,
         "--dump-test-metadata=" + str(json_output_path),
-    ] + suite_args)
+    ] + repository_ctx.attr.extra_flags + suite_args)
 
     if res.return_code != 0:
         fail("Failed to dump test metadata during repository analysis:\n" + res.stderr + "\n" + res.stdout)
@@ -154,6 +154,7 @@ dynamic_test_repository = repository_rule(
         "compiler": attr.string(default = "dartk"),
         "runtime": attr.string(default = "vm"),
         "suites": attr.string_list(mandatory = True),
+        "extra_flags": attr.string_list(default = []),
     },
 )
 
@@ -196,6 +197,40 @@ def _test_ext_impl(ctx):
         runtime = "d8",
     )
 
+    # 3a. Dart2Wasm on D8 with Asserts
+    dynamic_test_repository(
+        name = "dart_tests_wasm_asserts_d8",
+        suites = [
+            "language",
+            "corelib",
+            "web/wasm",
+        ],
+        mode = "release",
+        compiler = "dart2wasm",
+        runtime = "d8",
+        extra_flags = [
+            "--enable-asserts",
+            "--dart2wasm-options=-O0",
+        ],
+    )
+
+    # 3b. Dart2Wasm on D8 Optimized
+    dynamic_test_repository(
+        name = "dart_tests_wasm_optimized_d8",
+        suites = [
+            "language",
+            "corelib",
+            "web/wasm",
+        ],
+        mode = "release",
+        compiler = "dart2wasm",
+        runtime = "d8",
+        extra_flags = [
+            "--dart2wasm-options=-O1",
+            "--dart2wasm-options=--no-strip-wasm",
+        ],
+    )
+
     # 4. VM JIT Product
     dynamic_test_repository(
         name = "dart_tests_vm_product",
@@ -209,5 +244,3 @@ def _test_ext_impl(ctx):
     )
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
-
-# Trivial comment to force repository regeneration

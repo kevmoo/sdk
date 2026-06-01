@@ -229,7 +229,7 @@
     },
     "//tools/bazel/dart:test_rules.bzl%dart_tests_extension": {
       "general": {
-        "bzlTransitiveDigest": "Wtmx0iBaNVsHY57KFCLYqxf5im1/S17alnOHOgOW7u0=",
+        "bzlTransitiveDigest": "vUmX8nUiotEto/oOatc1qGxTe1ooL+ey3KjntdkPxRc=",
         "usagesDigest": "4cbj3Mjb6MHThB17IyomR8ZTjCcOUe6Pw3pQLSUfb0g=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
@@ -268,6 +268,40 @@
               "mode": "release",
               "compiler": "dart2wasm",
               "runtime": "d8"
+            }
+          },
+          "dart_tests_wasm_asserts_d8": {
+            "repoRuleId": "@@//tools/bazel/dart:test_rules.bzl%dynamic_test_repository",
+            "attributes": {
+              "suites": [
+                "language",
+                "corelib",
+                "web/wasm"
+              ],
+              "mode": "release",
+              "compiler": "dart2wasm",
+              "runtime": "d8",
+              "extra_flags": [
+                "--enable-asserts",
+                "--dart2wasm-options=-O0"
+              ]
+            }
+          },
+          "dart_tests_wasm_optimized_d8": {
+            "repoRuleId": "@@//tools/bazel/dart:test_rules.bzl%dynamic_test_repository",
+            "attributes": {
+              "suites": [
+                "language",
+                "corelib",
+                "web/wasm"
+              ],
+              "mode": "release",
+              "compiler": "dart2wasm",
+              "runtime": "d8",
+              "extra_flags": [
+                "--dart2wasm-options=-O1",
+                "--dart2wasm-options=--no-strip-wasm"
+              ]
             }
           },
           "dart_tests_vm_product": {
