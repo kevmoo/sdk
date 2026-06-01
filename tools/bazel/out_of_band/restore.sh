@@ -48,27 +48,27 @@ cd "$SDK_ROOT"
 # boringssl ships its own src/BUILD.bazel at this rev — RENAMES below disables it so
 # `src` isn't a subpackage. A `gclient sync` lands 5ee9407bc and the build matches.
 SUBREPO_PINS=(
-  "third_party/pkg/native:b814f5393753e0cd752ce3ad733f5e66dd5949ce"
-  "third_party/pkg/tools:6a7dd15748e63db7d41cfee8294c54636b668f41"
-  "third_party/pkg/ai:9c96bfe5f091c9451eff5b59c9bffeb2e806b875"
-  "third_party/pkg/core:be0b1531c445a185d3e93887b8d0355fc766c314"
-  "third_party/pkg/dart_style:f1d10e1e052116aeb3851f90ace55e5447b3bc21"
-  "third_party/pkg/dartdoc:77a52b6125ce8cc8a88a8a399d80701254e43838"
-  "third_party/pkg/ecosystem:319ff812d463fc194999a0d4b682097450279332"
-  "third_party/pkg/http:c140dc012da1df74b0fb99230b8736438b8eba6a"
-  "third_party/pkg/i18n:2ae32fdd9ca14ecdca77dc37787dbba3c9e2c48a"
-  "third_party/pkg/leak_tracker:f5620600a5ce1c44f65ddaa02001e200b096e14c"
-  "third_party/pkg/protobuf:84079e8b8531309e06ba7276b1c28bdca9210ad6"
-  "third_party/pkg/pub:ec276d10a7fa0f6c6ec005340fb9ad29f3b012d0"
-  "third_party/pkg/shelf:74d58bc1499115f91f8120dbd08f77c83f7f343d"
-  "third_party/pkg/sync_http:6666fff944221891182e1f80bf56569338164d72"
-  "third_party/pkg/tar:13479f7c2a18f499e840ad470cfcca8c579f6909"
-  "third_party/pkg/test:14f99ecdcb74778654d936ce26c70798a3b6649f"
-  "third_party/pkg/vector_math:7bf60fb95e0fbbd7648944071de9ab5e32ce7387"
-  "third_party/pkg/web:294391c659526ecd0392eff2ccf133b07f9e1f80"
-  "third_party/pkg/webdev:f9a56607fac5ad0c979d2647cf11d3e3be993bf6"
-  "third_party/pkg/webdriver:3a711ebb36871eac997c5d5d2429f7414873dc63"
-  "third_party/pkg/webkit_inspection_protocol:762115a971d1968bc940454ad1e88d506d8c5640"
+  "third_party/pkg/native"
+  "third_party/pkg/tools"
+  "third_party/pkg/ai"
+  "third_party/pkg/core"
+  "third_party/pkg/dart_style"
+  "third_party/pkg/dartdoc"
+  "third_party/pkg/ecosystem"
+  "third_party/pkg/http"
+  "third_party/pkg/i18n"
+  "third_party/pkg/leak_tracker"
+  "third_party/pkg/protobuf"
+  "third_party/pkg/pub"
+  "third_party/pkg/shelf"
+  "third_party/pkg/sync_http"
+  "third_party/pkg/tar"
+  "third_party/pkg/test"
+  "third_party/pkg/vector_math"
+  "third_party/pkg/web"
+  "third_party/pkg/webdev"
+  "third_party/pkg/webdriver"
+  "third_party/pkg/webkit_inspection_protocol"
 )
 
 DISABLED_SUFFIX=".disabled-for-dart-bazel-migration"
@@ -193,9 +193,13 @@ echo
 # 5. Nested-subrepo DEPS pins (package APIs must match current SDK source).
 # --------------------------------------------------------------------------
 echo "[5/7] Nested-subrepo DEPS pins"
-for entry in "${SUBREPO_PINS[@]}"; do
-  path="${entry%%:*}"
-  pin="${entry#*:}"
+for path in "${SUBREPO_PINS[@]}"; do
+  var_name="${path##*/}_rev"
+  pin=$(grep -E "\"${var_name}\"" DEPS | grep -oE '[a-f0-9]{40}' | head -1)
+  if [ -z "$pin" ]; then
+    yellow "  ERROR    Could not resolve pin for $path ($var_name) from DEPS — skipping"
+    continue
+  fi
   if [ -d "$path/.git" ]; then
     cur="$(git -C "$path" rev-parse HEAD)"
     if [ "$cur" = "$pin" ]; then
