@@ -782,7 +782,9 @@ bin_to_linkable("platform_dill_linkable") {
 
 bin_to_linkable("icudtl_linkable") {
   deps = []
-  if (path_exists("//third_party/icu/flutter/icudtl.dat")) {
+  if (dart_icudtl_path != "") {
+    input = dart_icudtl_path
+  } else if (path_exists("//third_party/icu/flutter/icudtl.dat")) {
     input = "//third_party/icu/flutter/icudtl.dat"
   } else {
     input = "//flutter/third_party/icu/flutter/icudtl.dat"

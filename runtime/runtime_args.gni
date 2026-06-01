@@ -78,6 +78,10 @@ declare_args() {
 
   # Whether to support dynamic loading and interpretation of Dart bytecode.
   dart_dynamic_modules = false
+
+  # The path to the ICU data file (icudtl.dat) to embed in the VM.
+  # If empty, the build will probe common locations on disk.
+  dart_icudtl_path = ""
 }
 
 declare_args() {
