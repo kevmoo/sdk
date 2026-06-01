@@ -61,7 +61,12 @@ def _impl(ctx):
     )
 
     # Target architecture specific flags (triple, ISA, sysroot)
-    target_flags = ["--sysroot=buildtools/sysroot/linux"]
+    target_flags = [
+        "--sysroot=buildtools/sysroot/linux",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_LARGEFILE_SOURCE",
+        "-D_LARGEFILE64_SOURCE",
+    ]
     target_linkopts = ["--sysroot=buildtools/sysroot/linux"]
 
     if cpu == "aarch64":

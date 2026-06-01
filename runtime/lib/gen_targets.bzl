@@ -181,12 +181,12 @@ def gen_targets():
             "//runtime/vm:libdart_vm_aotruntime_product",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
             "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
@@ -420,10 +420,10 @@ def gen_targets():
             "//runtime/vm:libdart_vm_jit_product",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
@@ -899,11 +899,11 @@ def gen_targets():
             "//runtime/vm:libdart_vm_precompiler_product",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
@@ -1020,11 +1020,11 @@ def gen_targets():
             "//runtime/vm:libdart_vm_precompiler_product_host_targeting_host",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
@@ -1141,13 +1141,13 @@ def gen_targets():
             "//runtime/vm:libdart_vm_precompiler_product_linux_arm",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode_no_arch",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
             "TARGET_ARCH_ARM",
             "DART_PRECOMPILER",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
@@ -1264,13 +1264,13 @@ def gen_targets():
             "//runtime/vm:libdart_vm_precompiler_product_linux_arm64",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode_no_arch",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
             "TARGET_ARCH_ARM64",
             "DART_PRECOMPILER",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
@@ -1387,13 +1387,13 @@ def gen_targets():
             "//runtime/vm:libdart_vm_precompiler_product_linux_riscv64",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode_no_arch",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
             "TARGET_ARCH_RISCV64",
             "DART_PRECOMPILER",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
@@ -1510,13 +1510,13 @@ def gen_targets():
             "//runtime/vm:libdart_vm_precompiler_product_linux_x64",
             "//third_party/perfetto:libprotozero",
             "//build/config:dart_mode_no_arch",
-            "//build/config:dart_product_mode",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_TARGET_OS_LINUX",
             "TARGET_ARCH_X64",
             "DART_PRECOMPILER",
+            "PRODUCT",
         ],
         copts = [
             "-Iruntime",
