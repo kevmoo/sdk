@@ -457,7 +457,7 @@ class ActualArguments extends TreeNode with InternalTreeNode {
 class Cascade extends InternalExpression {
   /// The temporary variable holding the cascade receiver expression in its
   /// initializer;
-  Variable variable;
+  InternalVariable variable;
 
   /// `true` if the access is null-aware, i.e. of the form `a?..b()`.
   final bool isNullAware;
@@ -496,7 +496,7 @@ class Cascade extends InternalExpression {
   // Coverage-ignore(suite): Not run.
   void toTextInternal(AstPrinter printer) {
     printer.write('let ');
-    printer.writeVariableInitialization(variable);
+    printer.writeVariableInitialization(variable.asVariableDeclaration);
     printer.write(' in cascade {');
     printer.incIndentation();
     for (Expression expression in expressions) {
@@ -509,13 +509,13 @@ class Cascade extends InternalExpression {
       printer.newLine();
     }
     printer.write('} => ');
-    printer.write(printer.getVariableName(variable));
+    printer.write(printer.getVariableName(variable.asVariableDeclaration));
   }
 }
 
 /// Internal expression representing an anonymous method invocation.
 class AnonymousMethodExpression extends InternalExpression {
-  Variable variable;
+  InternalVariable variable;
   Expression body;
   final bool isCascade;
   final bool isImplicitlyTyped;
@@ -552,7 +552,7 @@ class AnonymousMethodExpression extends InternalExpression {
   // Coverage-ignore(suite): Not run.
   void toTextInternal(AstPrinter printer) {
     printer.write('let ');
-    printer.writeVariableInitialization(variable);
+    printer.writeVariableInitialization(variable.asVariableDeclaration);
     printer.write(' in ');
     printer.writeExpression(body);
   }
@@ -560,7 +560,7 @@ class AnonymousMethodExpression extends InternalExpression {
 
 /// Internal expression representing an anonymous block method invocation.
 class AnonymousMethodBlock extends InternalExpression {
-  Variable variable;
+  InternalVariable variable;
   Statement body;
   final bool isCascade;
   final bool isImplicitlyTyped;
@@ -597,7 +597,7 @@ class AnonymousMethodBlock extends InternalExpression {
   // Coverage-ignore(suite): Not run.
   void toTextInternal(AstPrinter printer) {
     printer.write('let ');
-    printer.writeVariableInitialization(variable);
+    printer.writeVariableInitialization(variable.asVariableDeclaration);
     printer.write(' in ');
     printer.writeStatement(body);
   }
@@ -607,7 +607,7 @@ class AnonymousMethodBlock extends InternalExpression {
 // TODO(johnniwinther): Change the representation to be direct and perform
 // the [Let] encoding in the replacement.
 class DeferredCheck extends InternalExpression {
-  Variable variable;
+  InternalVariable variable;
   Expression expression;
 
   DeferredCheck(this.variable, this.expression, {required int fileOffset}) {
@@ -633,7 +633,7 @@ class DeferredCheck extends InternalExpression {
   // Coverage-ignore(suite): Not run.
   void toTextInternal(AstPrinter printer) {
     printer.write('let ');
-    printer.writeVariableInitialization(variable);
+    printer.writeVariableInitialization(variable.asVariableDeclaration);
     printer.write(' in ');
     printer.writeExpression(expression);
   }
@@ -788,26 +788,6 @@ class TypeAliasedFactoryInvocation extends InternalExpression {
       printer.write(target.name.text);
     }
     arguments.toTextInternal(printer);
-  }
-}
-
-/// Front end specific implementation of [FunctionDeclaration].
-class FunctionDeclarationImpl extends FunctionDeclaration {
-  bool hasImplicitReturnType = false;
-
-  FunctionDeclarationImpl(Variable variable, FunctionNode function)
-    : super(variable, function);
-
-  static void setHasImplicitReturnType(
-    FunctionDeclarationImpl declaration,
-    bool hasImplicitReturnType,
-  ) {
-    declaration.hasImplicitReturnType = hasImplicitReturnType;
-  }
-
-  @override
-  String toString() {
-    return "FunctionDeclarationImpl(${toStringInternal()})";
   }
 }
 
@@ -1074,6 +1054,7 @@ class VariableDeclarationImpl extends LegacyVariable
     this.fileEqualsOffset = fileEqualsOffset;
   }
 
+  // Coverage-ignore(suite): Not run.
   VariableDeclarationImpl.forEffect(Expression initializer)
     : forSyntheticToken = false,
       isImplicitlyTyped = false,
@@ -1082,6 +1063,7 @@ class VariableDeclarationImpl extends LegacyVariable
     isStaticLate = false;
   }
 
+  // Coverage-ignore(suite): Not run.
   VariableDeclarationImpl.forValue(Expression initializer)
     : forSyntheticToken = false,
       isImplicitlyTyped = true,
@@ -1132,9 +1114,19 @@ class InternalLocalVariable extends TreeNode
     required this.isImplicitlyTyped,
     this.forSyntheticToken = false,
     this.isLocalFunction = false,
+    bool isStaticLate = false,
     required int fileOffset,
+    int fileEqualsOffset = TreeNode.noOffset,
   }) {
     this.fileOffset = fileOffset;
+    this.isStaticLate = isStaticLate;
+    this.fileEqualsOffset = fileEqualsOffset;
+  }
+
+  @override
+  bool get isAssignable {
+    if (isStaticLate) return true;
+    return super.isAssignable;
   }
 
   @override
@@ -1218,9 +1210,19 @@ class InternalLateVariable extends TreeNode
     required this.isImplicitlyTyped,
     this.forSyntheticToken = false,
     this.isLocalFunction = false,
+    bool isStaticLate = false,
     required int fileOffset,
+    int fileEqualsOffset = TreeNode.noOffset,
   }) {
     this.fileOffset = fileOffset;
+    this.isStaticLate = isStaticLate;
+    this.fileEqualsOffset = fileEqualsOffset;
+  }
+
+  @override
+  bool get isAssignable {
+    if (isStaticLate) return true;
+    return super.isAssignable;
   }
 
   @override
@@ -1255,6 +1257,7 @@ class InternalLateVariable extends TreeNode
   int binaryOffsetNoTag = -1;
 
   @override
+  // Coverage-ignore(suite): Not run.
   List<VariableContext>? get capturedContexts =>
       variableDeclaration?.capturedContexts;
 
@@ -1319,6 +1322,7 @@ class InternalPositionalParameter extends TreeNode
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   R accept<R>(VariableVisitor<R> v) => v.visitPositionalParameter(astVariable);
 
   @override
@@ -1357,12 +1361,12 @@ class InternalPositionalParameter extends TreeNode
 
   @override
   // Coverage-ignore(suite): Not run.
-  bool get hasDeclaredDefaultType => astVariable.hasDeclaredDefaultType;
+  bool get hasDeclaredDefaultValue => astVariable.hasDeclaredDefaultValue;
 
   @override
   // Coverage-ignore(suite): Not run.
-  void set hasDeclaredDefaultType(bool value) {
-    astVariable.hasDeclaredDefaultType = value;
+  void set hasDeclaredDefaultValue(bool value) {
+    astVariable.hasDeclaredDefaultValue = value;
   }
 
   @override
@@ -1425,6 +1429,7 @@ class InternalNamedParameter extends TreeNode
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   R accept<R>(VariableVisitor<R> v) => v.visitNamedParameter(astVariable);
 
   @override
@@ -1463,12 +1468,12 @@ class InternalNamedParameter extends TreeNode
 
   @override
   // Coverage-ignore(suite): Not run.
-  bool get hasDeclaredDefaultType => astVariable.hasDeclaredDefaultType;
+  bool get hasDeclaredDefaultValue => astVariable.hasDeclaredDefaultValue;
 
   @override
   // Coverage-ignore(suite): Not run.
-  void set hasDeclaredDefaultType(bool value) {
-    astVariable.hasDeclaredDefaultType = value;
+  void set hasDeclaredDefaultValue(bool value) {
+    astVariable.hasDeclaredDefaultValue = value;
   }
 
   @override
@@ -1478,6 +1483,7 @@ class InternalNamedParameter extends TreeNode
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   List<Expression> get annotations => astVariable.annotations;
 
   @override
@@ -1621,6 +1627,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   List<Expression> get annotations => astVariable.annotations;
 
   @override
@@ -1667,6 +1674,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get isCovariantByClass => astVariable.isCovariantByClass;
 
   @override
@@ -1676,6 +1684,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get isCovariantByDeclaration => astVariable.isCovariantByDeclaration;
 
   @override
@@ -1685,6 +1694,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get isErroneouslyInitialized => astVariable.isErroneouslyInitialized;
 
   @override
@@ -1731,6 +1741,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get isLowered => astVariable.isLowered;
 
   @override
@@ -1740,6 +1751,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   }
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get isRequired => astVariable.isRequired;
 
   @override
@@ -1798,12 +1810,15 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   bool get isAssignable => astVariable.isAssignable;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsFinal => astVariable.hasIsFinal;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsConst => astVariable.hasIsConst;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsLate => astVariable.hasIsLate;
 
   @override
@@ -1811,9 +1826,11 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   bool get hasIsInitializingFormal => astVariable.hasIsInitializingFormal;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsSynthesized => astVariable.hasIsSynthesized;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsHoisted => astVariable.hasIsHoisted;
 
   @override
@@ -1821,19 +1838,24 @@ mixin DelegatingVariableMixin on InternalVariableMixin
   bool get hasHasDeclaredInitializer => astVariable.hasHasDeclaredInitializer;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsCovariantByClass => astVariable.hasIsCovariantByClass;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsRequired => astVariable.hasIsRequired;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsCovariantByDeclaration =>
       astVariable.hasIsCovariantByDeclaration;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsLowered => astVariable.hasIsLowered;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsWildcard => astVariable.hasIsWildcard;
 
   @override
@@ -1842,6 +1864,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
       astVariable.hasIsSuperInitializingFormal;
 
   @override
+  // Coverage-ignore(suite): Not run.
   bool get hasIsErroneouslyInitialized =>
       astVariable.hasIsErroneouslyInitialized;
 
@@ -1853,6 +1876,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
     astVariable.fileOffset = value;
   }
 
+  // Coverage-ignore(suite): Not run.
   int get flags => astVariable.flags;
 
   // Coverage-ignore(suite): Not run.
@@ -1881,7 +1905,7 @@ mixin DelegatingVariableMixin on InternalVariableMixin
 
   @override
   // Coverage-ignore(suite): Not run.
-  VariableContext? get context => astVariable.context;
+  VariableContext get context => astVariable.context;
 
   @override
   // Coverage-ignore(suite): Not run.
@@ -6213,7 +6237,7 @@ class InvalidForInElement extends _BaseForInElement {
 /// an already defined local variable.
 class ExistingVariableForInElement extends _BaseForInElement {
   /// The variable used as the for-in element.
-  final Variable variable;
+  final InternalVariable variable;
 
   /// The file offset of the variable name.
   final int nameOffset;
@@ -6235,13 +6259,13 @@ class ExistingVariableForInElement extends _BaseForInElement {
   @override
   // Coverage-ignore(suite): Not run.
   void toTextInternal(AstPrinter printer) {
-    printer.write(variable.name!);
+    printer.write(variable.cosmeticName!);
   }
 
   @override
   DartType _computeElementTypeContext(InferenceVisitorBase visitor) {
     DartType? promotedType = visitor.flowAnalysis
-        .promotedType(variable)
+        .promotedType(variable.astVariable)
         ?.unwrapTypeView();
     return promotedType ?? variable.type;
   }
@@ -6252,7 +6276,7 @@ class ExistingVariableForInElement extends _BaseForInElement {
     required Variable loopVariable,
   }) {
     ExpressionInferenceResult result = visitor.inferVariableSet(
-      variable: variable as InternalVariable,
+      variable: variable,
       variableType: variable.type,
       rhsResult: new ExpressionInferenceResult(
         loopVariable.type,
@@ -6699,5 +6723,169 @@ class InternalVariableSet extends InternalExpression {
   @override
   String toString() {
     return "InternalVariableSet(${toStringInternal()})";
+  }
+}
+
+class InternalFunctionNode {
+  final DartType? returnType;
+  final List<TypeParameter> typeParameters;
+  final List<InternalVariable> positionalParameters;
+  final List<InternalVariable> namedParameters;
+  final int requiredParameterCount;
+  final AsyncMarker asyncMarker;
+  final Statement? body;
+  final int fileOffset;
+  final int fileEndOffset;
+
+  InternalFunctionNode({
+    required this.returnType,
+    required this.typeParameters,
+    required this.positionalParameters,
+    required this.namedParameters,
+    required this.requiredParameterCount,
+    required this.asyncMarker,
+    required this.body,
+    required this.fileOffset,
+    required this.fileEndOffset,
+  });
+
+  FunctionType computeFunctionType() {
+    return FunctionNode.computeFunctionTypeFromData(
+      returnType: returnType ?? const DynamicType(),
+      typeParameters: typeParameters,
+      // TODO(johnniwinther): Can we avoid creating a list of ast variables?
+      positionalParameters: [
+        for (InternalVariable parameter in positionalParameters)
+          parameter.astVariable,
+      ],
+      namedParameters: [
+        for (InternalVariable parameter in namedParameters)
+          parameter.astVariable,
+      ],
+      nullability: Nullability.nonNullable,
+      requiredParameterCount: requiredParameterCount,
+    );
+  }
+
+  // Coverage-ignore(suite): Not run.
+  void toTextInternal(AstPrinter printer, {String name = ''}) {
+    if (returnType != null) {
+      printer.writeType(returnType!);
+      printer.write(' ');
+    }
+    printer.write(name);
+    if (typeParameters.isNotEmpty) {
+      printer.write('<');
+      for (int index = 0; index < typeParameters.length; index++) {
+        if (index > 0) {
+          printer.write(', ');
+        }
+        printer.write(typeParameters[index].name ?? '');
+        printer.write(' extends ');
+        printer.writeType(typeParameters[index].bound);
+      }
+      printer.write('>');
+    }
+    printer.write('(');
+    for (int index = 0; index < positionalParameters.length; index++) {
+      if (index > 0) {
+        printer.write(', ');
+      }
+      if (index == requiredParameterCount) {
+        printer.write('[');
+      }
+      positionalParameters[index].toTextInternal(printer);
+    }
+    if (requiredParameterCount < positionalParameters.length) {
+      printer.write(']');
+    }
+    if (namedParameters.isNotEmpty) {
+      if (positionalParameters.isNotEmpty) {
+        printer.write(', ');
+      }
+      printer.write('{');
+      for (int index = 0; index < namedParameters.length; index++) {
+        if (index > 0) {
+          printer.write(', ');
+        }
+        namedParameters[index].toTextInternal(printer);
+      }
+      printer.write('}');
+    }
+    printer.write(')');
+    Statement? body = this.body;
+    if (body != null) {
+      if (body is ReturnStatement) {
+        printer.write(' => ');
+        printer.writeExpression(body.expression!);
+      } else {
+        printer.write(' ');
+        printer.writeStatement(body);
+      }
+    } else {
+      printer.write(';');
+    }
+  }
+}
+
+class InternalFunctionExpression extends InternalExpression {
+  final InternalFunctionNode function;
+
+  InternalFunctionExpression({
+    required this.function,
+    required int fileOffset,
+  }) {
+    this.fileOffset = fileOffset;
+  }
+
+  @override
+  ExpressionInferenceResult acceptInference(
+    InferenceVisitorImpl visitor,
+    DartType typeContext,
+  ) {
+    return visitor.visitInternalFunctionExpression(this, typeContext);
+  }
+
+  @override
+  // Coverage-ignore(suite): Not run.
+  void toTextInternal(AstPrinter printer) {
+    function.toTextInternal(printer);
+  }
+
+  @override
+  String toString() {
+    return "$runtimeType(${toStringInternal()}";
+  }
+}
+
+class InternalFunctionDeclaration extends InternalStatement {
+  final InternalVariable variable;
+  late final InternalFunctionNode function;
+  late final bool hasImplicitReturnType;
+
+  InternalFunctionDeclaration({
+    required this.variable,
+    required int fileOffset,
+  }) {
+    this.fileOffset = fileOffset;
+  }
+
+  @override
+  StatementInferenceResult acceptInference(InferenceVisitorImpl visitor) {
+    return visitor.visitInternalFunctionDeclaration(this);
+  }
+
+  @override
+  // Coverage-ignore(suite): Not run.
+  void toTextInternal(AstPrinter printer) {
+    function.toTextInternal(printer, name: variable.cosmeticName ?? '');
+    if (function.body is ReturnStatement) {
+      printer.write(';');
+    }
+  }
+
+  @override
+  String toString() {
+    return "$runtimeType(${toStringInternal()}";
   }
 }

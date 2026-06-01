@@ -25,19 +25,6 @@ main() {
   });
 }
 
-class ExpectedLocation {
-  final int offset;
-  final int length;
-  final bool isQualified;
-
-  ExpectedLocation(this.offset, this.length, this.isQualified);
-
-  @override
-  String toString() {
-    return '(offset=$offset; length=$length; isQualified=$isQualified)';
-  }
-}
-
 @reflectiveTest
 class IndexTest extends PubPackageResolutionTest {
   void assertElementIndexText(
@@ -45,7 +32,7 @@ class IndexTest extends PubPackageResolutionTest {
     Element element,
     String expected,
   ) {
-    var actual = _getRelationsText(result, element);
+    var actual = _IndexTextBuilder(result).elementRelations(element);
     if (actual != expected) {
       NodeTextExpectationsCollector.add(actual);
       printPrettyDiff(expected, actual);
@@ -58,16 +45,21 @@ class IndexTest extends PubPackageResolutionTest {
     LibraryFragmentImpl fragment,
     String expected,
   ) {
-    var actual = _getLibraryFragmentReferenceText(result, fragment);
+    var actual = _IndexTextBuilder(result).libraryFragmentReferences(fragment);
     if (actual != expected) {
-      print(actual);
       NodeTextExpectationsCollector.add(actual);
+      printPrettyDiff(expected, actual);
+      fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 
-  _NameIndexAssert assertThatName(_IndexResult result, String name) {
-    return _NameIndexAssert(this, result, name);
+  void assertNameIndexText(_IndexResult result, String name, String expected) {
+    var actual = _IndexTextBuilder(result).nameRelations(name);
+    if (actual != expected) {
+      NodeTextExpectationsCollector.add(actual);
+      printPrettyDiff(expected, actual);
+      fail('See the difference above.');
+    }
   }
 
   test_analyzer_diagnosticCode() async {
@@ -4753,9 +4745,9 @@ void f(p) {
   p.bbb = 1;
 }
 ''');
-    assertThatName(result, 'bbb')
-      ..isNotUsed('bbb.ccc', IndexRelationKind.IS_READ_BY)
-      ..isUsedQ('bbb = 1;', IndexRelationKind.IS_WRITTEN_BY);
+    assertNameIndexText(result, 'bbb', r'''
+60 6:5 |bbb| IS_WRITTEN_BY qualified
+''');
   }
 
   test_usedName_qualified_resolved() async {
@@ -4770,11 +4762,8 @@ void f(C c) {
   c.x();
 }
 ''');
-    assertThatName(result, 'x')
-      ..isNotUsedQ('x; // 1', IndexRelationKind.IS_READ_BY)
-      ..isNotUsedQ('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isNotUsedQ('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isNotUsedQ('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+''');
   }
 
   test_usedName_qualified_unresolved() async {
@@ -4786,11 +4775,12 @@ void f(p) {
   p.x();
 }
 ''');
-    assertThatName(result, 'x')
-      ..isUsedQ('x;', IndexRelationKind.IS_READ_BY)
-      ..isUsedQ('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isUsedQ('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isUsedQ('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+16 2:5 |x| IS_READ_BY qualified
+23 3:5 |x| IS_WRITTEN_BY qualified
+34 4:5 |x| IS_READ_WRITTEN_BY qualified
+46 5:5 |x| IS_INVOKED_BY qualified
+''');
   }
 
   test_usedName_unqualified_resolved() async {
@@ -4805,11 +4795,8 @@ class C {
   }
 }
 ''');
-    assertThatName(result, 'x')
-      ..isNotUsedQ('x; // 1', IndexRelationKind.IS_READ_BY)
-      ..isNotUsedQ('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isNotUsedQ('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isNotUsedQ('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+''');
   }
 
   test_usedName_unqualified_unresolved() async {
@@ -4829,11 +4816,12 @@ void f() {
 // [diag.undefinedFunction] The function 'x' isn't defined.
 }
 ''');
-    assertThatName(result, 'x')
-      ..isUsed('x;', IndexRelationKind.IS_READ_BY)
-      ..isUsed('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isUsed('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isUsed('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+13 2:3 |x| IS_READ_BY
+18 3:3 |x| IS_WRITTEN_BY
+27 4:3 |x| IS_READ_WRITTEN_BY
+37 5:3 |x| IS_INVOKED_BY
+''');
   }
 
   void _assertSubtype(
@@ -4850,35 +4838,6 @@ void f() {
     expect(_decodeStringList(index, subtype.members), members);
   }
 
-  void _assertUsedName(
-    _IndexResult result,
-    String name,
-    IndexRelationKind kind,
-    ExpectedLocation expectedLocation,
-    bool isNot,
-  ) {
-    var index = result.index;
-    int nameId = index.getStringId(name);
-    for (int i = 0; i < index.usedNames.length; i++) {
-      if (index.usedNames[i] == nameId &&
-          index.usedNameKinds[i] == kind &&
-          index.usedNameOffsets[i] == expectedLocation.offset &&
-          index.usedNameIsQualifiedFlags[i] == expectedLocation.isQualified) {
-        if (isNot) {
-          _failWithIndexDump(
-            index,
-            'Unexpected $name $kind at $expectedLocation',
-          );
-        }
-        return;
-      }
-    }
-    if (isNot) {
-      return;
-    }
-    _failWithIndexDump(index, 'Not found $name $kind at $expectedLocation');
-  }
-
   List<String> _decodeStringList(
     AnalysisDriverUnitIndex index,
     List<int> stringIds,
@@ -4886,39 +4845,148 @@ void f() {
     return stringIds.map((i) => index.strings[i]).toList();
   }
 
-  ExpectedLocation _expectedLocation(
-    _IndexResult result,
-    String search,
-    bool isQualified, {
-    int? length,
-  }) {
-    int offset = result.resolvedUnit.findNode.offset(search);
-    var expectedLength =
-        length ?? result.resolvedUnit.findNode.simple(search).length;
-    return ExpectedLocation(offset, expectedLength, isQualified);
+  Future<_IndexResult> _indexFileWithDiagnostics(File file, String code) async {
+    var unitResult = await resolveFileWithDiagnostics(file, code);
+    var indexBuilder = indexUnit(unitResult.unit);
+    var indexBytes = indexBuilder.toBuffer();
+    var index = AnalysisDriverUnitIndex.fromBuffer(indexBytes);
+    return _IndexResult(unitResult, index);
   }
 
-  void _failWithIndexDump(AnalysisDriverUnitIndex index, String msg) {
-    var buffer = StringBuffer();
-    for (int i = 0; i < index.usedElementOffsets.length; i++) {
-      buffer.write('  id = ');
-      buffer.write(index.usedElements[i]);
-      buffer.write(' kind = ');
-      buffer.write(index.usedElementKinds[i]);
-      buffer.write(' offset = ');
-      buffer.write(index.usedElementOffsets[i]);
-      buffer.write(' length = ');
-      buffer.write(index.usedElementLengths[i]);
-      buffer.write(' isQualified = ');
-      buffer.writeln(index.usedElementIsQualifiedFlags[i]);
+  Future<_IndexResult> _indexTestCode(String code) {
+    return _indexFileWithDiagnostics(testFile, code);
+  }
+
+  String? _interfaceId(InterfaceElement element) {
+    var libraryFile = element.library.firstFragment.source.mustBeFile;
+    var libraryPath = libraryFile.path;
+
+    var fragmentFile = element.firstFragment.libraryFragment.source.mustBeFile;
+    var fragmentPath = fragmentFile.path;
+
+    return '$libraryPath;$fragmentPath;${element.name}';
+  }
+}
+
+final class _IndexRelation {
+  final IndexRelationKind kind;
+  final int offset;
+  final int length;
+  final bool isQualified;
+
+  _IndexRelation({
+    required this.kind,
+    required this.offset,
+    required this.length,
+    required this.isQualified,
+  });
+
+  @override
+  String toString() {
+    return '_IndexRelation{kind: $kind, offset: $offset, length: $length, '
+        'isQualified: $isQualified})';
+  }
+}
+
+final class _IndexResult {
+  final TestResolvedUnitResult resolvedUnit;
+  final AnalysisDriverUnitIndex index;
+
+  _IndexResult(this.resolvedUnit, this.index);
+
+  FindElement2 get findElement => resolvedUnit.findElement;
+}
+
+final class _IndexTextBuilder {
+  final _IndexResult result;
+
+  _IndexTextBuilder(this.result);
+
+  String elementRelations(Element element) {
+    var index = result.index;
+    var elementId = _findElementId(element);
+    if (elementId == null) {
+      return '';
     }
-    fail('$msg in\n${buffer.toString()}');
+
+    var relations = <_IndexRelation>[];
+    for (var i = 0; i < index.usedElementOffsets.length; i++) {
+      if (index.usedElements[i] == elementId) {
+        relations.add(
+          _IndexRelation(
+            kind: index.usedElementKinds[i],
+            offset: index.usedElementOffsets[i],
+            length: index.usedElementLengths[i],
+            isQualified: index.usedElementIsQualifiedFlags[i],
+          ),
+        );
+      }
+    }
+
+    var buffer = StringBuffer();
+    _writeRelationsText(buffer, relations);
+    _writeImportPrefixesText(buffer, index.elementImportPrefixes[elementId]);
+    return buffer.toString();
+  }
+
+  String libraryFragmentReferences(LibraryFragmentImpl target) {
+    var index = result.index;
+    var targetId = index.getLibraryFragmentId(target);
+
+    expect(
+      index.libFragmentRefTargets.length,
+      index.libFragmentRefUriOffsets.length,
+    );
+
+    expect(
+      index.libFragmentRefTargets.length,
+      index.libFragmentRefUriLengths.length,
+    );
+
+    var buffer = StringBuffer();
+    for (var i = 0; i < index.libFragmentRefTargets.length; i++) {
+      if (index.libFragmentRefTargets[i] == targetId) {
+        _writeSourceSpanText(
+          buffer,
+          index.libFragmentRefUriOffsets[i],
+          index.libFragmentRefUriLengths[i],
+        );
+        buffer.writeln();
+      }
+    }
+    return buffer.toString();
+  }
+
+  String nameRelations(String name) {
+    var index = result.index;
+    var nameId = index.getStringId(name);
+    if (nameId == -1) {
+      return '';
+    }
+
+    var relations = <_IndexRelation>[];
+    for (var i = 0; i < index.usedNameOffsets.length; i++) {
+      if (index.usedNames[i] == nameId) {
+        relations.add(
+          _IndexRelation(
+            kind: index.usedNameKinds[i],
+            offset: index.usedNameOffsets[i],
+            length: name.length,
+            isQualified: index.usedNameIsQualifiedFlags[i],
+          ),
+        );
+      }
+    }
+
+    var buffer = StringBuffer();
+    _writeRelationsText(buffer, relations);
+    return buffer.toString();
   }
 
   /// Return the [element] identifier in the result index, or `null`.
-  int? _findElementId(_IndexResult result, Element element) {
+  int? _findElementId(Element element) {
     var index = result.index;
-    var unitId = _getUnitId(index, element);
+    var unitId = _getUnitId(element);
 
     // Prepare the element that was put into the index.
     IndexElementInfo info = IndexElementInfo(element);
@@ -4948,69 +5016,29 @@ void f() {
     return null;
   }
 
-  String _getLibraryFragmentReferenceText(
-    _IndexResult result,
-    LibraryFragmentImpl target,
-  ) {
-    var index = result.index;
-    var lineInfo = result.resolvedUnit.unit.lineInfo;
-    var targetId = index.getLibraryFragmentId(target);
-
-    expect(
-      index.libFragmentRefTargets.length,
-      index.libFragmentRefUriOffsets.length,
-    );
-
-    expect(
-      index.libFragmentRefTargets.length,
-      index.libFragmentRefUriLengths.length,
-    );
-
-    var buffer = StringBuffer();
-    for (var i = 0; i < index.libFragmentRefTargets.length; i++) {
-      if (index.libFragmentRefTargets[i] == targetId) {
-        var offset = index.libFragmentRefUriOffsets[i];
-        var length = index.libFragmentRefUriLengths[i];
-        var location = lineInfo.getLocation(offset);
-        var snippet = result.resolvedUnit.content.substring(
-          offset,
-          offset + length,
-        );
-        buffer.write(offset);
-        buffer.write(' ');
-        buffer.write(location.lineNumber);
-        buffer.write(':');
-        buffer.write(location.columnNumber);
-        buffer.write(' ');
-        buffer.write('|$snippet|');
-        buffer.writeln();
-      }
-    }
-    return buffer.toString();
+  int _getUnitId(Element element) {
+    var unitElement = getUnitElement(element);
+    return result.index.getLibraryFragmentId(unitElement);
   }
 
-  String _getRelationsText(_IndexResult result, Element element) {
-    var index = result.index;
-    var lineInfo = result.resolvedUnit.unit.lineInfo;
-    var elementId = _findElementId(result, element);
-    if (elementId == null) {
-      return '';
-    }
+  void _writeImportPrefixesText(StringBuffer buffer, String prefixString) {
+    // If the only access is unprefixed, omit the line.
+    if (prefixString.isNotEmpty) {
+      // Otherwise, use some marker text for unprefixed so it's clearer in the
+      // output than an empty string.
+      var prefixes = prefixString
+          .split(',')
+          .map((prefix) => prefix.isEmpty ? '(unprefixed)' : prefix)
+          .join(',');
 
-    var relations = <_Relation>[];
-    for (var i = 0; i < index.usedElementOffsets.length; i++) {
-      if (index.usedElements[i] == elementId) {
-        relations.add(
-          _Relation(
-            kind: index.usedElementKinds[i],
-            offset: index.usedElementOffsets[i],
-            length: index.usedElementLengths[i],
-            isQualified: index.usedElementIsQualifiedFlags[i],
-          ),
-        );
-      }
+      buffer.writeln('Prefixes: $prefixes');
     }
+  }
 
+  void _writeRelationsText(
+    StringBuffer buffer,
+    List<_IndexRelation> relations,
+  ) {
     var sortedRelations = relations.sorted((a, b) {
       var byOffset = a.offset - b.offset;
       if (byOffset != 0) {
@@ -5034,22 +5062,8 @@ void f() {
       lastKind = relation.kind;
     }
 
-    var buffer = StringBuffer();
     for (var relation in sortedRelations) {
-      var offset = relation.offset;
-      var length = relation.length;
-      var location = lineInfo.getLocation(offset);
-      var snippet = result.resolvedUnit.content.substring(
-        offset,
-        offset + length,
-      );
-      buffer.write(offset);
-      buffer.write(' ');
-      buffer.write(location.lineNumber);
-      buffer.write(':');
-      buffer.write(location.columnNumber);
-      buffer.write(' ');
-      buffer.write('|$snippet|');
+      _writeSourceSpanText(buffer, relation.offset, relation.length);
       buffer.write(' ');
       buffer.write(relation.kind.name);
       if (relation.isQualified) {
@@ -5057,125 +5071,22 @@ void f() {
       }
       buffer.writeln();
     }
-
-    var prefixString = index.elementImportPrefixes[elementId];
-    // If the only access is unprefixed, omit the line
-    if (prefixString.isNotEmpty) {
-      // Otherwise, use some marker text for unprefixed so it's clearer in the
-      // output than an empty string.
-      var prefixes = prefixString
-          .split(',')
-          .map((prefix) => prefix.isEmpty ? '(unprefixed)' : prefix)
-          .join(',');
-
-      buffer.writeln('Prefixes: $prefixes');
-    }
-
-    return buffer.toString();
   }
 
-  int _getUnitId(AnalysisDriverUnitIndex index, Element element) {
-    var unitElement = getUnitElement(element);
-    return index.getLibraryFragmentId(unitElement);
-  }
-
-  Future<_IndexResult> _indexFileWithDiagnostics(File file, String code) async {
-    var unitResult = await resolveFileWithDiagnostics(file, code);
-    var indexBuilder = indexUnit(unitResult.unit);
-    var indexBytes = indexBuilder.toBuffer();
-    var index = AnalysisDriverUnitIndex.fromBuffer(indexBytes);
-    return _IndexResult(unitResult, index);
-  }
-
-  Future<_IndexResult> _indexTestCode(String code) {
-    return _indexFileWithDiagnostics(testFile, code);
-  }
-
-  String? _interfaceId(InterfaceElement element) {
-    var libraryFile = element.library.firstFragment.source.mustBeFile;
-    var libraryPath = libraryFile.path;
-
-    var fragmentFile = element.firstFragment.libraryFragment.source.mustBeFile;
-    var fragmentPath = fragmentFile.path;
-
-    return '$libraryPath;$fragmentPath;${element.name}';
-  }
-}
-
-final class _IndexResult {
-  final TestResolvedUnitResult resolvedUnit;
-  final AnalysisDriverUnitIndex index;
-
-  _IndexResult(this.resolvedUnit, this.index);
-
-  FindElement2 get findElement => resolvedUnit.findElement;
-}
-
-class _NameIndexAssert {
-  final IndexTest test;
-  final _IndexResult result;
-  final String name;
-
-  _NameIndexAssert(this.test, this.result, this.name);
-
-  void isNotUsed(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      result,
-      name,
-      kind,
-      test._expectedLocation(result, search, false, length: name.length),
-      true,
+  void _writeSourceSpanText(StringBuffer buffer, int offset, int length) {
+    var lineInfo = result.resolvedUnit.unit.lineInfo;
+    var location = lineInfo.getLocation(offset);
+    var snippet = result.resolvedUnit.content.substring(
+      offset,
+      offset + length,
     );
-  }
-
-  void isNotUsedQ(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      result,
-      name,
-      kind,
-      test._expectedLocation(result, search, true, length: name.length),
-      true,
-    );
-  }
-
-  void isUsed(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      result,
-      name,
-      kind,
-      test._expectedLocation(result, search, false, length: name.length),
-      false,
-    );
-  }
-
-  void isUsedQ(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      result,
-      name,
-      kind,
-      test._expectedLocation(result, search, true, length: name.length),
-      false,
-    );
-  }
-}
-
-class _Relation {
-  final IndexRelationKind kind;
-  final int offset;
-  final int length;
-  final bool isQualified;
-
-  _Relation({
-    required this.kind,
-    required this.offset,
-    required this.length,
-    required this.isQualified,
-  });
-
-  @override
-  String toString() {
-    return '_Relation{kind: $kind, offset: $offset, length: $length, '
-        'isQualified: $isQualified})';
+    buffer.write(offset);
+    buffer.write(' ');
+    buffer.write(location.lineNumber);
+    buffer.write(':');
+    buffer.write(location.columnNumber);
+    buffer.write(' ');
+    buffer.write('|$snippet|');
   }
 }
 

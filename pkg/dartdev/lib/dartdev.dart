@@ -11,6 +11,7 @@ import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:dart_style/src/cli/format_command.dart';
+import 'package:dartdev/src/commands/dart_mcp_server.dart';
 import 'package:meta/meta.dart';
 import 'package:pub/pub.dart';
 import 'package:unified_analytics/unified_analytics.dart';
@@ -20,7 +21,6 @@ import 'src/commands/build.dart';
 import 'src/commands/compilation_server.dart';
 import 'src/commands/compile.dart';
 import 'src/commands/create.dart';
-import 'src/commands/dart_mcp_server.dart';
 import 'src/commands/debug_adapter.dart';
 import 'src/commands/development_service.dart';
 import 'src/commands/devtools.dart';
@@ -48,7 +48,7 @@ Future<void> runDartdev(List<String> args, SendPort? port) async {
   try {
     VmInteropHandler.initialize(port);
     // Set the DART_ROOT environment variable to the SDK path.
-    VmInteropHandler.setEnvironmentVariable('DART_ROOT', sdk.sdkPath);
+    await VmInteropHandler.setEnvironmentVariable('DART_ROOT', sdk.sdkPath);
     // Call the runner to execute the command; see DartdevRunner.
     final runner = DartdevRunner(args, vmArgs: io.Platform.executableArguments);
     exitCode = await runner.run(args);
@@ -220,18 +220,18 @@ class DartdevRunner extends CommandRunner<int> {
     // Since VmInteropHandler.setEnvironmentVariable is non-overwriting by design
     // in C++, we unset the variable first to ensure the explicitly resolved
     // value takes precedence.
-    VmInteropHandler.setEnvironmentVariable(
+    await VmInteropHandler.setEnvironmentVariable(
       DashEnvVar.suppressAnalytics.name,
       null,
     );
 
-    VmInteropHandler.setEnvironmentVariable(
+    await VmInteropHandler.setEnvironmentVariable(
       DashEnvVar.suppressAnalytics.name,
       suppressAnalytics.toString(),
     );
     final envTool = io.Platform.environment[DashEnvVar.tool.name];
     if (envTool == null) {
-      VmInteropHandler.setEnvironmentVariable(
+      await VmInteropHandler.setEnvironmentVariable(
         DashEnvVar.tool.name,
         DashTool.dartTool.label,
       );

@@ -59,7 +59,7 @@ vars = {
 
   # co19 is a cipd package automatically generated for each co19 commit.
   # Use tests/co19/update.sh to update this hash.
-  "co19_rev": "8a302a4666a9adae63b52fb49f37e7407935f13c",
+  "co19_rev": "4d2914a4cbb97eeb67ebcc6618bead6a584beb1e",
 
   # The internal benchmarks to use. See go/dart-benchmarks-internal
   "benchmarks_internal_rev": "6058722b4643b62c757dadc006f00bc3e14c4380",
@@ -102,7 +102,7 @@ vars = {
 
   # Prefer to use hashes of binaryen that have been reviewed & rolled into g3.
   "binaryen_rev" : "604f547f5ccb51cdc02c1b12fe96a6d045c602d5",
-  "boringssl_rev": "5ee9407bc28dd9086507f02851886a185088f3a0",
+  "boringssl_rev": "f449f7206f626a8c4cc5ea1f253e451d2e19bbe2",
   "browser-compat-data_tag": "ac8cae697014da1ff7124fba33b0b4245cc6cd1b", # v1.0.22
   "cpu_features_rev": "936b9ab5515dead115606559502e3864958f7f6e",
   "devtools_rev": "23a1bf0ff30bc83b1dc16045d6d9b15da9b4bc9c",
@@ -134,7 +134,6 @@ vars = {
   ### /third_party/pkg dependencies
   # 'tools/rev_sdk_deps.dart' will rev pkg dependencies to their latest; put an
   # EOL comment after a dependency to instead pin at the current revision.
-  "ai_rev": "9c96bfe5f091c9451eff5b59c9bffeb2e806b875",
   "core_rev": "be0b1531c445a185d3e93887b8d0355fc766c314",
   "dartdoc_rev": "77a52b6125ce8cc8a88a8a399d80701254e43838",
   "ecosystem_rev": "319ff812d463fc194999a0d4b682097450279332",
@@ -338,8 +337,6 @@ deps = {
       Var('chromium_git') + '/external/github.com/mdn/browser-compat-data' +
       "@" + Var("browser-compat-data_tag"),
 
-  Var("dart_root") + "/third_party/pkg/ai":
-      Var("dart_git") + "ai.git" + "@" + Var("ai_rev"),
   Var("dart_root") + "/third_party/pkg/core":
       Var("dart_git") + "core.git" + "@" + Var("core_rev"),
   Var("dart_root") + "/third_party/pkg/dart_style":
@@ -588,7 +585,7 @@ deps = {
     "packages": [
       {
       "package": "chromium/fuchsia/gn-sdk",
-      "version": "SEfYx3xgueX3aFAY3ajyl7GPSTa6KPiTqFZteezpq1IC",
+      "version": "oOAcFhkoE2_-Sy67zP0e4OnqpGYRWEMHDE5UUOFHVkoC",
       }
     ],
     "condition": 'download_fuchsia_deps',

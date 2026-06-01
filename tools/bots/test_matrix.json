@@ -1696,7 +1696,7 @@
           "script": "tools/build.py",
           "arguments": [
             "--os=fuchsia",
-            "runtime"
+            "fuchsia_test_package"
           ]
         },
         {
@@ -1730,7 +1730,7 @@
           "script": "tools/build.py",
           "arguments": [
             "--os=fuchsia",
-            "runtime"
+            "fuchsia_test_package"
           ]
         },
         {
@@ -3142,9 +3142,11 @@
           "name": "build dart",
           "script": "tools/build.py",
           "arguments": [
+            "--codesigning-identity=-",
             "create_sdk",
             "dartanalyzer",
-            "ddc_stable_test"
+            "ddc_stable_test",
+            "dartpad"
           ]
         },
         {
@@ -3272,7 +3274,8 @@
           "arguments": [
             "create_sdk",
             "dartanalyzer",
-            "ddc_stable_test"
+            "ddc_stable_test",
+            "dartpad"
           ]
         },
         {

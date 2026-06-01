@@ -546,7 +546,6 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     // therefore doesn't specify the type context for the subterms.
     StatementInferenceResult bodyResult = inferStatement(node.body);
     if (bodyResult.hasChanged) {
-      // Coverage-ignore-block(suite): Not run.
       node.body = (bodyResult.statement as Block)..parent = node;
     }
     ExpressionInferenceResult valueResult = inferExpression(
@@ -919,6 +918,16 @@ class InferenceVisitorImpl extends InferenceVisitorBase
 
   // Coverage-ignore(suite): Not run.
   Never _unhandledInitializer(Initializer node) {
+    problems.unhandled(
+      "${node.runtimeType}",
+      "InferenceVisitor",
+      node.fileOffset,
+      node.location!.file,
+    );
+  }
+
+  // Coverage-ignore(suite): Not run.
+  Never _unhandledPattern(Pattern node) {
     problems.unhandled(
       "${node.runtimeType}",
       "InferenceVisitor",
@@ -1357,7 +1366,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     NullAwareGuard? nullAwareGuard;
     if (node.isNullAware) {
       nullAwareGuard = new NullAwareGuard(
-        node.variable,
+        node.variable.astVariable,
         node.variable.fileOffset,
         this,
       );
@@ -1366,7 +1375,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       flowAnalysis.getExpressionInfo(result.expression),
       new SharedTypeView(result.inferredType),
       isNullAware: node.isNullAware,
-      guardVariable: node.variable,
+      guardVariable: node.variable.astVariable,
     );
 
     Cascade? previousEnclosingCascade = _enclosingCascade;
@@ -1392,7 +1401,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     Expression replacement = _createBlockExpression(
       node.variable.fileOffset,
       _createBlock(body),
-      createVariableGet(node.variable),
+      createVariableGet(node.variable.astVariable),
     );
 
     if (nullAwareGuard != null) {
@@ -1407,7 +1416,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       );
       replacement = popRewrite() as Expression;
     } else {
-      replacement = new Let(node.variable, replacement)
+      replacement = new Let(node.variable.astVariable, replacement)
         ..fileOffset = node.fileOffset;
     }
     flowAnalysis.storeExpressionInfo(
@@ -1421,7 +1430,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
   PropertyTarget<Expression> computePropertyTarget(Expression target) {
     if (_enclosingCascade case Cascade(
       :var variable,
-    ) when target is VariableGet && target.variable == variable) {
+    ) when target is VariableGet && target.variable == variable.astVariable) {
       // `target` is an implicit reference to the target of a cascade
       // expression; flow analysis uses `CascadePropertyTarget` to represent
       // this situation.
@@ -2605,8 +2614,10 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       isVoidAllowed: true,
     );
 
-    Expression replacement = new Let(node.variable, result.expression)
-      ..fileOffset = node.fileOffset;
+    Expression replacement = new Let(
+      node.variable.astVariable,
+      result.expression,
+    )..fileOffset = node.fileOffset;
     return new ExpressionInferenceResult(result.inferredType, replacement);
   }
 
@@ -3513,29 +3524,42 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     return const StatementInferenceResult();
   }
 
-  FunctionType visitFunctionNode(
-    FunctionNode node,
-    DartType? typeContext,
-    DartType? returnContext,
-    int returnTypeInstrumentationOffset,
-  ) {
+  LocalFunctionResult _visitInternalFunctionNode(
+    InternalFunctionNode node, {
+    required DartType? typeContext,
+    required DartType? returnType,
+    required int implicitReturnOffset,
+  }) {
     return inferLocalFunction(
       this,
       node,
-      typeContext,
-      returnTypeInstrumentationOffset,
-      returnContext,
+      typeContext: typeContext,
+      implicitReturnOffset: implicitReturnOffset,
+      returnType: returnType,
     );
   }
 
   @override
-  StatementInferenceResult visitFunctionDeclaration(
-    covariant FunctionDeclarationImpl node,
+  // Coverage-ignore(suite): Not run.
+  StatementInferenceResult visitFunctionDeclaration(FunctionDeclaration node) {
+    return _unhandledStatement(node);
+  }
+
+  StatementInferenceResult visitInternalFunctionDeclaration(
+    InternalFunctionDeclaration node,
   ) {
+    InternalFunctionNode function = node.function;
+    ScopeProviderInfo? scopeProviderInfo;
+    List<VariableContext>? capturedContexts;
     if (isClosureContextLoweringEnabled) {
-      _contextAllocationStrategy.handleVariablesCapturedByNode(
-        node.function,
-        _capturedVariablesForNode(node),
+      _contextAllocationStrategy.handleDeclarationOfVariable(
+        node.variable.astVariable,
+        captureKind: _captureKindForVariable(node.variable.astVariable),
+      );
+      capturedContexts = _contextAllocationStrategy
+          .computeCapturedVariableContexts(_capturedVariablesForNode(node));
+      scopeProviderInfo = _contextAllocationStrategy.enterScopeProvider(
+        scopeProviderInfoKind: ScopeProviderInfoKind.Loop,
       );
       _handleDeclarationsOfParameters([
         ...node.function.positionalParameters,
@@ -3545,18 +3569,18 @@ class InferenceVisitorImpl extends InferenceVisitorBase
 
     bool oldInTryOrLocalFunction = _inTryOrLocalFunction;
     _inTryOrLocalFunction = true;
-    Variable variable = node.variable;
+    InternalVariable variable = node.variable;
     flowAnalysis.functionExpression_begin(node);
     _returnContexts.push(const StandardReturnContext());
     inferMetadata(this, variable);
-    DartType? returnContext = node.hasImplicitReturnType
-        ? null
-        : node.function.returnType;
-    FunctionType inferredType = visitFunctionNode(
-      node.function,
-      null,
-      returnContext,
-      node.fileOffset,
+    LocalFunctionResult localFunctionResult = _visitInternalFunctionNode(
+      function,
+      typeContext: null,
+      returnType: function.returnType,
+      implicitReturnOffset: node.fileOffset,
+    );
+    FunctionType inferredType = localFunctionResult.computeInferredType(
+      function,
     );
     if (dataForTesting != null &&
         // Coverage-ignore(suite): Not run.
@@ -3567,19 +3591,36 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     }
     variable.type = inferredType;
     flowAnalysis.declare(
-      variable,
+      variable.astVariable,
       new SharedTypeView(variable.type),
       initialized: true,
     );
     flowAnalysis.functionExpression_end();
     _returnContexts.pop();
     _inTryOrLocalFunction = oldInTryOrLocalFunction;
-    return const StatementInferenceResult();
+    Scope? scope;
+    if (scopeProviderInfo != null) {
+      _contextAllocationStrategy.exitScopeProvider(scopeProviderInfo);
+      scope = scopeProviderInfo.scope;
+    }
+    FunctionDeclaration replacement = extern.createFunctionDeclaration(
+      variable: variable.astVariable,
+      function: localFunctionResult.computeFunctionNode(
+        function: function,
+        scope: scope,
+        capturedContexts: capturedContexts,
+      ),
+      fileOffset: node.fileOffset,
+    );
+    libraryBuilder.loader.dataForTesting
+    // Coverage-ignore(suite): Not run.
+    ?.registerAlias(node, replacement);
+    return new StatementInferenceResult.single(replacement);
   }
 
   @override
   ScopeProviderInfo beginClosureContextAllocation(
-    List<Variable> parameters, {
+    List<InternalVariable> parameters, {
     required ThisVariable? internalThisVariable,
     required ScopeProviderInfo? scopeProviderInfo,
   }) {
@@ -3603,12 +3644,9 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     _contextAllocationStrategy.exitScopeProvider(scopeProviderInfo);
   }
 
-  void _handleDeclarationsOfParameters(List<Variable> parameters) {
-    for (Variable parameter in parameters) {
-      // TODO(62401): Remove the cast when the flow analysis uses
-      // [InternalExpressionVariable]s.
-      Variable parameterAstVariable =
-          (parameter as InternalVariable).astVariable;
+  void _handleDeclarationsOfParameters(List<InternalVariable> parameters) {
+    for (InternalVariable parameter in parameters) {
+      Variable parameterAstVariable = parameter.astVariable;
       _contextAllocationStrategy.handleDeclarationOfVariable(
         parameterAstVariable,
         captureKind: _captureKindForVariable(parameterAstVariable),
@@ -3616,23 +3654,22 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     }
   }
 
-  @override
-  ExpressionInferenceResult visitFunctionExpression(
-    FunctionExpression node,
+  ExpressionInferenceResult visitInternalFunctionExpression(
+    InternalFunctionExpression node,
     DartType typeContext,
   ) {
+    InternalFunctionNode function = node.function;
     ScopeProviderInfo? scopeProviderInfo;
+    List<VariableContext>? capturedContexts;
     if (isClosureContextLoweringEnabled) {
-      _contextAllocationStrategy.handleVariablesCapturedByNode(
-        node.function,
-        _capturedVariablesForNode(node),
-      );
+      capturedContexts = _contextAllocationStrategy
+          .computeCapturedVariableContexts(_capturedVariablesForNode(node));
       scopeProviderInfo = _contextAllocationStrategy.enterScopeProvider(
         scopeProviderInfoKind: ScopeProviderInfoKind.Loop,
       );
       _handleDeclarationsOfParameters([
-        ...node.function.positionalParameters,
-        ...node.function.namedParameters,
+        ...function.positionalParameters,
+        ...function.namedParameters,
       ]);
     }
 
@@ -3640,11 +3677,14 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     _inTryOrLocalFunction = true;
     flowAnalysis.functionExpression_begin(node);
     _returnContexts.push(const StandardReturnContext());
-    FunctionType inferredType = visitFunctionNode(
-      node.function,
-      typeContext,
-      null,
-      node.fileOffset,
+    LocalFunctionResult localFunctionResult = _visitInternalFunctionNode(
+      function,
+      typeContext: typeContext,
+      returnType: function.returnType,
+      implicitReturnOffset: node.fileOffset,
+    );
+    FunctionType inferredType = localFunctionResult.computeInferredType(
+      function,
     );
     if (dataForTesting != null) {
       // Coverage-ignore-block(suite): Not run.
@@ -3654,11 +3694,33 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     flowAnalysis.functionExpression_end();
     _returnContexts.pop();
     _inTryOrLocalFunction = oldInTryOrLocalFunction;
+    Scope? scope;
     if (scopeProviderInfo != null) {
       _contextAllocationStrategy.exitScopeProvider(scopeProviderInfo);
-      node.function.scope = scopeProviderInfo.scope;
+      scope = scopeProviderInfo.scope;
     }
-    return new ExpressionInferenceResult(inferredType, node);
+
+    Expression replacement = extern.createFunctionExpression(
+      localFunctionResult.computeFunctionNode(
+        function: function,
+        scope: scope,
+        capturedContexts: capturedContexts,
+      ),
+      fileOffset: node.fileOffset,
+    );
+    libraryBuilder.loader.dataForTesting
+    // Coverage-ignore(suite): Not run.
+    ?.registerAlias(node, replacement);
+    return new ExpressionInferenceResult(inferredType, replacement);
+  }
+
+  @override
+  // Coverage-ignore(suite): Not run.
+  ExpressionInferenceResult visitFunctionExpression(
+    FunctionExpression node,
+    DartType typeContext,
+  ) {
+    return _unhandledExpression(node, typeContext);
   }
 
   ExpressionInferenceResult visitIfNullExpression(
@@ -3783,7 +3845,6 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         node.otherwise!,
       );
       if (otherwiseResult.hasChanged) {
-        // Coverage-ignore-block(suite): Not run.
         node.otherwise = otherwiseResult.statement..parent = node;
       }
     }
@@ -11816,12 +11877,12 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     node.variable.initializer = initializer..parent = node.variable;
 
     flowAnalysis.declare(
-      node.variable,
+      node.variable.astVariable,
       new SharedTypeView(node.variable.type),
       initialized: false,
     );
     flowAnalysis.initialize(
-      node.variable,
+      node.variable.astVariable,
       new SharedTypeView(node.variable.type),
       flowAnalysis.getExpressionInfo(node.variable.initializer!),
       isFinal: false,
@@ -11833,7 +11894,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       flow.nullAwareAccess_rightBegin(
         flowAnalysis.getExpressionInfo(node.variable.initializer!),
         new SharedTypeView(initializerType),
-        guardVariable: node.variable,
+        guardVariable: node.variable.astVariable,
       );
     }
 
@@ -11867,7 +11928,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         isSynthesized: true,
       )..fileOffset = node.fileOffset;
 
-      body = new Let(tempVar, new VariableGet(node.variable))
+      body = new Let(tempVar, new VariableGet(node.variable.astVariable))
         ..fileOffset = node.fileOffset;
     } else {
       inferredType = bodyResult.inferredType;
@@ -11886,7 +11947,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         return new BlockExpression(
           new Block([
             extern.createVariableStatement(
-              extern.createVariableDeclaration(node.variable),
+              extern.createVariableDeclaration(node.variable.astVariable),
             ),
             extern.createVariableStatement(
               extern.createVariableDeclaration(resultVar),
@@ -11897,7 +11958,8 @@ class InferenceVisitorImpl extends InferenceVisitorBase
           new VariableGet(resultVar),
         )..fileOffset = node.fileOffset;
       } else {
-        return new Let(node.variable, body)..fileOffset = node.fileOffset;
+        return new Let(node.variable.astVariable, body)
+          ..fileOffset = node.fileOffset;
       }
     }
 
@@ -12008,12 +12070,12 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     node.variable.initializer = initializer..parent = node.variable;
 
     flowAnalysis.declare(
-      node.variable,
+      node.variable.astVariable,
       new SharedTypeView(node.variable.type),
       initialized: false,
     );
     flowAnalysis.initialize(
-      node.variable,
+      node.variable.astVariable,
       new SharedTypeView(node.variable.type),
       flowAnalysis.getExpressionInfo(node.variable.initializer!),
       isFinal: false,
@@ -12086,7 +12148,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
 
     Block block = new Block([
       extern.createVariableStatement(
-        extern.createVariableDeclaration(node.variable),
+        extern.createVariableDeclaration(node.variable.astVariable),
       ),
       extern.createVariableStatement(
         extern.createVariableDeclaration(resultVar),
@@ -12097,7 +12159,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     Expression replacement = new BlockExpression(
       block,
       node.isCascade
-          ? new VariableGet(node.variable)
+          ? new VariableGet(node.variable.astVariable)
           : new VariableGet(resultVar),
     )..fileOffset = node.fileOffset;
 
@@ -13694,7 +13756,6 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     );
     StatementInferenceResult bodyResult = inferStatement(node.body);
     if (bodyResult.hasChanged) {
-      // Coverage-ignore-block(suite): Not run.
       node.body = bodyResult.statement..parent = node;
     }
     flowAnalysis.whileStatement_end();
@@ -16437,6 +16498,15 @@ class InferenceVisitorImpl extends InferenceVisitorBase
 
   @override
   // Coverage-ignore(suite): Not run.
+  PatternResult visitAuxiliaryPattern(
+    AuxiliaryPattern node,
+    SharedMatchContext context,
+  ) {
+    return _unhandledPattern(node);
+  }
+
+  @override
+  // Coverage-ignore(suite): Not run.
   StatementInferenceResult visitAuxiliaryStatement(AuxiliaryStatement node) {
     return _unhandledStatement(node);
   }
@@ -16961,10 +17031,10 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         // [InternalExpressionVariable]s.
         Variable variable = (node.variable as InternalVariable).astVariable;
         if (isClosureContextLoweringEnabled) {
-          _contextAllocationStrategy.handleVariablesCapturedByNode(
-            node,
-            _capturedVariablesForNode(variable),
-          );
+          node.capturedContexts = _contextAllocationStrategy
+              .computeCapturedVariableContexts(
+                _capturedVariablesForNode(variable),
+              );
         }
         flowAnalysis.lateInitializer_begin(variable);
       }

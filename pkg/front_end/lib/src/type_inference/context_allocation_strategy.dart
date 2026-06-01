@@ -155,14 +155,13 @@ abstract class ContextAllocationStrategy<Info extends ScopeProviderInfo> {
     required CaptureKind captureKind,
   });
 
-  void handleVariablesCapturedByNode(
-    ContextConsumer node,
+  List<VariableContext> computeCapturedVariableContexts(
     List<VariableBase> variables,
   ) {
-    Set<VariableContext> contexts = {
-      for (VariableBase variable in variables) variable.context!,
-    };
-    (node.capturedContexts ??= []).addAll(contexts);
+    if (variables.isEmpty) {
+      return [];
+    }
+    return {for (VariableBase variable in variables) variable.context}.toList();
   }
 
   ThisVariable get thisVariable {

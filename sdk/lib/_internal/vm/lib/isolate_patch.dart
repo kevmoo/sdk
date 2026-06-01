@@ -749,7 +749,7 @@ final class Isolate {
 
   @patch
   void shutdownSync() {
-    _shutdownSync(controlPort);
+    Isolate._shutdownSync(controlPort);
   }
 
   @pragma("vm:external-name", "Isolate_shutdownSync_")
@@ -765,18 +765,27 @@ final class Isolate {
 
   @patch
   void runEventLoopSync() {
-    throw UnsupportedError("Isolate.runEventLoopSync");
+    _runEventLoopSync(controlPort);
   }
+
+  @pragma("vm:external-name", "Isolate_pinToCurrentThread")
+  external static bool _pinToCurrentThread();
 
   @patch
   static bool pinToCurrentThread() {
-    throw UnsupportedError("Isolate.pintToCurrentThread");
+    return _pinToCurrentThread();
   }
+
+  @pragma("vm:external-name", "Isolate_isPinnedToCurrentThread")
+  external static bool _isPinnedToCurrentThread(SendPort controlPort);
 
   @patch
   bool get isPinnedToCurrentThread {
-    throw UnsupportedError("Isolate.isPinnedToCurrentThread");
+    return Isolate._isPinnedToCurrentThread(controlPort);
   }
+
+  @pragma("vm:external-name", "Isolate_runEventLoopSync_")
+  external static void _runEventLoopSync(SendPort controlPort);
 
   @patch
   void set onEvent(void Function(Isolate) callback) {
