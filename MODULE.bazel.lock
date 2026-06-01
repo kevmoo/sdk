@@ -203,7 +203,7 @@
     },
     "//tools/bazel/dart:test_rules.bzl%dart_tests_extension": {
       "general": {
-        "bzlTransitiveDigest": "WGWiegF3tA4Yo4RUBzBUrSQ2zRKSImjFYCzpvIqUOW8=",
+        "bzlTransitiveDigest": "eJDsqXpM3yapEXLKwH44ViuQ5K3QvjGzRTY8h4Phugc=",
         "usagesDigest": "4cbj3Mjb6MHThB17IyomR8ZTjCcOUe6Pw3pQLSUfb0g=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
