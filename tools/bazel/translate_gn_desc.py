@@ -190,11 +190,29 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     binary's own compiles but not compiled as translation units).
     """
     hdrs, srcs = [], []
+    public_val = t.get("public", "*")
+    public_headers = None
+    if isinstance(public_val, list):
+        public_headers = set()
+        for p in public_val:
+            lbl = src_label(p, pkg, packages)
+            if lbl is not None:
+                public_headers.add(lbl)
+
     for s in t.get("sources", []):
         lbl = src_label(s, pkg, packages)
         if lbl is None:
             continue
-        (hdrs if s.endswith(_HDR_EXTS) else srcs).append(lbl)
+        if s.endswith(_HDR_EXTS):
+            if public_headers is not None:
+                if lbl in public_headers:
+                    hdrs.append(lbl)
+                else:
+                    srcs.append(lbl)
+            else:
+                hdrs.append(lbl)
+        else:
+            srcs.append(lbl)
     if rule == "cc_binary":
         srcs += hdrs
         hdrs = []

@@ -27,7 +27,14 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 54, jetski) — **Completed platform-aware binary stripping/symbol extraction (macOS Xcode + Linux GNU), resolved critical non-product AOT compiler segfaults, and synchronized packages mapping.**_
+_Last updated: 2026-06-01 (session 56, jetski) — **Implemented C++ Private Header Encapsulation in GN-to-Bazel translator, and supported runfiles manifests in test runner for Windows compatibility.**_
+
+Session 56 — **(jetski) Implemented C++ Private Header Encapsulation in GN-to-Bazel translator.**
+- **C++ Private Header Encapsulation**: Surgically updated `tools/bazel/translate_gn_desc.py` to parse the GN target's `"public"` headers list from `desc.json`. It splits header files in `"sources"` into public headers (`"hdrs"`) if they are listed in `"public"` or if `"public"` is the wildcard `*`, and private headers (`"srcs"`) otherwise.
+- **Verified Parity & Clean Build**: Verified that the translator maps headers correctly (e.g., only public headers remain in `hdrs` for generated targets like `icui18n`), and that the existing Bazel build and test suites compile and execute 100% green under the sandboxed execution (`bazel test @dart_tests_wasm_d8//:web_wasm_simd_simd_test`).
+
+Session 55 — **(jetski) Supported runfiles manifests in test runner for Windows compatibility.**
+- **Windows Compatibility for Sandboxed Tests**: Updated `pkg/test_runner/bin/run_single_test.dart` to parse Bazel `_runfiles` manifest files if the physical runfiles directory structure is not present. This guarantees that test execution successfully locates and resolves compiler and runtime binaries in Windows sandboxed environments.
 
 Session 54 — **(jetski) Resolved macOS stripping & symbol extraction compatibility, fixed critical VM precompiler segfault, and synchronized Starlark packages.**
 - **Completed Platform-Aware Binary Stripping & Symbol Extraction**: Made all 8 copy/strip/symbol extraction rules in `sdk/BUILD.bazel` platform-aware via `select()`. On macOS, it dynamically uses Xcode's `strip -x -o` and runs the native `dart_profiler_symbols.py` script with `nm` to extract debug symbols, fully replicating the canonical GN packaging pipeline.
