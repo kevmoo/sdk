@@ -11,7 +11,12 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-06-01 (session 40) — **Phase 1 of Testing Roadmap COMPLETED (`5d1b87055de`).** Implemented CLI option `--dump-test-metadata` in `pkg/test_runner` to export test suites, expectations, and commands list to JSON without executing or compiling tests. Verified discovery natively on Linux VM._
+_Last updated: 2026-06-01 (session 41) — **Phase 2 of Testing Roadmap COMPLETED (`2fbeca64b3d`).** Implemented standalone executor `run_single_test.dart` to execute process command pipelines, map failures to Expectations, match outcomes, and return standard Bazel exit codes (0 for match, 1 for mismatch). Verified natively on matched and mismatched expectations._
+
+Session 41 — **Phase 2 of Testing Roadmap COMPLETED (`2fbeca64b3d`).**
+(1) Implemented the zero-dependency standalone executor `pkg/test_runner/bin/run_single_test.dart` to parse single-test case JSON configs, stream real-time output streams, and map exit codes to expectations.
+(2) Verified execution outcome translation natively under the prebuilt Dart SDK for both matched/success outcomes (exiting with 0) and simulated mismatch/failure outcomes (exiting with 1).
+(3) Staged and committed the new executor script to the local branch `kevmoo/bazel-m1-cc-toolchain`.
 
 Session 40 — **Phase 1 of Testing Roadmap COMPLETED (`5d1b87055de`).**
 (1) Implemented `--dump-test-metadata=<json-file>` CLI option and parser mapping in `pkg/test_runner` to synchronously discover and dump resolved test configurations, expectations, and process commands to structured JSON.
