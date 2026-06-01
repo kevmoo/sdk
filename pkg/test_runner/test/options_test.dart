@@ -4,6 +4,7 @@
 import 'dart:io';
 
 import 'package:expect/expect.dart';
+import 'package:smith/smith.dart';
 
 import 'package:test_runner/src/configuration.dart';
 import 'package:test_runner/src/options.dart';
@@ -18,7 +19,10 @@ void main() {
 void testDefaults() {
   // TODO(rnystrom): Test other options.
   var configuration = parseConfiguration([]);
-  Expect.equals(Progress.line, configuration.progress);
+  final expectedProgress = stdioType(stdout) == StdioType.terminal
+      ? Progress.compact
+      : Progress.line;
+  Expect.equals(expectedProgress, configuration.progress);
 }
 
 void testOptions() {
@@ -40,11 +44,13 @@ void testOptions() {
   ]);
   Expect.listEquals(configuration.dart2jsOptions, ['a', 'b', 'c']);
   Expect.listEquals(configuration.vmOptions, ['d', 'e', 'f']);
+  final hostSystem = System.host.name;
+  final hostArch = Architecture.host.name;
   Expect.listEquals(configuration.sharedOptions, [
     'g',
     'h',
     'i',
-    '-Dtest_runner.configuration=custom-configuration-1',
+    '-Dtest_runner.configuration=custom-dartk-vm-debug-$hostSystem-$hostArch-1',
   ]);
 
   // Reproduction arguments.

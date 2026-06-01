@@ -517,8 +517,17 @@ class OptionsParser {
                 var timeout = data["timeout"] != null
                     ? int.parse(data["timeout"] as String)
                     : null;
+                final configName = [
+                  "custom",
+                  compiler.name,
+                  runtime.name,
+                  mode.name,
+                  system.name,
+                  architecture.name,
+                  "${configurationNumber++}"
+                ].join("-");
                 var configuration = Configuration(
-                  "custom-configuration-${configurationNumber++}",
+                  configName,
                   architecture,
                   compiler,
                   mode,

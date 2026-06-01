@@ -1066,7 +1066,13 @@ enum System {
       Map<String, System>.fromIterable(values, key: (s) => (s as System).name);
 
   /// Gets the system of the current machine.
-  static System get host => find(Platform.operatingSystem);
+  static System get host {
+    try {
+      return find(Platform.operatingSystem);
+    } catch (_) {
+      return System.linux;
+    }
+  }
 
   // Alternate allowed names, e.g., the names used by dart:io, that shouldn't
   // be reported in the [names] getter.
