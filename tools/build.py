@@ -58,6 +58,11 @@ def BuildOptions():
         help="Check that a second invocation of Ninja has nothing to do",
         default=False,
         action='store_true')
+    other_group.add_argument(
+        "--bazel",
+        help="Use Bazel build instead of GN/Ninja",
+        default=False,
+        action='store_true')
 
     parser.add_argument('build_targets', nargs='*')
 
@@ -271,6 +276,64 @@ def Build(configs, env, options):
     return 0
 
 
+BAZEL_TARGET_MAPPING = {
+    'create_sdk': ['//sdk:create_sdk'],
+    'dart2wasm': [
+        '//utils/dart2wasm:compile_dart2wasm_platform',
+        '//utils/dart2wasm:dart2wasm_product_snapshot',
+        '//utils/dart2wasm:dart2wasm_asserts_snapshot',
+        '//utils/dart2wasm:dart2wasm_snapshot'
+    ],
+    'dart2wasm_benchmark': [
+        '//utils/dart2wasm:compile_dart2wasm_platform',
+        '//utils/dart2wasm:dart2wasm_product_snapshot'
+    ],
+    'dartvm': ['//runtime/bin:dartvm'],
+    'runtime': ['//runtime/bin:dartvm'],
+    'most': ['//sdk:create_sdk'],
+}
+
+
+def BuildWithBazel(options, targets, env):
+    bazel_targets = []
+    for t in targets:
+        if t in BAZEL_TARGET_MAPPING:
+            bazel_targets.extend(BAZEL_TARGET_MAPPING[t])
+        elif t.startswith('//') or t.startswith('@'):
+            bazel_targets.append(t)
+        else:
+            print("Warning: Unknown GN-to-Bazel target mapping for '%s'. Passing it as raw target." % t)
+            bazel_targets.append(t)
+
+    if not bazel_targets:
+        bazel_targets.append('//sdk:create_sdk')
+
+    for target_os in options.os:
+        for mode in options.mode:
+            for arch in options.arch:
+                for sanitizer in options.sanitizer:
+                    bazel_command = ['bazel', 'build']
+                    
+                    if mode == 'debug':
+                        bazel_command.append('--//build/config:dart_debug=true')
+                    elif mode == 'product':
+                        bazel_command.append('--//build/config:dart_product=true')
+                        
+                    if target_os == 'linux' and arch == 'arm64':
+                        bazel_command.append('--platforms=//build/platforms:linux_arm64')
+                    elif arch != utils.GuessArchitecture():
+                        print("Warning: Cross-compilation to arch '%s' on OS '%s' is not fully mapped in Bazel yet." % (arch, target_os))
+
+                    bazel_command.extend(bazel_targets)
+                    
+                    print('Running: ' + ' '.join(bazel_command))
+                    process = subprocess.Popen(bazel_command, env=env)
+                    process.wait()
+                    if process.returncode != 0:
+                        return process.returncode
+    return 0
+
+
 def Main():
     starttime = time.time()
     # Parse the options.
@@ -306,6 +369,13 @@ def Main():
     # reclient's scandeps_server.
     if sys.platform == 'linux':
         env['QEMU_LD_PREFIX'] = "/usr/x86_64-linux-gnu/"
+
+    if options.bazel:
+        exit_code = BuildWithBazel(options, targets, env)
+        endtime = time.time()
+        if exit_code == 0:
+            print("The Bazel build took %.3f seconds" % (endtime - starttime))
+        return exit_code
 
     # Always run GN before building.
     gn_py.RunGnOnConfiguredConfigurations(options, env)

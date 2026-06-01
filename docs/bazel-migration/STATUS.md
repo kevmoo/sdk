@@ -11,7 +11,13 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-06-01 (session 42) — **Phase 3 of Testing Roadmap COMPLETED.** Implemented dynamic Bazel target generation via a custom Bazel repository rule `dynamic_test_repository` and `dart_tests_extension` Bzlmod module extension, dynamically running the dry-run exporter at fetching time, parsing JSON test metadata, emitting sandboxed `sh_test` targets loaded from `@rules_shell`, and executing them hermetically inside the Bazel sandbox via the `run_single_test.sh` runfiles-aware launcher wrapper._
+_Last updated: 2026-06-01 (session 43) — **GN-to-Bazel build cutover started & transitive NDEBUG leak resolved.** Added the `--bazel` command-line option to `tools/build.py` to delegate GN/Ninja build requests directly to Bazel. Discovered and fixed a compilation hazard in debug VM builds (`both DEBUG and NDEBUG defined`) by isolating `NDEBUG` to private `local_defines` inside all four Zlib SIMD targets in `third_party/zlib/BUILD.bazel`._
+
+Session 43 — **GN-to-Bazel Build Cutover STARTED & Transitive NDEBUG Leak RESOLVED.**
+(1) Implemented the `--bazel` command-line flag in `tools/build.py` and built the `BuildWithBazel` target translation logic, mapping targets like `create_sdk` and `dartvm` to their native Bazel counterparts.
+(2) Resolved a critical compilation hazard (`both DEBUG and NDEBUG defined`) in debug VM compiles caused by public `defines` transitively leaking Zlib's `NDEBUG` macro to its dependents.
+(3) Surgically isolated `"NDEBUG"` inside private `local_defines` in all four Zlib SIMD targets (`zlib_adler32_simd`, `zlib_crc32_simd`, `zlib_data_chunk_simd`, `zlib_slide_hash_simd`) under `third_party/zlib/BUILD.bazel.snap`.
+(4) Verified that `tools/build.py --bazel dartvm` builds the whole VM JIT executable in debug mode successfully!
 
 Session 42 — **Phase 3 of Testing Roadmap COMPLETED.**
 (1) Implemented a custom Bazel repository rule `dynamic_test_repository` and `dart_tests_extension` Bzlmod module extension to fetch resolved metadata at analysis time.
