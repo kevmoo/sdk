@@ -11,7 +11,14 @@
 > record is `DESIGN.md` (§4.1 molecules, §4.2 phases); this doc maps progress
 > onto it.
 
-_Last updated: 2026-06-01 (session 41) — **Phase 2 of Testing Roadmap COMPLETED (`2fbeca64b3d`).** Implemented standalone executor `run_single_test.dart` to execute process command pipelines, map failures to Expectations, match outcomes, and return standard Bazel exit codes (0 for match, 1 for mismatch). Verified natively on matched and mismatched expectations._
+_Last updated: 2026-06-01 (session 42) — **Phase 3 of Testing Roadmap COMPLETED.** Implemented dynamic Bazel target generation via a custom Bazel repository rule `dynamic_test_repository` and `dart_tests_extension` Bzlmod module extension, dynamically running the dry-run exporter at fetching time, parsing JSON test metadata, emitting sandboxed `sh_test` targets loaded from `@rules_shell`, and executing them hermetically inside the Bazel sandbox via the `run_single_test.sh` runfiles-aware launcher wrapper._
+
+Session 42 — **Phase 3 of Testing Roadmap COMPLETED.**
+(1) Implemented a custom Bazel repository rule `dynamic_test_repository` and `dart_tests_extension` Bzlmod module extension to fetch resolved metadata at analysis time.
+(2) Added `@rules_shell` dependency and bulk-exported `**/*.dart` files from the root package to allow clean, modular referencing of individual test targets.
+(3) Designed and implemented the `run_single_test.sh` launcher wrapper, resolving symlinked prebuilt binaries inside `$TEST_SRCDIR` runfiles tree natively and avoiding path corruption.
+(4) Added path-rewriting support for JIT (`dart`) and AOT (`dartaotruntime`) targets inside `run_single_test.dart` via the `DART_BIN` environment variable.
+(5) Verified dynamic parallel execution of test suites inside the Bazel sandbox.
 
 Session 41 — **Phase 2 of Testing Roadmap COMPLETED (`2fbeca64b3d`).**
 (1) Implemented the zero-dependency standalone executor `pkg/test_runner/bin/run_single_test.dart` to parse single-test case JSON configs, stream real-time output streams, and map exit codes to expectations.

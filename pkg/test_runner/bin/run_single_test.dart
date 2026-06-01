@@ -70,7 +70,16 @@ void main(List<String> args) async {
       continue;
     }
 
-    final executable = cmd['executable'] as String;
+    var executable = cmd['executable'] as String;
+    final dartBinEnv = Platform.environment['DART_BIN'];
+    if (dartBinEnv != null) {
+      if (executable == 'out/ReleaseX64/dart' || executable.endsWith('/dart')) {
+        executable = dartBinEnv;
+      } else if (executable.endsWith('/dartaotruntime')) {
+        final sdkBinDir = File(dartBinEnv).parent.path;
+        executable = '$sdkBinDir/dartaotruntime';
+      }
+    }
     final arguments = List<String>.from(cmd['arguments'] as List);
     final workingDirectory = cmd['working_directory'] as String?;
     final environment = cmd['environment'] != null

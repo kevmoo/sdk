@@ -28,6 +28,7 @@ exports_files(glob(
         "**/*.c",
         "**/*.S",
         "**/*.s",
+        "**/*.dart",
     ],
     allow_empty = True,
 ))
