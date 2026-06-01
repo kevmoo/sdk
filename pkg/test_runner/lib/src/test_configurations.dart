@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:status_file/expectation.dart';
+
 import 'command.dart';
 import 'test_case.dart';
 import 'test_file.dart';
@@ -375,12 +377,35 @@ Future<void> dumpConfigurationsMetadata(
   for (var suite in testSuites) {
     var testCache = <String, List<TestFile>>{};
     suite.findTestCases((TestCase testCase) {
+      var resolvedExpectations = testCase.realExpected != Expectation.pass
+          ? {testCase.realExpected}
+          : testCase.expectedOutcomes;
+
+      var concreteOutcomes = [
+        Expectation.pass,
+        Expectation.compileTimeError,
+        Expectation.runtimeError,
+        Expectation.crash,
+        Expectation.timeout,
+      ];
+
+      var expectedOutcomeStrings = concreteOutcomes
+          .where(
+            (outcome) => resolvedExpectations.any(
+              (expected) => outcome.canBeOutcomeOf(expected),
+            ),
+          )
+          .map((e) => e.toString())
+          .toList();
+
+      if (expectedOutcomeStrings.isEmpty) {
+        expectedOutcomeStrings = [Expectation.pass.toString()];
+      }
+
       allTestCases.add({
         "name": testCase.displayName,
         "file_path": testCase.testFile.path.toNativePath(),
-        "expected_outcome": testCase.expectedOutcomes
-            .map((e) => e.toString())
-            .toList(),
+        "expected_outcome": expectedOutcomeStrings,
         "commands": testCase.commands.map((cmd) {
           if (cmd is ProcessCommand) {
             return {
