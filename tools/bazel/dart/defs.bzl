@@ -261,7 +261,7 @@ def dart_compile_platform(
     """Compile a platform .dill + outline with the prebuilt SDK."""
     platform_out_file = platform_out or (name + ".dill")
     outline_out_file = outline or (name + "_outline.dill")
-    
+
     dart_compile_platform_rule(
         name = name,
         sources = sources,
@@ -294,7 +294,7 @@ def dart_aot_snapshot(
     dill_target = name + "_dill"
     dill_file = name + ".dart.dill"
     out_snapshot = out or (name + ".snapshot")
-    
+
     dart_compile_dill(
         name = dill_target,
         main = main,
@@ -306,7 +306,7 @@ def dart_aot_snapshot(
         gen_kernel_args = gen_kernel_args or [],
         out = dill_file,
     )
-    
+
     dart_aot_elf(
         name = name,
         dill = dill_target,
@@ -336,11 +336,11 @@ def dart_app_jit_snapshot(
     dill_target = name + "_dill"
     dill_file = name + ".dart.dill"
     out_snapshot = out or (name + ".dart.snapshot")
-    
+
     mode_flags = ["--no-aot", "--no-embed-sources"]
     if not link_platform:
         mode_flags.append("--no-link-platform")
-        
+
     dart_compile_dill(
         name = dill_target,
         main = main,
@@ -352,7 +352,7 @@ def dart_app_jit_snapshot(
         gen_kernel_args = gen_kernel_args or [],
         out = dill_file,
     )
-    
+
     dart_app_jit_training(
         name = name,
         dill = dill_target,
@@ -387,7 +387,7 @@ dart_compile_dill = rule(
 def _dart_compile_dill_impl(ctx):
     toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
     out_file = ctx.outputs.out
-        
+
     inputs = depset(
         direct = [
             ctx.file.main,
@@ -401,9 +401,9 @@ def _dart_compile_dill_impl(ctx):
             ctx.attr.sources[DartLibraryInfo].transitive_srcs,
         ],
     )
-    
+
     extra_args = " ".join(ctx.attr.gen_kernel_args)
-    
+
     ctx.actions.run_shell(
         outputs = [out_file],
         inputs = inputs,
@@ -428,7 +428,7 @@ def _dart_compile_dill_impl(ctx):
         mnemonic = "DartCompileDill",
         progress_message = "Compiling Dart kernel dill %{label}",
     )
-    
+
     return [DefaultInfo(files = depset([out_file]))]
 
 dart_aot_elf = rule(
@@ -443,7 +443,7 @@ dart_aot_elf = rule(
 
 def _dart_aot_elf_impl(ctx):
     out_snapshot = ctx.outputs.out
-    
+
     args = ctx.actions.args()
     args.add("--deterministic")
     args.add("--snapshot-kind=app-aot-elf")
@@ -451,7 +451,7 @@ def _dart_aot_elf_impl(ctx):
     if ctx.attr.gen_snapshot_args:
         args.add_all(ctx.attr.gen_snapshot_args)
     args.add(ctx.file.dill.path)
-    
+
     ctx.actions.run(
         outputs = [out_snapshot],
         inputs = [ctx.file.dill],
@@ -460,7 +460,7 @@ def _dart_aot_elf_impl(ctx):
         mnemonic = "DartAotElf",
         progress_message = "Generating Dart AOT ELF snapshot %{label}",
     )
-    
+
     return [DefaultInfo(files = depset([out_snapshot]))]
 
 dart_app_jit_training = rule(
@@ -482,7 +482,7 @@ dart_app_jit_training = rule(
 def _dart_app_jit_training_impl(ctx):
     toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
     out_snapshot = ctx.outputs.out
-    
+
     inputs = depset(
         direct = [ctx.file.dill, ctx.file.package_config, ctx.file.main] + ctx.files.training_srcs + [toolchain.dart_executable],
         transitive = [
@@ -490,11 +490,19 @@ def _dart_app_jit_training_impl(ctx):
             ctx.attr.sources[DartLibraryInfo].transitive_srcs,
         ],
     )
-    
+
     vm_args = list(ctx.attr.vm_args)
     if not [a for a in vm_args if a.startswith("--coverage")]:
         vm_args = vm_args + ["--coverage=false", "--ignore-unrecognized-flags"]
-        
+
+    expanded_targs = []
+    for arg in ctx.attr.training_args:
+        if "$(" in arg:
+            expanded_arg = ctx.expand_location(arg, targets = ctx.attr.training_srcs)
+        else:
+            expanded_arg = arg
+        expanded_targs.append(expanded_arg)
+
     ctx.actions.run_shell(
         outputs = [out_snapshot],
         inputs = inputs,
@@ -508,13 +516,13 @@ def _dart_app_jit_training_impl(ctx):
             out = out_snapshot.path,
             vmargs = " ".join(vm_args),
             dill = ctx.file.dill.path,
-            targs = " ".join(ctx.attr.training_args),
+            targs = " ".join(expanded_targs),
         ),
         tools = [ctx.executable.dart_vm],
         mnemonic = "DartAppJitTraining",
         progress_message = "Running JIT training for %{label}",
     )
-    
+
     return [DefaultInfo(files = depset([out_snapshot]))]
 
 dart_compile_platform_rule = rule(
@@ -540,11 +548,11 @@ def _dart_compile_platform_rule_impl(ctx):
     toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
     platform_out = ctx.outputs.platform_out
     outline_out = ctx.outputs.outline_out
-    
+
     inputs_list = [ctx.file.tool, ctx.file.package_config]
     if ctx.file.deps_outline:
         inputs_list.append(ctx.file.deps_outline)
-        
+
     inputs = depset(
         direct = inputs_list + [toolchain.dart_executable] + ctx.files.sdk_sources,
         transitive = [
@@ -552,9 +560,9 @@ def _dart_compile_platform_rule_impl(ctx):
             ctx.attr.sources[DartLibraryInfo].transitive_srcs,
         ],
     )
-    
+
     base = ctx.attr.single_root_base or "$(pwd)"
-    
+
     if not ctx.attr.platform_args:
         mid = (
             "dart:core -Ddart.vm.product={product} -Ddart.vm.asan=false " +
@@ -565,12 +573,12 @@ def _dart_compile_platform_rule_impl(ctx):
         )
     else:
         mid = " ".join(ctx.attr.platform_args) + " "
-        
+
     if not ctx.file.deps_outline:
         deps_pos = outline_out.path
     else:
         deps_pos = ctx.file.deps_outline.path
-        
+
     ctx.actions.run_shell(
         outputs = [platform_out, outline_out],
         inputs = inputs,
@@ -594,7 +602,7 @@ def _dart_compile_platform_rule_impl(ctx):
         mnemonic = "DartCompilePlatform",
         progress_message = "Compiling Dart platform dill %{label}",
     )
-    
+
     return [DefaultInfo(files = depset([platform_out, outline_out]))]
 
 dart_kernel_snapshot_rule = rule(
@@ -611,7 +619,7 @@ dart_kernel_snapshot_rule = rule(
 def _dart_kernel_snapshot_rule_impl(ctx):
     toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
     out_dill = ctx.outputs.out
-    
+
     inputs = depset(
         direct = [ctx.file.main, ctx.file.package_config, toolchain.dart_executable],
         transitive = [
@@ -619,7 +627,7 @@ def _dart_kernel_snapshot_rule_impl(ctx):
             ctx.attr.sources[DartLibraryInfo].transitive_srcs,
         ],
     )
-    
+
     ctx.actions.run_shell(
         outputs = [out_dill],
         inputs = inputs,
@@ -637,5 +645,3 @@ def _dart_kernel_snapshot_rule_impl(ctx):
         progress_message = "Compiling Dart kernel snapshot %{label}",
     )
     return [DefaultInfo(files = depset([out_dill]))]
-
-
