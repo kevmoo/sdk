@@ -542,7 +542,9 @@ class Types {
     final asCheckers = asCheckersForModule(b.moduleBuilder);
     final (typeToCheck, :checkArguments) = asCheckers.canUseTypeCheckHelper(
       testedAgainstType,
-      operandType,
+      isCovarianceCheck
+          ? translator.coreTypes.objectNullableRawType
+          : operandType,
     );
     if (!checkOnlyNullAssignability && typeToCheck != null) {
       if (checkArguments) {
