@@ -7,7 +7,7 @@
 # (via labels exported by the upstream BUILDs) and apply the same defines as
 # build/icu/BUILD.gn's icu_config + icu_code configs.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 

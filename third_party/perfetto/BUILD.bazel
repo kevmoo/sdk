@@ -4,7 +4,7 @@
 # every header under src/include as Bazel hdrs so runtime/vm and friends
 # can compile against perfetto API.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
