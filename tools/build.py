@@ -313,19 +313,19 @@ def BuildWithBazel(options, targets, env):
             for arch in options.arch:
                 for sanitizer in options.sanitizer:
                     bazel_command = ['bazel', 'build']
-                    
+
                     if mode == 'debug':
                         bazel_command.append('--//build/config:dart_debug=true')
                     elif mode == 'product':
                         bazel_command.append('--//build/config:dart_product=true')
-                        
+
                     if target_os == 'linux' and arch == 'arm64':
                         bazel_command.append('--platforms=//build/platforms:linux_arm64')
                     elif arch != utils.GuessArchitecture():
                         print("Warning: Cross-compilation to arch '%s' on OS '%s' is not fully mapped in Bazel yet." % (arch, target_os))
 
                     bazel_command.extend(bazel_targets)
-                    
+
                     print('Running: ' + ' '.join(bazel_command))
                     process = subprocess.Popen(bazel_command, env=env)
                     process.wait()
