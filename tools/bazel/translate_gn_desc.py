@@ -485,7 +485,6 @@ def main():
             "third_party/boringssl",
             "samples/embedder",
             "third_party/binaryen",
-            "third_party/fallback_root_certificates",
             "utils/bazel",
         }:
             print(f"skipping {pkg} (hand-authored BUILD.bazel overlay)", file=sys.stderr)

@@ -398,6 +398,7 @@ cc_library(
     defines = [
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
+        "DART_IO_ROOT_CERTS_DISABLED",
     ],
     implementation_deps = [
         "//runtime/include:headers",
@@ -412,7 +413,6 @@ cc_library(
         "//build/config:dart_mode",
         "//runtime/bin:libdart_builtin",
         "//third_party/boringssl",
-        "//third_party/fallback_root_certificates",
         "//third_party/zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -513,6 +513,7 @@ cc_library(
     defines = [
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
+        "DART_IO_ROOT_CERTS_DISABLED",
     ],
     implementation_deps = [
         "//runtime/include:headers",
@@ -528,7 +529,6 @@ cc_library(
         "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
         "//third_party/boringssl",
-        "//third_party/fallback_root_certificates",
         "//third_party/zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )

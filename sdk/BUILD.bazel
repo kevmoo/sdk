@@ -229,12 +229,6 @@ cc_library(name = "copy_dart_aotruntime_sym")
 # TODO(M3): copy for copy_dart_aotruntime_tsan (gn type=copy)
 cc_library(name = "copy_dart_aotruntime_tsan")
 
-genrule(
-    name = "copy_dart_mcp_server_aot_product_snapshot",
-    srcs = ["//utils/dart_mcp_server:dart_mcp_server_aot_product_snapshot"],
-    outs = ["dart-sdk/bin/snapshots/dart_mcp_server_aot.dart.snapshot"],
-    cmd = "cp $< $@",
-)
 
 genrule(
     name = "copy_dart_tooling_daemon_aot_product_snapshot",
@@ -408,7 +402,6 @@ filegroup(
         "//sdk:copy_analysis_server_snapshot",
         "//sdk:copy_dart2bytecode_snapshot",
         "//sdk:copy_dart2js_aot_product_snapshot",
-        "//sdk:copy_dart_mcp_server_aot_product_snapshot",
         "//sdk:copy_dart_tooling_daemon_aot_product_snapshot",
         "//sdk:copy_dartdev_aot_snapshot",
         "//sdk:copy_dartdevc_aot_product_snapshot",
@@ -607,7 +600,6 @@ filegroup(
         "//sdk:copy_analysis_server_aot_product_snapshot",
         "//sdk:copy_analysis_server_snapshot",
         "//sdk:copy_dart2bytecode_snapshot",
-        "//sdk:copy_dart_mcp_server_aot_product_snapshot",
         "//sdk:copy_dart_tooling_daemon_aot_product_snapshot",
         "//sdk:copy_dartdev_aot_snapshot",
         "//sdk:copy_dds_aot_product_snapshot",

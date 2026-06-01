@@ -50,7 +50,6 @@ cd "$SDK_ROOT"
 SUBREPO_PINS=(
   "third_party/pkg/native"
   "third_party/pkg/tools"
-  "third_party/pkg/ai"
   "third_party/pkg/core"
   "third_party/pkg/dart_style"
   "third_party/pkg/dartdoc"
