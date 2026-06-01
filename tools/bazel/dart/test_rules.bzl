@@ -187,8 +187,9 @@ def _test_ext_impl(ctx):
     dynamic_test_repository(
         name = "dart_tests_wasm_d8",
         suites = [
-            "language/class",
-            "web/wasm/simd",
+            "language",
+            "corelib",
+            "web/wasm",
         ],
         mode = "release",
         compiler = "dart2wasm",
@@ -208,3 +209,5 @@ def _test_ext_impl(ctx):
     )
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
+
+# Trivial comment to force repository regeneration
