@@ -199,7 +199,10 @@ filegroup(
 # rules_dart Step 5: copy dart2wasm snapshot. Ports GN copy("copy_dart2wasm_snapshot")
 genrule(
     name = "copy_dart2wasm_snapshot",
-    srcs = ["//utils/dart2wasm:dart2wasm_product_snapshot"],
+    srcs = select({
+        "//build/config:product": ["//utils/dart2wasm:dart2wasm_product_snapshot"],
+        "//conditions:default": ["//utils/dart2wasm:dart2wasm_snapshot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/dart2wasm_product.snapshot"],
     cmd = "cp $< $@",
 )
@@ -219,7 +222,10 @@ genrule(
 # mixed-PRODUCT ODR).
 genrule(
     name = "copy_dart_aotruntime",
-    srcs = ["//runtime/bin:dartaotruntime_product"],
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:dartaotruntime_product"],
+        "//conditions:default": ["//runtime/bin:dartaotruntime"],
+    }),
     outs = ["dart-sdk/bin/dartaotruntime"],
     cmd = "strip --strip-all -o $@ $<",
 )
@@ -449,7 +455,10 @@ filegroup(
 # GN renames gen_snapshot_product -> gen_snapshot under bin/utils/.
 genrule(
     name = "copy_gen_snapshot_exe",
-    srcs = ["//runtime/bin:gen_snapshot_product"],
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:gen_snapshot_product"],
+        "//conditions:default": ["//runtime/bin:gen_snapshot"],
+    }),
     outs = ["dart-sdk/bin/utils/gen_snapshot"],
     cmd = "strip --strip-all -o $@ $<",
 )
