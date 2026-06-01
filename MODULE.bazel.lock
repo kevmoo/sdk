@@ -229,7 +229,7 @@
     },
     "//tools/bazel/dart:test_rules.bzl%dart_tests_extension": {
       "general": {
-        "bzlTransitiveDigest": "eJDsqXpM3yapEXLKwH44ViuQ5K3QvjGzRTY8h4Phugc=",
+        "bzlTransitiveDigest": "MHWjkKHj+uzqpgBA0BjlzwbyIABLDHU+vx51/8vwtE4=",
         "usagesDigest": "4cbj3Mjb6MHThB17IyomR8ZTjCcOUe6Pw3pQLSUfb0g=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
@@ -267,6 +267,18 @@
               "mode": "release",
               "compiler": "dart2wasm",
               "runtime": "d8"
+            }
+          },
+          "dart_tests_vm_product": {
+            "repoRuleId": "@@//tools/bazel/dart:test_rules.bzl%dynamic_test_repository",
+            "attributes": {
+              "suites": [
+                "language",
+                "corelib"
+              ],
+              "mode": "product",
+              "compiler": "dartk",
+              "runtime": "vm"
             }
           }
         }

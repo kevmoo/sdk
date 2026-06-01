@@ -1018,6 +1018,24 @@ def FileDescriptorLimitIncreaser():
     return NooptContextManager()
 
 
+def ResolveBazelPath():
+    import shutil
+    bazel_in_path = shutil.which('bazel')
+    if bazel_in_path:
+        return bazel_in_path
+
+    home = os.path.expanduser('~')
+    fallbacks = [
+        os.path.join(home, 'bin', 'bazel'),
+        os.path.join(home, '.local', 'bin', 'bazel'),
+    ]
+    for fallback in fallbacks:
+        if os.path.isfile(fallback) and os.access(fallback, os.X_OK):
+            return fallback
+
+    return 'bazel'
+
+
 def Main():
     print('GuessOS() -> ', GuessOS())
     print('GuessArchitecture() -> ', GuessArchitecture())

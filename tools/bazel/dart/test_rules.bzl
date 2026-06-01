@@ -195,4 +195,16 @@ def _test_ext_impl(ctx):
         runtime = "d8",
     )
 
+    # 4. VM JIT Product
+    dynamic_test_repository(
+        name = "dart_tests_vm_product",
+        suites = [
+            "language",
+            "corelib",
+        ],
+        mode = "product",
+        compiler = "dartk",
+        runtime = "vm",
+    )
+
 dart_tests_extension = module_extension(implementation = _test_ext_impl)

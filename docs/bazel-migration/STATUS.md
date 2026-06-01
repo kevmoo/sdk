@@ -27,7 +27,14 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 56, jetski) — **Implemented C++ Private Header Encapsulation in GN-to-Bazel translator, and supported runfiles manifests in test runner for Windows compatibility.**_
+_Last updated: 2026-06-01 (session 57, jetski) — **Completed CLI Flag Parity & Dynamic Configuration Mapping for test.py, registered the product test repository, and implemented robust, environment-independent Bazel executable path resolution.**_
+
+Session 57 — **(jetski) Completed CLI Flag Parity & Dynamic Configuration Mapping (Option C, Phase 1 & 2).**
+- **CLI Flag Translation**: Implemented robust translation of canonical test runner flags (`-v`/`--verbose` $\rightarrow$ `--test_output=streamed`, `--test-output=all/errors` $\rightarrow$ `--test_output=all/errors`, `--workers`/`-j` $\rightarrow$ `--local_test_jobs=N`, etc.) inside `tools/test.py`. Unsupported flags are skipped gracefully while test selectors are gathered.
+- **Dynamic Configuration Mapping**: Generalised configuration matching in `tools/test.py` to dynamically map named configuration segments (using lowercase matching for `wasm`/`debug`/`product`) to both the correct dynamic target repositories (`@dart_tests_wasm_d8`, `@dart_tests_vm_debug`, `@dart_tests_vm_product`) and correct custom compilation flags (injecting `--//build/config:dart_debug=true` or `--//build/config:dart_product=true`).
+- **Registered Product Test Repository**: Defined a new VM JIT product dynamic test repository `@dart_tests_vm_product` in `tools/bazel/dart/test_rules.bzl` and registered it inside `MODULE.bazel`.
+- **Environment-Independent Bazel Path Resolution**: Implemented `utils.ResolveBazelPath()` in `tools/utils.py` to search for the `bazel` binary in both `$PATH` and standard home directory locations (like `~/bin/bazel`, `~/.local/bin/bazel`). Integrated this utility into `tools/build.py` and `tools/test.py` to eliminate environment-dependent `FileNotFoundError` execution crashes.
+- **Verified Clean Sandboxed Execution**: Verified that a complete sandboxed test execution (`tools/test.py --bazel -n dart2wasm-linux-d8 web/wasm/simd/simd_test -v --workers=4`) resolves repositories, compiles dependencies, parses flags, and passes 100% green.
 
 Session 56 — **(jetski) Implemented C++ Private Header Encapsulation in GN-to-Bazel translator.**
 - **C++ Private Header Encapsulation**: Surgically updated `tools/bazel/translate_gn_desc.py` to parse the GN target's `"public"` headers list from `desc.json`. It splits header files in `"sources"` into public headers (`"hdrs"`) if they are listed in `"public"` or if `"public"` is the wildcard `*`, and private headers (`"srcs"`) otherwise.
@@ -296,7 +303,10 @@ cross-arch refs to match GN exactly — but they build, so this is cosmetic, not
    fragile.
 3. **Cutover machinery (§4.3 + §3.6).** Test integration, swapping
    `tools/build.py`/`test.py` backends GN→Bazel behind the same CLI, and the
-   atomic per-subtree GN deletion. None started — GN is still the source of truth.
+   atomic per-subtree GN deletion. **IN PROGRESS (sess 57):** Phase 1 (CLI flag
+   translation) and Phase 2 (dynamic configuration mapping & `@dart_tests_vm_product`
+   repo) are completed and verified. Default behavior remains unchanged (GN/Ninja is
+   default, Bazel is opt-in via `--bazel`).
 
 ## Core Cleanups & Architectural Backlog
 

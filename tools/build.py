@@ -345,7 +345,7 @@ def BuildWithBazel(options, targets, env):
         for mode in options.mode:
             for arch in options.arch:
                 for sanitizer in options.sanitizer:
-                    bazel_command = ['bazel', 'build']
+                    bazel_command = [utils.ResolveBazelPath(), 'build']
 
                     if mode == 'debug':
                         bazel_command.append('--//build/config:dart_debug=true')
