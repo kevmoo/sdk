@@ -185,7 +185,6 @@ cc_binary(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//build/config/sanitizers:deps",
         "//runtime/platform:headers",
     ],
@@ -295,7 +294,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -412,7 +410,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin",
         "//third_party/boringssl",
         "//third_party/fallback_root_certificates",
@@ -560,10 +557,7 @@ cc_library(
         "//conditions:default": [],
     }),
     implementation_deps = ["//runtime/platform:headers"],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 # Real :core_snapshot_data_linkable / :core_snapshot_text_linkable are
@@ -650,10 +644,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_binary(
@@ -710,7 +701,6 @@ cc_binary(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//build/config/sanitizers:deps",
         "//runtime/platform:headers",
     ],
@@ -783,7 +773,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime:libdart_jit",
         "//runtime/bin:common_embedder_dart_io",
         "//runtime/bin:dart_kernel_platform_cc",
@@ -897,7 +886,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -1129,7 +1117,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -1209,7 +1196,6 @@ cc_binary(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//build/config/sanitizers:deps",
         "//runtime:libdart_jit",
         "//runtime/bin:common_embedder_dart_io",
@@ -1327,7 +1313,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -1420,7 +1405,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin",
     ],
 )
@@ -1535,7 +1519,6 @@ cc_library(
     }),
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/include:headers",
     ],
     alwayslink = True,
@@ -1565,7 +1548,6 @@ cc_binary(
     deps = [
         ":entrypoints_verification_test",
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1613,7 +1595,6 @@ cc_binary(
     deps = [
         ":ffi_test_dynamic_library",
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1647,7 +1628,6 @@ cc_library(
     }),
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/include:headers",
     ],
     alwayslink = True,
@@ -1682,7 +1662,6 @@ cc_library(
     deps = [
         ":ffi_test_functions_c",
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/include:headers",
         "//runtime/platform:headers",
     ],
@@ -1713,7 +1692,6 @@ cc_binary(
     deps = [
         ":ffi_test_functions",
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
     ],
 )
 
@@ -1825,7 +1803,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -1937,7 +1914,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -2717,7 +2693,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -3420,7 +3395,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -3622,10 +3596,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -3717,10 +3688,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -4381,10 +4349,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -4890,7 +4855,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "//third_party/zlib",
@@ -4983,7 +4947,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin",
     ],
 )
