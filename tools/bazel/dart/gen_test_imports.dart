@@ -5,6 +5,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 late final String packageName;
 late final String packageDir;
 
@@ -17,7 +19,7 @@ void main(List<String> args) {
     exit(1);
   }
 
-  packageDir = args[0];
+  packageDir = args[0].replaceAll('\\', '/');
   final dir = Directory(packageDir);
   if (!dir.existsSync()) {
     print('Error: Package directory does not exist: $packageDir');
@@ -57,29 +59,22 @@ void main(List<String> args) {
     _processFile(relPath);
   }
 
-  // 3. Compute transitive closures for test files
-  final testImports = <String, List<String>>{};
-  for (final testFile in testFiles) {
-    final relPath = _toRelative(testFile);
-    final closure = <String>{};
-    _computeTransitiveClosure(relPath, closure, {relPath});
-    // Remove the test file itself from its dependencies
-    closure.remove(relPath);
-
-    // Sort for deterministic output
-    final sortedList = closure.toList()..sort();
-    testImports[relPath] = sortedList;
+  // 3. Sort keys and target lists of directDeps alphabetically, omitting empty lists
+  final sortedMapping = <String, List<String>>{};
+  final sortedKeys = directDeps.keys.toList()..sort();
+  for (final key in sortedKeys) {
+    final deps = directDeps[key]!;
+    if (deps.isEmpty) {
+      continue; // Optimization: skip empty lists to minimize JSON size
+    }
+    final sortedDeps = deps.toList()..sort();
+    sortedMapping[key] = sortedDeps;
   }
-
-  // Sort mapping keys for determinism
-  final sortedMapping = Map.fromEntries(
-    testImports.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
-  );
 
   // 4. Write JSON output
   final outputFile = File('${dir.path}/test_imports.json');
   final jsonString = JsonEncoder.withIndent('  ').convert(sortedMapping);
-  outputFile.writeAsStringSync(jsonString + '\n');
+  outputFile.writeAsStringSync('$jsonString\n');
   print('Wrote ${sortedMapping.length} test mappings to ${outputFile.path}');
 }
 
@@ -92,15 +87,8 @@ void _findDartFiles(Directory dir, List<String> results) {
 }
 
 String _toRelative(String absolutePath) {
-  final normalizedPkgDir = packageDir.replaceAll('\\', '/');
-  final normalizedPath = absolutePath.replaceAll('\\', '/');
-
-  if (normalizedPath.startsWith(normalizedPkgDir)) {
-    var rel = normalizedPath.substring(normalizedPkgDir.length);
-    if (rel.startsWith('/')) rel = rel.substring(1);
-    return rel;
-  }
-  return normalizedPath;
+  final rel = p.relative(absolutePath, from: packageDir);
+  return p.posix.joinAll(p.split(rel));
 }
 
 void _processFile(String relPath) {
@@ -136,58 +124,23 @@ void _processFile(String relPath) {
   }
 }
 
-void _computeTransitiveClosure(
-    String current, Set<String> closure, Set<String> visiting) {
-  final deps = directDeps[current];
-  if (deps == null) return;
-
-  for (final dep in deps) {
-    if (closure.contains(dep)) continue;
-    if (visiting.contains(dep)) {
-      continue;
-    }
-    closure.add(dep);
-    visiting.add(dep);
-    _computeTransitiveClosure(dep, closure, visiting);
-    visiting.remove(dep);
-  }
-}
-
 String _getDirectory(String filePath) {
-  final index = filePath.lastIndexOf('/');
-  if (index == -1) return '';
-  return filePath.substring(0, index);
+  final dirname = p.posix.dirname(filePath);
+  return (dirname == '.' || dirname.isEmpty) ? '' : dirname;
 }
 
 String _normalizePath(String basePath, String relativePath) {
   if (relativePath.startsWith('package:')) {
     if (relativePath.startsWith('package:$packageName/')) {
-      return 'lib/' + relativePath.substring('package:$packageName/'.length);
+      return p.posix
+          .join('lib', relativePath.substring('package:$packageName/'.length));
     }
     return '';
   }
-  if (relativePath.startsWith('dart:')) {
+  if (relativePath.startsWith('dart:') || relativePath.contains(':')) {
     return '';
   }
-  if (relativePath.contains(':')) {
-    return '';
-  }
-
-  final baseParts = basePath.isEmpty ? <String>[] : basePath.split('/');
-  final parts = [...baseParts, ...relativePath.split('/')];
-  final result = <String>[];
-  for (final part in parts) {
-    if (part == '..') {
-      if (result.isNotEmpty) {
-        result.removeLast();
-      }
-    } else if (part == '.' || part == '') {
-      // skip
-    } else {
-      result.add(part);
-    }
-  }
-  return result.join('/');
+  return p.posix.normalize(p.posix.join(basePath, relativePath));
 }
 
 List<String> _extractImportsAndParts(String content) {

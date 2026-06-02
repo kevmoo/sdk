@@ -5,6 +5,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 void main(List<String> args) async {
   String? workspaceDir;
   String? outputDir;
@@ -341,22 +343,21 @@ void main(List<String> args) async {
       final resourceDeps = <String>{};
 
       for (final resource in otherResources) {
-        final resourcePath = _normalizeAbsolutePath('$testDir/$resource');
+        final resourcePath = p.posix.normalize('$testDir/$resource');
         if (resourcePath.startsWith(workspaceDir)) {
           final relResPath = resourcePath.substring(workspaceDir.length + 1);
           resolvedResources
               .add(_resolveWorkspaceLabel(workspaceDir, relResPath));
           if (hasFineGrained) {
             final relResInPkg = relResPath.substring(pkgDir.length + 1);
-            final resDeps = testImportsMap![relResInPkg] as List?;
-            if (resDeps != null) {
-              for (final dep in resDeps) {
-                final fgName = _getFilegroupTargetName(dep as String);
-                final label =
-                    _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
-                filegroups.putIfAbsent(fgName, () => {}).add(label);
-                resourceDeps.add(':$fgName');
-              }
+            final resDeps =
+                _computeTransitiveClosure(relResInPkg, testImportsMap!);
+            for (final dep in resDeps) {
+              final fgName = _getFilegroupTargetName(dep);
+              final label =
+                  _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
+              filegroups.putIfAbsent(fgName, () => {}).add(label);
+              resourceDeps.add(':$fgName');
             }
           }
         } else if (resourcePath.startsWith(outputDir)) {
@@ -377,14 +378,13 @@ void main(List<String> args) async {
           ...resourceDeps,
         };
 
-        final localDeps = testImportsMap![relPathInPkg] as List?;
-        if (localDeps != null) {
-          for (final dep in localDeps) {
-            final fgName = _getFilegroupTargetName(dep as String);
-            final label = _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
-            filegroups.putIfAbsent(fgName, () => {}).add(label);
-            targetDeps.add(':$fgName');
-          }
+        final localDeps =
+            _computeTransitiveClosure(relPathInPkg, testImportsMap!);
+        for (final dep in localDeps) {
+          final fgName = _getFilegroupTargetName(dep);
+          final label = _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
+          filegroups.putIfAbsent(fgName, () => {}).add(label);
+          targetDeps.add(':$fgName');
         }
 
         // Package-wide tests (such as package static analysis/doc tests) that require the entire lib/ target of the package
@@ -503,7 +503,7 @@ $targetsStr
         final otherResources =
             List<String>.from(tc['other_resources'] as List? ?? []);
         for (final resource in otherResources) {
-          final resourcePath = _normalizeAbsolutePath('$testDir/$resource');
+          final resourcePath = p.posix.normalize('$testDir/$resource');
           if (resourcePath.startsWith(workspaceDir)) {
             final relResPath = resourcePath.substring(workspaceDir.length + 1);
             dataDeps.add(_resolveWorkspaceLabel(workspaceDir, relResPath));
@@ -560,13 +560,16 @@ bool _dirHasBuildFile(String dirPath) {
 
 String _resolveWorkspaceLabel(String workspaceDir, String relResPath) {
   return _labelCache.putIfAbsent(relResPath, () {
-    final parts = relResPath.split('/');
-    final dirParts = parts.sublist(0, parts.length - 1);
+    final normPath = p.posix.normalize(relResPath);
+    final dirname = p.posix.dirname(normPath);
+    final dirParts = (dirname == '.' || dirname.isEmpty)
+        ? <String>[]
+        : p.posix.split(dirname);
 
     var bestI = 0;
 
     for (var i = 1; i <= dirParts.length; i++) {
-      final pkgSubPath = dirParts.sublist(0, i).join('/');
+      final pkgSubPath = p.posix.joinAll(dirParts.sublist(0, i));
       final pkgPath = '$workspaceDir/$pkgSubPath';
       if (_dirHasBuildFile(pkgPath)) {
         bestI = i;
@@ -574,30 +577,13 @@ String _resolveWorkspaceLabel(String workspaceDir, String relResPath) {
     }
 
     if (bestI == 0) {
-      return '@//:$relResPath';
+      return '@//:$normPath';
     } else {
-      final packageName = dirParts.sublist(0, bestI).join('/');
-      final relToPackage = parts.sublist(bestI).join('/');
+      final packageName = p.posix.joinAll(dirParts.sublist(0, bestI));
+      final relToPackage = p.posix.relative(normPath, from: packageName);
       return '@//$packageName:$relToPackage';
     }
   });
-}
-
-String _normalizeAbsolutePath(String path) {
-  final parts = path.split('/');
-  final result = <String>[];
-  for (final part in parts) {
-    if (part == '..') {
-      if (result.isNotEmpty) {
-        result.removeLast();
-      }
-    } else if (part == '.' || part == '') {
-      // skip
-    } else {
-      result.add(part);
-    }
-  }
-  return '/' + result.join('/');
 }
 
 String _toTargetName(String relPath) {
@@ -669,7 +655,7 @@ String _getFilegroupTargetName(String dep) {
     return 'fg_root';
   }
   final dirParts = parts.sublist(0, parts.length - 1);
-  return 'fg_' + dirParts.join('_').replaceAll('.', '_').replaceAll('-', '_');
+  return 'fg_${dirParts.join('_').replaceAll('.', '_').replaceAll('-', '_')}';
 }
 
 List<String> _findPackageResources(String workspaceDir, String pkgDir) {
@@ -720,4 +706,29 @@ List<String> _findPackageResources(String workspaceDir, String pkgDir) {
     }
   }
   return resources;
+}
+
+List<String> _computeTransitiveClosure(
+    String startFile, Map<String, dynamic> directDepsMap) {
+  final closure = <String>{};
+  final visiting = <String>{startFile};
+
+  void dfs(String node) {
+    final deps = directDepsMap[node] as List?;
+    if (deps == null) return;
+
+    for (final dep in deps) {
+      final depStr = dep as String;
+      if (closure.contains(depStr)) continue;
+      if (visiting.contains(depStr)) continue;
+
+      closure.add(depStr);
+      visiting.add(depStr);
+      dfs(depStr);
+      visiting.remove(depStr);
+    }
+  }
+
+  dfs(startFile);
+  return closure.toList()..sort();
 }
