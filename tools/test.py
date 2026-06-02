@@ -170,7 +170,7 @@ def TestWithBazel(args):
             filter_parts.append(name)
         else:
             # Support deep directory selectors in fine-grained packages
-            matched_fine_grained = False
+            matched = False
             if len(name) > len(pkg_dir):
                 target_prefix = rel_path.replace('/', '_')
                 pkg_prefix = f"@{repo_name}//{pkg_dir}:"
@@ -179,9 +179,9 @@ def TestWithBazel(args):
                     for m in matches:
                         if m not in bazel_targets:
                             bazel_targets.append(m)
-                    matched_fine_grained = True
+                    matched = True
 
-            if not matched_fine_grained:
+            if not matched:
                 # Support broad directory suite selectors (e.g. 'web', 'language')
                 prefix1 = f"@{repo_name}//{name}/"
                 prefix2 = f"@{repo_name}//{name}:"
@@ -191,7 +191,9 @@ def TestWithBazel(args):
                         if m not in bazel_targets:
                             bazel_targets.append(m)
                     filter_parts.append(name)
-            else:
+                    matched = True
+
+            if not matched:
                 print(f"Warning: No matching Bazel test targets found for selector '{selector}' under configuration '{repo_name}'")
 
     if not bazel_targets:
