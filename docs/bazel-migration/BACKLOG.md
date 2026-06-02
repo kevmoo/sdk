@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 6/13 Tasks (46.2%)
+- **Overall Progress**: 6/14 Tasks (42.9%)
 
 ---
 
@@ -293,6 +293,28 @@ This is the single source of truth for the remaining migration work stream. It i
   - [ ] `test_rules.bzl` defines configuration-suffixed test targets inside the root suite packages.
   - [ ] `tools/test.py` routes different configuration runs correctly to their corresponding suffixed targets.
   - [ ] All configurations compile and execute green inside the sandboxed repository.
+
+---
+
+### 🎯 [TASK_014] Python Test Wrapper Unit Testing
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/test_wrapper_test.py`
+- **Description**:
+  Implement a comprehensive Python unit test suite `tools/test_wrapper_test.py` to verify the target resolution and flag translation logic inside `tools/test.py` (`TestWithBazel` and `ResolveConfig`). The test suite must mock Bazel query executions and test various selector inputs (coarse-grained, fine-grained, broad directory, and completely invalid). It must assert that valid selectors resolve to correct targets without emitting any warning or error outputs, and invalid selectors emit the correct warning message.
+- **Verification Command**:
+  ```bash
+  python3 tools/test_wrapper_test.py
+  ```
+- **Success Criteria**:
+  - [ ] `tools/test_wrapper_test.py` is authored utilizing Python's `unittest` standard library.
+  - [ ] Test cases verify configuration resolutions and flag conversions.
+  - [ ] Test cases verify that valid selectors resolve to correct targets warning-free.
+  - [ ] Test cases verify that invalid selectors emit the appropriate target warning.
+  - [ ] Executing `python3 tools/test_wrapper_test.py` runs and passes completely green.
 
 
 
