@@ -1,3 +1,6 @@
 # Ignores conflicting subpackage BUILD and WORKSPACE files from nested gclient checkouts
 # so we do not have to rename or modify them on the local filesystem.
 common --deleted_packages=third_party/boringssl/src,third_party/perfetto/src,third_party/perfetto/src/bazel,third_party/perfetto/src/python
+
+# Enforce Bazel 10 style source file visibility checks in Bazel 9
+build --incompatible_no_implicit_file_export

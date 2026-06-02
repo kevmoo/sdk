@@ -144,6 +144,8 @@ cc_library(
     }),
     deps = [
         "//build/config:dart_mode",
+    ],
+    data = [
         "//runtime/vm:vm_platform",
         "//runtime/vm:vm_platform_stripped",
     ],

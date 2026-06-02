@@ -200,6 +200,8 @@ cc_library(
     name = "dart2wasm_platform",
     deps = [
         "//:runtime_precompiled",
+    ],
+    data = [
         "//utils/dart2wasm:compile_dart2wasm_js_compatibility_platform",
         "//utils/dart2wasm:compile_dart2wasm_platform",
         "//utils/dart2wasm:compile_dart2wasm_standalone_platform",
