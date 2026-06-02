@@ -6,7 +6,7 @@ This directory houses the documentation, designs, and live status tracking for t
 
 If you are an autonomous agent or human contributor picking up this migration workstream, follow this sequence:
 
-1. **Start with [STATUS.md](STATUS.md)**: Read the "Last updated" and latest session entries at the top of `STATUS.md`. This is the absolute single source of truth for what is currently running, what has been committed locally, and what the immediate next step is.
+1. **Start with [BACKLOG.md](BACKLOG.md) & [STATUS.md](STATUS.md)**: If you are an agent, read the `BACKLOG.md` first to claim an open task and set your lock. Check `STATUS.md` for live coordination. These two files are the single source of truth for what needs to be done next and what is currently running.
 2. **Read the [DESIGN.md](DESIGN.md)**: Understand the overarching target architecture, rule definitions, phase sequence, and design constraints.
 3. **Follow the Protocols**:
    - **SDK-Independent Gaps/Defects**: If you discover a non-hermetic script, undocumented SDK coupling, or packaging defect, consult the **[todo_issues/README.md](todo_issues/README.md)** protocol. Document the defect as a numbered issue in `todo_issues/` *before* writing a workaround.
@@ -58,6 +58,7 @@ another agent.
 ## Directory Map
 
 ### 🗺️ Design & Status
+* **[BACKLOG.md](BACKLOG.md)** — The agent backlog and coordination board. Houses active lock states, task claims, and detailed success criteria for remaining work.
 * **[DESIGN.md](DESIGN.md)** — The core plan of record: target Bazel design, rule mappings, toolchain shims, third-party vendoring strategies, and sequence phases.
 * **[STATUS.md](STATUS.md)** — The living session-by-session progress tracker. Maps actual progress against the DESIGN.md phases. **The single source of truth for the current migration state.**
 
