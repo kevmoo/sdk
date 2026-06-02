@@ -203,7 +203,8 @@ This is the single source of truth for the remaining migration work stream. It i
   dart tools/setup_worktree_links.dart
   ```
 - **Success Criteria**:
-  - [ ] The tool is relocated and migrated to a standalone Dart CLI program at `tools/setup_worktree_links.dart`.
+  - [ ] **Task 1.1 (Port Symlinker):** Author the cross-platform Dart worktree symlinker at `tools/setup_worktree_links.dart`.
+  - [ ] **Task 1.2 (Excise Shell Script):** Delete the legacy shell script `tools/bazel/dart/setup_worktree_links.sh` completely.
   - [ ] It successfully resolves parent git checkouts and establishes symlinks under secondary git worktrees.
   - [ ] It handles file existences, skips tracked configurations safely, and works cleanly on Linux, macOS, and Windows.
 
@@ -263,7 +264,7 @@ This is the single source of truth for the remaining migration work stream. It i
   python3 tools/test.py --bazel corelib/list_test
   ```
 - **Success Criteria**:
-  - [ ] `generate_test_targets.dart` groups core suites into 4 unified package directories (`corelib`, `standalone`, `ffi`, `language`).
+  - [ ] `generate_test_targets.dart` clusters generated targets under root suite directories (`corelib/BUILD.bazel`).
   - [ ] Generated `BUILD.bazel` files are reduced by 700+ packages.
   - [ ] Modifying a single `.dart` test file still invalidates **only** its specific `sh_test` target.
   - [ ] Sandbox JIT execution is completely green.
@@ -287,9 +288,9 @@ This is the single source of truth for the remaining migration work stream. It i
   python3 tools/test.py --bazel -n dart2wasm-linux-d8 corelib/list_test -v
   ```
 - **Success Criteria**:
-  - [ ] `MODULE.bazel` defines exactly **one** dynamic test repository (`@dart_tests`).
-  - [ ] `generate_test_targets.dart` parallelizes dry-run sweeps and completes discovery in <3 seconds.
-  - [ ] `test_rules.bzl` defines configuration-suffixed test targets inside the packages.
+  - [ ] `MODULE.bazel` is refactored to define exactly **one** dynamic test repository (`@dart_tests`).
+  - [ ] `generate_test_targets.dart` parallelizes dry-run sweeps using `Future.wait` and completes target discovery in <2.5 seconds.
+  - [ ] `test_rules.bzl` defines configuration-suffixed test targets inside the root suite packages.
   - [ ] `tools/test.py` routes different configuration runs correctly to their corresponding suffixed targets.
   - [ ] All configurations compile and execute green inside the sandboxed repository.
 
