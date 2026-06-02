@@ -94,12 +94,7 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
     build_content = 'load("@rules_shell//shell:sh_test.bzl", "sh_test")\n\nexports_files(["run_single_test.sh"])\n\n'
 
     for test_case in test_cases:
-        # TODO(bazel-migration): Support compiling and loading native shared objects
-        # (e.g., FFI C-modules) hermetically inside the Bazel sandbox, or determine
-        # a long-term strategy for native SDK FFI testing under Bazel.
-        # Currently, we skip these tests since we cannot easily build them here.
-        if test_case.get("shared_objects"):
-            continue
+        # Native shared objects are mapped dynamically to dynamic dependencies instead of skipped.
 
         name = test_case["name"]
 
@@ -112,13 +107,6 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
 
         # Replace slashes, dashes, and dots to create a clean, valid Bazel target name
         target_name = name.replace("/", "_").replace("-", "_").replace(".", "_")
-
-        # Write individual test config JSON to the external repository
-        json_filename = target_name + ".json"
-        test_case_copy = dict(test_case)
-        test_case_copy["relative_file_path"] = relative_path
-        test_case_copy["compiler"] = repository_ctx.attr.compiler
-        repository_ctx.file(json_filename, json.encode(test_case_copy))
 
         # Resolve test file relative path to the workspace root
         file_path_abs = test_case["file_path"]
@@ -134,25 +122,51 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
         else:
             fail("Test file is neither in workspace nor in external repository: " + file_path_abs)
 
+        # Write individual test config JSON to the external repository
+        json_filename = target_name + ".json"
+        test_case_copy = dict(test_case)
+        test_case_copy["relative_file_path"] = relative_path
+        test_case_copy["compiler"] = repository_ctx.attr.compiler
+        repository_ctx.file(json_filename, json.encode(test_case_copy))
+
         # Construct list of sandbox data dependencies
         data_deps = [
             "@//pkg/test_runner/bin:run_single_test.dart",
             "@//sdk:create_sdk",
             test_file_label,
             ":" + json_filename,
+            "@//:package_config_json",
+            "@//:dart_pkg_expect",
+            "@//:dart_pkg_ffi",
+            "@//:dart_pkg_path",
         ]
 
         if repository_ctx.attr.compiler == "fasta":
             data_deps += [
                 "@//:front_end_tool_files",
                 "@//:compile_platform_tool",
-                "@//:package_config_json",
-                "@//:dart_pkg_expect",
                 "@//runtime/vm:vm_platform",
             ]
 
+        # Map test-declared shared objects (e.g., ffi_test_functions -> libffi_test_functions.so)
+        has_unsupported_so = False
+        for so in test_case.get("shared_objects", []):
+            if so == "ffi_test_functions":
+                data_deps.append("@//runtime/bin:libffi_test_functions.so")
+            elif so == "ffi_test_dynamic_library":
+                data_deps.append("@//runtime/bin:libffi_test_dynamic_library.so")
+            else:
+                has_unsupported_so = True
+                break
+
+        if has_unsupported_so:
+            continue
+
         if "socket_sigpipe_test" in relative_path or "/ffi/" in relative_path:
-            data_deps.append("@//runtime/bin:libffi_test_functions.so")
+            if "@//runtime/bin:libffi_test_functions.so" not in data_deps:
+                data_deps.append("@//runtime/bin:libffi_test_functions.so")
+            if "@//runtime/bin:libffi_test_dynamic_library.so" not in data_deps:
+                data_deps.append("@//runtime/bin:libffi_test_dynamic_library.so")
 
         # Resolve and add other resources declared by the test (e.g. helper scripts, data files)
         # Use original_file_path if available (e.g. for generated multitests) to resolve resources
@@ -239,6 +253,7 @@ def _test_ext_impl(_ctx):
             "language",
             "corelib",
             "standalone",
+            "ffi",
         ],
         mode = "release",
         compiler = "dartk",
