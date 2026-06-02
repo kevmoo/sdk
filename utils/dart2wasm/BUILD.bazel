@@ -121,8 +121,13 @@ dart_aot_snapshot(
     sources = "//:dart_pkg_dart2wasm",
 )
 
-# TODO(M3): genrule for ffi_native_test_wasm_module (gn type=action)
-cc_library(name = "ffi_native_test_wasm_module")
+genrule(
+    name = "ffi_native_test_wasm_module",
+    srcs = ["//:tests/web/wasm/ffi/ffi_native_test_module.c"],
+    outs = ["wasm/ffi_native_test_module.wasm"],
+    cmd = "third_party/emsdk/upstream/emscripten/emcc --no-entry $(SRCS) -o $(OUTS) -O",
+    tags = ["no-sandbox"],
+)
 
 cc_library(
     name = "test_wasm_modules",

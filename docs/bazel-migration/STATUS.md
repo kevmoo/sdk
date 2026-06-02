@@ -27,7 +27,14 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-02 (session 61, jetski) — **Completed JIT VM standalone test migration under Bazel, achieving 100% green pass rate across all 680 tests.**_
+_Last updated: 2026-06-02 (session 62, jetski) — **WASM FFI Bazel Porting & Optimized Architecture Integration completed, achieving 100% green sandboxed FFI test execution.**_
+
+Session 62 — **(jetski) WASM FFI Bazel Porting & Optimized Architecture Integration.**
+- **Ported WASM FFI Helper Module to Bazel**: Created a hermetic compilation rule for the WASM FFI helper C module directly in `utils/dart2wasm/BUILD.bazel` using the workspace-hermetic Emscripten toolchain (`emcc`), completely avoiding duplicate copies of the C source.
+- **Dynamic Sandbox Runfiles Path Rewriter**: Integrated a dynamic path rewriter inside the batch execution loop `_runTestCase` in `pkg/test_runner/bin/run_single_test.dart` to map GN-configured compilation paths (e.g., `out/ReleaseX64/wasm/...`) directly to their sandboxed runfiles counterpart (`_main/utils/dart2wasm/wasm/ffi_native_test_module.wasm`).
+- **Optimized Dart Generator Integration**: Added WASM FFI targets mapping inside `generate_test_targets.dart`. Updated the root `BUILD.bazel` template to glob and export all files under `out/**/*.dart` and `out/**/*.json` inside the dynamic external repository, resolving visibility resolution issues for dynamic sub-packages referencing generated tests.
+- **Upgraded Bazel Test Command Delegation**: Upgraded `tools/test.py` to run recursive queries (`@{repo_name}//...`), route named selector paths (like `web/wasm/ffi/...`) to parent directory packages (e.g., `@repo_name//web/wasm:tests`), and aggregate multiple execution targets into regular expressions using the `--test_filter` parameter.
+- **Pristine Work Tree Verification**: Reverted all developer-loop performance overrides and verified that Bzlmod builds cleanly, and all 3 WASM FFI tests pass in under 2.0 seconds under the newly integrated architecture.
 
 Session 61 — **(jetski) Completed JIT VM standalone test migration under Bazel, achieving 100% green pass rate across all 680 tests.**
 - **100% Standalone JIT VM Green Pass**: Migrated and verified the entire `standalone` test suite under Bazel, resolving all sandboxing, dynamic file staging, dynamic linking, and path resolution issues.

@@ -145,7 +145,9 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
 
   if (isStaticErrorTest) {
     if (relativeFilePath == null || compiler == null) {
-      print('Error: Missing relative_file_path or compiler for static error test.');
+      print(
+        'Error: Missing relative_file_path or compiler for static error test.',
+      );
       exit(2);
     }
 
@@ -173,9 +175,13 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
 
     final source = file.readAsStringSync();
     final allExpected = parseExpectations(source);
-    expectedErrors = allExpected.where((e) => e.source == expectedSource).toList();
-    
-    print('Parsed ${expectedErrors.length} expected errors for $expectedSource');
+    expectedErrors = allExpected
+        .where((e) => e.source == expectedSource)
+        .toList();
+
+    print(
+      'Parsed ${expectedErrors.length} expected errors for $expectedSource',
+    );
   }
 
   print(
@@ -203,13 +209,17 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
     var arguments = List<String>.from(cmd['arguments'] as List);
 
     if (compiler == 'fasta') {
-      final compileScript = _Runfiles.resolve('_main/pkg/front_end/tool/compile.dart');
+      final compileScript = _Runfiles.resolve(
+        '_main/pkg/front_end/tool/compile.dart',
+      );
       arguments.insert(0, compileScript);
     }
 
     arguments = arguments.map((arg) {
       if (arg.startsWith('--packages=')) {
-        final resolvedPkg = _Runfiles.resolve('_main/.dart_tool/package_config.json');
+        final resolvedPkg = _Runfiles.resolve(
+          '_main/.dart_tool/package_config.json',
+        );
         return '--packages=$resolvedPkg';
       }
       return arg;
@@ -217,7 +227,9 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
 
     for (var j = 0; j < arguments.length; j++) {
       if (arguments[j] == '--platform' && j + 1 < arguments.length) {
-        final resolvedPlatform = _Runfiles.resolve('_main/runtime/vm/vm_platform.dill');
+        final resolvedPlatform = _Runfiles.resolve(
+          '_main/runtime/vm/vm_platform.dill',
+        );
         arguments[j + 1] = resolvedPlatform;
       }
     }
@@ -354,7 +366,15 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
           if (wasmFile == null) {
             wasmFile = arg;
           } else {
-            extraWasmFiles.add(arg);
+            var resolvedArg = arg;
+            final match = RegExp(r'^out/[^/]+/wasm/(.+)$').firstMatch(arg);
+            if (match != null) {
+              final wasmName = match[1]!;
+              resolvedArg = _Runfiles.resolve(
+                '_main/utils/dart2wasm/wasm/$wasmName',
+              );
+            }
+            extraWasmFiles.add(resolvedArg);
           }
         }
       }
@@ -485,8 +505,12 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
 
     if (isStaticErrorTest) {
       final combinedOutput = stdoutBuffer.toString() + stderrBuffer.toString();
-      final actualErrors = parseCompilerErrors(combinedOutput, expectedSource!, relativeFilePath!);
-      
+      final actualErrors = parseCompilerErrors(
+        combinedOutput,
+        expectedSource!,
+        relativeFilePath!,
+      );
+
       print('\n--- Static Error Verification ---');
       print('Expected errors: ${expectedErrors.length}');
       for (var e in expectedErrors) {
@@ -500,7 +524,9 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
       final validation = validateErrors(expectedErrors, actualErrors);
       if (validation == null) {
         actualOutcome = 'Pass';
-        print('RESULT: Static error verification succeeded (all expectations met).');
+        print(
+          'RESULT: Static error verification succeeded (all expectations met).',
+        );
         if (exitCode != 0) {
           break; // Break command loop as this was an expected failure
         }
@@ -660,9 +686,9 @@ List<ExpectedError> parseExpectations(String sourceContent) {
   sourceContent = sourceContent.replaceAll('\r', '');
   final lines = sourceContent.split('\n');
   var expectedErrors = <ExpectedError>[];
-  
+
   int lastRealLine = -1;
-  
+
   final caretRegex = RegExp(r"^\s*//\s*(\^+)\s*$");
   final explicitRegex = RegExp(
     r"^\s*//\s*\[\s*error (?:line\s+(\d+)\s*,)?\s*column\s+(\d+)\s*(?:,\s*"
@@ -672,13 +698,13 @@ List<ExpectedError> parseExpectations(String sourceContent) {
 
   for (var i = 0; i < lines.length; i++) {
     final lineText = lines[i];
-    
+
     // Check if it's a caret marker
     if (caretRegex.firstMatch(lineText) case var match?) {
       if (lastRealLine == -1) continue;
       final caretStr = match[1]!;
       final column = lineText.indexOf('^') + 1;
-      
+
       // Peek next lines for messages
       var j = i + 1;
       while (j < lines.length) {
@@ -686,7 +712,9 @@ List<ExpectedError> parseExpectations(String sourceContent) {
         if (messageRegex.firstMatch(nextLine) case var msgMatch?) {
           final source = msgMatch[1]!.split(' ')[0];
           final message = msgMatch[2]!.trim();
-          expectedErrors.add(ExpectedError(source, lastRealLine + 1, column, message));
+          expectedErrors.add(
+            ExpectedError(source, lastRealLine + 1, column, message),
+          );
           j++;
         } else {
           break;
@@ -695,13 +723,15 @@ List<ExpectedError> parseExpectations(String sourceContent) {
       i = j - 1;
       continue;
     }
-    
+
     // Check if it's an explicit marker
     if (explicitRegex.firstMatch(lineText) case var match?) {
       final lineCapture = match[1];
       final column = int.parse(match[2]!);
-      final targetLine = lineCapture != null ? int.parse(lineCapture) : lastRealLine + 1;
-      
+      final targetLine = lineCapture != null
+          ? int.parse(lineCapture)
+          : lastRealLine + 1;
+
       // Peek next lines for messages
       var j = i + 1;
       while (j < lines.length) {
@@ -709,7 +739,9 @@ List<ExpectedError> parseExpectations(String sourceContent) {
         if (messageRegex.firstMatch(nextLine) case var msgMatch?) {
           final source = msgMatch[1]!.split(' ')[0];
           final message = msgMatch[2]!.trim();
-          expectedErrors.add(ExpectedError(source, targetLine, column, message));
+          expectedErrors.add(
+            ExpectedError(source, targetLine, column, message),
+          );
           j++;
         } else {
           break;
@@ -718,24 +750,28 @@ List<ExpectedError> parseExpectations(String sourceContent) {
       i = j - 1;
       continue;
     }
-    
+
     // If it's a regular comment line, don't update lastRealLine
     if (lineText.trim().startsWith('//')) {
       continue;
     }
-    
+
     // It's a real code line
     lastRealLine = i;
   }
-  
+
   return expectedErrors;
 }
 
-List<ActualError> parseCompilerErrors(String output, String expectedSource, String testPath) {
+List<ActualError> parseCompilerErrors(
+  String output,
+  String expectedSource,
+  String testPath,
+) {
   output = output.replaceAll('\r', '');
   var errors = <ActualError>[];
   final regExp = expectedSource == 'web' ? _webErrorRegexp : _cfeErrorRegexp;
-  
+
   ActualError? previousError;
   for (var match in regExp.allMatches(output)) {
     var path = match[1];
@@ -775,14 +811,15 @@ List<ActualError> parseCompilerErrors(String output, String expectedSource, Stri
 String? validateErrors(List<ExpectedError> expected, List<ActualError> actual) {
   var unmatchedExpected = <ExpectedError>[...expected];
   var unmatchedActual = <ActualError>[...actual];
-  
+
   var buffer = StringBuffer();
-  
+
   for (final exp in expected) {
     ActualError? match;
     for (final act in unmatchedActual) {
       if (act.line == exp.line) {
-        if (act.message.contains(exp.message) || exp.message.contains(act.message)) {
+        if (act.message.contains(exp.message) ||
+            exp.message.contains(act.message)) {
           if ((act.column - exp.column).abs() <= 2) {
             match = act;
             break;
@@ -790,17 +827,17 @@ String? validateErrors(List<ExpectedError> expected, List<ActualError> actual) {
         }
       }
     }
-    
+
     if (match != null) {
       unmatchedExpected.remove(exp);
       unmatchedActual.remove(match);
     }
   }
-  
+
   if (unmatchedExpected.isEmpty && unmatchedActual.isEmpty) {
     return null;
   }
-  
+
   if (unmatchedExpected.isNotEmpty) {
     buffer.writeln('Missing expected errors:');
     for (final exp in unmatchedExpected) {
@@ -813,6 +850,6 @@ String? validateErrors(List<ExpectedError> expected, List<ActualError> actual) {
       buffer.writeln('  - Line ${act.line}, Col ${act.column}: ${act.message}');
     }
   }
-  
+
   return buffer.toString();
 }

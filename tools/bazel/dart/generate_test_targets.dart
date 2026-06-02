@@ -62,6 +62,8 @@ void main(List<String> args) async {
             "run_single_test.sh",
             "xcodebuild/**/*.dart",
             "xcodebuild/**/*.json",
+            "out/**/*.dart",
+            "out/**/*.json",
         ],
         allow_empty = True,
     ),
@@ -181,6 +183,8 @@ void main(List<String> args) async {
           activeSoDeps.add('@//runtime/bin:libffi_test_functions.so');
         } else if (so == 'ffi_test_dynamic_library') {
           activeSoDeps.add('@//runtime/bin:libffi_test_dynamic_library.so');
+        } else if (so == 'ffi_native_test_module') {
+          activeSoDeps.add('@//utils/dart2wasm:ffi_native_test_wasm_module');
         } else {
           hasUnsupportedSo = true;
           break;
