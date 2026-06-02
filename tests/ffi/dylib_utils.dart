@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:ffi';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File;
 
 import 'package:ffi/ffi.dart';
 
@@ -25,6 +25,13 @@ String platformPath(String name, {String? path}) {
 }
 
 DynamicLibrary dlopenPlatformSpecific(String name, {String? path}) {
+  if (path == null) {
+    // Under Bazel, compiled FFI test helpers are staged under 'runtime/bin/'.
+    final bazelPath = 'runtime/bin/${dylibName(name)}';
+    if (File(bazelPath).existsSync()) {
+      path = 'runtime/bin/';
+    }
+  }
   String fullPath = platformPath(name, path: path);
   return DynamicLibrary.open(fullPath);
 }

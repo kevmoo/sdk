@@ -1193,6 +1193,7 @@ cc_binary(
     linkopts = [
         "-ldl",
         "-lpthread",
+        "-rdynamic",
         "-stdlib=libc++",
     ],
     deps = [

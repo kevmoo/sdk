@@ -238,6 +238,7 @@ def gen_targets():
         linkopts = [
             "-ldl",
             "-lpthread",
+            "-rdynamic",
         ],
     )
 
