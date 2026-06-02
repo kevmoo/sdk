@@ -1,6 +1,6 @@
 # Dart SDK: GN+Ninja → Bazel Migration Design
 
-> **Plan of record** for the GN+Ninja → Bazel migration (`kevmoo/bazel-m1-cc-toolchain`),
+> **Plan of record** for the GN+Ninja → Bazel migration (`kevmoo/bazel`),
 > authored ~2026-05-28. This document is the *target design and sequencing* the
 > other docs in this directory cite (`DESIGN.md §3.x` target state, `§4.x`
 > sequencing, `§5.x` risks).

@@ -9,7 +9,7 @@
 
 The guide is an exceptionally solid high-level reference. Despite being compiled in minutes without deep historical context on the branch, it accurately captures the structural tension points of a GN-to-Bazel transition. 
 
-Our branch (`kevmoo/bazel-m1-cc-toolchain`) is already heavily aligned with the majority of these best practices. Below is a structural matrix comparing the guide's suggestions against our current implementation:
+Our branch (`kevmoo/bazel`) is already heavily aligned with the majority of these best practices. Below is a structural matrix comparing the guide's suggestions against our current implementation:
 
 | Concern / Suggestion | Guide Goal | Our Implementation | Status |
 | :--- | :--- | :--- | :--- |

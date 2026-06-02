@@ -1,7 +1,7 @@
 # Bazel migration — status
 
 > **Not an `issue_NNNNN` file.** This is the living progress tracker for the
-> GN+Ninja → Bazel migration on branch `kevmoo/bazel-m1-cc-toolchain`. It lives
+> GN+Ninja → Bazel migration on branch `kevmoo/bazel`. It lives
 > here because `docs/bazel-migration/` is where this work stream keeps its durable,
 > reviewable artifacts. The `issue_*.md` files are *discovered SDK improvements*;
 > this file is *where the migration itself stands*.
@@ -197,13 +197,13 @@ Session 42 — **Phase 3 of Testing Roadmap COMPLETED.**
 Session 41 — **Phase 2 of Testing Roadmap COMPLETED (`2fbeca64b3d`).**
 (1) Implemented the zero-dependency standalone executor `pkg/test_runner/bin/run_single_test.dart` to parse single-test case JSON configs, stream real-time output streams, and map exit codes to expectations.
 (2) Verified execution outcome translation natively under the prebuilt Dart SDK for both matched/success outcomes (exiting with 0) and simulated mismatch/failure outcomes (exiting with 1).
-(3) Staged and committed the new executor script to the local branch `kevmoo/bazel-m1-cc-toolchain`.
+(3) Staged and committed the new executor script to the local branch `kevmoo/bazel`.
 
 Session 40 — **Phase 1 of Testing Roadmap COMPLETED (`5d1b87055de`).**
 (1) Implemented `--dump-test-metadata=<json-file>` CLI option and parser mapping in `pkg/test_runner` to synchronously discover and dump resolved test configurations, expectations, and process commands to structured JSON.
 (2) Updated `pkg/test_runner/bin/test_runner.dart` to bypass target compilation and build steps if metadata dumping is active, reducing discovery time to ~2 seconds.
 (3) Audited the exported JSON schema and verified that absolute file paths, outcomes, and native process command lists match target executor specifications.
-(4) Committed all 4 modified test runner source files to the local branch `kevmoo/bazel-m1-cc-toolchain`.
+(4) Committed all 4 modified test runner source files to the local branch `kevmoo/bazel`.
 
 Session 39 — **Phase 1 of Testing Roadmap STARTED (`ef97598f6c1`).**
 (1) Consolidated all planning, status, and deep-dive files into `docs/bazel-migration/` (retaining full Git commit history).

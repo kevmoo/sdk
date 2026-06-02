@@ -1,4 +1,4 @@
-# Running the Bazel-built dartvm (branch: kevmoo/bazel-m1-cc-toolchain)
+# Running the Bazel-built dartvm (branch: kevmoo/bazel)
 
 Scope: how to build, run, and refresh `bazel-bin/runtime/bin/dartvm` so it
 executes raw `.dart` source via the in-VM Kernel isolate. Branch-local —

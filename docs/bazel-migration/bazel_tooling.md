@@ -1,4 +1,4 @@
-# Bazel dev tooling (branch: kevmoo/bazel-m1-cc-toolchain)
+# Bazel dev tooling (branch: kevmoo/bazel)
 
 Scope: third-party tools for working *on* the Bazel migration — formatting
 and editing `BUILD.bazel`/`.bzl` files, and (later) understanding build

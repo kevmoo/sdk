@@ -50,7 +50,7 @@ another agent.
 * **Environment.** `bazel` = `/home/linuxbrew/.linuxbrew/bin/bazel`; `gn` =
   `depot_tools/gn`. On a fresh clone, re-activate the buildifier pre-commit hook:
   `ln -sf ../../tools/bazel/hooks/pre-commit .git/hooks/pre-commit`.
-* **Commit discipline.** Branch is `kevmoo/bazel-m1-cc-toolchain`; **never push without
+* **Commit discipline.** Branch is `kevmoo/bazel`; **never push without
   explicit human approval.** Prefer small atomic commits. The pre-commit hook re-`git add`s
   the *whole* staged BUILD/.bzl file (buildifier `--lint=fix`), so per-hunk atomic commits
   of one file need `git commit --no-verify` (the files are already canonical).

@@ -6,7 +6,7 @@ Claude directly), per the (c) decision: keep the factory as a parallel
 experiment, but run the critical path solo.
 
 ## You are here
-- Branch `kevmoo/bazel-m1-cc-toolchain`; all commits are **local (never pushed)**.
+- Branch `kevmoo/bazel`; all commits are **local (never pushed)**.
 - **Done:** M4 product axis wired across `runtime/{bin,vm,platform}`; §7 overlay
   generalized; Step 5 sdk/ assembly — copies re-rooted under `dart-sdk/`, and
   **`//sdk:create_sdk` assembles analysis-green** (structural). Wrap commit:
