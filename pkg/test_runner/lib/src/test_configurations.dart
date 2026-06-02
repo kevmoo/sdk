@@ -406,6 +406,8 @@ Future<void> dumpConfigurationsMetadata(
         "name": testCase.displayName,
         "file_path": testCase.testFile.path.toNativePath(),
         "expected_outcome": expectedOutcomeStrings,
+        "shared_objects": testCase.testFile.sharedObjects,
+        "is_static_error_test": testCase.testFile.isStaticErrorTest,
         "commands": testCase.commands.map((cmd) {
           if (cmd is ProcessCommand) {
             return {

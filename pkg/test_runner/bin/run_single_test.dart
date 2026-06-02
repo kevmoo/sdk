@@ -75,23 +75,88 @@ void main(List<String> args) async {
     final dartBinEnv = Platform.environment['DART_BIN'];
     final testSrcdir = Platform.environment['TEST_SRCDIR'];
     final exeExt = Platform.isWindows ? '.exe' : '';
- 
+
     if (executable == 'pkg/dart2wasm/tool/compile_benchmark' &&
         testSrcdir != null) {
-      var resolvedRuntime = _Runfiles.resolve('_main/sdk/dart-sdk/bin/dartaotruntime$exeExt');
-      var resolvedSnapshot = _Runfiles.resolve('_main/sdk/dart-sdk/bin/snapshots/dart2wasm_product.snapshot');
-      var resolvedPlatform = _Runfiles.resolve('_main/sdk/dart-sdk/lib/_internal/dart2wasm_platform.dill');
+      var resolvedRuntime = _Runfiles.resolve(
+        '_main/sdk/dart-sdk/bin/dartaotruntime$exeExt',
+      );
+      var resolvedSnapshot = _Runfiles.resolve(
+        '_main/sdk/dart-sdk/bin/snapshots/dart2wasm_product.snapshot',
+      );
+      var resolvedPlatform = _Runfiles.resolve(
+        '_main/sdk/dart-sdk/lib/_internal/dart2wasm_platform.dill',
+      );
+      var resolvedWasmOpt = _Runfiles.resolve(
+        '_main/sdk/dart-sdk/bin/utils/wasm-opt$exeExt',
+      );
 
       if (!File(resolvedRuntime).existsSync()) {
-        resolvedRuntime = _Runfiles.resolve('_main/tools/sdks/dart-sdk/bin/dartaotruntime$exeExt');
-        resolvedSnapshot = _Runfiles.resolve('_main/tools/sdks/dart-sdk/bin/snapshots/dart2wasm_product.snapshot');
-        resolvedPlatform = _Runfiles.resolve('_main/tools/sdks/dart-sdk/lib/_internal/dart2wasm_platform.dill');
+        resolvedRuntime = _Runfiles.resolve(
+          '_main/tools/sdks/dart-sdk/bin/dartaotruntime$exeExt',
+        );
+        resolvedSnapshot = _Runfiles.resolve(
+          '_main/tools/sdks/dart-sdk/bin/snapshots/dart2wasm_product.snapshot',
+        );
+        resolvedPlatform = _Runfiles.resolve(
+          '_main/tools/sdks/dart-sdk/lib/_internal/dart2wasm_platform.dill',
+        );
+        resolvedWasmOpt = _Runfiles.resolve(
+          '_main/tools/sdks/dart-sdk/bin/utils/wasm-opt$exeExt',
+        );
+      }
+
+      // Check if we need to run the opt phase (if optimization is enabled and we have wasm-opt)
+      bool hasOptimization = false;
+      for (final arg in arguments) {
+        if (arg == '-O1' || arg == '-O2' || arg == '-O3' || arg == '-O4') {
+          hasOptimization = true;
+        }
+        if (arg.startsWith('--optimization-level=')) {
+          final level = arg.substring('--optimization-level='.length);
+          if (level != '0') {
+            hasOptimization = true;
+          }
+        }
+      }
+
+      final hasWasmOpt = File(resolvedWasmOpt).existsSync();
+      final isOptPhase = arguments.contains('--phases=opt');
+
+      if (hasOptimization && hasWasmOpt && !isOptPhase) {
+        final optArgs = <String>[];
+        String? wasmFile;
+        for (final arg in arguments) {
+          if (arg.endsWith('.dart')) {
+            continue;
+          }
+          if (arg.endsWith('.wasm')) {
+            wasmFile = arg;
+            continue;
+          }
+          optArgs.add(arg);
+        }
+        if (wasmFile != null) {
+          optArgs.add('--phases=opt');
+          optArgs.add(wasmFile);
+          optArgs.add(wasmFile);
+
+          final optCmd = {
+            'executable': 'pkg/dart2wasm/tool/compile_benchmark',
+            'arguments': optArgs,
+            if (cmd['working_directory'] != null)
+              'working_directory': cmd['working_directory'],
+            if (cmd['environment'] != null) 'environment': cmd['environment'],
+          };
+          commands.insert(i + 1, optCmd);
+        }
       }
 
       executable = resolvedRuntime;
       final newArgs = [
         resolvedSnapshot,
         '--platform=$resolvedPlatform',
+        if (hasWasmOpt) '--wasm-opt=$resolvedWasmOpt',
       ];
       for (final arg in arguments) {
         if (arg.startsWith('--extra-compiler-option=')) {
@@ -107,8 +172,12 @@ void main(List<String> args) async {
       if (Platform.isLinux) {
         osDir = 'linux/x64';
       } else if (Platform.isMacOS) {
-        final isArm64 = Platform.version.contains('arm64') || Platform.version.contains('aarch64');
-        final arm64D8 = _Runfiles.resolve('_main/third_party/d8/macos/arm64/d8');
+        final isArm64 =
+            Platform.version.contains('arm64') ||
+            Platform.version.contains('aarch64');
+        final arm64D8 = _Runfiles.resolve(
+          '_main/third_party/d8/macos/arm64/d8',
+        );
         if (isArm64 && File(arm64D8).existsSync()) {
           osDir = 'macos/arm64';
         } else {
@@ -120,23 +189,37 @@ void main(List<String> args) async {
         throw UnsupportedError('Unsupported OS: ${Platform.operatingSystem}');
       }
       executable = _Runfiles.resolve('_main/third_party/d8/$osDir/d8$exeExt');
-      final runWasmJs = _Runfiles.resolve('_main/pkg/dart2wasm/bin/run_wasm.js');
+      final runWasmJs = _Runfiles.resolve(
+        '_main/pkg/dart2wasm/bin/run_wasm.js',
+      );
 
       var shellOptions = <String>[];
       String? wasmFile;
+      var extraWasmFiles = <String>[];
 
       for (final arg in arguments) {
         if (arg == '--d8') continue;
         if (arg.startsWith('--shell-option=')) {
           shellOptions.add(arg.substring('--shell-option='.length));
         } else if (arg.endsWith('.wasm')) {
-          wasmFile = arg;
+          if (wasmFile == null) {
+            wasmFile = arg;
+          } else {
+            extraWasmFiles.add(arg);
+          }
         }
       }
 
       if (wasmFile != null) {
         final mjsFile = wasmFile.replaceAll(RegExp(r'\.wasm$'), '.mjs');
-        final newArgs = [...shellOptions, runWasmJs, '--', mjsFile, wasmFile];
+        final newArgs = [
+          ...shellOptions,
+          runWasmJs,
+          '--',
+          mjsFile,
+          wasmFile,
+          ...extraWasmFiles,
+        ];
         arguments = newArgs;
       }
     } else if (dartBinEnv != null) {
@@ -147,15 +230,19 @@ void main(List<String> args) async {
         executable = '$sdkBinDir/dartaotruntime';
       }
     } else if (testSrcdir != null &&
-               (executable == 'third_party/d8/linux/x64/d8' ||
-                executable.endsWith('/d8') ||
-                executable.endsWith('/d8.exe'))) {
+        (executable == 'third_party/d8/linux/x64/d8' ||
+            executable.endsWith('/d8') ||
+            executable.endsWith('/d8.exe'))) {
       String osDir;
       if (Platform.isLinux) {
         osDir = 'linux/x64';
       } else if (Platform.isMacOS) {
-        final isArm64 = Platform.version.contains('arm64') || Platform.version.contains('aarch64');
-        final arm64D8 = _Runfiles.resolve('_main/third_party/d8/macos/arm64/d8');
+        final isArm64 =
+            Platform.version.contains('arm64') ||
+            Platform.version.contains('aarch64');
+        final arm64D8 = _Runfiles.resolve(
+          '_main/third_party/d8/macos/arm64/d8',
+        );
         if (isArm64 && File(arm64D8).existsSync()) {
           osDir = 'macos/arm64';
         } else {
@@ -168,20 +255,24 @@ void main(List<String> args) async {
       }
       executable = _Runfiles.resolve('_main/third_party/d8/$osDir/d8$exeExt');
     } else if (testSrcdir != null &&
-               (executable == '/usr/bin/google-chrome' ||
-                executable.endsWith('/google-chrome') ||
-                executable.endsWith('/chrome.exe') ||
-                executable.contains('/Google Chrome.app/'))) {
-      final resolvedChrome = _Runfiles.resolve('_main/third_party/browsers/chrome/chrome$exeExt');
+        (executable == '/usr/bin/google-chrome' ||
+            executable.endsWith('/google-chrome') ||
+            executable.endsWith('/chrome.exe') ||
+            executable.contains('/Google Chrome.app/'))) {
+      final resolvedChrome = _Runfiles.resolve(
+        '_main/third_party/browsers/chrome/chrome$exeExt',
+      );
       if (File(resolvedChrome).existsSync()) {
         executable = resolvedChrome;
       }
     } else if (testSrcdir != null &&
-               (executable == '/usr/bin/firefox' ||
-                executable.endsWith('/firefox') ||
-                executable.endsWith('/firefox.exe') ||
-                executable.contains('/Firefox.app/'))) {
-      final resolvedFirefox = _Runfiles.resolve('_main/third_party/browsers/firefox/firefox$exeExt');
+        (executable == '/usr/bin/firefox' ||
+            executable.endsWith('/firefox') ||
+            executable.endsWith('/firefox.exe') ||
+            executable.contains('/Firefox.app/'))) {
+      final resolvedFirefox = _Runfiles.resolve(
+        '_main/third_party/browsers/firefox/firefox$exeExt',
+      );
       if (File(resolvedFirefox).existsSync()) {
         executable = resolvedFirefox;
       }
@@ -261,7 +352,23 @@ void main(List<String> args) async {
   }
 }
 
-String _rewriteSandboxPath(String path, String testTmpdir) {
+String _rewriteSandboxPath(String arg, String testTmpdir) {
+  if (arg.startsWith('-D') && arg.contains('=')) {
+    final index = arg.indexOf('=');
+    final name = arg.substring(0, index);
+    final value = arg.substring(index + 1);
+    return '$name=${_rewriteSandboxPathRaw(value, testTmpdir)}';
+  }
+  if (arg.startsWith('--') && arg.contains('=')) {
+    final index = arg.indexOf('=');
+    final name = arg.substring(0, index);
+    final value = arg.substring(index + 1);
+    return '$name=${_rewriteSandboxPathRaw(value, testTmpdir)}';
+  }
+  return _rewriteSandboxPathRaw(arg, testTmpdir);
+}
+
+String _rewriteSandboxPathRaw(String path, String testTmpdir) {
   if (!path.contains('/generated_compilations/')) {
     return path;
   }
@@ -304,7 +411,9 @@ abstract final class _Runfiles {
       }
     }
 
-    final runfilesDir = Platform.environment['RUNFILES_DIR'] ?? Platform.environment['TEST_SRCDIR'];
+    final runfilesDir =
+        Platform.environment['RUNFILES_DIR'] ??
+        Platform.environment['TEST_SRCDIR'];
     if (runfilesDir != null && runfilesDir.isNotEmpty) {
       return File('$runfilesDir/$normalizedPath').path;
     }
