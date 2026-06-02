@@ -5,10 +5,19 @@
 import 'dart:convert';
 import 'dart:io';
 
-/// A standalone zero-dependency runner that executes a single test configuration
-/// and maps process exit codes to expectations, returning exit code 0 on match
-/// and 1 on mismatch.
+/// A standalone zero-dependency runner that executes a list of test configurations,
+/// handles sharding, and maps process exit codes to expectations.
 void main(List<String> args) async {
+  // Advertise sharding support to Bazel if requested
+  final shardStatusFile = Platform.environment['TEST_SHARD_STATUS_FILE'];
+  if (shardStatusFile != null && shardStatusFile.isNotEmpty) {
+    try {
+      File(shardStatusFile).createSync(recursive: true);
+    } catch (e) {
+      print('Warning: Failed to touch TEST_SHARD_STATUS_FILE: $e');
+    }
+  }
+
   String? configPath;
   for (var i = 0; i < args.length; i++) {
     if (args[i].startsWith('--config-json=')) {
@@ -31,17 +40,95 @@ void main(List<String> args) async {
 
   final content = await file.readAsString();
   final dynamic decoded = jsonDecode(content);
-  Map<String, dynamic> testCase;
+  var testCases = <Map<String, dynamic>>[];
   if (decoded is List) {
-    if (decoded.isEmpty) {
-      print('Error: Empty test metadata list.');
-      exit(2);
-    }
-    testCase = decoded.first as Map<String, dynamic>;
+    testCases = List<Map<String, dynamic>>.from(
+      decoded.map((x) => x as Map<String, dynamic>),
+    );
   } else {
-    testCase = decoded as Map<String, dynamic>;
+    testCases = [decoded as Map<String, dynamic>];
   }
 
+  // 1. Support Bazel test filtering (--test_filter or TESTBRIDGE_TEST_ONLY)
+  final testFilter = Platform.environment['TESTBRIDGE_TEST_ONLY'];
+  if (testFilter != null && testFilter.isNotEmpty) {
+    final filterRegExp = RegExp(
+      testFilter.replaceAll('*', '.*'),
+      caseSensitive: false,
+    );
+    testCases = testCases.where((tc) {
+      final name = tc['name'] as String;
+      final filePath = tc['file_path'] as String;
+      return name.contains(filterRegExp) || filePath.contains(filterRegExp);
+    }).toList();
+  }
+
+  // 2. Support Bazel test sharding (TEST_TOTAL_SHARDS / TEST_SHARD_INDEX)
+  final totalShardsStr = Platform.environment['TEST_TOTAL_SHARDS'];
+  final shardIndexStr = Platform.environment['TEST_SHARD_INDEX'];
+  if (totalShardsStr != null && shardIndexStr != null) {
+    final totalShards = int.tryParse(totalShardsStr) ?? 1;
+    final shardIndex = int.tryParse(shardIndexStr) ?? 0;
+    final shardedTests = <Map<String, dynamic>>[];
+    for (var i = 0; i < testCases.length; i++) {
+      if (i % totalShards == shardIndex) {
+        shardedTests.add(testCases[i]);
+      }
+    }
+    testCases = shardedTests;
+  }
+
+  if (testCases.isEmpty) {
+    print(
+      'No tests to run (either empty metadata or filtered out by shard/test_filter).',
+    );
+    exit(0);
+  }
+
+  print('Executing ${testCases.length} test cases...');
+
+  final failedTests = <String>[];
+  for (var i = 0; i < testCases.length; i++) {
+    final tc = testCases[i];
+    final name = tc['name'] as String;
+    print('\n[${i + 1}/${testCases.length}] Starting: $name');
+    final success = await _runTestCase(tc);
+    if (!success) {
+      failedTests.add(name);
+    }
+  }
+
+  print(
+    '\n======================================================================',
+  );
+  print('TEST SUMMARY');
+  print(
+    '======================================================================',
+  );
+  print('Total tests:  ${testCases.length}');
+  print('Passed:       ${testCases.length - failedTests.length}');
+  print('Failed:       ${failedTests.length}');
+  if (failedTests.isNotEmpty) {
+    print(
+      '----------------------------------------------------------------------',
+    );
+    print('Failed tests list:');
+    for (final failName in failedTests) {
+      print('  - $failName');
+    }
+    print(
+      '======================================================================',
+    );
+    exit(1);
+  }
+  print(
+    '======================================================================',
+  );
+  exit(0);
+}
+
+/// Executes a single test case's command chain and returns whether it matched expectations.
+Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
   final testName = testCase['name'] as String;
   final filePath = testCase['file_path'] as String;
   final expectedOutcomes = List<String>.from(
@@ -444,12 +531,12 @@ void main(List<String> args) async {
 
   if (expectedOutcomes.contains(actualOutcome)) {
     print('RESULT: SUCCESS (Outcome matches expectations)');
-    exit(0);
+    return true;
   } else {
     print(
       'RESULT: FAILURE (Outcome $actualOutcome does NOT match expectations)',
     );
-    exit(1);
+    return false;
   }
 }
 
