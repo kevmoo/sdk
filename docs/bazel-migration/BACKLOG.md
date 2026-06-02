@@ -42,9 +42,9 @@ This is the single source of truth for the remaining migration work stream. It i
 ---
 
 ### 🎯 [TASK_002] Pre-Computed Package Import Mapping (Fine-Grained Opt-in)
-- **Status**: `[PENDING]`
+- **Status**: `[IN_PROGRESS]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
+- **Owner**: `[jetski]`
 - **Commit**: `[none]`
 - **Target Files**:
   - `tools/bazel/dart/generate_test_targets.dart`
