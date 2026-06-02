@@ -146,6 +146,14 @@ void main(List<String> args) async {
       '@//sdk:create_sdk',
     };
 
+    if (pkgDir.startsWith('pkg/')) {
+      final parts = pkgDir.split('/');
+      if (parts.length >= 2) {
+        final pkgName = parts[1];
+        dataDeps.add('@//:dart_pkg_$pkgName');
+      }
+    }
+
     if (compiler == 'fasta') {
       dataDeps.addAll({
         '@//:front_end_tool_files',

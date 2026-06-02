@@ -85,6 +85,7 @@ def _test_ext_impl(_ctx):
             "corelib",
             "standalone",
             "ffi",
+            "pkg",
         ],
         mode = "release",
         compiler = "dartk",

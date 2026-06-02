@@ -229,7 +229,7 @@
     },
     "//tools/bazel/dart:test_rules.bzl%dart_tests_extension": {
       "general": {
-        "bzlTransitiveDigest": "yEsWim7wXNHXaJgIKjv+H3qudEg13/RZcv9TpSwVBhA=",
+        "bzlTransitiveDigest": "cEMr4B0oo1aluM0fmo1WrGUoY9b9hFHyl9CZIvShV8g=",
         "usagesDigest": "4cbj3Mjb6MHThB17IyomR8ZTjCcOUe6Pw3pQLSUfb0g=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
@@ -240,7 +240,8 @@
                 "language",
                 "corelib",
                 "standalone",
-                "ffi"
+                "ffi",
+                "pkg"
               ],
               "mode": "release",
               "compiler": "dartk",
