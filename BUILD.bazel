@@ -109,6 +109,7 @@ exports_files([
     "third_party/requirejs/require.js",
     "pkg/dev_compiler/lib/js/ddc/ddc_module_loader.js",
     "pkg/dart2bytecode/bin/dart2bytecode.dart",
+    "pkg/front_end/tool/compile.dart",
 ])
 
 # SDK resource files copied verbatim into the assembled dart-sdk/ tree by //sdk
@@ -320,6 +321,15 @@ filegroup(
     name = "sysroot_files",
     srcs = glob(
         ["buildtools/sysroot/linux/**"],
+        allow_empty = True,
+    ),
+)
+
+# Expose CFE front-end tool scripts to testing.
+filegroup(
+    name = "front_end_tool_files",
+    srcs = glob(
+        ["pkg/front_end/tool/**/*.dart"],
         allow_empty = True,
     ),
 )

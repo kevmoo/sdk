@@ -25,6 +25,7 @@ dart_tests = use_extension("//tools/bazel/dart:test_rules.bzl", "dart_tests_exte
 use_repo(
     dart_tests,
     "dart_tests",
+    "dart_tests_cfe",
     "dart_tests_vm_debug",
     "dart_tests_vm_product",
     "dart_tests_wasm_asserts_d8",

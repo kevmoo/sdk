@@ -101,13 +101,6 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
         if test_case.get("shared_objects"):
             continue
 
-        # TODO(bazel-migration): Implement static error verification (matching CFE/Analyzer
-        # diagnostic errors in stdout/stderr against expected error annotations) inside
-        # pkg/test_runner/bin/run_single_test.dart so we can run static error tests.
-        # Currently, we skip them since we only verify execution success/failure.
-        if test_case.get("is_static_error_test"):
-            continue
-
         name = test_case["name"]
 
         # Skip tests that are structurally incompatible with Bazel sandbox or packaged SDK layouts.
@@ -122,7 +115,10 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
 
         # Write individual test config JSON to the external repository
         json_filename = target_name + ".json"
-        repository_ctx.file(json_filename, json.encode(test_case))
+        test_case_copy = dict(test_case)
+        test_case_copy["relative_file_path"] = relative_path
+        test_case_copy["compiler"] = repository_ctx.attr.compiler
+        repository_ctx.file(json_filename, json.encode(test_case_copy))
 
         # Resolve test file relative path to the workspace root
         file_path_abs = test_case["file_path"]
@@ -145,6 +141,15 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
             test_file_label,
             ":" + json_filename,
         ]
+
+        if repository_ctx.attr.compiler == "fasta":
+            data_deps += [
+                "@//:front_end_tool_files",
+                "@//:compile_platform_tool",
+                "@//:package_config_json",
+                "@//:dart_pkg_expect",
+                "@//runtime/vm:vm_platform",
+            ]
 
         if "socket_sigpipe_test" in relative_path or "/ffi/" in relative_path:
             data_deps.append("@//runtime/bin:libffi_test_functions.so")
@@ -311,6 +316,17 @@ def _test_ext_impl(_ctx):
         mode = "product",
         compiler = "dartk",
         runtime = "vm",
+    )
+
+    # 5. CFE (Fasta)
+    dynamic_test_repository(
+        name = "dart_tests_cfe",
+        suites = [
+            "language",
+        ],
+        mode = "release",
+        compiler = "fasta",
+        runtime = "none",
     )
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)

@@ -49,6 +49,48 @@ void main(List<String> args) async {
   );
   final commands = testCase['commands'] as List;
 
+  final isStaticErrorTest = testCase['is_static_error_test'] as bool? ?? false;
+  final relativeFilePath = testCase['relative_file_path'] as String?;
+  final compiler = testCase['compiler'] as String?;
+
+  List<ExpectedError> expectedErrors = [];
+  String? expectedSource;
+
+  if (isStaticErrorTest) {
+    if (relativeFilePath == null || compiler == null) {
+      print('Error: Missing relative_file_path or compiler for static error test.');
+      exit(2);
+    }
+
+    expectedSource = const {
+      'dartk': 'cfe',
+      'dart2wasm': 'web',
+      'dart2js': 'web',
+      'ddc': 'web',
+      'fasta': 'cfe',
+      'dart2analyzer': 'analyzer',
+      'spec_parser': 'spec_parser',
+    }[compiler];
+
+    if (expectedSource == null) {
+      print('Error: Unsupported compiler for static error test: $compiler');
+      exit(2);
+    }
+
+    final resolvedTestFile = _Runfiles.resolve('_main/$relativeFilePath');
+    final file = File(resolvedTestFile);
+    if (!file.existsSync()) {
+      print('Error: Test file not found in runfiles: $resolvedTestFile');
+      exit(2);
+    }
+
+    final source = file.readAsStringSync();
+    final allExpected = parseExpectations(source);
+    expectedErrors = allExpected.where((e) => e.source == expectedSource).toList();
+    
+    print('Parsed ${expectedErrors.length} expected errors for $expectedSource');
+  }
+
   print(
     '======================================================================',
   );
@@ -72,6 +114,26 @@ void main(List<String> args) async {
 
     var executable = cmd['executable'] as String;
     var arguments = List<String>.from(cmd['arguments'] as List);
+
+    if (compiler == 'fasta') {
+      final compileScript = _Runfiles.resolve('_main/pkg/front_end/tool/compile.dart');
+      arguments.insert(0, compileScript);
+    }
+
+    arguments = arguments.map((arg) {
+      if (arg.startsWith('--packages=')) {
+        final resolvedPkg = _Runfiles.resolve('_main/.dart_tool/package_config.json');
+        return '--packages=$resolvedPkg';
+      }
+      return arg;
+    }).toList();
+
+    for (var j = 0; j < arguments.length; j++) {
+      if (arguments[j] == '--platform' && j + 1 < arguments.length) {
+        final resolvedPlatform = _Runfiles.resolve('_main/runtime/vm/vm_platform.dill');
+        arguments[j + 1] = resolvedPlatform;
+      }
+    }
     final dartBinEnv = Platform.environment['DART_BIN'];
     final testSrcdir = Platform.environment['TEST_SRCDIR'];
     final exeExt = Platform.isWindows ? '.exe' : '';
@@ -316,24 +378,63 @@ void main(List<String> args) async {
       environment: environment,
     );
 
-    final stdoutFuture = stdout.addStream(process.stdout);
-    final stderrFuture = stderr.addStream(process.stderr);
+    final stdoutBuffer = StringBuffer();
+    final stderrBuffer = StringBuffer();
+
+    final stdoutFuture = process.stdout.transform(utf8.decoder).forEach((data) {
+      stdoutBuffer.write(data);
+      stdout.write(data);
+    });
+
+    final stderrFuture = process.stderr.transform(utf8.decoder).forEach((data) {
+      stderrBuffer.write(data);
+      stderr.write(data);
+    });
+
     await Future.wait([stdoutFuture, stderrFuture]);
 
     final exitCode = await process.exitCode;
     print('[Command ${i + 1} exited with code $exitCode]');
 
-    if (exitCode != 0) {
-      // Map non-zero exit codes to test Expectations
-      if (exitCode == 254) {
-        actualOutcome = 'CompileTimeError';
-      } else if (exitCode < 0 || exitCode == 253 || exitCode == 252) {
-        actualOutcome = 'Crash';
-      } else {
-        actualOutcome = 'RuntimeError';
+    if (isStaticErrorTest) {
+      final combinedOutput = stdoutBuffer.toString() + stderrBuffer.toString();
+      final actualErrors = parseCompilerErrors(combinedOutput, expectedSource!, relativeFilePath!);
+      
+      print('\n--- Static Error Verification ---');
+      print('Expected errors: ${expectedErrors.length}');
+      for (var e in expectedErrors) {
+        print('  - Expected at line ${e.line}, col ${e.column}: ${e.message}');
       }
-      print('\nCommand failed. Resolved actual test outcome: $actualOutcome');
-      break;
+      print('Actual errors parsed: ${actualErrors.length}');
+      for (var e in actualErrors) {
+        print('  - Actual at line ${e.line}, col ${e.column}: ${e.message}');
+      }
+
+      final validation = validateErrors(expectedErrors, actualErrors);
+      if (validation == null) {
+        actualOutcome = 'Pass';
+        print('RESULT: Static error verification succeeded (all expectations met).');
+        if (exitCode != 0) {
+          break; // Break command loop as this was an expected failure
+        }
+      } else {
+        actualOutcome = 'CompileTimeError';
+        print('RESULT: Static error verification failed:\n$validation');
+        break; // Fail and break command loop
+      }
+    } else {
+      if (exitCode != 0) {
+        // Map non-zero exit codes to test Expectations
+        if (exitCode == 254) {
+          actualOutcome = 'CompileTimeError';
+        } else if (exitCode < 0 || exitCode == 253 || exitCode == 252) {
+          actualOutcome = 'Crash';
+        } else {
+          actualOutcome = 'RuntimeError';
+        }
+        print('\nCommand failed. Resolved actual test outcome: $actualOutcome');
+        break;
+      }
     }
   }
 
@@ -438,4 +539,193 @@ abstract final class _Runfiles {
     }
     return map;
   }
+}
+
+final _cfeErrorRegexp = RegExp(
+  r"^(?:([^:\n\r]+):(\d+):(\d+): )?(Error|Warning): (.*)$",
+  multiLine: true,
+);
+
+final _webErrorRegexp = RegExp(
+  r"^([^:\n\r]+):(\d+):(\d+): (Error|Warning): (.*)$",
+  multiLine: true,
+);
+
+class ExpectedError {
+  final String source;
+  final int line;
+  final int column;
+  final String message;
+
+  ExpectedError(this.source, this.line, this.column, this.message);
+}
+
+class ActualError {
+  final String source;
+  final int line;
+  final int column;
+  final String message;
+
+  ActualError(this.source, this.line, this.column, this.message);
+}
+
+List<ExpectedError> parseExpectations(String sourceContent) {
+  sourceContent = sourceContent.replaceAll('\r', '');
+  final lines = sourceContent.split('\n');
+  var expectedErrors = <ExpectedError>[];
+  
+  int lastRealLine = -1;
+  
+  final caretRegex = RegExp(r"^\s*//\s*(\^+)\s*$");
+  final explicitRegex = RegExp(
+    r"^\s*//\s*\[\s*error (?:line\s+(\d+)\s*,)?\s*column\s+(\d+)\s*(?:,\s*"
+    r"length\s+(\d+)\s*)?\]\s*$",
+  );
+  final messageRegex = RegExp(r"^\s*// \[([^\]]+)\]\s*(.*)");
+
+  for (var i = 0; i < lines.length; i++) {
+    final lineText = lines[i];
+    
+    // Check if it's a caret marker
+    if (caretRegex.firstMatch(lineText) case var match?) {
+      if (lastRealLine == -1) continue;
+      final caretStr = match[1]!;
+      final column = lineText.indexOf('^') + 1;
+      
+      // Peek next lines for messages
+      var j = i + 1;
+      while (j < lines.length) {
+        final nextLine = lines[j].replaceAll('\r', '');
+        if (messageRegex.firstMatch(nextLine) case var msgMatch?) {
+          final source = msgMatch[1]!.split(' ')[0];
+          final message = msgMatch[2]!.trim();
+          expectedErrors.add(ExpectedError(source, lastRealLine + 1, column, message));
+          j++;
+        } else {
+          break;
+        }
+      }
+      i = j - 1;
+      continue;
+    }
+    
+    // Check if it's an explicit marker
+    if (explicitRegex.firstMatch(lineText) case var match?) {
+      final lineCapture = match[1];
+      final column = int.parse(match[2]!);
+      final targetLine = lineCapture != null ? int.parse(lineCapture) : lastRealLine + 1;
+      
+      // Peek next lines for messages
+      var j = i + 1;
+      while (j < lines.length) {
+        final nextLine = lines[j].replaceAll('\r', '');
+        if (messageRegex.firstMatch(nextLine) case var msgMatch?) {
+          final source = msgMatch[1]!.split(' ')[0];
+          final message = msgMatch[2]!.trim();
+          expectedErrors.add(ExpectedError(source, targetLine, column, message));
+          j++;
+        } else {
+          break;
+        }
+      }
+      i = j - 1;
+      continue;
+    }
+    
+    // If it's a regular comment line, don't update lastRealLine
+    if (lineText.trim().startsWith('//')) {
+      continue;
+    }
+    
+    // It's a real code line
+    lastRealLine = i;
+  }
+  
+  return expectedErrors;
+}
+
+List<ActualError> parseCompilerErrors(String output, String expectedSource, String testPath) {
+  output = output.replaceAll('\r', '');
+  var errors = <ActualError>[];
+  final regExp = expectedSource == 'web' ? _webErrorRegexp : _cfeErrorRegexp;
+  
+  ActualError? previousError;
+  for (var match in regExp.allMatches(output)) {
+    var path = match[1];
+    var line = match[2] != null ? int.parse(match[2]!) : null;
+    var column = match[3] != null ? int.parse(match[3]!) : null;
+    var severity = match[4];
+    var message = match[5];
+
+    if (path == null) {
+      if (severity == 'Context' && previousError != null) {
+        path = previousError.source;
+        line = previousError.line;
+        column = previousError.column;
+      } else {
+        continue;
+      }
+    }
+
+    // Skip errors in other files
+    if (path != null && !path.endsWith(testPath)) {
+      continue;
+    }
+
+    var error = ActualError(
+      severity == "Context" ? "context" : expectedSource,
+      line ?? 0,
+      column ?? 0,
+      message!.trim(),
+    );
+
+    errors.add(error);
+    previousError = error;
+  }
+  return errors;
+}
+
+String? validateErrors(List<ExpectedError> expected, List<ActualError> actual) {
+  var unmatchedExpected = <ExpectedError>[...expected];
+  var unmatchedActual = <ActualError>[...actual];
+  
+  var buffer = StringBuffer();
+  
+  for (final exp in expected) {
+    ActualError? match;
+    for (final act in unmatchedActual) {
+      if (act.line == exp.line) {
+        if (act.message.contains(exp.message) || exp.message.contains(act.message)) {
+          if ((act.column - exp.column).abs() <= 2) {
+            match = act;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (match != null) {
+      unmatchedExpected.remove(exp);
+      unmatchedActual.remove(match);
+    }
+  }
+  
+  if (unmatchedExpected.isEmpty && unmatchedActual.isEmpty) {
+    return null;
+  }
+  
+  if (unmatchedExpected.isNotEmpty) {
+    buffer.writeln('Missing expected errors:');
+    for (final exp in unmatchedExpected) {
+      buffer.writeln('  - Line ${exp.line}, Col ${exp.column}: ${exp.message}');
+    }
+  }
+  if (unmatchedActual.isNotEmpty) {
+    buffer.writeln('Unexpected actual errors (or mismatched):');
+    for (final act in unmatchedActual) {
+      buffer.writeln('  - Line ${act.line}, Col ${act.column}: ${act.message}');
+    }
+  }
+  
+  return buffer.toString();
 }
