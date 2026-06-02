@@ -247,4 +247,51 @@ This is the single source of truth for the remaining migration work stream. It i
   - [x] A dedicated, repo-local skill file `.agents/skills/merge_main_to_bazel.md` is authored to document the merge sequence, conflict resolution, restore workflow, and pre-commit formatting.
   - [x] The upstream branch `origin/main` is successfully merged into `bazel` via a merge commit and verified buildable.
 
+---
+
+### 🎯 [TASK_012] Coarse-Grained Test Suite Clustering
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_010]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/generate_test_targets.dart`
+- **Description**:
+  Optimize Starlark loading times and minimize filesystem overhead by grouping core test suites under unified package directories. For coarse-grained suites (`corelib`, `standalone`, `ffi`, `language`), replace the deeply nested sub-package folder generation (e.g., creating `corelib/list/BUILD.bazel`) with a single package-level `BUILD.bazel` in the suite root (e.g., `@dart_tests//corelib`). Declare all tests belonging to that suite inside this unified package, utilizing explicit target labels to preserve fine-grained file-level cache invalidation boundaries.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel corelib/list_test
+  ```
+- **Success Criteria**:
+  - [ ] `generate_test_targets.dart` groups core suites into 4 unified package directories (`corelib`, `standalone`, `ffi`, `language`).
+  - [ ] Generated `BUILD.bazel` files are reduced by 700+ packages.
+  - [ ] Modifying a single `.dart` test file still invalidates **only** its specific `sh_test` target.
+  - [ ] Sandbox JIT execution is completely green.
+
+---
+
+### 🎯 [TASK_013] Unified Test Repository with Configuration Subtargets
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_012]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/test_rules.bzl`
+  - `MODULE.bazel`
+  - `tools/bazel/dart/generate_test_targets.dart`
+  - `tools/test.py`
+- **Description**:
+  Consolidate the 7 redundant external Starlark test repositories into a single unified external repository `@dart_tests` to eliminate sequential Bazel repository fetch runs. Refactor target generation to define configuration subtargets inside the package `BUILD` files using configuration suffixes (e.g., `_vm_debug`, `_wasm_d8`) rather than distinct repository namespaces. Upgrade `generate_test_targets.dart` to run the 7 dry-run sweeps concurrently via Dart's `Future.wait` to complete target discovery under 2 seconds.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel -n dart2wasm-linux-d8 corelib/list_test -v
+  ```
+- **Success Criteria**:
+  - [ ] `MODULE.bazel` defines exactly **one** dynamic test repository (`@dart_tests`).
+  - [ ] `generate_test_targets.dart` parallelizes dry-run sweeps and completes discovery in <3 seconds.
+  - [ ] `test_rules.bzl` defines configuration-suffixed test targets inside the packages.
+  - [ ] `tools/test.py` routes different configuration runs correctly to their corresponding suffixed targets.
+  - [ ] All configurations compile and execute green inside the sandboxed repository.
+
+
 

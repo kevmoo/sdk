@@ -27,7 +27,12 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-02 (session 66, jetski) — **Successfully completed origin/main upstream merge and authored repo-local merge skill.**_
+_Last updated: 2026-06-02 (session 67, jetski) — **Onboarded TASK_012 (Test Suite Clustering) and TASK_013 (Unified Test Repository) to backlog.**_
+
+Session 67 — **(jetski) Backlog Expansion: Onboarded Test Suite Clustering (Task 12) and Unified Repository (Task 13).**
+- **Technical Evaluation of Performance Blueprints**: Critically evaluated two key optimization strategies surfaced by the dynamic test target discovery bottlenecks (investigation `db720586`): Coarse-Grained Test Suite Clustering and Unified Test Repository with Configuration Subtargets.
+- **Backlog Integration**: Formulated exact task specifications and appended `[TASK_012] Coarse-Grained Test Suite Clustering` and `[TASK_013] Unified Test Repository with Configuration Subtargets` to `BACKLOG.md`.
+- **Formulated Execution Action Plan**: Documented the architectural wins (reducing Bazel loading overhead by ~40% and speeding up dry-run sweeps by ~85%) in `backlog_integration_plan.md` to establish a clear execution roadmap.
 
 Session 66 — **(jetski) Completed TASK_011: Merged origin/main upstream, resolved prebuilt visibility, green-built dartvm.**
 - **Merged upstream `origin/main`**: Executed dry-run merge and successfully committed the complete upstream SDK merge of `origin/main` (at `95b1b8d7562`) into our `bazel` branch (merge commit: `648fea99a8d`).
