@@ -27,7 +27,13 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-02 (session 63, jetski) — **VM platform dill copies completed, toolchain realpath issues resolved, and test generator label resolution fixed (100% green build + tests).**_
+_Last updated: 2026-06-02 (session 64, jetski) — **TASK_001 (Dynamic Package Dependency Mapping) completed and verified green via JIT VM tests under Bazel sandbox.**_
+
+Session 64 — **(jetski) Completed Dynamic Package Dependency Mapping (Task 1), green-verified package JIT testing.**
+- **Implemented Dynamic Package Dependency Mapping**: Surgically upgraded `tools/bazel/dart/generate_test_targets.dart` to check if test packages belong to `pkg/` and dynamically inject their corresponding `@//:dart_pkg_<pkgName>` target dependencies into the Bazel test `data` configurations.
+- **Unblocked Hermetic Sandbox Imports**: Enabled complete package source closures and library files to be staged cleanly inside the Bazel test execution sandboxes, resolving compile-time file-reading failures for JIT VM test runs importing internal package libraries.
+- **Added dynamic `"pkg"` suite**: Expanded default VM test configurations in `tools/bazel/dart/test_rules.bzl` and registered `"pkg"` in dynamic repository suites, making all 54 core package test targets fully accessible via Bazel.
+- **Verified Green JIT Execution**: Successfully verified that executing package JIT VM tests under Bazel (`tools/test.py --bazel pkg/smith`) resolves Bzlmod dependencies, stages all necessary libraries, and passes 100% green inside the sandbox in 1.8s!
 
 Session 63 — **(jetski) Completed VM platform dill copies, resolved toolchain realpath issues, and fixed test generator label resolution.**
 - **Implemented VM Platform Dill Copy Rules**: Replaced empty `cc_library` stubs in `sdk/BUILD.bazel` with actual `genrule` targets that copy the real platform dills (`vm_platform.dill`, `vm_platform_strong.dill`, `vm_platform_product.dill`) to their final packaged locations under `dart-sdk/lib/_internal/`.
