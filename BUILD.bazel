@@ -33,6 +33,12 @@ exports_files(glob(
         "tools/gn.py",
     ],
     allow_empty = True,
+    exclude = [
+        "out/**",
+        "xcodebuild/**",
+        ".dart_tool/**",
+        "**/.git/**",
+    ],
 ))
 
 # The resolved package map, materialized for snapshot kernel-compile genrules via
