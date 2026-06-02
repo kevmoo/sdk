@@ -225,7 +225,7 @@ Future<void> analyzeUris(
     if (await Directory.fromUri(uri).exists()) {
       await for (FileSystemEntity entity in Directory.fromUri(
         uri,
-      ).list(recursive: true, followLinks: false)) {
+      ).list(recursive: true, followLinks: true)) {
         if (entity is File && entity.path.endsWith(".dart")) {
           filesToAnalyze.add(toFilePath(entity.uri));
         }

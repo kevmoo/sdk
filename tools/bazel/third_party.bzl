@@ -21,7 +21,7 @@ src = sys.argv[1]
 dest = sys.argv[2]
 prefix = sys.argv[3]
 
-for root, dirs, files in os.walk(src):
+for root, dirs, files in os.walk(src, followlinks=True):
     rel = os.path.relpath(root, src)
     if rel == ".":
         td = os.path.join(dest, prefix) if prefix else dest

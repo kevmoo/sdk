@@ -29,6 +29,8 @@ dependencies:
 
 # Use 'any' constraints here; we get our versions from the DEPS file.
 dev_dependencies:
+  analyzer: any
+  analyzer_cli: any
   args: any
   dart_style: any
   http: any

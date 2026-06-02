@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 1/8 Tasks (12.5%)
+- **Overall Progress**: 2/10 Tasks (20.0%)
 
 ---
 
@@ -42,23 +42,23 @@ This is the single source of truth for the remaining migration work stream. It i
 ---
 
 ### 🎯 [TASK_002] Pre-Computed Package Import Mapping (Fine-Grained Opt-in)
-- **Status**: `[IN_PROGRESS]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
 - **Owner**: `[jetski]`
-- **Commit**: `[none]`
+- **Commit**: `[dynamic]`
 - **Target Files**:
   - `tools/bazel/dart/generate_test_targets.dart`
-  - `tools/bazel/dart/gen_test_imports.dart` (to be created)
+  - `tools/bazel/dart/gen_test_imports.dart`
 - **Description**:
   Provide a high-performance developer tool to generate a static dependency map `test_imports.json` for huge packages like `pkg/analyzer`. Upgraded `generate_test_targets.dart` must consume this pre-computed JSON file to output individual fine-grained test targets with surgically precise file-level `data` dependencies, unlocking ultra-granular Bazel caching within packages without scanning overhead at Bazel runtime.
 - **Verification Command**:
   ```bash
-  python3 tools/test.py --bazel pkg/path/test/some_test.dart
+  python3 tools/test.py --bazel pkg/analyzer/test/dart/analysis/analysis_context_test.dart
   ```
 - **Success Criteria**:
-  - [ ] A high-performance CLI tool `gen_test_imports.dart` is created to recursively parse imports and output `test_imports.json`.
-  - [ ] `generate_test_targets.dart` detects `test_imports.json` in package directories and dynamically outputs individual `sh_test` targets for each test case.
-  - [ ] Modifying a single library file under `pkg/analyzer/lib/` only invalidates the specific, transitively importing JIT VM test targets inside the Bazel sandbox.
+  - [x] A high-performance CLI tool `gen_test_imports.dart` is created to recursively parse imports and output `test_imports.json`.
+  - [x] `generate_test_targets.dart` detects `test_imports.json` in package directories and dynamically outputs individual `sh_test` targets for each test case.
+  - [x] Modifying a single library file under `pkg/analyzer/lib/` only invalidates the specific, transitively importing JIT VM test targets inside the Bazel sandbox.
 
 ---
 
@@ -185,3 +185,45 @@ This is the single source of truth for the remaining migration work stream. It i
 - **Success Criteria**:
   - [ ] `dart2bytecode` snapshot is built and staged successfully under `dart-sdk/bin/snapshots/`.
   - [ ] DevTools builds hermetically from source when required.
+
+---
+
+### 🎯 [TASK_009] Relocate and Migrate Worktree Symlinker to Dart
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/setup_worktree_links.sh`
+  - `tools/setup_worktree_links.dart`
+- **Description**:
+  Relocate the git worktree helper script `setup_worktree_links.sh` from `tools/bazel/dart/` to the root of the `tools/` directory to make it a prominent, standard tool, and migrate its bash scripting logic to a robust, cross-platform Dart CLI tool (`tools/setup_worktree_links.dart`). The new Dart tool should recursively resolve the parent git checkout path using git worktree metadata, verify directories, and safely establish symlinks for untracked gclient dependencies (`third_party/`, `buildtools/`, prebuilt SDKs) across all supported platforms (Linux, macOS, and Windows).
+- **Verification Command**:
+  ```bash
+  dart tools/setup_worktree_links.dart
+  ```
+- **Success Criteria**:
+  - [ ] The tool is relocated and migrated to a standalone Dart CLI program at `tools/setup_worktree_links.dart`.
+  - [ ] It successfully resolves parent git checkouts and establishes symlinks under secondary git worktrees.
+  - [ ] It handles file existences, skips tracked configurations safely, and works cleanly on Linux, macOS, and Windows.
+
+---
+
+### 🎯 [TASK_010] Non-Flattened Direct Import Mapping for Test Caching
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/generate_test_targets.dart`
+  - `tools/bazel/dart/gen_test_imports.dart`
+- **Description**:
+  Refactor `test_imports.json` from storing fully-flattened transitive dependency lists to storing a minimal, non-flattened graph of **direct local imports/exports** for each file in the package (tests and libs). Upgrade `generate_test_targets.dart` to load this direct import graph and dynamically compute the transitive closure for each test using a memoized, cycle-safe Depth-First Search (DFS) traversal at generation time. This shrinks the JSON database sizes by ~95% (from 3.4MB to <150KB) and keeps Git history clean by ensuring changes to library imports only touch a single line in the JSON file.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel pkg/analyzer/test/dart/analysis/analysis_context_test.dart
+  ```
+- **Success Criteria**:
+  - [ ] `gen_test_imports.dart` is updated to only write out direct local imports for each file in `test_imports.json`, resulting in a vastly smaller JSON size.
+  - [ ] `generate_test_targets.dart` successfully implements a cycle-safe DFS with memoization to resolve closures in under 50ms.
+  - [ ] Running tests via `tools/test.py --bazel` yields identical dynamic sandboxed targets and passes completely green.

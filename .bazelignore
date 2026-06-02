@@ -1,0 +1,4 @@
+# Ignore the GN/Ninja build output directory to prevent Bazel from scanning
+# generated build artifacts, which causes severe performance degradation
+# and potential package conflicts during analysis.
+out

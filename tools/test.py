@@ -152,20 +152,42 @@ def TestWithBazel(args):
             pkg_dir = f"{parts[0]}/misc"
 
         target = f"@{repo_name}//{pkg_dir}:tests"
-        if target in all_targets:
+        rel_path = name[len(pkg_dir)+1:] if len(name) > len(pkg_dir) else ""
+        fine_grained_target_name = rel_path.replace('/', '_')
+        if fine_grained_target_name.endswith('.dart'):
+            fine_grained_target_name = fine_grained_target_name[:-5]
+        fine_grained_target = f"@{repo_name}//{pkg_dir}:{fine_grained_target_name}" if fine_grained_target_name else ""
+
+        if fine_grained_target and fine_grained_target in all_targets:
+            if fine_grained_target not in bazel_targets:
+                bazel_targets.append(fine_grained_target)
+        elif target in all_targets:
             if target not in bazel_targets:
                 bazel_targets.append(target)
             filter_parts.append(name)
         else:
-            # Support broad directory suite selectors (e.g. 'web', 'language')
-            prefix1 = f"@{repo_name}//{name}/"
-            prefix2 = f"@{repo_name}//{name}:"
-            matches = [t for t in all_targets if t.startswith(prefix1) or t.startswith(prefix2)]
-            if matches:
-                for m in matches:
-                    if m not in bazel_targets:
-                        bazel_targets.append(m)
-                filter_parts.append(name)
+            # Support deep directory selectors in fine-grained packages
+            matched_fine_grained = False
+            if len(name) > len(pkg_dir):
+                target_prefix = rel_path.replace('/', '_')
+                pkg_prefix = f"@{repo_name}//{pkg_dir}:"
+                matches = [t for t in all_targets if t.startswith(pkg_prefix) and t.split(':', 1)[1].startswith(target_prefix)]
+                if matches:
+                    for m in matches:
+                        if m not in bazel_targets:
+                            bazel_targets.append(m)
+                    matched_fine_grained = True
+
+            if not matched_fine_grained:
+                # Support broad directory suite selectors (e.g. 'web', 'language')
+                prefix1 = f"@{repo_name}//{name}/"
+                prefix2 = f"@{repo_name}//{name}:"
+                matches = [t for t in all_targets if t.startswith(prefix1) or t.startswith(prefix2)]
+                if matches:
+                    for m in matches:
+                        if m not in bazel_targets:
+                            bazel_targets.append(m)
+                    filter_parts.append(name)
             else:
                 print(f"Warning: No matching Bazel test targets found for selector '{selector}' under configuration '{repo_name}'")
 

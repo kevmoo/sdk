@@ -19,9 +19,12 @@ void main(List<String> args) async {
   }
 
   String? configPath;
+  String? runOnly;
   for (var i = 0; i < args.length; i++) {
     if (args[i].startsWith('--config-json=')) {
       configPath = args[i].substring('--config-json='.length);
+    } else if (args[i].startsWith('--run-only=')) {
+      runOnly = args[i].substring('--run-only='.length);
     }
   }
 
@@ -47,6 +50,17 @@ void main(List<String> args) async {
     );
   } else {
     testCases = [decoded as Map<String, dynamic>];
+  }
+
+  if (runOnly != null) {
+    final runOnlyNonNull = runOnly;
+    testCases = testCases.where((tc) {
+      final filePath =
+          tc['relative_file_path'] as String? ?? tc['file_path'] as String;
+      return filePath == runOnlyNonNull ||
+          filePath.endsWith(runOnlyNonNull) ||
+          runOnlyNonNull.endsWith(filePath);
+    }).toList();
   }
 
   // 1. Support Bazel test filtering (--test_filter or TESTBRIDGE_TEST_ONLY)

@@ -39,19 +39,33 @@ void main(List<String> args) async {
       runtime == null) {
     print(
         'Usage: generate_test_targets.dart --workspace-dir=<dir> --output-dir=<dir> --mode=<mode> --compiler=<compiler> --runtime=<runtime>');
-    exit(2);
+    exitCode = 2;
+    return;
   }
+
+  final debugLog = File('$outputDir/debug.log');
+  final debugBuf = StringBuffer();
+  debugBuf.writeln('=== Debug Log ===');
+  debugBuf.writeln('Workspace Dir: $workspaceDir');
+  debugBuf.writeln('Output Dir: $outputDir');
+  debugBuf.writeln('Compiler: $compiler');
+  debugBuf.writeln('Runtime: $runtime');
 
   final dartPath = '$workspaceDir/tools/sdks/dart-sdk/bin/dart';
   final exporterPath = '$workspaceDir/pkg/test_runner/bin/test_runner.dart';
 
   if (!File(dartPath).existsSync()) {
-    print('Error: Could not locate prebuilt Dart SDK at: $dartPath');
-    exit(2);
+    debugBuf.writeln('Error: Could not locate prebuilt Dart SDK at: $dartPath');
+    debugLog.writeAsStringSync(debugBuf.toString());
+    exitCode = 2;
+    return;
   }
   if (!File(exporterPath).existsSync()) {
-    print('Error: Could not locate test runner script at: $exporterPath');
-    exit(2);
+    debugBuf.writeln(
+        'Error: Could not locate test runner script at: $exporterPath');
+    debugLog.writeAsStringSync(debugBuf.toString());
+    exitCode = 2;
+    return;
   }
 
   // 1. Write root BUILD.bazel to outputDir
@@ -87,14 +101,20 @@ void main(List<String> args) async {
 
   final res = await Process.run(dartPath, processArgs);
   if (res.exitCode != 0) {
-    print('Error: Failed to dump test metadata:\n${res.stderr}\n${res.stdout}');
-    exit(2);
+    debugBuf.writeln(
+        'Error: Failed to dump test metadata:\n${res.stderr}\n${res.stdout}');
+    debugLog.writeAsStringSync(debugBuf.toString());
+    exitCode = 2;
+    return;
   }
 
   final jsonFile = File(jsonOutputPath);
   if (!jsonFile.existsSync()) {
-    print('Error: Test metadata file not created at: $jsonOutputPath');
-    exit(2);
+    debugBuf
+        .writeln('Error: Test metadata file not created at: $jsonOutputPath');
+    debugLog.writeAsStringSync(debugBuf.toString());
+    exitCode = 2;
+    return;
   }
 
   // 3. Parse test cases (extremely fast in Dart!)
@@ -128,8 +148,19 @@ void main(List<String> args) async {
     // Ensure package directory exists
     Directory('$outputDir/$pkgDir').createSync(recursive: true);
 
-    // Gather distinct data dependencies
-    final dataDeps = {
+    final testImportsFile = File('$workspaceDir/$pkgDir/test_imports.json');
+    final hasFineGrained = testImportsFile.existsSync();
+
+    Map<String, dynamic>? testImportsMap;
+    if (hasFineGrained) {
+      testImportsMap = jsonDecode(testImportsFile.readAsStringSync())
+          as Map<String, dynamic>;
+    }
+
+    final filegroups = <String, Set<String>>{};
+
+    // Baseline dependencies (common to all tests in this package)
+    final baselineDeps = {
       ':tests_metadata.json',
       '@//:dart_pkg_async_helper',
       '@//:dart_pkg_dart2js_tools',
@@ -146,23 +177,111 @@ void main(List<String> args) async {
       '@//sdk:create_sdk',
     };
 
-    if (pkgDir.startsWith('pkg/')) {
-      final parts = pkgDir.split('/');
-      if (parts.length >= 2) {
-        final pkgName = parts[1];
-        dataDeps.add('@//:dart_pkg_$pkgName');
+    // Find non-Dart package resources and bundle them into a shared filegroup
+    if (hasFineGrained) {
+      final resources = _findPackageResources(workspaceDir, pkgDir);
+      if (resources.isNotEmpty) {
+        final fgName = 'fg_package_resources';
+        for (final res in resources) {
+          filegroups
+              .putIfAbsent(fgName, () => {})
+              .add(_resolveWorkspaceLabel(workspaceDir, res));
+        }
+        baselineDeps.add(':$fgName');
+      }
+    }
+
+    // Map known pubspec package dependencies to their tool entry point files if they exist in root exports
+    final toolEntryPoints = {
+      'analyzer_cli': '@//:pkg/analyzer_cli/bin/analyzer.dart',
+      'front_end': '@//:pkg/front_end/tool/compile.dart',
+      'analysis_server': '@//:pkg/analysis_server/bin/server.dart',
+      'frontend_server':
+          '@//:pkg/frontend_server/bin/frontend_server_starter.dart',
+      'dartdev': '@//:pkg/dartdev/bin/dartdev.dart',
+      'dds': '@//:pkg/dds/bin/dds.dart',
+    };
+
+    // Transitive package closures required by specific tool packages in the sandbox
+    final toolExtraPackages = {
+      'analyzer_cli': {
+        '@//:dart_pkg_analyzer',
+        '@//:dart_pkg_convert',
+        '@//:dart_pkg_glob',
+        '@//:dart_pkg_pub_semver',
+        '@//:dart_pkg_source_span',
+        '@//:dart_pkg_watcher',
+        '@//:dart_pkg_yaml',
+      },
+      'analyzer': {
+        '@//:dart_pkg_convert',
+        '@//:dart_pkg_glob',
+        '@//:dart_pkg_pub_semver',
+        '@//:dart_pkg_source_span',
+        '@//:dart_pkg_watcher',
+        '@//:dart_pkg_yaml',
+      },
+    };
+
+    // Dynamically add pubspec dependencies to baselineDeps
+    final pubspecPath = '$workspaceDir/$pkgDir/pubspec.yaml';
+    debugBuf.writeln('Processing package: $pkgDir');
+    debugBuf.writeln('  Pubspec Path: $pubspecPath');
+
+    final pubspecDeps = _parsePubspecDependencies(pubspecPath, debugBuf);
+    debugBuf.writeln('  Parsed Deps: $pubspecDeps');
+
+    final parts = pkgDir.split('/');
+    final pkgName = parts.length >= 2 ? parts[1] : null;
+
+    for (final dep in pubspecDeps) {
+      if (dep == pkgName) continue;
+      baselineDeps.add('@//:dart_pkg_$dep');
+
+      final entryPoint = toolEntryPoints[dep];
+      if (entryPoint != null) {
+        baselineDeps.add(entryPoint);
+      }
+
+      final extraPkgs = toolExtraPackages[dep];
+      if (extraPkgs != null) {
+        baselineDeps.addAll(extraPkgs);
       }
     }
 
     if (compiler == 'fasta') {
-      dataDeps.addAll({
+      baselineDeps.addAll({
         '@//:front_end_tool_files',
         '@//:compile_platform_tool',
         '@//runtime/vm:vm_platform',
       });
     }
 
+    if (runtime == 'd8' || compiler == 'dart2wasm') {
+      baselineDeps.addAll({
+        '@//third_party/d8:d8_files',
+        '@//:pkg/dart2wasm/bin/run_wasm.js',
+      });
+    }
+
+    if (['chrome', 'chromeOnAndroid', 'chromedriver'].contains(runtime)) {
+      if (Directory('$workspaceDir/third_party/browsers/chrome').existsSync()) {
+        baselineDeps.add('@//third_party/browsers/chrome:chrome_files');
+      }
+    } else if (['firefox', 'jsshell'].contains(runtime)) {
+      if (Directory('$workspaceDir/third_party/browsers/firefox')
+          .existsSync()) {
+        baselineDeps.add('@//third_party/browsers/firefox:firefox_files');
+      }
+    } else if (runtime == 'firefox_jsshell') {
+      if (Directory('$workspaceDir/third_party/firefox_jsshell').existsSync()) {
+        baselineDeps
+            .add('@//third_party/firefox_jsshell:firefox_jsshell_files');
+      }
+    }
+
     final enrichedCases = <Map<String, dynamic>>[];
+    final individualTargets = <String>[];
 
     for (final tc in cases) {
       final filePathAbs = tc['file_path'] as String;
@@ -176,9 +295,11 @@ void main(List<String> args) async {
         relativePath = filePathAbs.substring(outputDir.length + 1);
         testFileLabel = '//:$relativePath';
       } else {
-        print(
+        debugBuf.writeln(
             'Error: Test file is neither in workspace nor in external repository: $filePathAbs');
-        exit(2);
+        debugLog.writeAsStringSync(debugBuf.toString());
+        exitCode = 2;
+        return;
       }
 
       // Map test-declared shared objects dynamically
@@ -200,13 +321,10 @@ void main(List<String> args) async {
       }
       if (hasUnsupportedSo) continue;
 
-      dataDeps.add(testFileLabel);
-      dataDeps.addAll(activeSoDeps);
-
       if (relativePath.contains('socket_sigpipe_test') ||
           relativePath.contains('/ffi/')) {
-        dataDeps.add('@//runtime/bin:libffi_test_functions.so');
-        dataDeps.add('@//runtime/bin:libffi_test_dynamic_library.so');
+        activeSoDeps.add('@//runtime/bin:libffi_test_functions.so');
+        activeSoDeps.add('@//runtime/bin:libffi_test_dynamic_library.so');
       }
 
       // Enrich and add test case copy
@@ -219,16 +337,87 @@ void main(List<String> args) async {
       final testDir = File(origFilePath).parent.path;
       final otherResources =
           List<String>.from(tc['other_resources'] as List? ?? []);
+      final resolvedResources = <String>{};
+      final resourceDeps = <String>{};
 
       for (final resource in otherResources) {
         final resourcePath = _normalizeAbsolutePath('$testDir/$resource');
         if (resourcePath.startsWith(workspaceDir)) {
           final relResPath = resourcePath.substring(workspaceDir.length + 1);
-          dataDeps.add(_resolveWorkspaceLabel(workspaceDir, relResPath));
+          resolvedResources
+              .add(_resolveWorkspaceLabel(workspaceDir, relResPath));
+          if (hasFineGrained) {
+            final relResInPkg = relResPath.substring(pkgDir.length + 1);
+            final resDeps = testImportsMap![relResInPkg] as List?;
+            if (resDeps != null) {
+              for (final dep in resDeps) {
+                final fgName = _getFilegroupTargetName(dep as String);
+                final label =
+                    _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
+                filegroups.putIfAbsent(fgName, () => {}).add(label);
+                resourceDeps.add(':$fgName');
+              }
+            }
+          }
         } else if (resourcePath.startsWith(outputDir)) {
           final relResPath = resourcePath.substring(outputDir.length + 1);
-          dataDeps.add('//:$relResPath');
+          resolvedResources.add('//:$relResPath');
         }
+      }
+
+      if (hasFineGrained) {
+        final relPathInPkg = relativePath.substring(pkgDir.length + 1);
+        final targetName = _toTargetName(relPathInPkg);
+
+        final targetDeps = <String>{
+          ...baselineDeps,
+          testFileLabel,
+          ...activeSoDeps,
+          ...resolvedResources,
+          ...resourceDeps,
+        };
+
+        final localDeps = testImportsMap![relPathInPkg] as List?;
+        if (localDeps != null) {
+          for (final dep in localDeps) {
+            final fgName = _getFilegroupTargetName(dep as String);
+            final label = _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
+            filegroups.putIfAbsent(fgName, () => {}).add(label);
+            targetDeps.add(':$fgName');
+          }
+        }
+
+        // Package-wide tests (such as package static analysis/doc tests) that require the entire lib/ target of the package
+        final packageWideTests = {
+          'pkg/compiler': {
+            'test/analyses/analyze_test.dart',
+            'test/analyses/api_dynamic_test.dart',
+          },
+          'pkg/analyzer': {
+            'test/verify_docs_test.dart',
+          },
+        };
+        final pWideTests = packageWideTests[pkgDir];
+        if (pWideTests != null && pWideTests.contains(relPathInPkg)) {
+          final parts = pkgDir.split('/');
+          if (parts.length >= 2) {
+            final pkgName = parts[1];
+            targetDeps.add('@//:dart_pkg_$pkgName');
+          }
+        }
+
+        final targetDepsStr = targetDeps.map((d) => '        "$d"').join(',\n');
+        individualTargets.add('''sh_test(
+    name = "$targetName",
+    srcs = ["//:run_single_test.sh"],
+    data = [
+$targetDepsStr
+    ],
+    args = [
+        "--config-json=\$(location :tests_metadata.json)",
+        "--run-only=$relPathInPkg",
+    ],
+)''');
       }
     }
 
@@ -238,40 +427,104 @@ void main(List<String> args) async {
     final pkgJson = File('$outputDir/$pkgDir/tests_metadata.json');
     pkgJson.writeAsStringSync(jsonEncode(enrichedCases));
 
-    if (runtime == 'd8' || compiler == 'dart2wasm') {
-      dataDeps.addAll({
-        '@//third_party/d8:d8_files',
-        '@//:pkg/dart2wasm/bin/run_wasm.js',
-      });
-    }
-
-    if (['chrome', 'chromeOnAndroid', 'chromedriver'].contains(runtime)) {
-      if (Directory('$workspaceDir/third_party/browsers/chrome').existsSync()) {
-        dataDeps.add('@//third_party/browsers/chrome:chrome_files');
-      }
-    } else if (['firefox', 'jsshell'].contains(runtime)) {
-      if (Directory('$workspaceDir/third_party/browsers/firefox')
-          .existsSync()) {
-        dataDeps.add('@//third_party/browsers/firefox:firefox_files');
-      }
-    } else if (runtime == 'firefox_jsshell') {
-      if (Directory('$workspaceDir/third_party/firefox_jsshell').existsSync()) {
-        dataDeps.add('@//third_party/firefox_jsshell:firefox_jsshell_files');
-      }
-    }
-
-    final dataListStr = dataDeps.map((d) => '        "$d"').join(',\n');
-    var shardCount = enrichedCases.length ~/ 12;
-    if (shardCount < 1) {
-      shardCount = 1;
-    } else if (shardCount > 50) {
-      shardCount = 50;
-    }
-
     final pkgBuild = File('$outputDir/$pkgDir/BUILD.bazel');
-    pkgBuild
-        .writeAsStringSync('''load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
+    if (hasFineGrained) {
+      final filegroupsStr = StringBuffer();
+      final sortedFgNames = filegroups.keys.toList()..sort();
+      for (final fgName in sortedFgNames) {
+        final srcs = filegroups[fgName]!.toList()..sort();
+        final srcsStr = srcs.map((s) => '        "$s"').join(',\n');
+        filegroupsStr.writeln('''filegroup(
+    name = "$fgName",
+    srcs = [
+$srcsStr
+    ],
+)
+''');
+      }
+
+      final targetsStr = individualTargets.join('\n\n');
+      pkgBuild.writeAsStringSync(
+          '''load("@rules_shell//shell:sh_test.bzl", "sh_test")
+ 
+$filegroupsStr
+
+$targetsStr
+''');
+    } else {
+      final dataDeps = {
+        ...baselineDeps,
+      };
+      if (pkgDir.startsWith('pkg/')) {
+        final parts = pkgDir.split('/');
+        if (parts.length >= 2) {
+          final pkgName = parts[1];
+          dataDeps.add('@//:dart_pkg_$pkgName');
+        }
+      }
+
+      for (final tc in cases) {
+        final filePathAbs = tc['file_path'] as String;
+        String testFileLabel;
+        String relativePath;
+
+        if (filePathAbs.startsWith(workspaceDir)) {
+          relativePath = filePathAbs.substring(workspaceDir.length + 1);
+          testFileLabel = _resolveWorkspaceLabel(workspaceDir, relativePath);
+        } else if (filePathAbs.startsWith(outputDir)) {
+          relativePath = filePathAbs.substring(outputDir.length + 1);
+          testFileLabel = '//:$relativePath';
+        } else {
+          continue;
+        }
+        dataDeps.add(testFileLabel);
+
+        final sharedObjects =
+            List<String>.from(tc['shared_objects'] as List? ?? []);
+        for (final so in sharedObjects) {
+          if (so == 'ffi_test_functions') {
+            dataDeps.add('@//runtime/bin:libffi_test_functions.so');
+          } else if (so == 'ffi_test_dynamic_library') {
+            dataDeps.add('@//runtime/bin:libffi_test_dynamic_library.so');
+          } else if (so == 'ffi_native_test_module') {
+            dataDeps.add('@//utils/dart2wasm:ffi_native_test_wasm_module');
+          }
+        }
+
+        if (relativePath.contains('socket_sigpipe_test') ||
+            relativePath.contains('/ffi/')) {
+          dataDeps.add('@//runtime/bin:libffi_test_functions.so');
+          dataDeps.add('@//runtime/bin:libffi_test_dynamic_library.so');
+        }
+
+        final origFilePath = tc['original_file_path'] as String? ?? filePathAbs;
+        final testDir = File(origFilePath).parent.path;
+        final otherResources =
+            List<String>.from(tc['other_resources'] as List? ?? []);
+        for (final resource in otherResources) {
+          final resourcePath = _normalizeAbsolutePath('$testDir/$resource');
+          if (resourcePath.startsWith(workspaceDir)) {
+            final relResPath = resourcePath.substring(workspaceDir.length + 1);
+            dataDeps.add(_resolveWorkspaceLabel(workspaceDir, relResPath));
+          } else if (resourcePath.startsWith(outputDir)) {
+            final relResPath = resourcePath.substring(outputDir.length + 1);
+            dataDeps.add('//:$relResPath');
+          }
+        }
+      }
+
+      final dataListStr = dataDeps.map((d) => '        "$d"').join(',\n');
+      var shardCount = enrichedCases.length ~/ 12;
+      if (shardCount < 1) {
+        shardCount = 1;
+      } else if (shardCount > 50) {
+        shardCount = 50;
+      }
+
+      pkgBuild.writeAsStringSync(
+          '''load("@rules_shell//shell:sh_test.bzl", "sh_test")
+ 
 sh_test(
     name = "tests",
     srcs = ["//:run_single_test.sh"],
@@ -282,6 +535,7 @@ $dataListStr
     shard_count = $shardCount,
 )
 ''');
+    }
   }
 
   // Clean up temporary full dump JSON to save disk space
@@ -289,30 +543,44 @@ $dataListStr
     jsonFile.deleteSync();
   }
 
-  exit(0);
+  debugBuf.writeln('=== Generation Completed Successfully ===');
+  debugLog.writeAsStringSync(debugBuf.toString());
+  return;
+}
+
+final _buildDirCache = <String, bool>{};
+final _labelCache = <String, String>{};
+
+bool _dirHasBuildFile(String dirPath) {
+  return _buildDirCache.putIfAbsent(dirPath, () {
+    return File('$dirPath/BUILD.bazel').existsSync() ||
+        File('$dirPath/BUILD').existsSync();
+  });
 }
 
 String _resolveWorkspaceLabel(String workspaceDir, String relResPath) {
-  final parts = relResPath.split('/');
-  final dirParts = parts.sublist(0, parts.length - 1);
+  return _labelCache.putIfAbsent(relResPath, () {
+    final parts = relResPath.split('/');
+    final dirParts = parts.sublist(0, parts.length - 1);
 
-  var bestI = 0;
+    var bestI = 0;
 
-  for (var i = 1; i <= dirParts.length; i++) {
-    final pkgPath = '$workspaceDir/${dirParts.sublist(0, i).join('/')}';
-    if (File('$pkgPath/BUILD.bazel').existsSync() ||
-        File('$pkgPath/BUILD').existsSync()) {
-      bestI = i;
+    for (var i = 1; i <= dirParts.length; i++) {
+      final pkgSubPath = dirParts.sublist(0, i).join('/');
+      final pkgPath = '$workspaceDir/$pkgSubPath';
+      if (_dirHasBuildFile(pkgPath)) {
+        bestI = i;
+      }
     }
-  }
 
-  if (bestI == 0) {
-    return '@//:$relResPath';
-  } else {
-    final packageName = dirParts.sublist(0, bestI).join('/');
-    final relToPackage = parts.sublist(bestI).join('/');
-    return '@//$packageName:$relToPackage';
-  }
+    if (bestI == 0) {
+      return '@//:$relResPath';
+    } else {
+      final packageName = dirParts.sublist(0, bestI).join('/');
+      final relToPackage = parts.sublist(bestI).join('/');
+      return '@//$packageName:$relToPackage';
+    }
+  });
 }
 
 String _normalizeAbsolutePath(String path) {
@@ -330,4 +598,126 @@ String _normalizeAbsolutePath(String path) {
     }
   }
   return '/' + result.join('/');
+}
+
+String _toTargetName(String relPath) {
+  var name = relPath;
+  if (name.endsWith('.dart')) {
+    name = name.substring(0, name.length - 5);
+  }
+  return name.replaceAll('/', '_');
+}
+
+Set<String> _parsePubspecDependencies(
+    String pubspecPath, StringBuffer debugBuf) {
+  final deps = <String>{};
+  final file = File(pubspecPath);
+  if (!file.existsSync()) {
+    debugBuf.writeln('    Pubspec file does not exist at: $pubspecPath');
+    return deps;
+  }
+
+  final content = file.readAsStringSync();
+  final lines = content.split('\n');
+
+  var inDepsSection = false;
+
+  for (final line in lines) {
+    final trimmed = line.trim();
+    if (trimmed.startsWith('#')) continue;
+
+    if (line.startsWith('dependencies:') ||
+        line.startsWith('dev_dependencies:')) {
+      inDepsSection = true;
+      continue;
+    }
+
+    if (inDepsSection) {
+      if (line.isEmpty) continue;
+
+      // If the line is not indented, we have left the dependencies section
+      if (!line.startsWith(' ') && !line.startsWith('\t')) {
+        inDepsSection = false;
+        // It could be that we immediately enter the other deps section
+        if (line.startsWith('dependencies:') ||
+            line.startsWith('dev_dependencies:')) {
+          inDepsSection = true;
+        }
+        continue;
+      }
+
+      final leadingSpaces = line.length - line.trimLeft().length;
+      if (leadingSpaces > 3) {
+        continue; // Skip nested configuration
+      }
+
+      final parts = trimmed.split(':');
+      if (parts.isNotEmpty) {
+        final depName = parts[0].trim();
+        if (depName.isNotEmpty) {
+          deps.add(depName);
+        }
+      }
+    }
+  }
+  return deps;
+}
+
+String _getFilegroupTargetName(String dep) {
+  final parts = dep.split('/');
+  if (parts.length <= 1) {
+    return 'fg_root';
+  }
+  final dirParts = parts.sublist(0, parts.length - 1);
+  return 'fg_' + dirParts.join('_').replaceAll('.', '_').replaceAll('-', '_');
+}
+
+List<String> _findPackageResources(String workspaceDir, String pkgDir) {
+  final dir = Directory('$workspaceDir/$pkgDir');
+  if (!dir.existsSync()) return [];
+
+  final resources = <String>[];
+  final allowedExtensions = {
+    '.json',
+    '.yaml',
+    '.options',
+    '.config',
+    '.txt',
+    '.status',
+    '.properties',
+    '.csv',
+    '.xml',
+    '.dill',
+    '.bin',
+    '.dart_fn',
+  };
+
+  for (final entity in dir.listSync(recursive: true)) {
+    if (entity is File) {
+      final path = entity.path.replaceAll('\\', '/');
+      final parts = path.split('/');
+
+      // Skip hidden directories or files (starting with .)
+      if (parts.any((p) => p.startsWith('.'))) continue;
+      if (parts.contains('doc')) continue; // skip docs
+
+      final filename = parts.last;
+      if (filename == 'BUILD' ||
+          filename == 'BUILD.bazel' ||
+          filename == 'OWNERS') {
+        continue;
+      }
+
+      // Check if the file has a resource extension
+      final dotIndex = filename.lastIndexOf('.');
+      if (dotIndex != -1) {
+        final ext = filename.substring(dotIndex);
+        if (allowedExtensions.contains(ext.toLowerCase())) {
+          final relPath = path.substring(workspaceDir.length + 1);
+          resources.add(relPath);
+        }
+      }
+    }
+  }
+  return resources;
 }
