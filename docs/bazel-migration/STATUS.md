@@ -27,7 +27,12 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-02 (session 64, jetski) — **TASK_001 (Dynamic Package Dependency Mapping) completed and verified green via JIT VM tests under Bazel sandbox.**_
+_Last updated: 2026-06-02 (session 65, jetski) — **Onboarded TASK_011 (Upstream Merge Flow Skill) and verified TASK_010 (Non-Flattened Direct Import Mapping) is complete.**_
+
+Session 65 — **(jetski) Backlog Housekeeping: Completed Task 10, Onboarded Task 11.**
+- **Completed Task 10 in Backlog:** Marked `[TASK_010] Non-Flattened Direct Import Mapping for Test Caching` as completed in `BACKLOG.md`, referencing commit `304f78ec535` which successfully reduced the test imports JSON footprint by 98% (from 54.3MB to 1.0MB).
+- **Onboarded Task 11 (SDK Upstream Merge Flow):** Formulated, brainstormed, and appended `[TASK_011] Repo-Local Upstream SDK Merge Flow Skill` to `BACKLOG.md` to automate the fetch, merge, restoration, translation, and verification pipeline when syncing with `origin/main`.
+- **Synchronized Backlog State:** Committed and synchronized these documentation updates directly to the remote tracking branch `kevmoo/bazel`.
 
 Session 64 — **(jetski) Completed Dynamic Package Dependency Mapping (Task 1), green-verified package JIT testing.**
 - **Implemented Dynamic Package Dependency Mapping**: Surgically upgraded `tools/bazel/dart/generate_test_targets.dart` to check if test packages belong to `pkg/` and dynamically inject their corresponding `@//:dart_pkg_<pkgName>` target dependencies into the Bazel test `data` configurations.

@@ -210,10 +210,10 @@ This is the single source of truth for the remaining migration work stream. It i
 ---
 
 ### 🎯 [TASK_010] Non-Flattened Direct Import Mapping for Test Caching
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[304f78ec535]`
 - **Target Files**:
   - `tools/bazel/dart/generate_test_targets.dart`
   - `tools/bazel/dart/gen_test_imports.dart`
@@ -224,6 +224,36 @@ This is the single source of truth for the remaining migration work stream. It i
   python3 tools/test.py --bazel pkg/analyzer/test/dart/analysis/analysis_context_test.dart
   ```
 - **Success Criteria**:
-  - [ ] `gen_test_imports.dart` is updated to only write out direct local imports for each file in `test_imports.json`, resulting in a vastly smaller JSON size.
-  - [ ] `generate_test_targets.dart` successfully implements a cycle-safe DFS with memoization to resolve closures in under 50ms.
-  - [ ] Running tests via `tools/test.py --bazel` yields identical dynamic sandboxed targets and passes completely green.
+  - [x] `gen_test_imports.dart` is updated to only write out direct local imports for each file in `test_imports.json`, resulting in a vastly smaller JSON size.
+  - [x] `generate_test_targets.dart` successfully implements a cycle-safe DFS with memoization to resolve closures in under 50ms.
+  - [x] Running tests via `tools/test.py --bazel` yields identical dynamic sandboxed targets and passes completely green.
+
+---
+
+### 🎯 [TASK_011] Repo-Local Upstream SDK Merge Flow Skill
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/merge_upstream.dart`
+  - `.agents/skills/merge_upstream/SKILL.md`
+- **Description**:
+  Design and implement a dedicated repo-local skill and companion Dart CLI tool to automate the synchronization and merge of the local `bazel` branch with the upstream SDK `origin/main`. The SDK merge process is complex because upstream GN-side structural changes often clash with our hand-maintained overlays (e.g., `runtime/vm`, `runtime/bin`, `sdk`), and `gclient sync` actions often wipe out critical out-of-band files. 
+  
+  The tool and skill must coordinate a robust, safe flow:
+  1. **Safe Fetch & Checkout:** Fetch `origin/main` and perform a git merge on a temporary validation branch.
+  2. **Automatic Conflict Mitigation:** Resolve known trivial conflicts (such as `MODULE.bazel.lock` digests or `STATUS.md` overlaps) automatically.
+  3. **Out-of-Band Restoration:** Automatically trigger `tools/bazel/out_of_band/restore.sh` to restore CIPD-managed prebuilt SDKs and ICU shims.
+  4. **Translator Alignment:** Automatically check if GN configs changed, run `translate_gn_desc.py` if needed, and run `buildifier` to keep generated packages formatted.
+  5. **Sanity Build & Test:** Run `bazel build //runtime/bin:dartvm` and executing baseline tests to verify compilation sanity post-merge.
+  6. **Interactive Diagnostics:** Provide clear, structured troubleshooting output and guided steps for the developer if manual C++ code alignment is needed.
+- **Verification Command**:
+  ```bash
+  dart tools/bazel/dart/merge_upstream.dart --dry-run
+  ```
+- **Success Criteria**:
+  - [ ] A robust CLI script `tools/bazel/dart/merge_upstream.dart` is implemented to automate the complete safe fetch, merge, restore, translate, and verification pipeline.
+  - [ ] A dedicated, repo-local skill file `.agents/skills/merge_upstream/SKILL.md` is authored to document the merge sequence, conflict resolution strategies, and rollback procedures for future agents.
+  - [ ] The merge pipeline runs successfully in dry-run/validation mode, verifying buildability.
+
