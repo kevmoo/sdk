@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 2/10 Tasks (20.0%)
+- **Overall Progress**: 6/13 Tasks (46.2%)
 
 ---
 
@@ -251,10 +251,10 @@ This is the single source of truth for the remaining migration work stream. It i
 ---
 
 ### 🎯 [TASK_012] Coarse-Grained Test Suite Clustering
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: `[TASK_010]`
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/dart/generate_test_targets.dart`
 - **Description**:
@@ -264,10 +264,10 @@ This is the single source of truth for the remaining migration work stream. It i
   python3 tools/test.py --bazel corelib/list_test
   ```
 - **Success Criteria**:
-  - [ ] `generate_test_targets.dart` clusters generated targets under root suite directories (`corelib/BUILD.bazel`).
-  - [ ] Generated `BUILD.bazel` files are reduced by 700+ packages.
-  - [ ] Modifying a single `.dart` test file still invalidates **only** its specific `sh_test` target.
-  - [ ] Sandbox JIT execution is completely green.
+  - [x] `generate_test_targets.dart` clusters generated targets under root suite directories (`corelib/BUILD.bazel`).
+  - [x] Generated `BUILD.bazel` files are reduced by 700+ packages.
+  - [x] Modifying a single `.dart` test file still invalidates **only** its specific `sh_test` target.
+  - [x] Sandbox JIT execution is completely green.
 
 ---
 

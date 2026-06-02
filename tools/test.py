@@ -146,7 +146,10 @@ def TestWithBazel(args):
             name = name[:-len('.dart')]
 
         parts = name.split('/')
-        if len(parts) >= 2:
+        coarse_suites = {"corelib", "standalone", "ffi", "language"}
+        if parts and parts[0] in coarse_suites:
+            pkg_dir = parts[0]
+        elif len(parts) >= 2:
             pkg_dir = f"{parts[0]}/{parts[1]}"
         else:
             pkg_dir = f"{parts[0]}/misc"

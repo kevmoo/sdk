@@ -40,7 +40,8 @@ void main(List<String> args) async {
       compiler == null ||
       runtime == null) {
     print(
-        'Usage: generate_test_targets.dart --workspace-dir=<dir> --output-dir=<dir> --mode=<mode> --compiler=<compiler> --runtime=<runtime>');
+      'Usage: generate_test_targets.dart --workspace-dir=<dir> --output-dir=<dir> --mode=<mode> --compiler=<compiler> --runtime=<runtime>',
+    );
     exitCode = 2;
     return;
   }
@@ -64,7 +65,8 @@ void main(List<String> args) async {
   }
   if (!File(exporterPath).existsSync()) {
     debugBuf.writeln(
-        'Error: Could not locate test runner script at: $exporterPath');
+      'Error: Could not locate test runner script at: $exporterPath',
+    );
     debugLog.writeAsStringSync(debugBuf.toString());
     exitCode = 2;
     return;
@@ -104,7 +106,8 @@ void main(List<String> args) async {
   final res = await Process.run(dartPath, processArgs);
   if (res.exitCode != 0) {
     debugBuf.writeln(
-        'Error: Failed to dump test metadata:\n${res.stderr}\n${res.stdout}');
+      'Error: Failed to dump test metadata:\n${res.stderr}\n${res.stdout}',
+    );
     debugLog.writeAsStringSync(debugBuf.toString());
     exitCode = 2;
     return;
@@ -112,8 +115,9 @@ void main(List<String> args) async {
 
   final jsonFile = File(jsonOutputPath);
   if (!jsonFile.existsSync()) {
-    debugBuf
-        .writeln('Error: Test metadata file not created at: $jsonOutputPath');
+    debugBuf.writeln(
+      'Error: Test metadata file not created at: $jsonOutputPath',
+    );
     debugLog.writeAsStringSync(debugBuf.toString());
     exitCode = 2;
     return;
@@ -123,7 +127,8 @@ void main(List<String> args) async {
   final content = jsonFile.readAsStringSync();
   final dynamic decoded = jsonDecode(content);
   final testCases = List<Map<String, dynamic>>.from(
-      decoded.map((dynamic x) => x as Map<String, dynamic>));
+    decoded.map((dynamic x) => x as Map<String, dynamic>),
+  );
 
   // 4. Group test cases by parent directory package (max 2 levels)
   final groups = <String, List<Map<String, dynamic>>>{};
@@ -133,7 +138,10 @@ void main(List<String> args) async {
 
     final parts = name.split('/');
     String pkgDir;
-    if (parts.length >= 2) {
+    const coarseSuites = {'corelib', 'standalone', 'ffi', 'language'};
+    if (parts.isNotEmpty && coarseSuites.contains(parts[0])) {
+      pkgDir = parts[0];
+    } else if (parts.length >= 2) {
       pkgDir = '${parts[0]}/${parts[1]}';
     } else {
       pkgDir = '${parts[0]}/misc';
@@ -152,24 +160,27 @@ void main(List<String> args) async {
 
     final testImportsFile = File('$workspaceDir/$pkgDir/test_imports.json');
     final hasFineGrained = testImportsFile.existsSync();
+    const coarseSuites = {'corelib', 'standalone', 'ffi', 'language'};
+    final useIndividualTargets =
+        hasFineGrained || coarseSuites.contains(pkgDir);
 
     Map<String, dynamic>? testImportsMap;
     if (hasFineGrained) {
-      testImportsMap = jsonDecode(testImportsFile.readAsStringSync())
-          as Map<String, dynamic>;
+      testImportsMap = jsonDecode(
+        testImportsFile.readAsStringSync(),
+      ) as Map<String, dynamic>;
     }
 
     final filegroups = <String, Set<String>>{};
 
     // Baseline dependencies (common to all tests in this package)
+    // Note: Obsolete '@//:dart_pkg_engine' and '@//:dart_pkg_flute' have been removed.
     final baselineDeps = {
       ':tests_metadata.json',
       '@//:dart_pkg_async_helper',
       '@//:dart_pkg_dart2js_tools',
-      '@//:dart_pkg_engine',
       '@//:dart_pkg_expect',
       '@//:dart_pkg_ffi',
-      '@//:dart_pkg_flute',
       '@//:dart_pkg_js',
       '@//:dart_pkg_meta',
       '@//:dart_pkg_path',
@@ -271,19 +282,22 @@ void main(List<String> args) async {
         baselineDeps.add('@//third_party/browsers/chrome:chrome_files');
       }
     } else if (['firefox', 'jsshell'].contains(runtime)) {
-      if (Directory('$workspaceDir/third_party/browsers/firefox')
-          .existsSync()) {
+      if (Directory(
+        '$workspaceDir/third_party/browsers/firefox',
+      ).existsSync()) {
         baselineDeps.add('@//third_party/browsers/firefox:firefox_files');
       }
     } else if (runtime == 'firefox_jsshell') {
       if (Directory('$workspaceDir/third_party/firefox_jsshell').existsSync()) {
-        baselineDeps
-            .add('@//third_party/firefox_jsshell:firefox_jsshell_files');
+        baselineDeps.add(
+          '@//third_party/firefox_jsshell:firefox_jsshell_files',
+        );
       }
     }
 
     final enrichedCases = <Map<String, dynamic>>[];
     final individualTargets = <String>[];
+    final seenTargets = <String>{};
 
     for (final tc in cases) {
       final filePathAbs = tc['file_path'] as String;
@@ -298,7 +312,8 @@ void main(List<String> args) async {
         testFileLabel = '//:$relativePath';
       } else {
         debugBuf.writeln(
-            'Error: Test file is neither in workspace nor in external repository: $filePathAbs');
+          'Error: Test file is neither in workspace nor in external repository: $filePathAbs',
+        );
         debugLog.writeAsStringSync(debugBuf.toString());
         exitCode = 2;
         return;
@@ -306,8 +321,9 @@ void main(List<String> args) async {
 
       // Map test-declared shared objects dynamically
       var hasUnsupportedSo = false;
-      final sharedObjects =
-          List<String>.from(tc['shared_objects'] as List? ?? []);
+      final sharedObjects = List<String>.from(
+        tc['shared_objects'] as List? ?? [],
+      );
       final activeSoDeps = <String>{};
       for (final so in sharedObjects) {
         if (so == 'ffi_test_functions') {
@@ -337,8 +353,9 @@ void main(List<String> args) async {
 
       final origFilePath = tc['original_file_path'] as String? ?? filePathAbs;
       final testDir = File(origFilePath).parent.path;
-      final otherResources =
-          List<String>.from(tc['other_resources'] as List? ?? []);
+      final otherResources = List<String>.from(
+        tc['other_resources'] as List? ?? [],
+      );
       final resolvedResources = <String>{};
       final resourceDeps = <String>{};
 
@@ -346,16 +363,21 @@ void main(List<String> args) async {
         final resourcePath = p.posix.normalize('$testDir/$resource');
         if (resourcePath.startsWith(workspaceDir)) {
           final relResPath = resourcePath.substring(workspaceDir.length + 1);
-          resolvedResources
-              .add(_resolveWorkspaceLabel(workspaceDir, relResPath));
+          resolvedResources.add(
+            _resolveWorkspaceLabel(workspaceDir, relResPath),
+          );
           if (hasFineGrained) {
             final relResInPkg = relResPath.substring(pkgDir.length + 1);
-            final resDeps =
-                _computeTransitiveClosure(relResInPkg, testImportsMap!);
+            final resDeps = _computeTransitiveClosure(
+              relResInPkg,
+              testImportsMap!,
+            );
             for (final dep in resDeps) {
               final fgName = _getFilegroupTargetName(dep);
-              final label =
-                  _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
+              final label = _resolveWorkspaceLabel(
+                workspaceDir,
+                '$pkgDir/$dep',
+              );
               filegroups.putIfAbsent(fgName, () => {}).add(label);
               resourceDeps.add(':$fgName');
             }
@@ -366,48 +388,78 @@ void main(List<String> args) async {
         }
       }
 
-      if (hasFineGrained) {
-        final relPathInPkg = relativePath.substring(pkgDir.length + 1);
+      if (useIndividualTargets) {
+        String relPathInPkg;
+        if (const {
+          'corelib',
+          'standalone',
+          'ffi',
+          'language',
+        }.contains(pkgDir)) {
+          if (relativePath.startsWith('tests/')) {
+            relPathInPkg = relativePath.substring(
+              'tests/'.length + pkgDir.length + 1,
+            );
+          } else {
+            final pkgIndex = relativePath.indexOf('$pkgDir/');
+            if (pkgIndex != -1) {
+              relPathInPkg = relativePath.substring(
+                pkgIndex + pkgDir.length + 1,
+              );
+            } else {
+              relPathInPkg = relativePath.substring(pkgDir.length + 1);
+            }
+          }
+        } else {
+          relPathInPkg = relativePath.substring(pkgDir.length + 1);
+        }
         final targetName = _toTargetName(relPathInPkg);
 
-        final targetDeps = <String>{
-          ...baselineDeps,
-          testFileLabel,
-          ...activeSoDeps,
-          ...resolvedResources,
-          ...resourceDeps,
-        };
+        if (seenTargets.add(targetName)) {
+          final targetDeps = <String>{
+            ...baselineDeps,
+            testFileLabel,
+            ...activeSoDeps,
+            ...resolvedResources,
+            ...resourceDeps,
+          };
 
-        final localDeps =
-            _computeTransitiveClosure(relPathInPkg, testImportsMap!);
-        for (final dep in localDeps) {
-          final fgName = _getFilegroupTargetName(dep);
-          final label = _resolveWorkspaceLabel(workspaceDir, '$pkgDir/$dep');
-          filegroups.putIfAbsent(fgName, () => {}).add(label);
-          targetDeps.add(':$fgName');
-        }
-
-        // Package-wide tests (such as package static analysis/doc tests) that require the entire lib/ target of the package
-        final packageWideTests = {
-          'pkg/compiler': {
-            'test/analyses/analyze_test.dart',
-            'test/analyses/api_dynamic_test.dart',
-          },
-          'pkg/analyzer': {
-            'test/verify_docs_test.dart',
-          },
-        };
-        final pWideTests = packageWideTests[pkgDir];
-        if (pWideTests != null && pWideTests.contains(relPathInPkg)) {
-          final parts = pkgDir.split('/');
-          if (parts.length >= 2) {
-            final pkgName = parts[1];
-            targetDeps.add('@//:dart_pkg_$pkgName');
+          if (hasFineGrained) {
+            final localDeps = _computeTransitiveClosure(
+              relPathInPkg,
+              testImportsMap!,
+            );
+            for (final dep in localDeps) {
+              final fgName = _getFilegroupTargetName(dep);
+              final label = _resolveWorkspaceLabel(
+                workspaceDir,
+                '$pkgDir/$dep',
+              );
+              filegroups.putIfAbsent(fgName, () => {}).add(label);
+              targetDeps.add(':$fgName');
+            }
           }
-        }
 
-        final targetDepsStr = targetDeps.map((d) => '        "$d"').join(',\n');
-        individualTargets.add('''sh_test(
+          // Package-wide tests (such as package static analysis/doc tests) that require the entire lib/ target of the package
+          final packageWideTests = {
+            'pkg/compiler': {
+              'test/analyses/analyze_test.dart',
+              'test/analyses/api_dynamic_test.dart',
+            },
+            'pkg/analyzer': {'test/verify_docs_test.dart'},
+          };
+          final pWideTests = packageWideTests[pkgDir];
+          if (pWideTests != null && pWideTests.contains(relPathInPkg)) {
+            final parts = pkgDir.split('/');
+            if (parts.length >= 2) {
+              final pkgName = parts[1];
+              targetDeps.add('@//:dart_pkg_$pkgName');
+            }
+          }
+
+          final targetDepsStr =
+              targetDeps.map((d) => '        "$d"').join(',\n');
+          individualTargets.add('''sh_test(
     name = "$targetName",
     srcs = ["//:run_single_test.sh"],
     data = [
@@ -418,6 +470,7 @@ $targetDepsStr
         "--run-only=$relPathInPkg",
     ],
 )''');
+        }
       }
     }
 
@@ -429,33 +482,34 @@ $targetDepsStr
 
     final pkgBuild = File('$outputDir/$pkgDir/BUILD.bazel');
 
-    if (hasFineGrained) {
+    if (useIndividualTargets) {
       final filegroupsStr = StringBuffer();
-      final sortedFgNames = filegroups.keys.toList()..sort();
-      for (final fgName in sortedFgNames) {
-        final srcs = filegroups[fgName]!.toList()..sort();
-        final srcsStr = srcs.map((s) => '        "$s"').join(',\n');
-        filegroupsStr.writeln('''filegroup(
+      if (hasFineGrained) {
+        final sortedFgNames = filegroups.keys.toList()..sort();
+        for (final fgName in sortedFgNames) {
+          final srcs = filegroups[fgName]!.toList()..sort();
+          final srcsStr = srcs.map((s) => '        "$s"').join(',\n');
+          filegroupsStr.writeln('''filegroup(
     name = "$fgName",
     srcs = [
 $srcsStr
     ],
 )
 ''');
+        }
       }
 
       final targetsStr = individualTargets.join('\n\n');
       pkgBuild.writeAsStringSync(
-          '''load("@rules_shell//shell:sh_test.bzl", "sh_test")
+        '''load("@rules_shell//shell:sh_test.bzl", "sh_test")
  
 $filegroupsStr
 
 $targetsStr
-''');
+''',
+      );
     } else {
-      final dataDeps = {
-        ...baselineDeps,
-      };
+      final dataDeps = {...baselineDeps};
       if (pkgDir.startsWith('pkg/')) {
         final parts = pkgDir.split('/');
         if (parts.length >= 2) {
@@ -480,8 +534,9 @@ $targetsStr
         }
         dataDeps.add(testFileLabel);
 
-        final sharedObjects =
-            List<String>.from(tc['shared_objects'] as List? ?? []);
+        final sharedObjects = List<String>.from(
+          tc['shared_objects'] as List? ?? [],
+        );
         for (final so in sharedObjects) {
           if (so == 'ffi_test_functions') {
             dataDeps.add('@//runtime/bin:libffi_test_functions.so');
@@ -500,8 +555,9 @@ $targetsStr
 
         final origFilePath = tc['original_file_path'] as String? ?? filePathAbs;
         final testDir = File(origFilePath).parent.path;
-        final otherResources =
-            List<String>.from(tc['other_resources'] as List? ?? []);
+        final otherResources = List<String>.from(
+          tc['other_resources'] as List? ?? [],
+        );
         for (final resource in otherResources) {
           final resourcePath = p.posix.normalize('$testDir/$resource');
           if (resourcePath.startsWith(workspaceDir)) {
@@ -523,7 +579,7 @@ $targetsStr
       }
 
       pkgBuild.writeAsStringSync(
-          '''load("@rules_shell//shell:sh_test.bzl", "sh_test")
+        '''load("@rules_shell//shell:sh_test.bzl", "sh_test")
  
 sh_test(
     name = "tests",
@@ -534,7 +590,8 @@ $dataListStr
     args = ["--config-json=\$(location :tests_metadata.json)"],
     shard_count = $shardCount,
 )
-''');
+''',
+      );
     }
   }
 
@@ -595,7 +652,9 @@ String _toTargetName(String relPath) {
 }
 
 Set<String> _parsePubspecDependencies(
-    String pubspecPath, StringBuffer debugBuf) {
+  String pubspecPath,
+  StringBuffer debugBuf,
+) {
   final deps = <String>{};
   final file = File(pubspecPath);
   if (!file.existsSync()) {
@@ -709,7 +768,9 @@ List<String> _findPackageResources(String workspaceDir, String pkgDir) {
 }
 
 List<String> _computeTransitiveClosure(
-    String startFile, Map<String, dynamic> directDepsMap) {
+  String startFile,
+  Map<String, dynamic> directDepsMap,
+) {
   final closure = <String>{};
   final visiting = <String>{startFile};
 

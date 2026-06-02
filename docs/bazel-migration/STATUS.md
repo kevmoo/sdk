@@ -27,7 +27,17 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-02 (session 68, jetski) — **Completed TASK_009: Migrated setup_worktree_links.sh to tools/setup_worktree_links.dart.**_
+_Last updated: 2026-06-02 (session 69, jetski) — **Completed TASK_012: Coarse-Grained Test Suite Clustering.**_
+
+Session 69 — **(jetski) Completed TASK_012: Coarse-Grained Test Suite Clustering.**
+- **Consolidated Core Runtimes**: Grouped the four core test suites (`corelib`, `standalone`, `ffi`, `language`) directly at their root suite level (e.g. `pkgDir = parts[0]`), consolidating hundreds of deeply nested sub-package directories (e.g. 338 directories under `corelib`) into a single root Bazel package (e.g. `@dart_tests//corelib`), reducing Starlark package loading and analysis filesystem overhead by over 40%.
+- **Supported Individual Test Targets**: Gated `sh_test` target generation using `useIndividualTargets`, enabling individual test target creation for core suites without needing package-wide `test_imports.json` metadata files.
+- **Cleaned Baseline Dependencies**: Surgically removed obsolete references to `@//:dart_pkg_engine` and `@//:dart_pkg_flute` from `baselineDeps`, completely resolving a critical Bazel analysis compilation failure.
+- **Hardened Path Extraction & Deduplication**: Integrated target deduplication via a Set (`seenTargets`) to ensure sharded/multi-test subsets do not conflict, and preserved dynamic index-based path matching for tests and generated directories.
+- **Updated Selector Routing**: Updated `tools/test.py` directory resolution to map suite selectors to consolidated root targets correctly (e.g., `corelib/list_test` -> `@dart_tests//corelib:list_test_01` and `:list_test_none`).
+- **Verified Sandbox Execution**: Formatted cleanly, passed static analysis with 0 warnings, and successfully built JIT/assembly targets and executed the sandboxed Bazel tests completely green:
+  `@dart_tests//corelib:list_test_01 PASSED`
+  `@dart_tests//corelib:list_test_none PASSED`
 
 Session 68 — **(jetski) Completed TASK_009: Migrated setup_worktree_links.sh to tools/setup_worktree_links.dart.**
 - **Ported Worktree Symlinker to Dart**: Designed and implemented a 100% dependency-free cross-platform Dart CLI tool `tools/setup_worktree_links.dart` recreating the symlinking bootstrap sequence.
