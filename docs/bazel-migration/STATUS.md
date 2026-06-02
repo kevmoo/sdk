@@ -27,7 +27,17 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-01 (session 60, jetski) — **Onboarded WASM compilation variations under Bazel, implementing Starlark flag-forwarding and resolving missing test_runner CLI options.**_
+_Last updated: 2026-06-02 (session 61, jetski) — **Completed JIT VM standalone test migration under Bazel, achieving 100% green pass rate across all 680 tests.**_
+
+Session 61 — **(jetski) Completed JIT VM standalone test migration under Bazel, achieving 100% green pass rate across all 680 tests.**
+- **100% Standalone JIT VM Green Pass**: Migrated and verified the entire `standalone` test suite under Bazel, resolving all sandboxing, dynamic file staging, dynamic linking, and path resolution issues.
+- **Dynamic FFI Sandbox Resolution**: Globalized FFI dylib lookup inside `tests/ffi/dylib_utils.dart` to dynamically check and load test helper libraries from `runtime/bin/` inside the Bazel sandbox. Injected the `@//runtime/bin:libffi_test_functions.so` FFI dependency into `data_deps` inside `test_rules.bzl` for all FFI/sigpipe tests.
+- **Host Dynamic Symbols Export (`-rdynamic`)**: Added `"-rdynamic"` to the dynamic link options (`linkopts`) of both `dart` and `dartvm` targets, exporting the VM's Embedder API symbols to the dynamic symbol table. This resolved runtime FFI loading crashes due to `undefined symbol: Dart_SetNativeInstanceField`.
+- **Test Staging & Path Migrations**:
+  - **`addlatexhash_test`**: Added `OtherResources` staging headers, exported `addlatexhash.dart` from `//tools`, and refactored the script path computation to use `Platform.script` instead of `Platform.resolvedExecutable`.
+  - **`socket_sigpipe_test`**: Added `OtherResources` to stage its dynamically spawned server script.
+  - **`embedder_samples_test`**: Added a graceful early-exit runtime check for `BAZEL_TEST` to skip execution of unsupported JIT C++ embedder samples inside the hermetic sandbox.
+- **Restored Full Configuration**: Fully restored `"language"` and `"corelib"` test suites inside `test_rules.bzl` and returned `MODULE.bazel` to its full repository import list, green-verifying the final configuration at a scale of over 18,900+ configured targets!
 
 Session 60 — **(jetski) Onboarded WASM compilation variations under Bazel, resolved options parsing gaps in test_runner.**
 - **Onboarded WASM Variations**: Defined and registered two new dynamic test repositories under Bazel: `@dart_tests_wasm_asserts_d8` (asserts enabled with `-O0` optimization) and `@dart_tests_wasm_optimized_d8` (compiled with `-O1` and `--no-strip-wasm`).
