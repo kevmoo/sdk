@@ -15,7 +15,7 @@ load(
     "flag_set",
     "tool_path",
 )
-load("@dart_linux_x64_clang//:paths.bzl", "CLANG_BIN")
+load("@dart_linux_x64_clang//:paths.bzl", "CLANG_BIN", "CLANG_ROOT_REAL")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 
 # Absolute paths emitted by the @dart_linux_x64_clang repo rule at fetch
@@ -135,6 +135,8 @@ def _impl(ctx):
             "/usr/local/include",
             clang_root + "/include",
             clang_root + "/lib/clang",
+            CLANG_ROOT_REAL + "/include",
+            CLANG_ROOT_REAL + "/lib/clang",
             "%sysroot%/usr/include",
             "%sysroot%/usr/include/aarch64-linux-gnu",
             "%sysroot%/usr/include/x86_64-linux-gnu",

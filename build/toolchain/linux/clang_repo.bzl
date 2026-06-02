@@ -29,12 +29,13 @@ def _dart_linux_clang_impl(repo_ctx):
             repo_ctx.symlink(child, sub)
     repo_ctx.file("BUILD.bazel", _BUILD_FILE)
 
-    # Emit absolute paths so cc_toolchain_config can reference the in-tree
-    # clang without `..` segments. tool_paths in cc_toolchain_config_info
-    # accept absolute paths; this resolves them at repo-fetch time.
+    # Resolve real path in case buildtools is symlinked (e.g. in git worktrees)
+    res = repo_ctx.execute(["python3", "-c", "import os, sys; print(os.path.realpath(sys.argv[1]))", str(src)])
+    real_src = res.stdout.strip() if res.return_code == 0 else str(src)
+
     repo_ctx.file(
         "paths.bzl",
-        "CLANG_BIN = \"{}\"\n".format(str(src.get_child("bin"))),
+        "CLANG_BIN = \"{}\"\nCLANG_ROOT_REAL = \"{}\"\n".format(str(src.get_child("bin")), real_src),
     )
 
 _dart_linux_clang = repository_rule(
