@@ -10,6 +10,8 @@
 // VMOptions=--short_socket_write
 // VMOptions=--short_socket_read --short_socket_write
 
+// OtherResources=dart_std_io_pipe_test.sh dart_std_io_pipe_script.dart
+
 // Formatting can break multitests, so don't format them.
 // dart format off
 

@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// OtherResources=verbose_gc_to_bmu_script.dart
+// OtherResources=verbose_gc_to_bmu_script.dart ../../runtime/tools/verbose_gc_to_bmu.dart
 
 // This test forks a second vm process that runs the BMU tool and verifies that
 // it produces some output. This test is mainly here to ensure that the BMU
@@ -15,9 +15,9 @@ import "dart:io";
 import "package:path/path.dart";
 
 // Tool script relative to the path of this test.
-var toolScript = Uri.parse(
-  Platform.executable,
-).resolve("../../runtime/tools/verbose_gc_to_bmu.dart").toFilePath();
+var toolScript = Platform.script
+    .resolve("../../runtime/tools/verbose_gc_to_bmu.dart")
+    .toFilePath();
 
 // Target script relative to this test.
 var targetScript = Platform.script

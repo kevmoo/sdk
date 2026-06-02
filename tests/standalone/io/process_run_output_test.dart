@@ -5,6 +5,8 @@
 // Test script for testing that output is handled correctly for
 // non-interactive processes started with Process.run.
 
+// OtherResources=process_std_io_script2.dart
+
 import "package:expect/expect.dart";
 import "dart:convert";
 import "dart:io";

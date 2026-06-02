@@ -2,6 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 //
+// OtherResources=socket_sigpipe_test_server.dart
+//
 // Tests that SIGPIPE won't terminate websocket client dart app.
 
 import 'dart:async';

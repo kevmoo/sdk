@@ -3,15 +3,18 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+// OtherResources=addlatexhash_test_src.tex ../../../tools/addlatexhash.dart
+
 // testing ../../../tools/addlatexhash.dart
 
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import '../../../tools/addlatexhash.dart';
 
-final execDir = path.dirname(Platform.resolvedExecutable);
-final dartRootDir = path.dirname(path.dirname(execDir));
-final dartRootPath = dartRootDir.toString();
+final scriptFile = File(Platform.script.toFilePath()).absolute;
+final scriptDir = scriptFile.parent.path;
+final dartRootDir = path.dirname(path.dirname(path.dirname(scriptDir)));
+final dartRootPath = dartRootDir;
 
 List<String> packageOptions() {
   if (Platform.packageConfig != null) {

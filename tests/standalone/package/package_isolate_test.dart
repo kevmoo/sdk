@@ -2,9 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-//
 // Packages=.dart_tool/package_config.json
-//
+// OtherResources=sibling_isolate.dart test_folder/folder_isolate.dart test_folder/.dart_tool/package_config.json test_folder/folder_lib/folder_lib.dart
 
 library package_isolate_test;
 

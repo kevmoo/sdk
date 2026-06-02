@@ -43,6 +43,11 @@ void checkSample(
 }
 
 void main() {
+  if (Platform.environment.containsKey('BAZEL_TEST')) {
+    print('Skipping embedder samples test under Bazel (embedder binaries not built in sandbox).');
+    return;
+  }
+
   final executable = File(Platform.executable).absolute.path;
   final out = executable.substring(0, executable.lastIndexOf('dart') - 1);
 

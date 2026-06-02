@@ -2,9 +2,11 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files([
     "VERSION",
+    "gn.py",
     "make_version.py",
     "utils.py",
     "write_revision_file.py",
     "write_version_file.py",
     "write_dartdoc_options_file.py",
+    "addlatexhash.dart",
 ])

@@ -270,7 +270,6 @@ genrule(
 # TODO(M3): copy for copy_dart_aotruntime_tsan (gn type=copy)
 cc_library(name = "copy_dart_aotruntime_tsan")
 
-
 genrule(
     name = "copy_dart_tooling_daemon_aot_product_snapshot",
     srcs = ["//utils/dtd:dtd_aot_product_snapshot"],
@@ -324,6 +323,16 @@ copy_tree(
     srcs = ["//:dartdoc_templates_files"],
     out_dir = "dart-sdk/bin/resources/dartdoc/templates",
     src_dir = "third_party/pkg/dartdoc/lib/templates",
+)
+
+genrule(
+    name = "copy_process_test",
+    srcs = ["//runtime/bin:process_test"],
+    outs = ["dart-sdk/bin/process_test"],
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
 )
 
 genrule(
@@ -769,6 +778,7 @@ filegroup(
         "//sdk:copy_libraries_specification",
         "//sdk:copy_license",
         "//sdk:copy_prebuilt_devtools",
+        "//sdk:copy_process_test",
         "//sdk:copy_readme",
         "//sdk:copy_sdk_packages_yaml",
         "//sdk:copy_vm_dill_files",
