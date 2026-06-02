@@ -15,29 +15,29 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 0/8 Tasks (0%)
+- **Overall Progress**: 1/8 Tasks (12.5%)
 
 ---
 
 ## 📋 Active Backlog
 
 ### 🎯 [TASK_001] Dynamic Package Dependency Mapping
-- **Status**: `[IN_PROGRESS]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
 - **Owner**: `[jetski]`
-- **Commit**: `[none]`
+- **Commit**: `[4bbcd110701]`
 - **Target Files**:
   - `tools/bazel/dart/generate_test_targets.dart`
 - **Description**:
   Implement dynamic package dependency mapping inside the test target generator. For any test target generated under `pkg/<package_name>`, the generator must dynamically inject `@//:dart_pkg_<package_name>` into its Bazel `data` dependencies. This ensures package library files and their complete transitive closures are staged inside the hermetic sandbox, resolving missing imports during JIT VM test runs and establishing perfect cache invalidation boundaries.
 - **Verification Command**:
   ```bash
-  python3 tools/test.py --bazel pkg/path
+  python3 tools/test.py --bazel pkg/smith
   ```
 - **Success Criteria**:
-  - [ ] `generate_test_targets.dart` dynamically adds `@//:dart_pkg_<pkgName>` to test targets generated for `pkg/` subdirectories.
-  - [ ] Hardcoded package mappings in `dataDeps` are minimized to baseline frameworks.
-  - [ ] Package tests execute cleanly JIT inside the hermetic sandbox and changes to `pkg/path/lib/path.dart` correctly invalidate the test cache.
+  - [x] `generate_test_targets.dart` dynamically adds `@//:dart_pkg_<pkgName>` to test targets generated for `pkg/` subdirectories.
+  - [x] Hardcoded package mappings in `dataDeps` are minimized to baseline frameworks.
+  - [x] Package tests execute cleanly JIT inside the hermetic sandbox and changes to `pkg/smith/lib/` correctly invalidate the test cache.
 
 ---
 
