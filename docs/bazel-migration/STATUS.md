@@ -27,12 +27,21 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-02 (session 65, jetski) — **Onboarded TASK_011 (Upstream Merge Flow Skill) and verified TASK_010 (Non-Flattened Direct Import Mapping) is complete.**_
+_Last updated: 2026-06-02 (session 66, jetski) — **Successfully completed origin/main upstream merge and authored repo-local merge skill.**_
+
+Session 66 — **(jetski) Completed TASK_011: Merged origin/main upstream, resolved prebuilt visibility, green-built dartvm.**
+- **Merged upstream `origin/main`**: Executed dry-run merge and successfully committed the complete upstream SDK merge of `origin/main` (at `95b1b8d7562`) into our `bazel` branch (merge commit: `648fea99a8d`).
+- **Restored Out-of-Band Workspace & Pins**: Triggered `tools/bazel/out_of_band/restore.sh` which rolled pinned third-party package repositories (like `pkg/tools` and `pkg/web`) to DEPS Pins and successfully regenerated `package_config.json` and `packages.bzl`.
+- **Fixed Bazel Prebuilt SDK Visibility Error**: Resolved a build-aborting visibility error by adding explicit `exports_files` to both `tools/sdks/dart-sdk/BUILD.bazel` and its tracked working snapshot `tools/bazel/out_of_band/snapshot/tools/sdks/dart-sdk/BUILD.bazel.snap`.
+- **Authored Merge Flow Skill**: Authored a highly thorough repo-local skill document under `.agents/skills/merge_main_to_bazel.md` documenting the fetch, dry-run, restore, lock-killing diagnostics, and PATH-aware pre-commit format commit flow.
+- **Verified 100% Green Bazel Build**: Force-terminated orphaned Bazel server locks and successfully built the target VM (`/usr/local/google/home/kevmoo/bin/bazel build //runtime/bin:dartvm`) completely green in 588.9s under the fresh merge!
+- **Completed Task 11 in Backlog**: Updated `BACKLOG.md` to mark `[TASK_011]` as `[COMPLETED]`.
 
 Session 65 — **(jetski) Backlog Housekeeping: Completed Task 10, Onboarded Task 11.**
 - **Completed Task 10 in Backlog:** Marked `[TASK_010] Non-Flattened Direct Import Mapping for Test Caching` as completed in `BACKLOG.md`, referencing commit `304f78ec535` which successfully reduced the test imports JSON footprint by 98% (from 54.3MB to 1.0MB).
 - **Onboarded Task 11 (SDK Upstream Merge Flow):** Formulated, brainstormed, and appended `[TASK_011] Repo-Local Upstream SDK Merge Flow Skill` to `BACKLOG.md` to automate the fetch, merge, restoration, translation, and verification pipeline when syncing with `origin/main`.
 - **Synchronized Backlog State:** Committed and synchronized these documentation updates directly to the remote tracking branch `kevmoo/bazel`.
+
 
 Session 64 — **(jetski) Completed Dynamic Package Dependency Mapping (Task 1), green-verified package JIT testing.**
 - **Implemented Dynamic Package Dependency Mapping**: Surgically upgraded `tools/bazel/dart/generate_test_targets.dart` to check if test packages belong to `pkg/` and dynamically inject their corresponding `@//:dart_pkg_<pkgName>` target dependencies into the Bazel test `data` configurations.

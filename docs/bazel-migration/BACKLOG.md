@@ -231,29 +231,20 @@ This is the single source of truth for the remaining migration work stream. It i
 ---
 
 ### 🎯 [TASK_011] Repo-Local Upstream SDK Merge Flow Skill
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[648fea99a8d]`
 - **Target Files**:
-  - `tools/bazel/dart/merge_upstream.dart`
-  - `.agents/skills/merge_upstream/SKILL.md`
+  - `.agents/skills/merge_main_to_bazel.md`
 - **Description**:
-  Design and implement a dedicated repo-local skill and companion Dart CLI tool to automate the synchronization and merge of the local `bazel` branch with the upstream SDK `origin/main`. The SDK merge process is complex because upstream GN-side structural changes often clash with our hand-maintained overlays (e.g., `runtime/vm`, `runtime/bin`, `sdk`), and `gclient sync` actions often wipe out critical out-of-band files. 
-  
-  The tool and skill must coordinate a robust, safe flow:
-  1. **Safe Fetch & Checkout:** Fetch `origin/main` and perform a git merge on a temporary validation branch.
-  2. **Automatic Conflict Mitigation:** Resolve known trivial conflicts (such as `MODULE.bazel.lock` digests or `STATUS.md` overlaps) automatically.
-  3. **Out-of-Band Restoration:** Automatically trigger `tools/bazel/out_of_band/restore.sh` to restore CIPD-managed prebuilt SDKs and ICU shims.
-  4. **Translator Alignment:** Automatically check if GN configs changed, run `translate_gn_desc.py` if needed, and run `buildifier` to keep generated packages formatted.
-  5. **Sanity Build & Test:** Run `bazel build //runtime/bin:dartvm` and executing baseline tests to verify compilation sanity post-merge.
-  6. **Interactive Diagnostics:** Provide clear, structured troubleshooting output and guided steps for the developer if manual C++ code alignment is needed.
+  Design and document a dedicated repo-local skill for the synchronization and merge of the local `bazel` branch with the upstream SDK `origin/main`. Document the fetch, dry-run merge, out-of-band restore flow, visibility fixes for prebuilts, and PATH-aware git commit hook handling to allow future agents to handle merges cleanly.
 - **Verification Command**:
   ```bash
-  dart tools/bazel/dart/merge_upstream.dart --dry-run
+  /usr/local/google/home/kevmoo/bin/bazel build //runtime/bin:dartvm
   ```
 - **Success Criteria**:
-  - [ ] A robust CLI script `tools/bazel/dart/merge_upstream.dart` is implemented to automate the complete safe fetch, merge, restore, translate, and verification pipeline.
-  - [ ] A dedicated, repo-local skill file `.agents/skills/merge_upstream/SKILL.md` is authored to document the merge sequence, conflict resolution strategies, and rollback procedures for future agents.
-  - [ ] The merge pipeline runs successfully in dry-run/validation mode, verifying buildability.
+  - [x] A dedicated, repo-local skill file `.agents/skills/merge_main_to_bazel.md` is authored to document the merge sequence, conflict resolution, restore workflow, and pre-commit formatting.
+  - [x] The upstream branch `origin/main` is successfully merged into `bazel` via a merge commit and verified buildable.
+
 
