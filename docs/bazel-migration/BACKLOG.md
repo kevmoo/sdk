@@ -15,13 +15,54 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 0/6 Tasks (0%)
+- **Overall Progress**: 0/8 Tasks (0%)
 
 ---
 
 ## 📋 Active Backlog
 
-### 🎯 [TASK_001] Windows MSVC Toolchain Port
+### 🎯 [TASK_001] Dynamic Package Dependency Mapping
+- **Status**: `[IN_PROGRESS]`
+- **Prerequisites**: None
+- **Owner**: `[jetski]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/generate_test_targets.dart`
+- **Description**:
+  Implement dynamic package dependency mapping inside the test target generator. For any test target generated under `pkg/<package_name>`, the generator must dynamically inject `@//:dart_pkg_<package_name>` into its Bazel `data` dependencies. This ensures package library files and their complete transitive closures are staged inside the hermetic sandbox, resolving missing imports during JIT VM test runs and establishing perfect cache invalidation boundaries.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel pkg/path
+  ```
+- **Success Criteria**:
+  - [ ] `generate_test_targets.dart` dynamically adds `@//:dart_pkg_<pkgName>` to test targets generated for `pkg/` subdirectories.
+  - [ ] Hardcoded package mappings in `dataDeps` are minimized to baseline frameworks.
+  - [ ] Package tests execute cleanly JIT inside the hermetic sandbox and changes to `pkg/path/lib/path.dart` correctly invalidate the test cache.
+
+---
+
+### 🎯 [TASK_002] Pre-Computed Package Import Mapping (Fine-Grained Opt-in)
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/generate_test_targets.dart`
+  - `tools/bazel/dart/gen_test_imports.dart` (to be created)
+- **Description**:
+  Provide a high-performance developer tool to generate a static dependency map `test_imports.json` for huge packages like `pkg/analyzer`. Upgraded `generate_test_targets.dart` must consume this pre-computed JSON file to output individual fine-grained test targets with surgically precise file-level `data` dependencies, unlocking ultra-granular Bazel caching within packages without scanning overhead at Bazel runtime.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel pkg/path/test/some_test.dart
+  ```
+- **Success Criteria**:
+  - [ ] A high-performance CLI tool `gen_test_imports.dart` is created to recursively parse imports and output `test_imports.json`.
+  - [ ] `generate_test_targets.dart` detects `test_imports.json` in package directories and dynamically outputs individual `sh_test` targets for each test case.
+  - [ ] Modifying a single library file under `pkg/analyzer/lib/` only invalidates the specific, transitively importing JIT VM test targets inside the Bazel sandbox.
+
+---
+
+### 🎯 [TASK_003] Windows MSVC Toolchain Port
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
@@ -38,12 +79,12 @@ This is the single source of truth for the remaining migration work stream. It i
 - **Success Criteria**:
   - [ ] MSVC installation path is dynamically detected on Windows hosts.
   - [ ] `//runtime/bin:dartvm` compiles and links cleanly under Windows.
-- **Context & Hints**:
+  - [ ] Context & Hints:
   See the select-based architecture in `build/toolchain/linux/cc_toolchain_config.bzl`. GN equivalent is `//build/config/win:sdk`.
 
 ---
 
-### 🎯 [TASK_002] Android & Fuchsia Target Platform Registration
+### 🎯 [TASK_004] Android & Fuchsia Target Platform Registration
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
@@ -65,7 +106,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 ---
 
-### 🎯 [TASK_003] Dynamic Browser Testing Downloads
+### 🎯 [TASK_005] Dynamic Browser Testing Downloads
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
@@ -87,7 +128,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 ---
 
-### 🎯 [TASK_004] RBE (Remote Build Execution) Verification
+### 🎯 [TASK_006] RBE (Remote Build Execution) Verification
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
@@ -107,7 +148,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 ---
 
-### 🎯 [TASK_005] Sanitizer Suite Verification
+### 🎯 [TASK_007] Sanitizer Suite Verification
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
@@ -126,7 +167,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 ---
 
-### 🎯 [TASK_006] Minor SDK Assembly Stubs Resolution
+### 🎯 [TASK_008] Minor SDK Assembly Stubs Resolution
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
