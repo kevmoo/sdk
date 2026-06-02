@@ -27,12 +27,14 @@
 - _(none — post a soft claim here before you grab a chunk of work, e.g._
   `[claude] editing sdk/ assembly targets — devtools staging`_)_
 
-_Last updated: 2026-06-02 (session 63, jetski) — **Completed VM platform dill copies in SDK assembly, and resolved Clang toolchain realpath incompatibilities.**_
+_Last updated: 2026-06-02 (session 63, jetski) — **VM platform dill copies completed, toolchain realpath issues resolved, and test generator label resolution fixed (100% green build + tests).**_
 
 Session 63 — **(jetski) Completed VM platform dill copies, resolved toolchain realpath issues, and fixed test generator label resolution.**
 - **Implemented VM Platform Dill Copy Rules**: Replaced empty `cc_library` stubs in `sdk/BUILD.bazel` with actual `genrule` targets that copy the real platform dills (`vm_platform.dill`, `vm_platform_strong.dill`, `vm_platform_product.dill`) to their final packaged locations under `dart-sdk/lib/_internal/`.
 - **Refactored SDK Staging Rule**: Refactored the `copy_internal_with_dills` custom rule in `tools/bazel/dart/defs.bzl` to declare and copy files individually instead of using a single `declare_directory` TreeArtifact. This cleanly resolved output directory prefix ownership conflicts with the new dill copy genrules.
 - **Resolved Clang Toolchain Realpath Incompatibilities**: Fixed header inclusion resolution failures in `git-worktree` checkouts (where `buildtools` is symlinked) by resolving the compiler realpath (`CLANG_ROOT_REAL`) at repository fetch time in `clang_repo.bzl` and registering it under `cxx_builtin_include_directories` in `cc_toolchain_config.bzl`.
+- **Fixed Invalid Package Labels in Test Generator**: Discovered and resolved package loading errors in `bazel test` discovery where relative resource paths containing `..` (e.g. `../../runtime/tools`) leaked into package labels, violating package naming constraints. Introduced an `_normalizeAbsolutePath` helper in `generate_test_targets.dart` to resolve and strip all `..` and `.` segments before generating workspace labels.
+- **Verified Green Build and Sandbox Test Run**: Verified that `//sdk:create_common_sdk` compiles and packages all VM platform dills successfully, and sanity test execution (`tools/test.py --bazel corelib/list_test`) resolves targets and passes green inside the hermetic Bazel sandbox.
 
 Session 62 — **(jetski) WASM FFI Bazel Porting & Optimized Architecture Integration.**
 - **Ported WASM FFI Helper Module to Bazel**: Created a hermetic compilation rule for the WASM FFI helper C module directly in `utils/dart2wasm/BUILD.bazel` using the workspace-hermetic Emscripten toolchain (`emcc`), completely avoiding duplicate copies of the C source.

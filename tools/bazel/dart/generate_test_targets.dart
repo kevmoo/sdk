@@ -213,7 +213,7 @@ void main(List<String> args) async {
           List<String>.from(tc['other_resources'] as List? ?? []);
 
       for (final resource in otherResources) {
-        final resourcePath = '$testDir/$resource';
+        final resourcePath = _normalizeAbsolutePath('$testDir/$resource');
         if (resourcePath.startsWith(workspaceDir)) {
           final relResPath = resourcePath.substring(workspaceDir.length + 1);
           dataDeps.add(_resolveWorkspaceLabel(workspaceDir, relResPath));
@@ -305,4 +305,21 @@ String _resolveWorkspaceLabel(String workspaceDir, String relResPath) {
     final relToPackage = parts.sublist(bestI).join('/');
     return '@//$packageName:$relToPackage';
   }
+}
+
+String _normalizeAbsolutePath(String path) {
+  final parts = path.split('/');
+  final result = <String>[];
+  for (final part in parts) {
+    if (part == '..') {
+      if (result.isNotEmpty) {
+        result.removeLast();
+      }
+    } else if (part == '.' || part == '') {
+      // skip
+    } else {
+      result.add(part);
+    }
+  }
+  return '/' + result.join('/');
 }
