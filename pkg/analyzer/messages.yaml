@@ -1951,6 +1951,13 @@ CompileTimeErrorCode:
     problemMessage: The enclosing augmentation doesn't augment the operator '#operator'.
     correctionMessage: Try augmenting or invoking the correct operator.
     hasPublishedDocs: false
+  augmentsConstantVariable:
+    type: compileTimeError
+    parameters: none
+    experiment: augmentations
+    problemMessage: "Const variables can't be augmented."
+    correctionMessage: "Try removing the augmentation, or changing the const variable to a final variable."
+    hasPublishedDocs: false
   awaitInLateLocalVariableInitializer:
     type: compileTimeError
     parameters: none
@@ -4135,6 +4142,13 @@ CompileTimeErrorCode:
     problemMessage: "Type parameters can't be used in a constant expression."
     correctionMessage: Try replacing the type parameter with a different type.
     hasPublishedDocs: false
+  constantVariableAugmentation:
+    type: compileTimeError
+    parameters: none
+    experiment: augmentations
+    problemMessage: "Variable augmentations can't be const."
+    correctionMessage: "Try replacing 'const' with 'final'."
+    hasPublishedDocs: false
   constWithNonConst:
     type: compileTimeError
     parameters: none
@@ -5113,6 +5127,13 @@ CompileTimeErrorCode:
     experiment: augmentations
     problemMessage: "The factory constructor '#name' must have a body or redirection after all augmentations are applied."
     correctionMessage: "Try adding a body or redirection to the introductory declaration, or providing an augmentation with a body or redirection."
+    hasPublishedDocs: false
+  defaultValueAlreadySpecifiedInAugmentationChain:
+    type: compileTimeError
+    parameters: none
+    experiment: augmentations
+    problemMessage: "The default value for this optional parameter was already specified in the augmentation chain."
+    correctionMessage: "Try removing all but one of the default values."
     hasPublishedDocs: false
   duplicateNamedArgument:
     type: compileTimeError

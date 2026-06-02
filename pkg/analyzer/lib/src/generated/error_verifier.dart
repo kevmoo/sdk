@@ -1034,24 +1034,30 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
 
   @override
   void visitFieldDeclaration(covariant FieldDeclarationImpl node) {
-    if (node.augmentKeyword != null) {
-      for (var variable in node.fields.variables) {
-        var declaredFragment = variable.declaredFragment! as FieldFragmentImpl;
-        _checkAugmentationWithoutDeclaration(variable.name, declaredFragment);
-        _checkAugmentationWithoutDeclarationForInducedAccessors(
-          variable.name,
-          declaredFragment,
-        );
-        _checkForAugmentationInducedAccessorsAlreadyComplete(
-          errorToken: variable.name,
-          fragment: declaredFragment,
-        );
-        if (declaredFragment.inducedGetter case var inducedGetter?) {
-          _checkForAugmentationReturnTypeMismatch(
-            fragment: inducedGetter,
-            returnTypeNode: node.fields.type,
-            errorEntity: variable.name,
+    for (var variable in node.fields.variables) {
+      var declaredFragment = variable.declaredFragment! as FieldFragmentImpl;
+      var hasConstVariableAugmentation = _checkForConstVariableAugmentation(
+        errorToken: variable.name,
+        fragment: declaredFragment,
+      );
+      if (node.augmentKeyword != null) {
+        if (!hasConstVariableAugmentation) {
+          _checkAugmentationWithoutDeclaration(variable.name, declaredFragment);
+          _checkAugmentationWithoutDeclarationForInducedAccessors(
+            variable.name,
+            declaredFragment,
           );
+          _checkForAugmentationInducedAccessorsAlreadyComplete(
+            errorToken: variable.name,
+            fragment: declaredFragment,
+          );
+          if (declaredFragment.inducedGetter case var inducedGetter?) {
+            _checkForAugmentationReturnTypeMismatch(
+              fragment: inducedGetter,
+              returnTypeNode: node.fields.type,
+              errorEntity: variable.name,
+            );
+          }
         }
       }
     }
@@ -1182,11 +1188,18 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     var fragment = node.declaredFragment!;
     var element = fragment.element;
 
-    _checkAugmentationWithoutDeclaration(node.augmentKeyword, fragment);
-    _checkForFunctionAlreadyComplete(
-      augmentKeyword: node.augmentKeyword,
-      fragment: fragment,
-    );
+    var hasConstVariableAugmentation =
+        _checkForConstVariableAugmentationByAccessor(
+          errorToken: node.name,
+          fragment: fragment,
+        );
+    if (!hasConstVariableAugmentation) {
+      _checkAugmentationWithoutDeclaration(node.augmentKeyword, fragment);
+      _checkForFunctionAlreadyComplete(
+        augmentKeyword: node.augmentKeyword,
+        fragment: fragment,
+      );
+    }
     _checkForFunctionBodyCompleteness(
       node: node,
       nameToken: node.name,
@@ -1442,11 +1455,18 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     var fragment = node.declaredFragment!;
     var element = fragment.element;
 
-    _checkAugmentationWithoutDeclaration(node.augmentKeyword, fragment);
-    _checkForFunctionAlreadyComplete(
-      augmentKeyword: node.augmentKeyword,
-      fragment: fragment,
-    );
+    var hasConstVariableAugmentation =
+        _checkForConstVariableAugmentationByAccessor(
+          errorToken: node.name,
+          fragment: fragment,
+        );
+    if (!hasConstVariableAugmentation) {
+      _checkAugmentationWithoutDeclaration(node.augmentKeyword, fragment);
+      _checkForFunctionAlreadyComplete(
+        augmentKeyword: node.augmentKeyword,
+        fragment: fragment,
+      );
+    }
     _checkForFunctionBodyCompleteness(
       node: node,
       nameToken: node.name,
@@ -2020,25 +2040,31 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
   ) {
     var variableList = node.variables;
 
-    if (node.augmentKeyword != null) {
-      for (var variable in variableList.variables) {
-        var declaredFragment =
-            variable.declaredFragment! as TopLevelVariableFragmentImpl;
-        _checkAugmentationWithoutDeclaration(variable.name, declaredFragment);
-        _checkAugmentationWithoutDeclarationForInducedAccessors(
-          variable.name,
-          declaredFragment,
-        );
-        _checkForAugmentationInducedAccessorsAlreadyComplete(
-          errorToken: variable.name,
-          fragment: declaredFragment,
-        );
-        if (declaredFragment.inducedGetter case var inducedGetter?) {
-          _checkForAugmentationReturnTypeMismatch(
-            fragment: inducedGetter,
-            returnTypeNode: variableList.type,
-            errorEntity: variable.name,
+    for (var variable in variableList.variables) {
+      var declaredFragment =
+          variable.declaredFragment! as TopLevelVariableFragmentImpl;
+      var hasConstVariableAugmentation = _checkForConstVariableAugmentation(
+        errorToken: variable.name,
+        fragment: declaredFragment,
+      );
+      if (node.augmentKeyword != null) {
+        if (!hasConstVariableAugmentation) {
+          _checkAugmentationWithoutDeclaration(variable.name, declaredFragment);
+          _checkAugmentationWithoutDeclarationForInducedAccessors(
+            variable.name,
+            declaredFragment,
           );
+          _checkForAugmentationInducedAccessorsAlreadyComplete(
+            errorToken: variable.name,
+            fragment: declaredFragment,
+          );
+          if (declaredFragment.inducedGetter case var inducedGetter?) {
+            _checkForAugmentationReturnTypeMismatch(
+              fragment: inducedGetter,
+              returnTypeNode: variableList.type,
+              errorEntity: variable.name,
+            );
+          }
         }
       }
     }
@@ -3738,7 +3764,9 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     var errorRange = superInvocation?.sourceRange ?? implicitErrorRange;
     diagnosticReporter.report(
       diag.constConstructorWithNonConstSuper
-          .withArguments(superclassName: element.enclosingElement.displayName)
+          .withArguments(
+            superclassName: invokedSuper.enclosingElement.displayName,
+          )
           .atSourceRange(errorRange),
     );
     return true;
@@ -3824,6 +3852,45 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     }
   }
 
+  bool _checkForConstVariableAugmentation({
+    required Token errorToken,
+    required PropertyInducingFragmentImpl fragment,
+  }) {
+    if (!fragment.isAugmentation) {
+      return false;
+    }
+
+    if (fragment.isConst) {
+      diagnosticReporter.report(
+        diag.constantVariableAugmentation.at(errorToken),
+      );
+      return true;
+    }
+
+    if (fragment.element.firstFragment.isConst) {
+      diagnosticReporter.report(diag.augmentsConstantVariable.at(errorToken));
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _checkForConstVariableAugmentationByAccessor({
+    required Token errorToken,
+    required ExecutableFragmentImpl fragment,
+  }) {
+    if (fragment is! PropertyAccessorFragmentImpl || !fragment.isAugmentation) {
+      return false;
+    }
+
+    if (!fragment.element.variable.firstFragment.isConst) {
+      return false;
+    }
+
+    diagnosticReporter.report(diag.augmentsConstantVariable.at(errorToken));
+    return true;
+  }
+
   /// Verify that the given 'const' instance creation [expression] is not being
   /// invoked on a constructor that is not 'const'.
   ///
@@ -3887,6 +3954,39 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
   void _checkForDeadNullCoalesce(TypeImpl lhsType, Expression rhs) {
     if (typeSystem.isStrictlyNonNullable(lhsType)) {
       diagnosticReporter.report(diag.deadNullAwareExpression.at(rhs));
+    }
+  }
+
+  void _checkForDefaultValueAlreadySpecifiedInAugmentationChain(
+    FormalParameter formalParameter,
+  ) {
+    if (!formalParameter.isOptional) {
+      return;
+    }
+
+    var defaultClause = formalParameter.defaultClause;
+    if (defaultClause == null) {
+      return;
+    }
+
+    var fragment = formalParameter.declaredFragment;
+    if (fragment is! FormalParameterFragmentImpl) {
+      return;
+    }
+
+    for (var previousFragment in fragment.precedingFragments) {
+      if (previousFragment.constantInitializer != null) {
+        diagnosticReporter.report(
+          diag.defaultValueAlreadySpecifiedInAugmentationChain
+              .withContextMessages([
+                ?previousFragment.contextMessageAt(
+                  "The previous formal parameter with default value is here.",
+                ),
+              ])
+              .at(defaultClause.separator),
+        );
+        return;
+      }
     }
   }
 
@@ -7518,6 +7618,8 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     }();
 
     for (var parameter in node.parameters) {
+      _checkForDefaultValueAlreadySpecifiedInAugmentationChain(parameter);
+
       if (parameter.isRequiredNamed) {
         if (parameter.defaultClause != null) {
           var errorTarget = parameter.name ?? parameter;

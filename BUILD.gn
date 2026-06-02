@@ -51,7 +51,6 @@ group("runtime") {
     "samples/embedder:kernel",
     "samples/ffi/http:fake_http",
     "samples/ffi/httpIG:fake_httpIG",
-    "utils/dartdev",
     "utils/kernel-service",
   ]
 
@@ -71,6 +70,7 @@ group("runtime") {
   } else {
     deps += [
       "utils/dart_runtime_service_vm",
+      "utils/dartdev",
       "utils/dds",
       "utils/dtd",
       "utils/kernel-service:frontend_server",
@@ -230,6 +230,16 @@ group("dart2js_bot") {
   deps = [
     ":create_sdk",
     "utils/compiler:compile_dart2js_platform",
+  ]
+}
+
+group("dartfuzz") {
+  deps = [
+    "runtime/bin:dartaotruntime",
+    "runtime/bin:dartvm",
+    "utils/compiler:compile_dart2js_platform",
+    "utils/dart2wasm:compile_dart2wasm_platform",
+    "utils/kernel-service",
   ]
 }
 
@@ -417,11 +427,11 @@ if (is_fuchsia) {
       dart_snapshot_kind = "kernel"
       main_dart = test_source
       training_args = []  # Not used
-      output = "$target_gen_dir/$test_source.dill"
+      output = "$target_out_dir/$test_source.dill"
     }
     aot_snapshot(aot_label) {
       main_dart = test_source
-      output = "$target_gen_dir/$test_source.elf"
+      output = "$target_out_dir/$test_source.elf"
     }
 
     test_deps += [
@@ -430,11 +440,11 @@ if (is_fuchsia) {
     ]
     test_resources += [
       {
-        path = rebase_path("$target_gen_dir/$test_source.dill")
+        path = "$target_out_dir/$test_source.dill"
         dest = "data/$test_source"
       },
       {
-        path = rebase_path("$target_gen_dir/$test_source.elf")
+        path = "$target_out_dir/$test_source.elf"
         dest = "data/$test_source.elf"
       },
     ]
@@ -472,7 +482,7 @@ if (is_fuchsia) {
       resources += [
         {
           path = get_label_info("runtime/bin:ffi_callback_stub_bin",
-                                "target_gen_dir") + "/ffi_callback_stub.bin"
+                                "target_out_dir") + "/ffi_callback_stub.bin"
           dest = "lib/ffi_callback_stub.bin"
         },
       ]

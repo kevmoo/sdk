@@ -159,6 +159,7 @@ import 'const_spread_expected_list_or_set_test.dart'
     as const_spread_expected_list_or_set;
 import 'const_spread_expected_map_test.dart' as const_spread_expected_map;
 import 'const_type_parameter_test.dart' as const_type_parameter;
+import 'const_variable_augmentation_test.dart' as const_variable_augmentation;
 import 'const_with_non_const_test.dart' as const_with_non_const;
 import 'const_with_non_constant_argument_test.dart'
     as const_with_non_constant_argument;
@@ -177,6 +178,8 @@ import 'creation_of_struct_or_union_test.dart' as creation_of_struct_or_union;
 import 'creation_with_non_type_test.dart' as creation_with_non_type;
 import 'dead_code_test.dart' as dead_code;
 import 'dead_null_aware_expression_test.dart' as dead_null_aware_expression;
+import 'default_value_already_specified_in_augmentation_chain_test.dart'
+    as default_value_already_specified_in_augmentation_chain;
 import 'default_value_in_function_type_test.dart'
     as default_value_in_function_type;
 import 'default_value_in_redirecting_factory_constructor_test.dart'
@@ -1060,6 +1063,7 @@ main() {
     const_spread_expected_list_or_set.main();
     const_spread_expected_map.main();
     const_type_parameter.main();
+    const_variable_augmentation.main();
     const_with_non_const.main();
     const_with_non_constant_argument.main();
     const_with_non_type.main();
@@ -1074,6 +1078,7 @@ main() {
     creation_with_non_type.main();
     dead_code.main();
     dead_null_aware_expression.main();
+    default_value_already_specified_in_augmentation_chain.main();
     default_value_in_function_type.main();
     default_value_in_redirecting_factory_constructor.main();
     default_value_on_required_parameter.main();

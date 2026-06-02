@@ -136,11 +136,7 @@ abstract class InferenceVisitorBase implements InferenceVisitor {
 
   final Uri fileUri;
 
-  InferenceVisitorBase(
-    this._inferrer,
-    this.fileUri,
-    this.expressionEvaluationHelper,
-  );
+  new(this._inferrer, this.fileUri, this.expressionEvaluationHelper);
 
   static ContextAllocationStrategy createContextAllocationStrategy() {
     return new LoopDepthAllocationStrategy();
@@ -202,18 +198,16 @@ abstract class InferenceVisitorBase implements InferenceVisitor {
 
   DartType computeGreatestClosure(DartType type) {
     return cfeOperations.greatestClosureOfSchema(
-          new SharedTypeSchemaView(type),
-          topType: new SharedTypeView(const DynamicType()),
-        )
-        as DartType;
+      new SharedTypeSchemaView(type),
+      topType: new SharedTypeView(const DynamicType()),
+    ) as DartType;
   }
 
   DartType computeGreatestClosure2(DartType type) {
     return cfeOperations.greatestClosureOfSchema(
-          new SharedTypeSchemaView(type),
-          topType: new SharedTypeView(coreTypes.objectNullableRawType),
-        )
-        as DartType;
+      new SharedTypeSchemaView(type),
+      topType: new SharedTypeView(coreTypes.objectNullableRawType),
+    ) as DartType;
   }
 
   DartType computeNullable(DartType type) =>
@@ -2205,9 +2199,9 @@ abstract class InferenceVisitorBase implements InferenceVisitor {
 
     DartType inferredType;
     if (instantiator != null) {
-      calleeType =
-          instantiator.substitute(calleeType.withoutTypeParameters)
-              as FunctionType;
+      calleeType = instantiator.substitute(
+        calleeType.withoutTypeParameters,
+      ) as FunctionType;
     }
     inferredType = calleeType.returnType;
     assert(
@@ -5753,14 +5747,11 @@ class AssignabilityResult {
   final bool needsTearOff;
   final ImplicitInstantiation? implicitInstantiation;
 
-  const AssignabilityResult(
-    this.kind, {
-    required this.needsTearOff,
-    this.implicitInstantiation,
-  }) : subtype = null,
-       supertype = null;
+  const new(this.kind, {required this.needsTearOff, this.implicitInstantiation})
+    : subtype = null,
+      supertype = null;
 
-  AssignabilityResult.withTypes(
+  new withTypes(
     this.kind,
     this.subtype,
     this.supertype, {
@@ -5774,7 +5765,7 @@ class TypedTearoff {
   final DartType tearoffType;
   final Expression tearoff;
 
-  TypedTearoff(this.tearoffType, this.tearoff);
+  new(this.tearoffType, this.tearoff);
 }
 
 FunctionType replaceReturnType(FunctionType functionType, DartType returnType) {
@@ -5794,7 +5785,7 @@ class _WhyNotPromotedVisitor
 
   Member? propertyReference;
 
-  _WhyNotPromotedVisitor(this.inferrer);
+  new(this.inferrer);
 
   @override
   List<LocatedMessage> visitDemoteViaExplicitWrite(
@@ -5992,11 +5983,7 @@ class ImplicitInstantiation {
   /// The function type after the instantiation.
   final DartType instantiatedType;
 
-  ImplicitInstantiation(
-    this.typeArguments,
-    this.functionType,
-    this.instantiatedType,
-  );
+  new(this.typeArguments, this.functionType, this.instantiatedType);
 }
 
 /// Information about an invocation argument that needs to be resolved later due
@@ -6006,7 +5993,7 @@ class _DeferredArgumentInfo extends _ArgumentInfo {
   /// The unparenthesized argument expression.
   final InternalFunctionExpression unparenthesizedExpression;
 
-  _DeferredArgumentInfo({
+  new({
     required super.argument,
     required super.formalType,
     required this.unparenthesizedExpression,
@@ -6022,7 +6009,7 @@ class _FunctionLiteralDependencies
           _ArgumentInfo,
           _DeferredArgumentInfo
         > {
-  _FunctionLiteralDependencies(
+  new(
     Iterable<_DeferredArgumentInfo> deferredParamInfo,
     Iterable<StructuralParameter> typeParameters,
     List<_ArgumentInfo> undeferredParamInfo,
@@ -6096,7 +6083,7 @@ class _ArgumentInfo {
   /// If `true`, the argument is not included in the output AST.
   bool isDuplicateNamed = false;
 
-  _ArgumentInfo({required this.argument, required this.formalType});
+  new({required this.argument, required this.formalType});
 
   /// Indicates whether this is a named argument.
   bool get isNamed => argument is NamedArgument;
@@ -6147,7 +6134,7 @@ class _ObjectAccessDescriptor {
   final bool isSetter;
   final int fileOffset;
 
-  _ObjectAccessDescriptor({
+  new({
     required this.receiverType,
     required this.name,
     required this.receiverBound,
@@ -6372,7 +6359,7 @@ class PropertySetData {
   final DartType writeContext;
   final ObjectAccessTarget target;
 
-  PropertySetData({
+  new({
     required this.receiver,
     required this.receiverType,
     required this.writeContext,
@@ -6388,7 +6375,7 @@ class ExtensionSetData {
   final List<DartType> extensionTypeArguments;
   final Procedure setter;
 
-  ExtensionSetData({
+  new({
     required this.receiver,
     required this.inferredReceiverType,
     required this.valueType,
@@ -6403,7 +6390,7 @@ class PatternForInData {
   final Expression iterable;
   final PatternVariableDeclaration Function() computePatternVariableDeclaration;
 
-  PatternForInData({
+  new({
     required this.loopVariable,
     required this.iterable,
     required this.computePatternVariableDeclaration,
@@ -6417,7 +6404,7 @@ class LocalFunctionResult {
   final Statement? body;
   final DartType? emittedValueType;
 
-  LocalFunctionResult({
+  new({
     required this.returnType,
     required this.positionalParameters,
     required this.namedParameters,

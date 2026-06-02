@@ -53,7 +53,7 @@ class ForwardingNode {
 
   final bool _declarationIsMixinApplication;
 
-  ForwardingNode(
+  new(
     this.libraryBuilder,
     this.declarationBuilder,
     this.typeDeclaration,
@@ -250,9 +250,8 @@ class ForwardingNode {
         if (needsNoSuchMethodForwarder) {
           _createNoSuchMethodForwarder(
             _noSuchMethodTarget.getMember(
-                  _combinedMemberSignature.membersBuilder,
-                )
-                as Procedure,
+              _combinedMemberSignature.membersBuilder,
+            ) as Procedure,
             stub,
           );
         } else if (needsSuperImpl ||
@@ -335,9 +334,9 @@ class ForwardingNode {
     switch (kind) {
       case ProcedureKind.Method:
       case ProcedureKind.Operator:
-        FunctionType type =
-            _combinedMemberSignature.getMemberTypeForTarget(superTarget)
-                as FunctionType;
+        FunctionType type = _combinedMemberSignature.getMemberTypeForTarget(
+          superTarget,
+        ) as FunctionType;
         if (type.typeParameters.isNotEmpty) {
           type = FunctionTypeInstantiator.instantiate(
             type,

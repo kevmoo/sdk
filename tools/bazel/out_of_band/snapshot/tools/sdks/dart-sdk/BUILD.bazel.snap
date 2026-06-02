@@ -20,3 +20,8 @@ filegroup(
         ],
     ),
 )
+
+exports_files([
+    "bin/dart",
+    "bin/dartaotruntime",
+])

@@ -84,13 +84,15 @@ SuperConstructorInvocation
   }
 
   test_named_unresolved_hasFormalParameter() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   A(int a);
 }
 
 class B extends A {
   B(int named) : super.named(0);
+//               ^^^^^^^^^^^^^^
+// [diag.undefinedConstructorInInitializer] The class 'A' doesn't have a constructor named 'named'.
 }
 ''');
 
@@ -125,7 +127,7 @@ class A {
 class B extends A {
   const B() : super(5);
 //            ^^^^^^^^
-// [diag.constConstructorWithNonConstSuper] A constant constructor can't call a non-constant super constructor of 'B'.
+// [diag.constConstructorWithNonConstSuper] A constant constructor can't call a non-constant super constructor of 'A'.
 }
 ''');
 

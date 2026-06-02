@@ -7,8 +7,7 @@ import '../util/local_stack.dart';
 
 extension type ScopeProviderInfoStack<Info extends ScopeProviderInfo>(
   List<Info> _list
-)
-    implements LocalStack<Info> {
+) implements LocalStack<Info> {
   ScopeProviderInfo? topmostOfKind(
     Set<ScopeProviderInfoKind> scopeProviderInfoKinds,
   ) {
@@ -39,7 +38,7 @@ class ScopeProviderInfo {
   Scope? scope;
   Variable? thisVariable;
 
-  ScopeProviderInfo({required this.kind});
+  new({required this.kind});
 }
 
 abstract class ContextAllocationStrategy<Info extends ScopeProviderInfo> {
@@ -210,7 +209,7 @@ class CollectorScopeProviderInfo extends ScopeProviderInfo {
   /// case the current scope doesn't contain captured variables yet.
   CollectorScopeProviderInfo? capturedVariableCollector;
 
-  CollectorScopeProviderInfo({required super.kind});
+  new({required super.kind});
 }
 
 class LoopDepthAllocationStrategy
@@ -236,7 +235,6 @@ class LoopDepthAllocationStrategy
       case ScopeProviderInfoKind.FunctionNode:
       case ScopeProviderInfoKind.FunctionNodeWithThis:
       case ScopeProviderInfoKind.InstanceField:
-      // Coverage-ignore(suite): Not run.
       case ScopeProviderInfoKind.StaticField:
         return true;
     }

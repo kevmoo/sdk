@@ -19,7 +19,7 @@ class Types with StandardBounds {
   @override
   final ClassHierarchyBase hierarchy;
 
-  Types(this.hierarchy);
+  new(this.hierarchy);
 
   @override
   CoreTypes get coreTypes => hierarchy.coreTypes;
@@ -296,9 +296,9 @@ class Types with StandardBounds {
               }
             }
           }
-          sFunctionType =
-              instantiator.substitute(sFunctionType.withoutTypeParameters)
-                  as FunctionType;
+          sFunctionType = instantiator.substitute(
+            sFunctionType.withoutTypeParameters,
+          ) as FunctionType;
         }
         result = result.and(
           performSubtypeCheck(

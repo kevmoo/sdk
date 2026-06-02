@@ -97,7 +97,7 @@ class ResidentCompiler {
   File get _outputDill =>
       new File(_compileOptions.option(ResidentFrontendServer._outputString)!);
 
-  ResidentCompiler(this._entryPoint, this._compileOptions) {
+  new(this._entryPoint, this._compileOptions) {
     _compiler = new FrontendCompiler(_compilerOutput);
     updateState(_compileOptions);
   }
@@ -672,9 +672,9 @@ class ResidentFrontendServer {
       // [request] as overrides.
       final String cachedCompilerOptionsContents = cachedCompilerOptions
           .readAsStringSync();
-      final List<String> cachedCompilerOptionsAsList =
-          (jsonDecode(cachedCompilerOptionsContents) as List<dynamic>)
-              .cast<String>();
+      final List<String> cachedCompilerOptionsAsList = (jsonDecode(
+        cachedCompilerOptionsContents,
+      ) as List<dynamic>).cast<String>();
       final ArgResults cachedOptions = argParser.parse(
         cachedCompilerOptionsAsList,
       );

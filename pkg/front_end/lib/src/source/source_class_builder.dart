@@ -139,7 +139,7 @@ class SourceClassBuilder extends ClassBuilderImpl
   final ClassDeclaration _introductory;
   List<ClassDeclaration> _augmentations;
 
-  SourceClassBuilder({
+  new({
     required Modifiers modifiers,
     required this.name,
     required this.typeParameters,
@@ -655,7 +655,7 @@ class SourceClassBuilder extends ClassBuilderImpl
 
     for (SourceMemberBuilder memberBuilder in _constructorBuilders) {
       if (memberBuilder is SourceConstructorBuilder &&
-          memberBuilder.isPrimaryConstructor &&
+          memberBuilder.shouldTakeFieldInitializers &&
           memberBuilder.isConst) {
         memberBuilder.buildPrimaryConstructorFieldInitializers();
       }

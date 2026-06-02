@@ -100,10 +100,8 @@ class CommandLineOptions {
   final bool trainSnapshot;
 
   /// Initialize options from the given parsed [args].
-  CommandLineOptions._fromArgs(
-    ResourceProvider resourceProvider,
-    ArgResults args,
-  ) : _argResults = args,
+  new _fromArgs(ResourceProvider resourceProvider, ArgResults args)
+    : _argResults = args,
       dartSdkPath = args.option(_sdkPathOption),
       disableCacheFlushing = args.flag('disable-cache-flushing'),
       displayVersion = args.flag('version'),
@@ -164,12 +162,10 @@ class CommandLineOptions {
   /// so override the corresponding options.
   void updateAnalysisOptions(AnalysisOptionsImpl analysisOptions) {
     if (enabledExperiments.isNotEmpty) {
-      analysisOptions.contextFeatures =
-          FeatureSet.fromEnableFlags2(
-                sdkLanguageVersion: ExperimentStatus.currentVersion,
-                flags: enabledExperiments,
-              )
-              as ExperimentStatus;
+      analysisOptions.contextFeatures = FeatureSet.fromEnableFlags2(
+        sdkLanguageVersion: ExperimentStatus.currentVersion,
+        flags: enabledExperiments,
+      ) as ExperimentStatus;
     }
   }
 

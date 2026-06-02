@@ -171,14 +171,14 @@ class TestIncrementalCompiler extends IncrementalCompiler {
   final TestRecorderForTesting recorderForTesting =
       new TestRecorderForTesting();
 
-  TestIncrementalCompiler(
+  new(
     this.bodyBuilderCreator,
     CompilerContext context, {
     Uri? initializeFromDillUri,
     required bool outlineOnly,
   }) : super(context, initializeFromDillUri, outlineOnly);
 
-  TestIncrementalCompiler.fromComponent(
+  new fromComponent(
     this.bodyBuilderCreator,
     super.context,
     super._componentToInitializeFrom,
@@ -214,21 +214,20 @@ class TestRecorderForTesting extends RecorderForTesting {
   }
 }
 
-typedef KernelTargetCreator =
-    KernelTargetTest Function(
-      CompilerContext compilerContext,
-      api.FileSystem fileSystem,
-      bool includeComments,
-      DillTarget dillTarget,
-      UriTranslator uriTranslator,
-      BodyBuilderCreator bodyBuilderCreator,
-    );
+typedef KernelTargetCreator = KernelTargetTest Function(
+  CompilerContext compilerContext,
+  api.FileSystem fileSystem,
+  bool includeComments,
+  DillTarget dillTarget,
+  UriTranslator uriTranslator,
+  BodyBuilderCreator bodyBuilderCreator,
+);
 
 class KernelTargetTest extends IncrementalKernelTarget {
   final BodyBuilderCreator bodyBuilderCreator;
   bool skipTransformations = false;
 
-  KernelTargetTest(
+  new(
     CompilerContext compilerContext,
     api.FileSystem fileSystem,
     bool includeComments,
@@ -263,7 +262,7 @@ class KernelTargetTest extends IncrementalKernelTarget {
 class SourceLoaderTest extends SourceLoader {
   final BodyBuilderCreator bodyBuilderCreator;
 
-  SourceLoaderTest(
+  new(
     api.FileSystem fileSystem,
     bool includeComments,
     KernelTarget target,
@@ -285,7 +284,7 @@ class SourceLoaderTest extends SourceLoader {
 const BodyBuilderCreator defaultBodyBuilderCreator = BodyBuilderTest.new;
 
 class BodyBuilderTest extends BodyBuilderImpl {
-  BodyBuilderTest({
+  new({
     required SourceLibraryBuilder libraryBuilder,
     required BodyBuilderContext context,
     required ExtensionScope extensionScope,

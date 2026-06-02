@@ -210,11 +210,9 @@ mixin ClassHierarchyExtensionTypeMixin implements ClassHierarchyBase {
             );
         if (supertype != null) {
           if (implement.typeArguments.isNotEmpty) {
-            supertype =
-                Substitution.fromExtensionType(
-                      implement,
-                    ).substituteType(supertype)
-                    as ExtensionType;
+            supertype = Substitution.fromExtensionType(
+              implement,
+            ).substituteType(supertype) as ExtensionType;
           }
           return supertype;
         }
@@ -244,11 +242,9 @@ mixin ClassHierarchyExtensionTypeMixin implements ClassHierarchyBase {
         );
         if (supertype != null) {
           if (implement.typeArguments.isNotEmpty) {
-            supertype =
-                Substitution.fromExtensionType(
-                      implement,
-                    ).substituteType(supertype)
-                    as InterfaceType;
+            supertype = Substitution.fromExtensionType(
+              implement,
+            ).substituteType(supertype) as InterfaceType;
           }
           return supertype;
         }
@@ -292,9 +288,9 @@ mixin ClassHierarchyExtensionTypeMixin implements ClassHierarchyBase {
         );
     if (supertype != null) {
       if (type.typeArguments.isNotEmpty) {
-        supertype =
-            Substitution.fromExtensionType(type).substituteType(supertype)
-                as ExtensionType;
+        supertype = Substitution.fromExtensionType(
+          type,
+        ).substituteType(supertype) as ExtensionType;
       }
       return supertype;
     }
@@ -312,9 +308,9 @@ mixin ClassHierarchyExtensionTypeMixin implements ClassHierarchyBase {
     );
     if (supertype != null) {
       if (type.typeArguments.isNotEmpty) {
-        supertype =
-            Substitution.fromExtensionType(type).substituteType(supertype)
-                as InterfaceType;
+        supertype = Substitution.fromExtensionType(
+          type,
+        ).substituteType(supertype) as InterfaceType;
       }
       return supertype;
     }
@@ -372,7 +368,7 @@ abstract class ClassHierarchyMembers {
 /// Interface for answering various subclassing queries.
 abstract class ClassHierarchy
     implements ClassHierarchyBase, ClassHierarchyMembers {
-  factory ClassHierarchy(
+  factory(
     Component component,
     CoreTypes coreTypes, {
     HandleAmbiguousSupertypes? onAmbiguousSupertypes,
@@ -634,7 +630,7 @@ class _ClassInfoSubtype {
   /// interleaved begin/end interval end points.
   late final Uint32List subtypeIntervalList;
 
-  _ClassInfoSubtype(this.classInfo);
+  new(this.classInfo);
 }
 
 class _ClosedWorldClassHierarchySubtypes implements ClassHierarchySubtypes {
@@ -643,7 +639,7 @@ class _ClosedWorldClassHierarchySubtypes implements ClassHierarchySubtypes {
   final Map<Class, _ClassInfoSubtype> _infoMap = <Class, _ClassInfoSubtype>{};
   bool invalidated = false;
 
-  _ClosedWorldClassHierarchySubtypes(this.hierarchy)
+  new(this.hierarchy)
     : _classesByTopDownIndex = new List<Class?>.filled(
         hierarchy._infoMap.length,
         null,
@@ -814,7 +810,7 @@ class ClosedWorldClassHierarchy
 
   _ClosedWorldClassHierarchySubtypes? _cachedClassHierarchySubtypes;
 
-  ClosedWorldClassHierarchy._internal(
+  new _internal(
     this.coreTypes,
     HandleAmbiguousSupertypes onAmbiguousSupertypes,
   ) {
@@ -1033,9 +1029,8 @@ class ClosedWorldClassHierarchy
           superType1 = identical(info1!, next)
               ? type1
               : Substitution.fromInterfaceType(type1).substituteType(
-                      info1.genericSuperType![next.classNode]!.asInterfaceType,
-                    )
-                    as InterfaceType;
+                  info1.genericSuperType![next.classNode]!.asInterfaceType,
+                ) as InterfaceType;
         } else {
           type1 as ExtensionType;
           superType1 = getExtensionTypeAsInstanceOfClass(
@@ -1049,9 +1044,8 @@ class ClosedWorldClassHierarchy
           superType2 = identical(info2!, next)
               ? type2
               : Substitution.fromInterfaceType(type2).substituteType(
-                      info2.genericSuperType![next.classNode]!.asInterfaceType,
-                    )
-                    as InterfaceType;
+                  info2.genericSuperType![next.classNode]!.asInterfaceType,
+                ) as InterfaceType;
         } else {
           type2 as ExtensionType;
           superType2 = getExtensionTypeAsInstanceOfClass(
@@ -2067,7 +2061,7 @@ class ForTestingClassInfo {
   final List<Member>? lazyInterfaceGettersAndCalls;
   final List<Member>? lazyInterfaceSetters;
 
-  ForTestingClassInfo._(_ClassInfo c)
+  new _(_ClassInfo c)
     : classNode = c.classNode,
       lazyDeclaredGettersAndCalls = c.lazyDeclaredGettersAndCalls,
       lazyDeclaredSetters = c.lazyDeclaredSetters,
@@ -2135,7 +2129,7 @@ class _ClassInfo {
   List<Member>? lazyInterfaceGettersAndCalls;
   List<Member>? lazyInterfaceSetters;
 
-  _ClassInfo(this.classNode);
+  new(this.classNode);
 
   bool isSubclassOf(_ClassInfo other) {
     return _intervalListContains(
@@ -2187,7 +2181,7 @@ class _ClassInfo {
 /// An immutable set of classes.
 class ClassSet extends IterableBase<Class> {
   final Set<Class> _classes;
-  ClassSet(this._classes);
+  new(this._classes);
 
   @override
   bool contains(Object? class_) {

@@ -75,7 +75,7 @@ class Resolver {
 
   late CloneVisitorNotMembers _simpleCloner = new CloneVisitorNotMembers();
 
-  Resolver({
+  new({
     required ClassHierarchy classHierarchy,
     required CoreTypes coreTypes,
     required TypeInferenceEngineImpl typeInferenceEngine,
@@ -460,7 +460,7 @@ class Resolver {
     required LookupScope typeParameterScope,
     required LocalScope? formalParameterScope,
     required Uri fileUri,
-    required Token beginInitializers,
+    required Token? beginInitializers,
     required bool isConst,
     required bool forPrimaryConstructor,
   }) {
@@ -539,7 +539,7 @@ class Resolver {
     required ExtensionScope extensionScope,
     required LookupScope typeParameterScope,
     required Uri fileUri,
-    required Token beginInitializers,
+    required Token? beginInitializers,
     required bool isConst,
   }) {
     _ResolverContext context = new _ResolverContext(

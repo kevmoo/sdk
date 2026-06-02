@@ -30,7 +30,7 @@ Future<void> main(List<String> args) async {
 }
 
 class WhyNotPromotedDataComputer extends CfeDataComputer<String> {
-  const WhyNotPromotedDataComputer();
+  const new();
 
   @override
   DataInterpreter<String> get dataValidator =>
@@ -51,9 +51,10 @@ class WhyNotPromotedDataComputer extends CfeDataComputer<String> {
     Map<Id, ActualData<String>> actualMap, {
     bool? verbose,
   }) {
-    SourceMemberBuilder memberBuilder =
-        lookupMemberBuilder(testResultData.compilerResult, member)
-            as SourceMemberBuilder;
+    SourceMemberBuilder memberBuilder = lookupMemberBuilder(
+      testResultData.compilerResult,
+      member,
+    ) as SourceMemberBuilder;
     member.accept(
       new WhyNotPromotedDataExtractor(
         testResultData.compilerResult,
@@ -67,7 +68,7 @@ class WhyNotPromotedDataComputer extends CfeDataComputer<String> {
 class WhyNotPromotedDataExtractor extends CfeDataExtractor<String> {
   final FlowAnalysisResult _flowResult;
 
-  WhyNotPromotedDataExtractor(
+  new(
     InternalCompilerResult compilerResult,
     Map<Id, ActualData<String>> actualMap,
     this._flowResult,
@@ -84,7 +85,7 @@ class WhyNotPromotedDataExtractor extends CfeDataExtractor<String> {
 }
 
 class _WhyNotPromotedDataInterpreter implements DataInterpreter<String> {
-  const _WhyNotPromotedDataInterpreter();
+  const new();
 
   @override
   String getText(String actualData, [String? indentation]) => actualData;
