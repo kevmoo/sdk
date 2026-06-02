@@ -729,11 +729,26 @@ copy_sdk_library(
     lib = "typed_data",
 )
 
-cc_library(name = "copy_vm_dill_files")
+genrule(
+    name = "copy_vm_dill_files",
+    srcs = ["//runtime/vm:vm_platform.dill"],
+    outs = ["dart-sdk/lib/_internal/vm_platform.dill"],
+    cmd = "cp $< $@",
+)
 
-cc_library(name = "copy_vm_platform_product")
+genrule(
+    name = "copy_vm_platform_product",
+    srcs = ["//runtime/vm:vm_platform_product.dill"],
+    outs = ["dart-sdk/lib/_internal/vm_platform_product.dill"],
+    cmd = "cp $< $@",
+)
 
-cc_library(name = "copy_vm_strong_dill_files")
+genrule(
+    name = "copy_vm_strong_dill_files",
+    srcs = ["//runtime/vm:vm_platform.dill"],
+    outs = ["dart-sdk/lib/_internal/vm_platform_strong.dill"],
+    cmd = "cp $< $@",
+)
 
 genrule(
     name = "copy_wasm_opt",

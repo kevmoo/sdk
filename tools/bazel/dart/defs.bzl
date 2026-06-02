@@ -136,46 +136,60 @@ copy_tree = rule(
     },
 )
 
-def _copy_internal_with_dills_impl(ctx):
-    out = ctx.actions.declare_directory(ctx.attr.out_dir)
+def _is_excluded(f, exclude_list):
+    for pattern in exclude_list:
+        if pattern.startswith("*."):
+            ext = pattern[2:]
+            if f.extension == ext:
+                return True
+        elif pattern.endswith("*"):
+            prefix = pattern[:-1]
+            if f.basename.startswith(prefix):
+                return True
+        elif pattern in f.path.split("/"):
+            return True
+    return False
 
-    # Build copy command for additional dills
-    copy_cmds = []
+def _copy_internal_with_dills_impl(ctx):
+    outputs = []
+    inputs = []
+    exclude_list = ctx.attr.exclude.split(",")
+
+    for f in ctx.files.srcs:
+        if _is_excluded(f, exclude_list):
+            continue
+
+        if not f.path.startswith(ctx.attr.src_dir + "/"):
+            fail("Source file %s is not under src_dir %s" % (f.path, ctx.attr.src_dir))
+
+        rel_path = f.path[len(ctx.attr.src_dir) + 1:]
+        out_file_path = ctx.attr.out_dir + "/" + rel_path
+        out_file = ctx.actions.declare_file(out_file_path)
+        outputs.append(out_file)
+        inputs.append(f)
+
     for f in ctx.files.additional_dills:
-        copy_cmds.append("cp {src} {to}/{basename}".format(
-            src = f.path,
-            to = out.path,
-            basename = f.basename,
+        out_file_path = ctx.attr.out_dir + "/" + f.basename
+        out_file = ctx.actions.declare_file(out_file_path)
+        outputs.append(out_file)
+        inputs.append(f)
+
+    cmds = []
+    for src, dest in zip(inputs, outputs):
+        cmds.append("mkdir -p {dir} && cp {src} {dest}".format(
+            dir = dest.dirname,
+            src = src.path,
+            dest = dest.path,
         ))
-    additional_cp = " && ".join(copy_cmds)
-    if additional_cp:
-        additional_cp = " && " + additional_cp
 
     ctx.actions.run_shell(
-        command = (
-            "python3 {tool} --from {src} --to {to} --exclude '{exclude}' && " +
-            "cp {vm_plat} {to}/vm_platform.dill && " +
-            "cp {vm_plat} {to}/vm_platform_strong.dill && " +
-            "cp {vm_plat_prod} {to}/vm_platform_product.dill{additional}"
-        ).format(
-            tool = ctx.file._tool.path,
-            src = ctx.attr.src_dir,
-            to = out.path,
-            exclude = ctx.attr.exclude,
-            vm_plat = ctx.file.vm_platform.path,
-            vm_plat_prod = ctx.file.vm_platform_product.path,
-            additional = additional_cp,
-        ),
-        inputs = ctx.files.srcs + ctx.files.additional_dills + [
-            ctx.file._tool,
-            ctx.file.vm_platform,
-            ctx.file.vm_platform_product,
-        ],
-        outputs = [out],
+        command = " && ".join(cmds),
+        inputs = inputs,
+        outputs = outputs,
         mnemonic = "CopyInternalWithDills",
-        progress_message = "Staging SDK internal library with VM and web platform dills",
+        progress_message = "Staging SDK internal library with VM and web platform dills individually",
     )
-    return [DefaultInfo(files = depset([out]))]
+    return [DefaultInfo(files = depset(outputs))]
 
 copy_internal_with_dills = rule(
     implementation = _copy_internal_with_dills_impl,
