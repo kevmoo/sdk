@@ -189,10 +189,10 @@ This is the single source of truth for the remaining migration work stream. It i
 ---
 
 ### 🎯 [TASK_009] Relocate and Migrate Worktree Symlinker to Dart
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/dart/setup_worktree_links.sh`
   - `tools/setup_worktree_links.dart`
@@ -203,10 +203,10 @@ This is the single source of truth for the remaining migration work stream. It i
   dart tools/setup_worktree_links.dart
   ```
 - **Success Criteria**:
-  - [ ] **Task 1.1 (Port Symlinker):** Author the cross-platform Dart worktree symlinker at `tools/setup_worktree_links.dart`.
-  - [ ] **Task 1.2 (Excise Shell Script):** Delete the legacy shell script `tools/bazel/dart/setup_worktree_links.sh` completely.
-  - [ ] It successfully resolves parent git checkouts and establishes symlinks under secondary git worktrees.
-  - [ ] It handles file existences, skips tracked configurations safely, and works cleanly on Linux, macOS, and Windows.
+  - [x] **Task 1.1 (Port Symlinker):** Author the cross-platform Dart worktree symlinker at `tools/setup_worktree_links.dart`.
+  - [x] **Task 1.2 (Excise Shell Script):** Delete the legacy shell script `tools/bazel/dart/setup_worktree_links.sh` completely.
+  - [x] It successfully resolves parent git checkouts and establishes symlinks under secondary git worktrees.
+  - [x] It handles file existences, skips tracked configurations safely, and works cleanly on Linux, macOS, and Windows.
 
 ---
 

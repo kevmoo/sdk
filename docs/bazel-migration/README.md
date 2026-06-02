@@ -50,6 +50,11 @@ another agent.
 * **Environment.** `bazel` = `/home/linuxbrew/.linuxbrew/bin/bazel`; `gn` =
   `depot_tools/gn`. On a fresh clone, re-activate the buildifier pre-commit hook:
   `ln -sf ../../tools/bazel/hooks/pre-commit .git/hooks/pre-commit`.
+* **Git Worktrees:** If you are working in a secondary Git worktree (rather than the main SDK checkout), you must bootstrap untracked gclient dependencies (`third_party/`, `buildtools/`, `.dart_tool/package_config.json`) from the main SDK checkout. Run this cross-platform Dart CLI tool from the root of your newly created secondary Git worktree:
+  ```bash
+  tools/sdks/dart-sdk/bin/dart tools/setup_worktree_links.dart
+  ```
+  This dynamically resolves the parent checkout path, verifies directory setups, and safely establishes symbolic links (with automatic Windows junctions and copy fallbacks if symlink privileges are missing), avoiding gigabytes of duplicate checkouts.
 * **Commit discipline.** Branch is `kevmoo/bazel`; **never push without
   explicit human approval.** Prefer small atomic commits. The pre-commit hook re-`git add`s
   the *whole* staged BUILD/.bzl file (buildifier `--lint=fix`), so per-hunk atomic commits
