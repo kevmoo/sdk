@@ -29,6 +29,8 @@ exports_files(glob(
         "**/*.S",
         "**/*.s",
         "**/*.dart",
+        "tests/**/*",
+        "tools/gn.py",
     ],
     allow_empty = True,
 ))

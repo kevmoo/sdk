@@ -4,6 +4,27 @@
 
 """Dynamic Bazel test discovery and target generation rules."""
 
+def _resolve_workspace_label(workspace_dir, rel_res_path):
+    parts = rel_res_path.split("/")
+    dir_parts = parts[:-1]
+
+    best_i = 0  # Fallback to root package
+
+    # Check all prefixes to find the deepest package
+    for i in range(1, len(dir_parts) + 1):
+        package_dir = workspace_dir
+        for part in dir_parts[:i]:
+            package_dir = package_dir.get_child(part)
+        if package_dir.get_child("BUILD.bazel").exists or package_dir.get_child("BUILD").exists:
+            best_i = i
+
+    if best_i == 0:
+        return "@//:" + rel_res_path
+    else:
+        package_name = "/".join(dir_parts[:best_i])
+        rel_to_package = "/".join(parts[best_i:])
+        return "@//{}:{}".format(package_name, rel_to_package)
+
 def _dynamic_test_repo_impl(repository_ctx):
     # repo_ctx.workspace_root is the main repository root (requires Bazel 7+)
     workspace_dir = repository_ctx.workspace_root
@@ -89,6 +110,13 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
 
         name = test_case["name"]
 
+        # Skip tests that are structurally incompatible with Bazel sandbox or packaged SDK layouts.
+        # These should eventually be fixed in the tests themselves or handled via status files.
+        if name in [
+            "standalone/check_for_aot_snapshot_jit_test",
+        ]:
+            continue
+
         # Replace slashes, dashes, and dots to create a clean, valid Bazel target name
         target_name = name.replace("/", "_").replace("-", "_").replace(".", "_")
 
@@ -103,7 +131,7 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
 
         if file_path_abs.startswith(workspace_dir_str):
             relative_path = file_path_abs.replace(workspace_dir_str + "/", "")
-            test_file_label = "@//:" + relative_path
+            test_file_label = _resolve_workspace_label(workspace_dir, relative_path)
         elif file_path_abs.startswith(external_repo_dir_str):
             relative_path = file_path_abs.replace(external_repo_dir_str + "/", "")
             test_file_label = ":" + relative_path
@@ -117,6 +145,25 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
             test_file_label,
             ":" + json_filename,
         ]
+
+        if "socket_sigpipe_test" in relative_path or "/ffi/" in relative_path:
+            data_deps.append("@//runtime/bin:libffi_test_functions.so")
+
+        # Resolve and add other resources declared by the test (e.g. helper scripts, data files)
+        # Use original_file_path if available (e.g. for generated multitests) to resolve resources
+        # relative to the original source directory in the workspace.
+        orig_file_path = test_case.get("original_file_path", file_path_abs)
+        test_dir = repository_ctx.path(orig_file_path).dirname
+        for resource in test_case.get("other_resources", []):
+            # Resources are resolved relative to the test file's directory
+            resource_path = test_dir.get_child(resource)
+            resource_path_str = str(resource_path)
+            if resource_path_str.startswith(workspace_dir_str):
+                rel_res_path = resource_path_str.replace(workspace_dir_str + "/", "")
+                data_deps.append(_resolve_workspace_label(workspace_dir, rel_res_path))
+            elif resource_path_str.startswith(external_repo_dir_str):
+                rel_res_path = resource_path_str.replace(external_repo_dir_str + "/", "")
+                data_deps.append(":" + rel_res_path)
 
         if repository_ctx.attr.runtime == "d8" or repository_ctx.attr.compiler == "dart2wasm":
             data_deps += [
@@ -138,7 +185,13 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
             if jsshell_build.exists:
                 data_deps.append("@//third_party/firefox_jsshell:firefox_jsshell_files")
 
-        data_list_str = ",\n        ".join(['"{}"'.format(d) for d in data_deps])
+        # Deduplicate data_deps to avoid Bazel errors if a test declares itself or same resource multiple times
+        unique_data_deps = []
+        for dep in data_deps:
+            if dep not in unique_data_deps:
+                unique_data_deps.append(dep)
+
+        data_list_str = ",\n        ".join(['"{}"'.format(d) for d in unique_data_deps])
 
         # Generate the individual sh_test target
         build_content += """
@@ -173,13 +226,14 @@ dynamic_test_repository = repository_rule(
 )
 
 # Bzlmod module extension wrapper to instantiate the test repository
-def _test_ext_impl(ctx):
+def _test_ext_impl(_ctx):
     # 1. VM JIT Release (default)
     dynamic_test_repository(
         name = "dart_tests",
         suites = [
             "language",
             "corelib",
+            "standalone",
         ],
         mode = "release",
         compiler = "dartk",
@@ -192,6 +246,7 @@ def _test_ext_impl(ctx):
         suites = [
             "language",
             "corelib",
+            "standalone",
         ],
         mode = "debug",
         compiler = "dartk",
@@ -251,6 +306,7 @@ def _test_ext_impl(ctx):
         suites = [
             "language",
             "corelib",
+            "standalone",
         ],
         mode = "product",
         compiler = "dartk",
