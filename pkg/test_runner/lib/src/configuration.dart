@@ -70,16 +70,20 @@ class TestConfiguration {
     String? packages,
     this.serviceResponseSizesDirectory,
     this.suiteDirectory,
+    String? buildDirectory,
     required this.outputDirectory,
     required this.reproducingArguments,
     this.fastTestsOnly = false,
     this.printPassingStdout = false,
-  }) : packages =
+    // ignore: prefer_initializing_formals
+  }) : _buildDirectory = buildDirectory,
+       packages =
            packages ??
            Repository.uri
                .resolve('.dart_tool/package_config.json')
                .toFilePath();
 
+  final String? _buildDirectory;
   final Map<String, RegExp?> selectors;
   final Progress progress;
   // The test configuration read from the -n option and the test matrix
@@ -227,7 +231,8 @@ class TestConfiguration {
   /// The build directory path for this configuration, like:
   ///
   ///     build/ReleaseX64
-  String get buildDirectory => system.outputDirectory + configurationDirectory;
+  String get buildDirectory =>
+      _buildDirectory ?? (system.outputDirectory + configurationDirectory);
 
   int? _defaultTimeout;
 

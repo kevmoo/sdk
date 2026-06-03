@@ -15,33 +15,37 @@ import utils
 def ResolveConfig(named_config):
     repo_name = 'dart_tests'
     injected_flags = []
+    suffix = '_vm_release'
 
     if not named_config:
-        return repo_name, injected_flags
+        return repo_name, suffix, injected_flags
 
     config_lower = named_config.lower()
 
     is_wasm = 'wasm' in config_lower or 'dart2wasm' in config_lower
     is_debug = 'debug' in config_lower
     is_product = 'product' in config_lower
+    is_cfe = 'cfe' in config_lower or 'fasta' in config_lower
 
     if is_wasm:
         if 'asserts' in config_lower:
-            repo_name = 'dart_tests_wasm_asserts_d8'
+            suffix = '_wasm_asserts'
         elif 'optimized' in config_lower:
-            repo_name = 'dart_tests_wasm_optimized_d8'
+            suffix = '_wasm_optimized'
         else:
-            repo_name = 'dart_tests_wasm_d8'
+            suffix = '_wasm_release'
+    elif is_cfe:
+        suffix = '_cfe_release'
     elif is_debug:
-        repo_name = 'dart_tests_vm_debug'
+        suffix = '_vm_debug'
         injected_flags.append('--//build/config:dart_debug=true')
     elif is_product:
-        repo_name = 'dart_tests_vm_product'
+        suffix = '_vm_product'
         injected_flags.append('--//build/config:dart_product=true')
     else:
-        repo_name = 'dart_tests'
+        suffix = '_vm_release'
 
-    return repo_name, injected_flags
+    return repo_name, suffix, injected_flags
 
 
 def TestWithBazel(args):
@@ -62,7 +66,7 @@ def TestWithBazel(args):
         remaining_args.append(arg)
         i += 1
 
-    repo_name, injected_flags = ResolveConfig(named_config)
+    repo_name, suffix, injected_flags = ResolveConfig(named_config)
 
     selectors = []
     bazel_flags = []
@@ -154,12 +158,12 @@ def TestWithBazel(args):
         else:
             pkg_dir = f"{parts[0]}/misc"
 
-        target = f"@{repo_name}//{pkg_dir}:tests"
+        target = f"@{repo_name}//{pkg_dir}:tests{suffix}"
         rel_path = name[len(pkg_dir)+1:] if len(name) > len(pkg_dir) else ""
         fine_grained_target_name = rel_path.replace('/', '_')
         if fine_grained_target_name.endswith('.dart'):
             fine_grained_target_name = fine_grained_target_name[:-5]
-        fine_grained_target = f"@{repo_name}//{pkg_dir}:{fine_grained_target_name}" if fine_grained_target_name else ""
+        fine_grained_target = f"@{repo_name}//{pkg_dir}:{fine_grained_target_name}{suffix}" if fine_grained_target_name else ""
 
         if fine_grained_target and fine_grained_target in all_targets:
             if fine_grained_target not in bazel_targets:
@@ -174,7 +178,13 @@ def TestWithBazel(args):
             if len(name) > len(pkg_dir):
                 target_prefix = rel_path.replace('/', '_')
                 pkg_prefix = f"@{repo_name}//{pkg_dir}:"
-                matches = [t for t in all_targets if t.startswith(pkg_prefix) and t.split(':', 1)[1].startswith(target_prefix)]
+                matches = []
+                for t in all_targets:
+                    if t.startswith(pkg_prefix) and t.endswith(suffix):
+                        target_name = t.split(':', 1)[1]
+                        target_name_nosuffix = target_name[:-len(suffix)] if suffix else target_name
+                        if target_name_nosuffix.startswith(target_prefix):
+                            matches.append(t)
                 if matches:
                     for m in matches:
                         if m not in bazel_targets:
@@ -185,7 +195,7 @@ def TestWithBazel(args):
                 # Support broad directory suite selectors (e.g. 'web', 'language')
                 prefix1 = f"@{repo_name}//{name}/"
                 prefix2 = f"@{repo_name}//{name}:"
-                matches = [t for t in all_targets if t.startswith(prefix1) or t.startswith(prefix2)]
+                matches = [t for t in all_targets if (t.startswith(prefix1) or t.startswith(prefix2)) and t.endswith(suffix)]
                 if matches:
                     for m in matches:
                         if m not in bazel_targets:
@@ -194,7 +204,7 @@ def TestWithBazel(args):
                     matched = True
 
             if not matched:
-                print(f"Warning: No matching Bazel test targets found for selector '{selector}' under configuration '{repo_name}'")
+                print(f"Warning: No matching Bazel test targets found for selector '{selector}' under configuration '{repo_name}' with suffix '{suffix}'")
 
     if not bazel_targets:
         print("Error: No valid Bazel test targets were resolved from the selectors.")

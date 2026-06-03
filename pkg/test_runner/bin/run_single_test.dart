@@ -154,7 +154,7 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
   final relativeFilePath = testCase['relative_file_path'] as String?;
   final compiler = testCase['compiler'] as String?;
 
-  List<ExpectedError> expectedErrors = [];
+  var expectedErrors = <ExpectedError>[];
   String? expectedSource;
 
   if (isStaticErrorTest) {
@@ -282,7 +282,7 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
       }
 
       // Check if we need to run the opt phase (if optimization is enabled and we have wasm-opt)
-      bool hasOptimization = false;
+      var hasOptimization = false;
       for (final arg in arguments) {
         if (arg == '-O1' || arg == '-O2' || arg == '-O3' || arg == '-O4') {
           hasOptimization = true;
@@ -601,22 +601,16 @@ String _rewriteSandboxPathRaw(String path, String testTmpdir) {
     return path;
   }
 
-  final outReleaseIndex = path.indexOf('/out/ReleaseX64/');
-  if (outReleaseIndex != -1) {
+  final match = RegExp(
+    r'/out/([^/]+)/generated_compilations/',
+  ).firstMatch(path);
+  if (match != null) {
+    final configName = match[1]!;
+    final outConfigIndex = path.indexOf('/out/$configName/');
     final relativePart = path.substring(
-      outReleaseIndex + '/out/ReleaseX64/'.length,
+      outConfigIndex + '/out/$configName/'.length,
     );
-    final rewritten = '$testTmpdir/out_ReleaseX64/$relativePart';
-    Directory(File(rewritten).parent.path).createSync(recursive: true);
-    return rewritten;
-  }
-
-  final outDebugIndex = path.indexOf('/out/DebugX64/');
-  if (outDebugIndex != -1) {
-    final relativePart = path.substring(
-      outDebugIndex + '/out/DebugX64/'.length,
-    );
-    final rewritten = '$testTmpdir/out_DebugX64/$relativePart';
+    final rewritten = '$testTmpdir/out_$configName/$relativePart';
     Directory(File(rewritten).parent.path).createSync(recursive: true);
     return rewritten;
   }
@@ -701,7 +695,7 @@ List<ExpectedError> parseExpectations(String sourceContent) {
   final lines = sourceContent.split('\n');
   var expectedErrors = <ExpectedError>[];
 
-  int lastRealLine = -1;
+  var lastRealLine = -1;
 
   final caretRegex = RegExp(r"^\s*//\s*(\^+)\s*$");
   final explicitRegex = RegExp(
@@ -714,9 +708,8 @@ List<ExpectedError> parseExpectations(String sourceContent) {
     final lineText = lines[i];
 
     // Check if it's a caret marker
-    if (caretRegex.firstMatch(lineText) case var match?) {
+    if (caretRegex.firstMatch(lineText) != null) {
       if (lastRealLine == -1) continue;
-      final caretStr = match[1]!;
       final column = lineText.indexOf('^') + 1;
 
       // Peek next lines for messages
@@ -805,7 +798,7 @@ List<ActualError> parseCompilerErrors(
     }
 
     // Skip errors in other files
-    if (path != null && !path.endsWith(testPath)) {
+    if (!path.endsWith(testPath)) {
       continue;
     }
 

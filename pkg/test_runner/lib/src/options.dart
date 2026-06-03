@@ -408,6 +408,7 @@ class OptionsParser {
             data['service-response-sizes-directory'] as String?,
         suiteDirectory: data["suite-dir"] as String?,
         outputDirectory: data["output-directory"] as String,
+        buildDirectory: data["build-directory"] as String?,
         reproducingArguments: _reproducingCommand(
           data,
           namedConfiguration != null,
@@ -526,7 +527,7 @@ class OptionsParser {
                   mode.name,
                   system.name,
                   architecture.name,
-                  "${configurationNumber++}"
+                  "${configurationNumber++}",
                 ].join("-");
                 var configuration = Configuration(
                   configName,
@@ -548,7 +549,7 @@ class OptionsParser {
                   isCsp: data["csp"] as bool,
                   isMinified: data["minified"] as bool,
                   genSnapshotFormat: format,
-                   vmOptions: vmOptions,
+                  vmOptions: vmOptions,
                   dart2jsOptions: dart2jsOptions,
                   dart2wasmOptions: dart2wasmOptions,
                   ddcOptions: ddcOptions,
@@ -934,6 +935,12 @@ test options, specifying how tests should be run.''',
     'use-sdk',
     aliases: ['use_sdk'],
     help: 'Use compiler or runtime from the SDK.',
+  )
+  ..addOption(
+    'build-directory',
+    aliases: ['build_directory'],
+    help: 'The name of the build directory, where products are placed.',
+    hide: true,
   )
   ..addOption(
     'output-directory',

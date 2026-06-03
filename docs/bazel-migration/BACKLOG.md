@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 6/14 Tasks (42.9%)
+- **Overall Progress**: 7/14 Tasks (50.0%)
 
 ---
 
@@ -272,15 +272,15 @@ This is the single source of truth for the remaining migration work stream. It i
 ---
 
 ### 🎯 [TASK_013] Unified Test Repository with Configuration Subtargets
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: `[TASK_012]`
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
-  - `tools/bazel/dart/test_rules.bzl`
-  - `MODULE.bazel`
-  - `tools/bazel/dart/generate_test_targets.dart`
-  - `tools/test.py`
+- `tools/bazel/dart/test_rules.bzl`
+- `MODULE.bazel`
+- `tools/bazel/dart/generate_test_targets.dart`
+- `tools/test.py`
 - **Description**:
   Consolidate the 7 redundant external Starlark test repositories into a single unified external repository `@dart_tests` to eliminate sequential Bazel repository fetch runs. Refactor target generation to define configuration subtargets inside the package `BUILD` files using configuration suffixes (e.g., `_vm_debug`, `_wasm_d8`) rather than distinct repository namespaces. Upgrade `generate_test_targets.dart` to run the 7 dry-run sweeps concurrently via Dart's `Future.wait` to complete target discovery under 2 seconds.
 - **Verification Command**:
@@ -288,11 +288,11 @@ This is the single source of truth for the remaining migration work stream. It i
   python3 tools/test.py --bazel -n dart2wasm-linux-d8 corelib/list_test -v
   ```
 - **Success Criteria**:
-  - [ ] `MODULE.bazel` is refactored to define exactly **one** dynamic test repository (`@dart_tests`).
-  - [ ] `generate_test_targets.dart` parallelizes dry-run sweeps using `Future.wait` and completes target discovery in <2.5 seconds.
-  - [ ] `test_rules.bzl` defines configuration-suffixed test targets inside the root suite packages.
-  - [ ] `tools/test.py` routes different configuration runs correctly to their corresponding suffixed targets.
-  - [ ] All configurations compile and execute green inside the sandboxed repository.
+  - [x] `MODULE.bazel` is refactored to define exactly **one** dynamic test repository (`@dart_tests`).
+  - [x] `generate_test_targets.dart` parallelizes dry-run sweeps using `Future.wait` and completes target discovery in <2.5 seconds.
+  - [x] `test_rules.bzl` defines configuration-suffixed test targets inside the root suite packages.
+  - [x] `tools/test.py` routes different configuration runs correctly to their corresponding suffixed targets.
+  - [x] All configurations compile and execute green inside the sandboxed repository.
 
 ---
 

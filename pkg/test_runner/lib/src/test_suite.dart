@@ -938,7 +938,7 @@ class StandardTestSuite extends TestSuite {
 
       for (var name in testFile.otherResources) {
         var namePath = Path(name);
-        var fromPath = testFile.path.directoryPath.join(namePath);
+        var fromPath = testFile.originPath.directoryPath.join(namePath);
         File('$tempDir/$name').createSync(recursive: true);
         File(fromPath.toNativePath()).copySync('$tempDir/$name');
       }

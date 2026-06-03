@@ -4,8 +4,6 @@
 
 """Dynamic Bazel test discovery and target generation rules."""
 
-
-
 def _dynamic_test_repo_impl(repository_ctx):
     # repo_ctx.workspace_root is the main repository root (requires Bazel 7+)
     workspace_dir = repository_ctx.workspace_root
@@ -47,37 +45,25 @@ exec "$DART_BIN" "$RUNNER_DART" "$@"
         str(generator_path),
         "--workspace-dir=" + str(workspace_dir),
         "--output-dir=" + str(repository_ctx.path(".")),
-        "--mode=" + repository_ctx.attr.mode,
-        "--compiler=" + repository_ctx.attr.compiler,
-        "--runtime=" + repository_ctx.attr.runtime,
     ]
     for s in repository_ctx.attr.suites:
         generator_args.append("--suite=" + s)
-    for f in repository_ctx.attr.extra_flags:
-        generator_args.append("--extra-flag=" + f)
 
     res = repository_ctx.execute(generator_args)
 
     if res.return_code != 0:
         fail("Failed to generate test targets:\n" + res.stderr + "\n" + res.stdout)
 
-# Define the dynamic repository rule. Marked as local because it parses files
-# on the local filesystem that change during development.
+# Define the dynamic repository rule.
 dynamic_test_repository = repository_rule(
     implementation = _dynamic_test_repo_impl,
-    local = True,
     attrs = {
-        "mode": attr.string(default = "release"),
-        "compiler": attr.string(default = "dartk"),
-        "runtime": attr.string(default = "vm"),
         "suites": attr.string_list(mandatory = True),
-        "extra_flags": attr.string_list(default = []),
     },
 )
 
 # Bzlmod module extension wrapper to instantiate the test repository
 def _test_ext_impl(_ctx):
-    # 1. VM JIT Release (default)
     dynamic_test_repository(
         name = "dart_tests",
         suites = [
@@ -86,94 +72,9 @@ def _test_ext_impl(_ctx):
             "standalone",
             "ffi",
             "pkg",
-        ],
-        mode = "release",
-        compiler = "dartk",
-        runtime = "vm",
-    )
-
-    # 2. VM JIT Debug
-    dynamic_test_repository(
-        name = "dart_tests_vm_debug",
-        suites = [
-            "language",
-            "corelib",
-            "standalone",
-        ],
-        mode = "debug",
-        compiler = "dartk",
-        runtime = "vm",
-    )
-
-    # 3. Dart2Wasm on D8 Release
-    dynamic_test_repository(
-        name = "dart_tests_wasm_d8",
-        suites = [
-            "language",
-            "corelib",
             "web/wasm",
         ],
-        mode = "release",
-        compiler = "dart2wasm",
-        runtime = "d8",
-    )
-
-    # 3a. Dart2Wasm on D8 with Asserts
-    dynamic_test_repository(
-        name = "dart_tests_wasm_asserts_d8",
-        suites = [
-            "language",
-            "corelib",
-            "web/wasm",
-        ],
-        mode = "release",
-        compiler = "dart2wasm",
-        runtime = "d8",
-        extra_flags = [
-            "--enable-asserts",
-            "--dart2wasm-options=-O0",
-        ],
-    )
-
-    # 3b. Dart2Wasm on D8 Optimized
-    dynamic_test_repository(
-        name = "dart_tests_wasm_optimized_d8",
-        suites = [
-            "language",
-            "corelib",
-            "web/wasm",
-        ],
-        mode = "release",
-        compiler = "dart2wasm",
-        runtime = "d8",
-        extra_flags = [
-            "--dart2wasm-options=-O1",
-            "--dart2wasm-options=--no-strip-wasm",
-        ],
-    )
-
-    # 4. VM JIT Product
-    dynamic_test_repository(
-        name = "dart_tests_vm_product",
-        suites = [
-            "language",
-            "corelib",
-            "standalone",
-        ],
-        mode = "product",
-        compiler = "dartk",
-        runtime = "vm",
-    )
-
-    # 5. CFE (Fasta)
-    dynamic_test_repository(
-        name = "dart_tests_cfe",
-        suites = [
-            "language",
-        ],
-        mode = "release",
-        compiler = "fasta",
-        runtime = "none",
     )
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
+# Force refetch trigger: 3
