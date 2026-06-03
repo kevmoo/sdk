@@ -59,6 +59,7 @@ another agent.
   explicit human approval.** Prefer small atomic commits. The pre-commit hook re-`git add`s
   the *whole* staged BUILD/.bzl file (buildifier `--lint=fix`), so per-hunk atomic commits
   of one file need `git commit --no-verify` (the files are already canonical).
+  * **Lockfile Drift:** Bazel's `MODULE.bazel.lock` might show `bzlTransitiveDigest` drift between different machines or OSes (macOS and Linux) even when Starlark files are identical. This is due to platform-specific built-ins in the Bazel binaries. Do not commit these lockfile changes unless you intentionally modified `MODULE.bazel`. Revert them using `git checkout MODULE.bazel.lock` before committing.
 
 ## Directory Map
 

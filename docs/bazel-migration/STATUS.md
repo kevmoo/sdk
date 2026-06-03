@@ -26,7 +26,10 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 72, jetski) — **Added out-of-band restore sanity check to test.py.**_
+_Last updated: 2026-06-03 (session 73, jetski) — **Documented lockfile drift policy in README.md.**_
+
+Session 73 — **(jetski) Documented lockfile drift policy in README.md.**
+- **Documented Lockfile Drift**: Added a guidelines block under "Commit discipline" in `docs/bazel-migration/README.md` instructing contributors to ignore and revert platform-specific `MODULE.bazel.lock` changes.
 
 Session 72 — **(jetski) Added out-of-band restore sanity check to test.py.**
 - **Added Sanity Check**: Updated `tools/test.py` to check for `tools/sdks/dart-sdk/BUILD.bazel` existence and header content, failing early if `restore.sh` needs to be run.
