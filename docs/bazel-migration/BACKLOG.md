@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 11/19 Tasks
+- **Overall Progress**: 11/21 Tasks
 
 ---
 
@@ -46,11 +46,18 @@ graph TD
     TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::pending
     TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::pending
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::pending
+    TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::pending
+    TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::pending
 
+    TASK_017 --> TASK_006
     TASK_010 --> TASK_012
     TASK_012 --> TASK_013
     TASK_008 --> TASK_016
+    TASK_017 --> TASK_018
     TASK_018 --> TASK_019
+    TASK_017 --> TASK_020
+    TASK_017 --> TASK_021
+    TASK_020 --> TASK_021
 ```
 
 <!-- END_DEP_GRAPH -->
@@ -168,7 +175,7 @@ graph TD
 
 ### 🎯 [TASK_006] RBE (Remote Build Execution) Verification
 - **Status**: `[PENDING]`
-- **Prerequisites**: None
+- **Prerequisites**: `[TASK_017]`
 - **Owner**: `[none]`
 - **Commit**: `[none]`
 - **Target Files**:
@@ -438,7 +445,7 @@ graph TD
 
 ### 🎯 [TASK_018] Compile `dart_engine` Shared Libraries JIT/AOT
 - **Status**: `[PENDING]`
-- **Prerequisites**: None
+- **Prerequisites**: `[TASK_017]`
 - **Owner**: `[none]`
 - **Commit**: `[none]`
 - **Target Files**:
@@ -470,3 +477,49 @@ graph TD
   ```
 - **Success Criteria**:
   - [ ] All embedder sample executables build green.
+
+---
+
+### 🎯 [TASK_020] Migrate `packages.bzl` target generation to a dynamic Bzlmod extension
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_017]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/packages.bzl`
+  - `tools/bazel/dart/gen_packages.py`
+  - `MODULE.bazel`
+  - `BUILD.bazel`
+- **Description**:
+  Replace the static, committed `tools/bazel/dart/packages.bzl` file with a dynamic Bzlmod module extension. The extension must read `.dart_tool/package_config.json` and the package `pubspec.yaml` files to dynamically generate `dart_library` targets in an external repository (e.g. `@dart_packages`). This removes `packages.bzl` from git and eliminates the need for `gen_packages.py`.
+- **Verification Command**:
+  ```bash
+  bazel build @dart_packages//:all
+  ```
+- **Success Criteria**:
+  - [ ] `tools/bazel/dart/packages.bzl` and `tools/bazel/dart/gen_packages.py` are deleted.
+  - [ ] A Bzlmod extension dynamically generates package targets.
+  - [ ] Build succeeds using dynamic targets.
+
+---
+
+### 🎯 [TASK_021] Retire `restore.sh` entirely
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_017, TASK_020]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/out_of_band/restore.sh`
+  - `tools/bazel/out_of_band/README.md`
+  - `tools/test.py`
+- **Description**:
+  Delete `restore.sh` and its documentation. Remove the sanity check in `tools/test.py` that references `restore.sh` and `tools/sdks/dart-sdk/BUILD.bazel`. Ensure the development workflow relies solely on `gclient sync` for dependency alignment.
+- **Verification Command**:
+  ```bash
+  # Verify no references to restore.sh remain and build works
+  git status
+  ```
+- **Success Criteria**:
+  - [ ] `restore.sh` and `README.md` are deleted.
+  - [ ] `tools/test.py` check is removed.
+  - [ ] Build works after a fresh `gclient sync` without running any restore scripts.

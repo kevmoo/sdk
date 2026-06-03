@@ -26,7 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 78, jetski) — **Completed TASK_016: Migrate VM Platform and Kernel Service Dill Compilation to Starlark.**_
+_Last updated: 2026-06-03 (session 79, jetski) — **Backlog Update: Added tasks for retiring restore.sh.**_
+
+Session 79 — **(jetski) Backlog Update: Added tasks for retiring restore.sh.**
+- **Expanded Backlog**: Added `TASK_020` (Migrate `packages.bzl` to Bzlmod extension) and `TASK_021` (Retire `restore.sh` entirely) to `BACKLOG.md`.
+- **Linked Dependencies**: Linked `TASK_017` as a prerequisite for `TASK_006` (RBE), `TASK_018` (Shared Libraries), and `TASK_020` (Packages extension). Linked `TASK_020` as a prerequisite for `TASK_021`.
+- **Regenerated Dependency Graph**: Ran the graph generator to update the Mermaid diagram in `BACKLOG.md`.
+- **Updated Metrics**: Adjusted progress tracking to 11/21 tasks (52.4%).
 
 Session 78 — **(jetski) Completed TASK_016: Migrate VM Platform and Kernel Service Dill Compilation to Starlark.**
 - **Verified Native Starlark Compilation**: Confirmed that `//runtime/bin:dartvm` and `//sdk:create_sdk` build successfully without any dependency on GN artifacts in `out/ReleaseX64/`. Verified incremental rebuilds of platform dills when SDK sources are modified.
