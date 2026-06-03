@@ -26,7 +26,15 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 70, jetski) — **Completed TASK_013: Unified Test Repository with Configuration Subtargets.**_
+_Last updated: 2026-06-03 (session 71, jetski) — **Completed TASK_014: Python Test Wrapper Unit Testing.**_
+
+Session 71 — **(jetski) Completed TASK_014: Python Test Wrapper Unit Testing.**
+- **Implemented Python Test Wrapper Unit Tests**: Created `tools/test_wrapper_test.py` utilizing Python's `unittest` library to verify target resolution and flag translation in `tools/test.py`.
+- **Mocked Bazel Queries & Execution**: Structured mock coverage for Bazel query target listings, validating routing for coarse-grained selectors, fine-grained selectors, deep directories, and broad directories.
+- **Validated Failures and Warnings**: Ensured correct error handling and warnings are emitted for empty selectors, Bazel query failures, and unrecognized test target selectors.
+- **Verified Green Run**: Executed and verified that all 12 unit tests pass cleanly in 0.005s.
+- **Updated Coordination Docs**: Marked `TASK_014` as `[COMPLETED]` in `BACKLOG.md` and updated progress.
+- **Added Quality Gate Rule**: Updated `.agents/rules/code_quality_gates.md` to require running `test_wrapper_test.py` whenever `tools/test.py` is modified.
 
 Session 70 — **(jetski) Completed TASK_013: Unified Test Repository with Configuration Subtargets.**
 - **Unified Test Repositories**: Consolidated all dynamic test repositories into a single `@dart_tests` repository, defining configuration subtargets (e.g. `_vm_release`, `_wasm_release`) using suffixes.

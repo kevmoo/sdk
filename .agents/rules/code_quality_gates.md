@@ -15,3 +15,7 @@ To maintain high code quality standards and keep the Dart SDK codebase clean, yo
    - Every modified or newly created `.dart` file MUST be completely clean of any analyzer errors, warnings, or lints.
    - Run `dart analyze <file_or_directory>` on your changes. You are **PROHIBITED** from committing any code that introduces analysis issues.
    - If there are pre-existing analysis warnings in adjacent files that your change did not create, you are not required to fix them (adhere to Surgical Changes rule), but your own changed lines must be 100% clean.
+
+3. **Python Test Wrapper Gate (`test_wrapper_test.py`):**
+   - If `tools/test.py` is modified, you MUST run `python3 tools/test_wrapper_test.py` and verify it passes 100% green before committing.
+
