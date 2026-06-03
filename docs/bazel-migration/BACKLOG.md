@@ -44,7 +44,7 @@ graph TD
     TASK_015["TASK_015:<br>Resolve Bzlmod Lockfile Drift"]:::completed
     TASK_016["TASK_016:<br>Migrate VM Platform and Kernel Service Dill Compilation to Starlark"]:::completed
     TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::completed
-    TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::pending
+    TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::completed
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::pending
     TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::pending
     TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::pending
@@ -444,10 +444,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_018] Compile `dart_engine` Shared Libraries JIT/AOT
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: `[TASK_017]`
 - **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `runtime/engine/BUILD.bazel`
 - **Description**:
@@ -457,8 +457,8 @@ graph TD
   /usr/local/google/home/kevmoo/bin/bazel build //runtime/engine:dart_engine_jit_shared //runtime/engine:dart_engine_aot_shared
   ```
 - **Success Criteria**:
-  - [ ] Shared libraries compile and link successfully.
-  - [ ] Symbols match those exported in the GN build.
+  - [x] Shared libraries compile and link successfully.
+  - [x] Symbols match those exported in the GN build.
 
 ---
 

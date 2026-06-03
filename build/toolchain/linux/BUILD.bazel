@@ -8,6 +8,7 @@ package(default_visibility = ["//visibility:public"])
 filegroup(
     name = "clang_files",
     srcs = [
+        "clang_wrapper.py",
         "//:sysroot_files",
         "@dart_linux_x64_clang//:all_files",
     ],

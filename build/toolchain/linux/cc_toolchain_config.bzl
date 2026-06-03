@@ -31,8 +31,8 @@ def _impl(ctx):
         # Use clang++ as the "gcc" driver so cc_binary links auto-pull
         # libc++/libm (libstdc++ implicit deps); clang++ still compiles
         # .c files as C based on extension.
-        tool_path(name = "gcc", path = _CLANG_BIN + "/clang++"),
-        tool_path(name = "ld", path = _CLANG_BIN + "/clang++"),
+        tool_path(name = "gcc", path = "clang_wrapper.py"),
+        tool_path(name = "ld", path = "clang_wrapper.py"),
         tool_path(name = "ar", path = _CLANG_BIN + "/llvm-ar"),
         tool_path(name = "cpp", path = _CLANG_BIN + "/clang-cpp"),
         tool_path(name = "gcov", path = "/bin/false"),
@@ -60,6 +60,23 @@ def _impl(ctx):
         ],
     )
 
+    pic_feature = feature(
+        name = "pic",
+        enabled = True,
+        flag_sets = [
+            flag_set(
+                actions = [
+                    ACTION_NAMES.c_compile,
+                    ACTION_NAMES.cpp_compile,
+                    ACTION_NAMES.cpp_header_parsing,
+                    ACTION_NAMES.cpp_module_compile,
+                    ACTION_NAMES.cpp_module_codegen,
+                ],
+                flag_groups = [flag_group(flags = ["-fPIC"])],
+            ),
+        ],
+    )
+
     # Target architecture specific flags (triple, ISA, sysroot)
     target_flags = [
         "--sysroot=buildtools/sysroot/linux",
@@ -78,13 +95,13 @@ def _impl(ctx):
     else:
         target_flags.extend([
             "--target=" + triple,
-            "-march=x86-64",
-            "-m64",
-            "-msse2",
+            "-march=" + "x86-64",
+            "-m" + "64",
+            "-m" + "sse2",
         ])
         target_linkopts.extend([
             "--target=" + triple,
-            "-m64",
+            "-m" + "64",
         ])
 
     target_arch_feature = feature(
@@ -129,7 +146,7 @@ def _impl(ctx):
         abi_libc_version = "unknown",
         tool_paths = tool_paths,
         builtin_sysroot = "buildtools/sysroot/linux",
-        features = [force_c_language, target_arch_feature],
+        features = [force_c_language, target_arch_feature, pic_feature],
         cxx_builtin_include_directories = [
             "/usr/include",
             "/usr/local/include",

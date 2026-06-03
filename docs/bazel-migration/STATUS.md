@@ -26,7 +26,15 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 80, jetski) — **Completed TASK_017: Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays.**_
+_Last updated: 2026-06-03 (session 81, jetski) — **Completed TASK_018: Compile dart_engine Shared Libraries JIT/AOT.**_
+
+Session 81 — **(jetski) Completed TASK_018: Compile dart_engine Shared Libraries JIT/AOT.**
+- **Fixed Engine Compile Dependencies**: Resolved compile-time header resolution errors by adding `:headers` and `//runtime/include:headers` to `:engine_jit_set` and `:engine_aot_set` in `runtime/engine/BUILD.bazel`.
+- **Enabled PIC Compiler Toolchain Feature**: Added a custom `pic` feature to `build/toolchain/linux/cc_toolchain_config.bzl` to inject `-fPIC` when building shared libraries.
+- **Overrode Hardcoded PIE Flag via Wrapper**: Authored `build/toolchain/linux/clang_wrapper.py` to intercept compiler commands and drop `-fPIE` when `-fPIC` is present, resolving link-time TLS relocation failures without modifying 195+ targets. Mapped it in `BUILD.bazel` and `cc_toolchain_config.bzl`.
+- **Exported Shared Library Public APIs**: Added `DART_SHARED_LIB` define to `engine_jit_set` and `engine_aot_set` to ensure `DartEngine_*` symbols have default visibility.
+- **Linked Shared Libraries with alwayslink**: Set `alwayslink = True` on `engine_jit_set` and `engine_aot_set` so `cc_binary(linkshared = True)` links all objects and transitively pulls in VM APIs, exporting them successfully as `T`.
+- **Updated Backlog**: Marked `TASK_018` as `[COMPLETED]` in `BACKLOG.md` and regenerated the dependency graph.
 
 Session 80 — **(jetski) Completed TASK_017: Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays.**
 - **Migrated to Hermetic Overlays**: Configured Bzlmod overlays for `@boringssl`, `@perfetto`, and `@prebuilt_dart_sdk` in `tools/bazel/third_party.bzl`. Imported them in `MODULE.bazel`.
