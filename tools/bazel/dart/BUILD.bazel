@@ -1,6 +1,8 @@
 # Package marker so //tools/bazel/dart:defs.bzl is loadable.
 # The Dart-compilation rule macros live in defs.bzl.
 
+load(":defs.bzl", "dart_toolchain")
+
 package(default_visibility = ["//visibility:public"])
 
 exports_files([
@@ -8,14 +10,12 @@ exports_files([
     "copytree.py",
 ])
 
-load(":defs.bzl", "dart_toolchain")
-
 toolchain_type(name = "toolchain_type")
 
 dart_toolchain(
     name = "prebuilt_dart_toolchain_impl",
-    dart_executable = "//tools/sdks/dart-sdk:bin/dart",
-    sdk_files = "//tools/sdks/dart-sdk:sdk_files",
+    dart_executable = "@prebuilt_dart_sdk//:bin/dart",
+    sdk_files = "@prebuilt_dart_sdk//:sdk_files",
     sdk_hash = "0000000000",
 )
 

@@ -26,7 +26,14 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 79, jetski) — **Backlog Update: Added tasks for retiring restore.sh.**_
+_Last updated: 2026-06-03 (session 80, jetski) — **Completed TASK_017: Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays.**_
+
+Session 80 — **(jetski) Completed TASK_017: Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays.**
+- **Migrated to Hermetic Overlays**: Configured Bzlmod overlays for `@boringssl`, `@perfetto`, and `@prebuilt_dart_sdk` in `tools/bazel/third_party.bzl`. Imported them in `MODULE.bazel`.
+- **Decoupled Main Repo Build Files**: Removed manual copying of `BUILD` files and renaming of upstream build files from `tools/bazel/out_of_band/restore.sh`. Renamed all `.disabled` files back to their original names in `third_party/boringssl/src` and `third_party/perfetto/src`, and deleted copied files from the workspace.
+- **Updated Toolchain & References**: Redirected the prebuilt Dart toolchain in `tools/bazel/dart/BUILD.bazel` to `@prebuilt_dart_sdk`. Updated genrules in `utils/compiler/BUILD.bazel` and `utils/ddc/BUILD.bazel` to depend on `@prebuilt_dart_sdk//:sdk_files` and use the sandboxed binary via `$(location)`.
+- **Excised Sanity Checks**: Removed the `restore.sh` sanity check in `tools/test.py` and cleaned up its corresponding unit tests in `tools/test_wrapper_test.py`.
+- **Verified Clean Build**: Confirmed that `bazel build //runtime/bin:dartvm //sdk:create_sdk` builds 100% green and that `git status` remains clean with no untracked files in third-party or tools/sdks.
 
 Session 79 — **(jetski) Backlog Update: Added tasks for retiring restore.sh.**
 - **Expanded Backlog**: Added `TASK_020` (Migrate `packages.bzl` to Bzlmod extension) and `TASK_021` (Retire `restore.sh` entirely) to `BACKLOG.md`.

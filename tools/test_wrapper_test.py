@@ -64,17 +64,7 @@ class TestTestWithBazel(unittest.TestCase):
             '@dart_tests//web/wasm:ffi_test_wasm_release',
         ]
 
-        # Mock the restore check to pass by default
-        self.exists_patcher = patch('os.path.exists')
-        self.mock_exists = self.exists_patcher.start()
-        self.mock_exists.return_value = True
 
-        self.open_patcher = patch('builtins.open', mock_open(read_data="# OUT-OF-BAND restored"))
-        self.mock_open = self.open_patcher.start()
-
-    def tearDown(self):
-        self.exists_patcher.stop()
-        self.open_patcher.stop()
 
     def _mock_popen(self, query_stdout=b'', query_returncode=0, test_returncode=0):
         mock_process_query = MagicMock()
@@ -232,37 +222,7 @@ class TestTestWithBazel(unittest.TestCase):
         finally:
             sys.stdout = sys.__stdout__
 
-    @patch('subprocess.Popen')
-    @patch('utils.ResolveBazelPath', return_value='bazel')
-    def test_restore_check_missing(self, mock_resolve_bazel, mock_popen):
-        self.mock_exists.return_value = False
-        captured_output = io.StringIO()
-        sys.stdout = captured_output
-        try:
-            exit_code = test.TestWithBazel(['corelib/list_test'])
-            self.assertEqual(exit_code, 1)
-            self.assertIn("Error: tools/sdks/dart-sdk/BUILD.bazel is missing.", captured_output.getvalue())
-        finally:
-            sys.stdout = sys.__stdout__
 
-    @patch('subprocess.Popen')
-    @patch('utils.ResolveBazelPath', return_value='bazel')
-    def test_restore_check_invalid_content(self, mock_resolve_bazel, mock_popen):
-        self.open_patcher.stop()
-        self.open_patcher = patch('builtins.open', mock_open(read_data="wrong content"))
-        self.open_patcher.start()
-
-        captured_output = io.StringIO()
-        sys.stdout = captured_output
-        try:
-            exit_code = test.TestWithBazel(['corelib/list_test'])
-            self.assertEqual(exit_code, 1)
-            self.assertIn("Error: tools/sdks/dart-sdk/BUILD.bazel is not restored.", captured_output.getvalue())
-        finally:
-            sys.stdout = sys.__stdout__
-            self.open_patcher.stop()
-            self.open_patcher = patch('builtins.open', mock_open(read_data="# OUT-OF-BAND restored"))
-            self.open_patcher.start()
 
 
 if __name__ == '__main__':

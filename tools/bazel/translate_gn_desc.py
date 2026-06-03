@@ -110,6 +110,10 @@ def canonical_label(label):
         return label.replace("//third_party/icu", "@icu//")
     if label.startswith("//third_party/icu/flutter:"):
         return label.replace("//third_party/icu/flutter:", "@icu//flutter:")
+    if label == "//third_party/boringssl" or label.startswith("//third_party/boringssl:"):
+        return label.replace("//third_party/boringssl", "@boringssl//")
+    if label == "//third_party/perfetto" or label.startswith("//third_party/perfetto:"):
+        return label.replace("//third_party/perfetto", "@perfetto//")
 
     body = label[2:]
     if ":" in body:
@@ -510,6 +514,8 @@ def main():
             "sdk",
             "runtime/include",
             "third_party/boringssl",
+            "third_party/icu",
+            "third_party/zlib",
             "samples/embedder",
             "third_party/binaryen",
             "utils/bazel",

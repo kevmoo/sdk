@@ -49,25 +49,6 @@ def ResolveConfig(named_config):
 
 
 def TestWithBazel(args):
-    # Sanity check: verify out-of-band files are restored
-    tools_dir = os.path.dirname(os.path.realpath(__file__))
-    sdk_build_bazel = os.path.join(tools_dir, 'sdks', 'dart-sdk', 'BUILD.bazel')
-    if not os.path.exists(sdk_build_bazel):
-        print("Error: tools/sdks/dart-sdk/BUILD.bazel is missing.")
-        print("Please run: bash tools/bazel/out_of_band/restore.sh")
-        return 1
-    try:
-        with open(sdk_build_bazel, 'r') as f:
-            content = f.read()
-            if "OUT-OF-BAND" not in content:
-                print("Error: tools/sdks/dart-sdk/BUILD.bazel is not restored.")
-                print("Please run: bash tools/bazel/out_of_band/restore.sh")
-                return 1
-    except IOError:
-        print("Error: Could not read tools/sdks/dart-sdk/BUILD.bazel.")
-        print("Please run: bash tools/bazel/out_of_band/restore.sh")
-        return 1
-
     named_config = None
     remaining_args = []
     i = 0

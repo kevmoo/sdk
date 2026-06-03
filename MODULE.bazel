@@ -28,4 +28,4 @@ use_repo(
 )
 
 third_party = use_extension("//tools/bazel:third_party.bzl", "third_party_extension")
-use_repo(third_party, "icu", "zlib")
+use_repo(third_party, "boringssl", "icu", "perfetto", "prebuilt_dart_sdk", "zlib")

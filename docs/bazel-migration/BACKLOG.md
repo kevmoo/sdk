@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 11/21 Tasks
+- **Overall Progress**: 12/21 Tasks
 
 ---
 
@@ -43,7 +43,7 @@ graph TD
     TASK_014["TASK_014:<br>Python Test Wrapper Unit Testing"]:::completed
     TASK_015["TASK_015:<br>Resolve Bzlmod Lockfile Drift"]:::completed
     TASK_016["TASK_016:<br>Migrate VM Platform and Kernel Service Dill Compilation to Starlark"]:::completed
-    TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::pending
+    TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::completed
     TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::pending
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::pending
     TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::pending
@@ -412,10 +412,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_017] Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/third_party.bzl`
   - `MODULE.bazel`
@@ -437,9 +437,9 @@ graph TD
   /usr/local/google/home/kevmoo/bin/bazel build //runtime/bin:dartvm //sdk:create_sdk
   ```
 - **Success Criteria**:
-  - [ ] No `.disabled-for-dart-bazel-migration` files exist in the workspace.
-  - [ ] No `BUILD.bazel` files are copied into `third_party/icu` or `third_party/zlib` source directories.
-  - [ ] `@boringssl`, `@perfetto`, and `@prebuilt_dart_sdk` are resolved hermetically via Bzlmod overlays.
+  - [x] No `.disabled-for-dart-bazel-migration` files exist in the workspace.
+  - [x] No `BUILD.bazel` files are copied into `third_party/icu` or `third_party/zlib` source directories.
+  - [x] `@boringssl`, `@perfetto`, and `@prebuilt_dart_sdk` are resolved hermetically via Bzlmod overlays.
 
 ---
 

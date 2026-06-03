@@ -70,16 +70,7 @@ SUBREPO_PINS=(
   "third_party/pkg/webkit_inspection_protocol"
 )
 
-DISABLED_SUFFIX=".disabled-for-dart-bazel-migration"
 
-# Files that block our glob()s / pull in unavailable Bazel deps; renamed aside.
-RENAMES=(
-  "third_party/boringssl/src/BUILD.bazel"
-  "third_party/perfetto/src/WORKSPACE"
-  "third_party/perfetto/src/BUILD"
-  "third_party/perfetto/src/bazel/BUILD"
-  "third_party/perfetto/src/python/BUILD"
-)
 
 # Heavy build artifacts (dills, snapshots) are now fully produced by Bazel.
 
@@ -94,69 +85,12 @@ echo "=== Dart Bazel out-of-band restore ==="
 echo "SDK root: $SDK_ROOT"
 echo
 
-# --------------------------------------------------------------------------
-# 1. Verbatim files (wholly ours): every *.snap under snapshot/ maps to the
-#    same path with the snapshot/ prefix and .snap suffix removed.
-# --------------------------------------------------------------------------
-echo "[1/6] Verbatim files (.snap)"
-while IFS= read -r -d '' src; do
-  rel="${src#"$SNAP"/}"          # e.g. third_party/icu/BUILD.bazel.snap
-  dest="${rel%.snap}"           # e.g. third_party/icu/BUILD.bazel
-  mkdir -p "$(dirname "$dest")"
-  if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
-    say "ok       $dest"
-  else
-    cp "$src" "$dest"
-    say "restored $dest"
-    note_change
-  fi
-done < <(find "$SNAP" -type f -name '*.snap' -print0)
-echo
+
 
 # --------------------------------------------------------------------------
-# 2. Append blocks: every *.append appends a "# Dart Bazel M5:" marked block
-#    to an upstream file. Idempotent via the marker.
+# 1. GN args flips (sdk_hash determinism — see README "SDK hash discipline").
 # --------------------------------------------------------------------------
-echo "[2/6] Append blocks (.append)"
-while IFS= read -r -d '' src; do
-  rel="${src#"$SNAP"/}"          # third_party/icu/source/common/BUILD.bazel.append
-  dest="${rel%.append}"         # third_party/icu/source/common/BUILD.bazel
-  if [ ! -f "$dest" ]; then
-    yellow "  MISSING upstream file: $dest (skipping append — investigate)"
-    continue
-  fi
-  if grep -q "Dart Bazel M5" "$dest"; then
-    say "ok       $dest (marker present)"
-  else
-    cat "$src" >> "$dest"
-    say "appended $dest"
-    note_change
-  fi
-done < <(find "$SNAP" -type f -name '*.append' -print0)
-echo
-
-# --------------------------------------------------------------------------
-# 3. Disabling renames (move blocking upstream BUILD/WORKSPACE files aside).
-# --------------------------------------------------------------------------
-echo "[3/6] Disabling renames"
-for f in "${RENAMES[@]}"; do
-  disabled="${f}${DISABLED_SUFFIX}"
-  if [ -e "$disabled" ]; then
-    say "ok       $f (already disabled)"
-  elif [ -e "$f" ]; then
-    mv "$f" "$disabled"
-    say "disabled $f"
-    note_change
-  else
-    yellow "  ABSENT   $f and its .disabled form — upstream layout may have changed; investigate"
-  fi
-done
-echo
-
-# --------------------------------------------------------------------------
-# 4. GN args flips (sdk_hash determinism — see README "SDK hash discipline").
-# --------------------------------------------------------------------------
-echo "[4/6] out/ReleaseX64/args.gn flags"
+echo "[1/3] out/ReleaseX64/args.gn flags"
 ARGS_GN="out/ReleaseX64/args.gn"
 set_gn_false() {
   local key="$1"
@@ -182,9 +116,9 @@ fi
 echo
 
 # --------------------------------------------------------------------------
-# 5. Nested-subrepo DEPS pins (package APIs must match current SDK source).
+# 2. Nested-subrepo DEPS pins (package APIs must match current SDK source).
 # --------------------------------------------------------------------------
-echo "[5/6] Nested-subrepo DEPS pins"
+echo "[2/3] Nested-subrepo DEPS pins"
 for path in "${SUBREPO_PINS[@]}"; do
   var_name="${path##*/}_rev"
   pin=$(grep -E "\"${var_name}\"" DEPS | grep -oE '[a-f0-9]{40}' | head -1)
@@ -212,13 +146,13 @@ done
 echo
 
 # --------------------------------------------------------------------------
-# 6. Regenerate .dart_tool/package_config.json (gitignored; deterministic).
+# 3. Regenerate .dart_tool/package_config.json (gitignored; deterministic).
 #    Runs the checked-in prebuilt SDK over the workspace pubspecs — the same
 #    mechanism `gclient runhooks` uses. Must come AFTER the pin rolls above so
 #    it resolves against the correct subrepo revisions. This replaces any stale
 #    or hand-hacked config (e.g. the historical uniform-3.12 languageVersion).
 # --------------------------------------------------------------------------
-echo "[6/6] .dart_tool/package_config.json"
+echo "[3/3] .dart_tool/package_config.json"
 if [ -x "tools/sdks/dart-sdk/bin/dart" ]; then
   before=""
   [ -f ".dart_tool/package_config.json" ] && before="$(cat .dart_tool/package_config.json)"

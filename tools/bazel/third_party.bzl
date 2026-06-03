@@ -117,6 +117,23 @@ with open(file_path, "w") as f:
 
         repository_ctx.file("BUILD.bazel", root_content)
 
+    elif repository_ctx.attr.repo_type == "boringssl":
+        root_snap = repository_ctx.path(repository_ctx.attr.build_file)
+        root_content = repository_ctx.read(root_snap)
+
+        # Redirect package references internally
+        root_content = root_content.replace("//third_party/boringssl:", ":")
+        root_content = root_content.replace("//runtime/", "@//runtime/")
+        root_content = root_content.replace("//tools/bazel:rules.bzl", "@//tools/bazel:rules.bzl")
+        repository_ctx.file("BUILD.bazel", root_content)
+
+    else:
+        # General case (e.g. perfetto, prebuilt_dart_sdk)
+        root_snap = repository_ctx.path(repository_ctx.attr.build_file)
+        root_content = repository_ctx.read(root_snap)
+        root_content = root_content.replace("//tools/bazel:rules.bzl", "@//tools/bazel:rules.bzl")
+        repository_ctx.file("BUILD.bazel", root_content)
+
 local_overlay_repository = repository_rule(
     implementation = _local_overlay_repository_impl,
     local = True,
@@ -144,6 +161,30 @@ def _third_party_ext_impl(ctx):
         path = "third_party/zlib",
         prefix = "zlib",
         build_file = "@//tools/bazel:out_of_band/snapshot/third_party/zlib/BUILD.bazel.snap",
+    )
+
+    # 3. BoringSSL Dynamic Overlay Repository
+    local_overlay_repository(
+        name = "boringssl",
+        repo_type = "boringssl",
+        path = "third_party/boringssl",
+        build_file = "@//third_party/boringssl:BUILD.bazel",
+    )
+
+    # 4. Perfetto Dynamic Overlay Repository
+    local_overlay_repository(
+        name = "perfetto",
+        repo_type = "perfetto",
+        path = "third_party/perfetto",
+        build_file = "@//third_party/perfetto:BUILD.bazel",
+    )
+
+    # 5. Prebuilt Dart SDK Dynamic Overlay Repository
+    local_overlay_repository(
+        name = "prebuilt_dart_sdk",
+        repo_type = "prebuilt_dart_sdk",
+        path = "tools/sdks/dart-sdk",
+        build_file = "@//tools/bazel:out_of_band/snapshot/tools/sdks/dart-sdk/BUILD.bazel.snap",
     )
     return ctx.extension_metadata(reproducible = True)
 

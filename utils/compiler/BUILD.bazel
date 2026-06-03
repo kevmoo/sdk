@@ -120,10 +120,11 @@ genrule(
         "//tools:make_version.py",
         "//tools:utils.py",
         "//tools:VERSION",
-        "//tools/sdks/dart-sdk:sdk_files",
+        "@prebuilt_dart_sdk//:sdk_files",
+        "@prebuilt_dart_sdk//:bin/dart",
     ],
     outs = ["dart2js.dart"],
-    cmd = "tools/sdks/dart-sdk/bin/dart $(location create_snapshot_entry.dart) " +
+    cmd = "$(location @prebuilt_dart_sdk//:bin/dart) $(location create_snapshot_entry.dart) " +
           "--output_dir=$(RULEDIR) --no-git-hash",
 )
 

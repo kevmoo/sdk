@@ -237,10 +237,11 @@ genrule(
         "//:dart_pkg_source_maps",
         "//:dart_pkg_source_span",
         "//:dart_pkg_stack_trace",
-        "//tools/sdks/dart-sdk:sdk_files",
+        "@prebuilt_dart_sdk//:sdk_files",
+        "@prebuilt_dart_sdk//:bin/dart",
     ],
     outs = ["dart_stack_trace_mapper.js"],
-    cmd = "tools/sdks/dart-sdk/bin/dart compile js " +
+    cmd = "$(location @prebuilt_dart_sdk//:bin/dart) compile js " +
           "-O2 " +
           "--packages=$(location //:package_config_json) " +
           "-o $(location dart_stack_trace_mapper.js) " +
