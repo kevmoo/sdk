@@ -26,7 +26,11 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 71, jetski) — **Completed TASK_014: Python Test Wrapper Unit Testing.**_
+_Last updated: 2026-06-03 (session 72, jetski) — **Added out-of-band restore sanity check to test.py.**_
+
+Session 72 — **(jetski) Added out-of-band restore sanity check to test.py.**
+- **Added Sanity Check**: Updated `tools/test.py` to check for `tools/sdks/dart-sdk/BUILD.bazel` existence and header content, failing early if `restore.sh` needs to be run.
+- **Updated Unit Tests**: Added coverage in `tools/test_wrapper_test.py` to mock and verify this check (14/14 tests passing).
 
 Session 71 — **(jetski) Completed TASK_014: Python Test Wrapper Unit Testing.**
 - **Implemented Python Test Wrapper Unit Tests**: Created `tools/test_wrapper_test.py` utilizing Python's `unittest` library to verify target resolution and flag translation in `tools/test.py`.
