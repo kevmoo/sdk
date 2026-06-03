@@ -26,7 +26,11 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 73, jetski) — **Documented lockfile drift policy in README.md.**_
+_Last updated: 2026-06-03 (session 74, jetski) — **Resolved lockfile drift via reproducible extensions.**_
+
+Session 74 — **(jetski) Resolved lockfile drift via reproducible extensions.**
+- **Marked Extensions as Reproducible**: Modified `tools/bazel/dart/test_rules.bzl` and `tools/bazel/third_party.bzl` to return `ctx.extension_metadata(reproducible = True)` from their module extension implementation functions.
+- **Removed Lockfile Churn**: Ran `bazel mod deps --lockfile_mode=update` to regenerate the lockfile, which successfully excised the `bzlTransitiveDigest` and `generatedRepoSpecs` entries for these local extensions from `MODULE.bazel.lock`, eliminating platform-specific digest drift.
 
 Session 73 — **(jetski) Documented lockfile drift policy in README.md.**
 - **Documented Lockfile Drift**: Added a guidelines block under "Commit discipline" in `docs/bazel-migration/README.md` instructing contributors to ignore and revert platform-specific `MODULE.bazel.lock` changes.

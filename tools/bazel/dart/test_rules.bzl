@@ -63,7 +63,7 @@ dynamic_test_repository = repository_rule(
 )
 
 # Bzlmod module extension wrapper to instantiate the test repository
-def _test_ext_impl(_ctx):
+def _test_ext_impl(ctx):
     dynamic_test_repository(
         name = "dart_tests",
         suites = [
@@ -75,6 +75,7 @@ def _test_ext_impl(_ctx):
             "web/wasm",
         ],
     )
+    return ctx.extension_metadata(reproducible = True)
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
 # Force refetch trigger: 3

@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 8/14 Tasks (57.1%)
+- **Overall Progress**: 9/15 Tasks (60.0%)
 
 ---
 
@@ -315,6 +315,31 @@ This is the single source of truth for the remaining migration work stream. It i
   - [x] Test cases verify that valid selectors resolve to correct targets warning-free.
   - [x] Test cases verify that invalid selectors emit the appropriate target warning.
   - [x] Executing `python3 tools/test_wrapper_test.py` runs and passes completely green.
+
+---
+
+### 🎯 [TASK_015] Resolve Bzlmod Lockfile Drift
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
+- **Target Files**:
+  - `tools/bazel/dart/test_rules.bzl`
+  - `tools/bazel/third_party.bzl`
+  - `MODULE.bazel.lock`
+- **Description**:
+  Resolve the platform-induced `bzlTransitiveDigest` drift in `MODULE.bazel.lock` by marking our custom local repository extensions (`dart_tests_extension` and `third_party_extension`) as reproducible. This tells Bazel that their repository generations are deterministic and do not need to be locked, removing their digests from the lockfile and eliminating cross-platform Git churn.
+- **Verification Command**:
+  Run update and verify lockfile diff has no drift:
+  ```bash
+  bazel mod deps --lockfile_mode=update
+  git diff MODULE.bazel.lock
+  ```
+- **Success Criteria**:
+  - [x] `test_rules.bzl` returns `reproducible = True` in its extension metadata.
+  - [x] `third_party.bzl` returns `reproducible = True` in its extension metadata.
+  - [x] `MODULE.bazel.lock` no longer contains entries for these two extensions, preventing platform-specific digest changes.
+
 
 
 

@@ -145,5 +145,6 @@ def _third_party_ext_impl(ctx):
         prefix = "zlib",
         build_file = "@//tools/bazel:out_of_band/snapshot/third_party/zlib/BUILD.bazel.snap",
     )
+    return ctx.extension_metadata(reproducible = True)
 
 third_party_extension = module_extension(implementation = _third_party_ext_impl)
