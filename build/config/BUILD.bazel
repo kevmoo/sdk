@@ -31,14 +31,14 @@ config_setting(
 
 config_setting(
     name = "release_macos",
-    flag_values = {":dart_debug": "false"},
     constraint_values = ["@platforms//os:macos"],
+    flag_values = {":dart_debug": "false"},
 )
 
 config_setting(
     name = "release_linux",
-    flag_values = {":dart_debug": "false"},
     constraint_values = ["@platforms//os:linux"],
+    flag_values = {":dart_debug": "false"},
 )
 
 config_setting(
@@ -87,10 +87,14 @@ cc_library(
         "//conditions:default": [],
     }) + select({
         ":os_macos": [
-            "-framework", "CoreFoundation",
-            "-framework", "CoreServices",
-            "-framework", "Foundation",
-            "-framework", "Security",
+            "-framework",
+            "CoreFoundation",
+            "-framework",
+            "CoreServices",
+            "-framework",
+            "Foundation",
+            "-framework",
+            "Security",
         ],
         "//conditions:default": [],
     }),
@@ -145,6 +149,17 @@ config_setting(
     flag_values = {":dart_product": "true"},
 )
 
+# Flag to build DevTools from sources instead of using prebuilt assets.
+bool_flag(
+    name = "dart_build_devtools_from_sources",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "devtools_from_sources",
+    flag_values = {":dart_build_devtools_from_sources": "true"},
+)
+
 # Product delta carrier — mirrors :dart_mode. A cc_library whose select()-driven
 # `defines` fold the product axis and propagate to a consumer via deps. The whole
 # product flag-surface delta on this slice is the single PRODUCT define (recon §3):
@@ -190,10 +205,14 @@ cc_library(
         "//conditions:default": [],
     }) + select({
         ":os_macos": [
-            "-framework", "CoreFoundation",
-            "-framework", "CoreServices",
-            "-framework", "Foundation",
-            "-framework", "Security",
+            "-framework",
+            "CoreFoundation",
+            "-framework",
+            "CoreServices",
+            "-framework",
+            "Foundation",
+            "-framework",
+            "Security",
         ],
         "//conditions:default": [],
     }),

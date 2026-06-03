@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//tools/bazel/dart:defs.bzl", "copy_internal_with_dills", "copy_sdk_library", "copy_tree")
+load("//tools/bazel/dart:defs.bzl", "build_devtools_rule", "copy_internal_with_dills", "copy_sdk_library", "copy_tree")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -54,8 +54,13 @@ filegroup(
     ],
 )
 
-# TODO(M3): genrule for build_devtools (gn type=action)
-cc_library(name = "build_devtools")
+build_devtools_rule(
+    name = "build_devtools",
+    srcs = [
+        "//tools:utils.py",
+    ],
+    out_dir = "dart-sdk/bin/resources/devtools",
+)
 
 copy_sdk_library(
     name = "copy__http_library",
@@ -792,7 +797,6 @@ filegroup(
         "//sdk:copy_headers",
         "//sdk:copy_libraries_specification",
         "//sdk:copy_license",
-        "//sdk:copy_prebuilt_devtools",
         "//sdk:copy_process_test",
         "//sdk:copy_readme",
         "//sdk:copy_sdk_packages_yaml",
@@ -802,7 +806,10 @@ filegroup(
         "//sdk:write_dartdoc_options",
         "//sdk:write_revision_file",
         "//sdk:write_version_file",
-    ],
+    ] + select({
+        "//build/config:devtools_from_sources": ["//sdk:build_devtools"],
+        "//conditions:default": ["//sdk:copy_prebuilt_devtools"],
+    }),
 )
 
 filegroup(

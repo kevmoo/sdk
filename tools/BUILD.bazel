@@ -9,4 +9,5 @@ exports_files([
     "write_version_file.py",
     "write_dartdoc_options_file.py",
     "addlatexhash.dart",
+    "build_devtools.py",
 ])

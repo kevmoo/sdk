@@ -26,7 +26,14 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 75, jetski) — **Backlog Expansion: Onboarded Platform Dill Compilation (Task 16).**_
+_Last updated: 2026-06-03 (session 76, jetski) — **Completed TASK_008: Minor SDK Assembly Stubs Resolution.**_
+
+Session 76 — **(jetski) Completed TASK_008: Minor SDK Assembly Stubs Resolution.**
+- **Implemented DevTools Source Compilation**: Added `dart_build_devtools_from_sources` flag and `devtools_from_sources` config setting to `build/config/BUILD.bazel`.
+- **Created `build_devtools_rule`**: Authored a custom rule in `tools/bazel/dart/defs.bzl` that runs `tools/build_devtools.py` locally (using `local = 1` execution requirement) to compile DevTools from source when the flag is enabled.
+- **Wired DevTools Target**: Replaced the `build_devtools` stub in `sdk/BUILD.bazel` with the new rule, and updated `create_common_sdk` to choose between prebuilt and source-compiled DevTools based on the flag.
+- **Verified Snapshots and Staging**: Confirmed `dart2bytecode` AOT compilation is already functional. Verified default build succeeds (uses prebuilt) and enabled-flag build correctly triggers the script (failing as expected on missing sources in the checkout).
+- **Updated Coordination Docs**: Marked `TASK_008` as `[COMPLETED]` in `BACKLOG.md` and updated progress to 10/16 (62.5%).
 
 Session 75 — **(jetski) Backlog Expansion: Onboarded Platform Dill Compilation (Task 16).**
 - **Onboarded TASK_016**: Appended `[TASK_016] Migrate VM Platform and Kernel Service Dill Compilation to Starlark` to `BACKLOG.md` to track the long-term migration of these core artifacts from GN to Bazel.

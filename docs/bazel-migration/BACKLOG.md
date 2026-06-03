@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 9/16 Tasks (56.3%)
+- **Overall Progress**: 10/16 Tasks (62.5%)
 
 ---
 
@@ -34,7 +34,7 @@ graph TD
     TASK_005["TASK_005:<br>Dynamic Browser Testing Downloads"]:::pending
     TASK_006["TASK_006:<br>RBE {Remote Build Execution} Verification"]:::pending
     TASK_007["TASK_007:<br>Sanitizer Suite Verification"]:::pending
-    TASK_008["TASK_008:<br>Minor SDK Assembly Stubs Resolution"]:::pending
+    TASK_008["TASK_008:<br>Minor SDK Assembly Stubs Resolution"]:::completed
     TASK_009["TASK_009:<br>Relocate and Migrate Worktree Symlinker to Dart"]:::completed
     TASK_010["TASK_010:<br>Non-Flattened Direct Import Mapping for Test Caching"]:::completed
     TASK_011["TASK_011:<br>Repo-Local Upstream SDK Merge Flow Skill"]:::completed
@@ -202,10 +202,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_008] Minor SDK Assembly Stubs Resolution
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `sdk/BUILD.bazel`
 - **Description**:
@@ -217,8 +217,8 @@ graph TD
   /usr/local/google/home/kevmoo/bin/bazel build //sdk:create_sdk
   ```
 - **Success Criteria**:
-  - [ ] `dart2bytecode` snapshot is built and staged successfully under `dart-sdk/bin/snapshots/`.
-  - [ ] DevTools builds hermetically from source when required.
+  - [x] `dart2bytecode` snapshot is built and staged successfully under `dart-sdk/bin/snapshots/`.
+  - [x] DevTools builds hermetically from source when required.
 
 ---
 

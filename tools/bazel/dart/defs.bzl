@@ -659,3 +659,35 @@ def _dart_kernel_snapshot_rule_impl(ctx):
         progress_message = "Compiling Dart kernel snapshot %{label}",
     )
     return [DefaultInfo(files = depset([out_dill]))]
+
+def _build_devtools_impl(ctx):
+    out = ctx.actions.declare_directory(ctx.attr.out_dir)
+    ctx.actions.run(
+        outputs = [out],
+        inputs = ctx.files.srcs,
+        executable = ctx.executable._tool,
+        arguments = ["--output", out.path],
+        mnemonic = "BuildDevTools",
+        progress_message = "Building DevTools from source",
+        execution_requirements = {"local": "1"},
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+build_devtools_rule = rule(
+    implementation = _build_devtools_impl,
+    doc = "Build DevTools from source using tools/build_devtools.py",
+    attrs = {
+        "srcs": attr.label_list(
+            allow_files = True,
+        ),
+        "out_dir": attr.string(
+            mandatory = True,
+        ),
+        "_tool": attr.label(
+            default = "//tools:build_devtools.py",
+            executable = True,
+            allow_single_file = True,
+            cfg = "exec",
+        ),
+    },
+)
