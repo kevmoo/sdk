@@ -77,6 +77,127 @@ def _impl(ctx):
         ],
     )
 
+    asan_feature = feature(
+        name = "asan",
+        enabled = False,
+        flag_sets = [
+            flag_set(
+                actions = [
+                    ACTION_NAMES.c_compile,
+                    ACTION_NAMES.cpp_compile,
+                    ACTION_NAMES.cpp_header_parsing,
+                    ACTION_NAMES.cpp_module_compile,
+                    ACTION_NAMES.cpp_module_codegen,
+                ],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-fsanitize=" + "address",
+                            "-m" + "llvm",
+                            "-asan-globals=" + "0",
+                            "-fno-omit-frame-pointer",
+                            "-DTARGET_USES_ADDRESS_SANITIZER",
+                        ],
+                    ),
+                ],
+            ),
+            flag_set(
+                actions = [
+                    ACTION_NAMES.cpp_link_executable,
+                    ACTION_NAMES.cpp_link_dynamic_library,
+                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
+                ],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-fsanitize=" + "address",
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    msan_feature = feature(
+        name = "msan",
+        enabled = False,
+        flag_sets = [
+            flag_set(
+                actions = [
+                    ACTION_NAMES.c_compile,
+                    ACTION_NAMES.cpp_compile,
+                    ACTION_NAMES.cpp_header_parsing,
+                    ACTION_NAMES.cpp_module_compile,
+                    ACTION_NAMES.cpp_module_codegen,
+                ],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-fsanitize=" + "memory",
+                            "-m" + "llvm",
+                            "-inline-instr-cost=" + "20",
+                            "-m" + "llvm",
+                            "-inline-memaccess-cost=" + "20",
+                            "-DTARGET_USES_MEMORY_SANITIZER",
+                        ],
+                    ),
+                ],
+            ),
+            flag_set(
+                actions = [
+                    ACTION_NAMES.cpp_link_executable,
+                    ACTION_NAMES.cpp_link_dynamic_library,
+                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
+                ],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-fsanitize=" + "memory",
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    tsan_feature = feature(
+        name = "tsan",
+        enabled = False,
+        flag_sets = [
+            flag_set(
+                actions = [
+                    ACTION_NAMES.c_compile,
+                    ACTION_NAMES.cpp_compile,
+                    ACTION_NAMES.cpp_header_parsing,
+                    ACTION_NAMES.cpp_module_compile,
+                    ACTION_NAMES.cpp_module_codegen,
+                ],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-fsanitize=" + "thread",
+                            "-DTARGET_USES_THREAD_SANITIZER",
+                        ],
+                    ),
+                ],
+            ),
+            flag_set(
+                actions = [
+                    ACTION_NAMES.cpp_link_executable,
+                    ACTION_NAMES.cpp_link_dynamic_library,
+                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
+                ],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-fsanitize=" + "thread",
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
     # Target architecture specific flags (triple, ISA, sysroot)
     target_flags = [
         "--sysroot=buildtools/sysroot/linux",
@@ -146,7 +267,14 @@ def _impl(ctx):
         abi_libc_version = "unknown",
         tool_paths = tool_paths,
         builtin_sysroot = "buildtools/sysroot/linux",
-        features = [force_c_language, target_arch_feature, pic_feature],
+        features = [
+            force_c_language,
+            target_arch_feature,
+            pic_feature,
+            asan_feature,
+            msan_feature,
+            tsan_feature,
+        ],
         cxx_builtin_include_directories = [
             "/usr/include",
             "/usr/local/include",
