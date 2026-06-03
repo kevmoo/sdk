@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 10/16 Tasks (62.5%)
+- **Overall Progress**: 10/19 Tasks (52.6%)
 
 ---
 
@@ -43,10 +43,14 @@ graph TD
     TASK_014["TASK_014:<br>Python Test Wrapper Unit Testing"]:::completed
     TASK_015["TASK_015:<br>Resolve Bzlmod Lockfile Drift"]:::completed
     TASK_016["TASK_016:<br>Migrate VM Platform and Kernel Service Dill Compilation to Starlark"]:::pending
+    TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::pending
+    TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::pending
+    TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::pending
 
     TASK_010 --> TASK_012
     TASK_012 --> TASK_013
     TASK_008 --> TASK_016
+    TASK_018 --> TASK_019
 ```
 
 <!-- END_DEP_GRAPH -->
@@ -397,3 +401,72 @@ graph TD
   - [ ] Bazel targets `//runtime/bin:dartvm` and `//sdk:create_sdk` build successfully without requiring `out/ReleaseX64/` to exist or contain any pre-built dills.
   - [ ] Modifying an SDK library source file (e.g. `sdk/lib/core/core.dart`) or compiler source file (under `pkg/front_end/`) correctly triggers incremental rebuilds of the dills and re-links the VM under Bazel.
   - [ ] The `restore.sh` sanity check for GN build artifacts is retired.
+
+---
+
+### 🎯 [TASK_017] Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/third_party.bzl`
+  - `MODULE.bazel`
+  - `tools/bazel/translate_gn_desc.py`
+  - `tools/bazel/out_of_band/restore.sh`
+- **Description**:
+  Eliminate the workspace-modifying steps in `restore.sh` by migrating third-party dependencies to hermetic Bzlmod overlays.
+  1. Add `boringssl` and `perfetto` to the `third_party_extension` module extension as local overlay repositories. This automatically bypasses upstream `BUILD` files via symlinking, removing the need for renaming `.disabled` files in the source tree.
+  2. Add the prebuilt SDK (`tools/sdks/dart-sdk`) as a local repository overlay, referencing a tracked BUILD file under `tools/bazel/` to avoid placing `BUILD.bazel` in the CIPD directory.
+  3. Add `third_party/icu` and `third_party/zlib` to the skip list in `translate_gn_desc.py` so they are never translated locally.
+  4. Retire the copying and renaming sections of `restore.sh`.
+- **Verification Command**:
+  ```bash
+  # Restore upstream files to make sure they are unmodified
+  git restore third_party/boringssl/src/BUILD.bazel third_party/perfetto/src/BUILD
+  # Clean untracked copied BUILD files
+  rm -f third_party/icu/BUILD.bazel third_party/zlib/BUILD.bazel tools/sdks/dart-sdk/BUILD.bazel
+  # Verify build succeeds
+  /usr/local/google/home/kevmoo/bin/bazel build //runtime/bin:dartvm //sdk:create_sdk
+  ```
+- **Success Criteria**:
+  - [ ] No `.disabled-for-dart-bazel-migration` files exist in the workspace.
+  - [ ] No `BUILD.bazel` files are copied into `third_party/icu` or `third_party/zlib` source directories.
+  - [ ] `@boringssl`, `@perfetto`, and `@prebuilt_dart_sdk` are resolved hermetically via Bzlmod overlays.
+
+---
+
+### 🎯 [TASK_018] Compile `dart_engine` Shared Libraries JIT/AOT
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `runtime/engine/BUILD.bazel`
+- **Description**:
+  Replace the copy stubs in `runtime/engine/BUILD.bazel` with actual shared library targets that compile `libdart_engine_jit_shared.so` and `libdart_engine_aot_shared.so` natively under Bazel.
+- **Verification Command**:
+  ```bash
+  /usr/local/google/home/kevmoo/bin/bazel build //runtime/engine:dart_engine_jit_shared //runtime/engine:dart_engine_aot_shared
+  ```
+- **Success Criteria**:
+  - [ ] Shared libraries compile and link successfully.
+  - [ ] Symbols match those exported in the GN build.
+
+---
+
+### 🎯 [TASK_019] Port `samples/embedder` targets to Bazel
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_018]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `samples/embedder/BUILD.bazel`
+- **Description**:
+  Resolve all `TODO(M3)` compilation and copy stubs in `samples/embedder/BUILD.bazel` to enable building the embedder samples (compiling Dart programs to dills/AOT and linking/running them).
+- **Verification Command**:
+  ```bash
+  /usr/local/google/home/kevmoo/bin/bazel build //samples/embedder:all
+  ```
+- **Success Criteria**:
+  - [ ] All embedder sample executables build green.

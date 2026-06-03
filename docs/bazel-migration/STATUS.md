@@ -26,7 +26,12 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 76, jetski) — **Completed TASK_008: Minor SDK Assembly Stubs Resolution.**_
+_Last updated: 2026-06-03 (session 77, jetski) — **Backlog Expansion: Onboarded Tasks 17, 18, 19.**_
+
+Session 77 — **(jetski) Backlog Expansion: Surfaced Bzlmod overlays, dart_engine shared library stubs, and embedder samples.**
+- **Expanded Backlog**: Appended `TASK_017` (Bzlmod overlays), `TASK_018` (`dart_engine` shared libraries), and `TASK_019` (`samples/embedder`) to `BACKLOG.md`.
+- **Regenerated Dependency Graph**: Ran the graph generator to update the Mermaid diagram in `BACKLOG.md`.
+- **Updated Metrics**: Adjusted progress tracking to 10/19 (52.6%).
 
 Session 76 — **(jetski) Completed TASK_008: Minor SDK Assembly Stubs Resolution.**
 - **Implemented DevTools Source Compilation**: Added `dart_build_devtools_from_sources` flag and `devtools_from_sources` config setting to `build/config/BUILD.bazel`.
