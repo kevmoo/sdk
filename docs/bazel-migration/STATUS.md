@@ -26,7 +26,11 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 74, jetski) — **Resolved lockfile drift via reproducible extensions.**_
+_Last updated: 2026-06-03 (session 75, jetski) — **Backlog Expansion: Onboarded Platform Dill Compilation (Task 16).**_
+
+Session 75 — **(jetski) Backlog Expansion: Onboarded Platform Dill Compilation (Task 16).**
+- **Onboarded TASK_016**: Appended `[TASK_016] Migrate VM Platform and Kernel Service Dill Compilation to Starlark` to `BACKLOG.md` to track the long-term migration of these core artifacts from GN to Bazel.
+- **Updated Metrics**: Adjusted overall progress tracking to 9/16 tasks (56.3%).
 
 Session 74 — **(jetski) Resolved lockfile drift via reproducible extensions.**
 - **Marked Extensions as Reproducible**: Modified `tools/bazel/dart/test_rules.bzl` and `tools/bazel/third_party.bzl` to return `ctx.extension_metadata(reproducible = True)` from their module extension implementation functions.

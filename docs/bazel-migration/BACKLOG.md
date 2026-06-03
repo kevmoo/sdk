@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 9/15 Tasks (60.0%)
+- **Overall Progress**: 9/16 Tasks (56.3%)
 
 ---
 
@@ -340,6 +340,26 @@ This is the single source of truth for the remaining migration work stream. It i
   - [x] `third_party.bzl` returns `reproducible = True` in its extension metadata.
   - [x] `MODULE.bazel.lock` no longer contains entries for these two extensions, preventing platform-specific digest changes.
 
+---
 
-
-
+### 🎯 [TASK_016] Migrate VM Platform and Kernel Service Dill Compilation to Starlark
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_008]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `sdk/BUILD.bazel`
+  - `runtime/bin/BUILD.bazel`
+  - `tools/bazel/dart/defs.bzl`
+- **Description**:
+  Replace the temporary `genrule` copies (which pull `kernel_service.dill` and `vm_platform*.dill` from the GN output directory `out/ReleaseX64/`) with native Bazel Starlark rules that compile these targets directly from Dart source code. This involves resolving the complex "Dart-builds-Dart" bootstrap loops (using the prebuilt SDK toolchain to compile the front-end compiler, which then compiles the platform libraries) hermetically within the Bazel graph.
+- **Verification Command**:
+  Run build and verify it doesn't need GN outputs:
+  ```bash
+  rm -rf out/ReleaseX64/
+  bazel build //runtime/bin:dartvm //sdk:create_sdk
+  ```
+- **Success Criteria**:
+  - [ ] Bazel targets `//runtime/bin:dartvm` and `//sdk:create_sdk` build successfully without requiring `out/ReleaseX64/` to exist or contain any pre-built dills.
+  - [ ] Modifying an SDK library source file (e.g. `sdk/lib/core/core.dart`) or compiler source file (under `pkg/front_end/`) correctly triggers incremental rebuilds of the dills and re-links the VM under Bazel.
+  - [ ] The `restore.sh` sanity check for GN build artifacts is retired.
