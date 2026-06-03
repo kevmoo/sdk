@@ -10,6 +10,9 @@ To ensure seamless coordination between multiple autonomous agents and human dev
 1. **Maintain Backlog Integrity (`docs/bazel-migration/BACKLOG.md`):**
    - Before committing a completed task, ensure its status is set to `COMPLETED` and any active lock in the coordination board is released.
    - If new tasks or follow-ups are discovered, they must be appended to the backlog.
+   - **Regenerate Dependency Graph**: Whenever you modify `BACKLOG.md` (e.g. adding tasks, changing status, or marking them completed), you MUST regenerate the Mermaid dependency graph by running:
+     `tools/sdks/dart-sdk/bin/dart docs/bazel-migration/generate_backlog_graph.dart`
+     and commit the updated `BACKLOG.md` with the new graph.
 
 2. **Log Every Session (`docs/bazel-migration/STATUS.md`):**
    - Every commit or logical block of work MUST have a corresponding entry in `STATUS.md` summarizing:

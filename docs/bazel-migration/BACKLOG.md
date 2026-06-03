@@ -19,6 +19,40 @@ This is the single source of truth for the remaining migration work stream. It i
 
 ---
 
+## 🗺️ Dependency Graph
+
+<!-- START_DEP_GRAPH -->
+```mermaid
+graph TD
+    classDef completed fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724;
+    classDef inProgress fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404;
+    classDef pending fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,stroke-dasharray: 5 5,color:#6c757d;
+    TASK_001["TASK_001:<br>Dynamic Package Dependency Mapping"]:::completed
+    TASK_002["TASK_002:<br>Pre-Computed Package Import Mapping {Fine-Grained Opt-in}"]:::completed
+    TASK_003["TASK_003:<br>Windows MSVC Toolchain Port"]:::pending
+    TASK_004["TASK_004:<br>Android & Fuchsia Target Platform Registration"]:::pending
+    TASK_005["TASK_005:<br>Dynamic Browser Testing Downloads"]:::pending
+    TASK_006["TASK_006:<br>RBE {Remote Build Execution} Verification"]:::pending
+    TASK_007["TASK_007:<br>Sanitizer Suite Verification"]:::pending
+    TASK_008["TASK_008:<br>Minor SDK Assembly Stubs Resolution"]:::pending
+    TASK_009["TASK_009:<br>Relocate and Migrate Worktree Symlinker to Dart"]:::completed
+    TASK_010["TASK_010:<br>Non-Flattened Direct Import Mapping for Test Caching"]:::completed
+    TASK_011["TASK_011:<br>Repo-Local Upstream SDK Merge Flow Skill"]:::completed
+    TASK_012["TASK_012:<br>Coarse-Grained Test Suite Clustering"]:::completed
+    TASK_013["TASK_013:<br>Unified Test Repository with Configuration Subtargets"]:::completed
+    TASK_014["TASK_014:<br>Python Test Wrapper Unit Testing"]:::completed
+    TASK_015["TASK_015:<br>Resolve Bzlmod Lockfile Drift"]:::completed
+    TASK_016["TASK_016:<br>Migrate VM Platform and Kernel Service Dill Compilation to Starlark"]:::pending
+
+    TASK_010 --> TASK_012
+    TASK_012 --> TASK_013
+    TASK_008 --> TASK_016
+```
+
+<!-- END_DEP_GRAPH -->
+
+---
+
 ## 📋 Active Backlog
 
 ### 🎯 [TASK_001] Dynamic Package Dependency Mapping
