@@ -45,7 +45,7 @@ graph TD
     TASK_016["TASK_016:<br>Migrate VM Platform and Kernel Service Dill Compilation to Starlark"]:::completed
     TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::completed
     TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::completed
-    TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::pending
+    TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::completed
     TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::pending
     TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::pending
 
@@ -463,10 +463,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_019] Port `samples/embedder` targets to Bazel
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: `[TASK_018]`
 - **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `samples/embedder/BUILD.bazel`
 - **Description**:
@@ -476,7 +476,7 @@ graph TD
   /usr/local/google/home/kevmoo/bin/bazel build //samples/embedder:all
   ```
 - **Success Criteria**:
-  - [ ] All embedder sample executables build green.
+  - [x] All embedder sample executables build green.
 
 ---
 

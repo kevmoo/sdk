@@ -3,8 +3,20 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_compile_dill", "dart_library")
 
 package(default_visibility = ["//visibility:public"])
+
+dart_library(
+    name = "embedder_samples_dart",
+    srcs = [
+        "futures.dart",
+        "hello.dart",
+        "program1.dart",
+        "program2.dart",
+        "timer.dart",
+    ],
+)
 
 # GN lets one target's sources reach into other BUILD.gn dirs; Bazel
 # requires cross-package file refs to be explicitly exported. Bulk-export
@@ -48,14 +60,30 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for futures_aot (gn type=copy)
-cc_library(name = "futures_aot")
+dart_aot_snapshot(
+    name = "futures_aot_snapshot",
+    out = "futures.aot.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "futures.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for futures_aot_dill (gn type=action)
-cc_library(name = "futures_aot_dill")
+cc_library(
+    name = "futures_aot",
+    data = [":futures_aot_snapshot"],
+)
 
-# TODO(M3): genrule for futures_aot_gen_snapshot (gn type=action)
-cc_library(name = "futures_aot_gen_snapshot")
+cc_library(
+    name = "futures_aot_dill",
+    deps = [":futures_aot_snapshot_dill"],
+)
+
+cc_library(
+    name = "futures_aot_gen_snapshot",
+    deps = [":futures_aot_snapshot"],
+)
 
 cc_library(
     name = "futures_aot_static",
@@ -64,11 +92,29 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for futures_kernel (gn type=copy)
-cc_library(name = "futures_kernel")
+dart_compile_dill(
+    name = "futures_kernel_dill_compile",
+    out = "futures.kernel.dill",
+    gen_kernel_args = ["--link-platform"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    main = "futures.dart",
+    mode_flags = [
+        "--no-aot",
+        "--no-embed-sources",
+    ],
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for futures_kernel_dill (gn type=action)
-cc_library(name = "futures_kernel_dill")
+cc_library(
+    name = "futures_kernel",
+    data = [":futures_kernel_dill_compile"],
+)
+
+cc_library(
+    name = "futures_kernel_dill",
+    deps = [":futures_kernel_dill_compile"],
+)
 
 cc_library(
     name = "futures_kernel_static",
@@ -77,14 +123,30 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for hello_aot (gn type=copy)
-cc_library(name = "hello_aot")
+dart_aot_snapshot(
+    name = "hello_aot_snapshot",
+    out = "hello.aot.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "hello.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for hello_aot_dill (gn type=action)
-cc_library(name = "hello_aot_dill")
+cc_library(
+    name = "hello_aot",
+    data = [":hello_aot_snapshot"],
+)
 
-# TODO(M3): genrule for hello_aot_gen_snapshot (gn type=action)
-cc_library(name = "hello_aot_gen_snapshot")
+cc_library(
+    name = "hello_aot_dill",
+    deps = [":hello_aot_snapshot_dill"],
+)
+
+cc_library(
+    name = "hello_aot_gen_snapshot",
+    deps = [":hello_aot_snapshot"],
+)
 
 cc_library(
     name = "hello_aot_static",
@@ -93,11 +155,29 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for hello_kernel (gn type=copy)
-cc_library(name = "hello_kernel")
+dart_compile_dill(
+    name = "hello_kernel_dill_compile",
+    out = "hello.kernel.dill",
+    gen_kernel_args = ["--link-platform"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    main = "hello.dart",
+    mode_flags = [
+        "--no-aot",
+        "--no-embed-sources",
+    ],
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for hello_kernel_dill (gn type=action)
-cc_library(name = "hello_kernel_dill")
+cc_library(
+    name = "hello_kernel",
+    data = [":hello_kernel_dill_compile"],
+)
+
+cc_library(
+    name = "hello_kernel_dill",
+    deps = [":hello_kernel_dill_compile"],
+)
 
 cc_library(
     name = "hello_kernel_static",
@@ -122,14 +202,30 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for program1_aot (gn type=copy)
-cc_library(name = "program1_aot")
+dart_aot_snapshot(
+    name = "program1_aot_snapshot",
+    out = "program1.aot.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "program1.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for program1_aot_dill (gn type=action)
-cc_library(name = "program1_aot_dill")
+cc_library(
+    name = "program1_aot",
+    data = [":program1_aot_snapshot"],
+)
 
-# TODO(M3): genrule for program1_aot_gen_snapshot (gn type=action)
-cc_library(name = "program1_aot_gen_snapshot")
+cc_library(
+    name = "program1_aot_dill",
+    deps = [":program1_aot_snapshot_dill"],
+)
+
+cc_library(
+    name = "program1_aot_gen_snapshot",
+    deps = [":program1_aot_snapshot"],
+)
 
 cc_library(
     name = "program1_aot_static",
@@ -138,11 +234,29 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for program1_kernel (gn type=copy)
-cc_library(name = "program1_kernel")
+dart_compile_dill(
+    name = "program1_kernel_dill_compile",
+    out = "program1.kernel.dill",
+    gen_kernel_args = ["--link-platform"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    main = "program1.dart",
+    mode_flags = [
+        "--no-aot",
+        "--no-embed-sources",
+    ],
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for program1_kernel_dill (gn type=action)
-cc_library(name = "program1_kernel_dill")
+cc_library(
+    name = "program1_kernel",
+    data = [":program1_kernel_dill_compile"],
+)
+
+cc_library(
+    name = "program1_kernel_dill",
+    deps = [":program1_kernel_dill_compile"],
+)
 
 cc_library(
     name = "program1_kernel_static",
@@ -151,14 +265,30 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for program2_aot (gn type=copy)
-cc_library(name = "program2_aot")
+dart_aot_snapshot(
+    name = "program2_aot_snapshot",
+    out = "program2.aot.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "program2.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for program2_aot_dill (gn type=action)
-cc_library(name = "program2_aot_dill")
+cc_library(
+    name = "program2_aot",
+    data = [":program2_aot_snapshot"],
+)
 
-# TODO(M3): genrule for program2_aot_gen_snapshot (gn type=action)
-cc_library(name = "program2_aot_gen_snapshot")
+cc_library(
+    name = "program2_aot_dill",
+    deps = [":program2_aot_snapshot_dill"],
+)
+
+cc_library(
+    name = "program2_aot_gen_snapshot",
+    deps = [":program2_aot_snapshot"],
+)
 
 cc_library(
     name = "program2_aot_static",
@@ -167,11 +297,29 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for program2_kernel (gn type=copy)
-cc_library(name = "program2_kernel")
+dart_compile_dill(
+    name = "program2_kernel_dill_compile",
+    out = "program2.kernel.dill",
+    gen_kernel_args = ["--link-platform"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    main = "program2.dart",
+    mode_flags = [
+        "--no-aot",
+        "--no-embed-sources",
+    ],
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for program2_kernel_dill (gn type=action)
-cc_library(name = "program2_kernel_dill")
+cc_library(
+    name = "program2_kernel",
+    data = [":program2_kernel_dill_compile"],
+)
+
+cc_library(
+    name = "program2_kernel_dill",
+    deps = [":program2_kernel_dill_compile"],
+)
 
 cc_library(
     name = "program2_kernel_static",
@@ -190,11 +338,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -254,11 +402,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -318,11 +466,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -382,11 +530,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -446,11 +594,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -510,11 +658,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -574,11 +722,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -638,11 +786,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -703,11 +851,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -769,11 +917,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -835,11 +983,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -901,11 +1049,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -967,11 +1115,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1033,11 +1181,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1099,11 +1247,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1165,11 +1313,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1230,11 +1378,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1295,11 +1443,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1360,11 +1508,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1425,11 +1573,11 @@ cc_binary(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1480,14 +1628,30 @@ cc_binary(
     ],
 )
 
-# TODO(M3): copy for timer_aot (gn type=copy)
-cc_library(name = "timer_aot")
+dart_aot_snapshot(
+    name = "timer_aot_snapshot",
+    out = "timer.aot.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "timer.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for timer_aot_dill (gn type=action)
-cc_library(name = "timer_aot_dill")
+cc_library(
+    name = "timer_aot",
+    data = [":timer_aot_snapshot"],
+)
 
-# TODO(M3): genrule for timer_aot_gen_snapshot (gn type=action)
-cc_library(name = "timer_aot_gen_snapshot")
+cc_library(
+    name = "timer_aot_dill",
+    deps = [":timer_aot_snapshot_dill"],
+)
+
+cc_library(
+    name = "timer_aot_gen_snapshot",
+    deps = [":timer_aot_snapshot"],
+)
 
 cc_library(
     name = "timer_aot_static",
@@ -1496,11 +1660,29 @@ cc_library(
     ],
 )
 
-# TODO(M3): copy for timer_kernel (gn type=copy)
-cc_library(name = "timer_kernel")
+dart_compile_dill(
+    name = "timer_kernel_dill_compile",
+    out = "timer.kernel.dill",
+    gen_kernel_args = ["--link-platform"],
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    main = "timer.dart",
+    mode_flags = [
+        "--no-aot",
+        "--no-embed-sources",
+    ],
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    sources = ":embedder_samples_dart",
+)
 
-# TODO(M3): genrule for timer_kernel_dill (gn type=action)
-cc_library(name = "timer_kernel_dill")
+cc_library(
+    name = "timer_kernel",
+    data = [":timer_kernel_dill_compile"],
+)
+
+cc_library(
+    name = "timer_kernel_dill",
+    deps = [":timer_kernel_dill_compile"],
+)
 
 cc_library(
     name = "timer_kernel_static",
@@ -1535,11 +1717,11 @@ cc_library(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",
@@ -1611,11 +1793,11 @@ cc_library(
         "-Isamples/embedder",
         "-Iruntime",
         "-Iruntime/engine",
-        "-m64",
-        "-march=x86-64",
-        "-msse2",
+        "-m" + "64",
+        "-march=" + "x86-64",
+        "-m" + "sse2",
         "-fPIE",
-        "--target=x86_64-linux-gnu",
+        "--target=" + "x86_64-linux-gnu",
         "-fcolor-diagnostics",
         "-Wall",
         "-Wextra",

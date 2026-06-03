@@ -26,7 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 81, jetski) — **Completed TASK_018: Compile dart_engine Shared Libraries JIT/AOT.**_
+_Last updated: 2026-06-03 (session 82, jetski) — **Completed TASK_019: Port samples/embedder targets to Bazel.**_
+
+Session 82 — **(jetski) Completed TASK_019: Port samples/embedder targets to Bazel.**
+- **Resolved TODO(M3) Stubs**: Replaced compilation and copy stubs in `samples/embedder/BUILD.bazel` with real `dart_compile_dill` and `dart_aot_snapshot` targets.
+- **Created embedder_samples_dart Target**: Added a `dart_library` targeting the sample Dart scripts (`futures.dart`, `hello.dart`, `program1.dart`, `program2.dart`, `timer.dart`).
+- **Verified Embedder Binaries**: Verified that all samples (`run_main`, `run_timer`, `run_timer_async`, `run_futures`, and `run_two_programs` in both JIT/Kernel and AOT mode) build successfully and output correct execution outputs.
+- **Updated Backlog**: Marked `TASK_019` as `[COMPLETED]` in `BACKLOG.md` and regenerated the dependency graph.
 
 Session 81 — **(jetski) Completed TASK_018: Compile dart_engine Shared Libraries JIT/AOT.**
 - **Fixed Engine Compile Dependencies**: Resolved compile-time header resolution errors by adding `:headers` and `//runtime/include:headers` to `:engine_jit_set` and `:engine_aot_set` in `runtime/engine/BUILD.bazel`.
