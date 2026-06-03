@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 10/19 Tasks (52.6%)
+- **Overall Progress**: 11/19 Tasks
 
 ---
 
@@ -42,7 +42,7 @@ graph TD
     TASK_013["TASK_013:<br>Unified Test Repository with Configuration Subtargets"]:::completed
     TASK_014["TASK_014:<br>Python Test Wrapper Unit Testing"]:::completed
     TASK_015["TASK_015:<br>Resolve Bzlmod Lockfile Drift"]:::completed
-    TASK_016["TASK_016:<br>Migrate VM Platform and Kernel Service Dill Compilation to Starlark"]:::pending
+    TASK_016["TASK_016:<br>Migrate VM Platform and Kernel Service Dill Compilation to Starlark"]:::completed
     TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::pending
     TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::pending
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::pending
@@ -381,10 +381,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_016] Migrate VM Platform and Kernel Service Dill Compilation to Starlark
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: `[TASK_008]`
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `sdk/BUILD.bazel`
   - `runtime/bin/BUILD.bazel`
@@ -398,9 +398,9 @@ graph TD
   bazel build //runtime/bin:dartvm //sdk:create_sdk
   ```
 - **Success Criteria**:
-  - [ ] Bazel targets `//runtime/bin:dartvm` and `//sdk:create_sdk` build successfully without requiring `out/ReleaseX64/` to exist or contain any pre-built dills.
-  - [ ] Modifying an SDK library source file (e.g. `sdk/lib/core/core.dart`) or compiler source file (under `pkg/front_end/`) correctly triggers incremental rebuilds of the dills and re-links the VM under Bazel.
-  - [ ] The `restore.sh` sanity check for GN build artifacts is retired.
+  - [x] Bazel targets `//runtime/bin:dartvm` and `//sdk:create_sdk` build successfully without requiring `out/ReleaseX64/` to exist or contain any pre-built dills.
+  - [x] Modifying an SDK library source file (e.g. `sdk/lib/core/core.dart`) or compiler source file (under `pkg/front_end/`) correctly triggers incremental rebuilds of the dills and re-links the VM under Bazel.
+  - [x] The `restore.sh` sanity check for GN build artifacts is retired.
 
 ---
 

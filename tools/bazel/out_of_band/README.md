@@ -42,8 +42,6 @@ applied.
   - `third_party/icu/flutter/BUILD.bazel` (package shim for `icudtl.dat`)
   - `third_party/zlib/BUILD.bazel`
   - `third_party/perfetto/src/build_config/perfetto_build_flags.h`
-  - `out/ReleaseX64/BUILD.bazel`, `out/ReleaseX64/gen/BUILD.bazel`,
-    `out/ReleaseX64/gen/runtime/bin/BUILD.bazel` (exports_files for dills/blobs)
 - **Append blocks** (`snapshot/**/*.append`) — `# Dart Bazel M5:`-marked
   `exports_files` appended to upstream ICU files
   (`source/{common,i18n,stubdata}/BUILD.bazel`); idempotent via the marker.
@@ -88,27 +86,7 @@ snapshot blob embedded into them must match. The two `args.gn` flips make
 ninja-produced dills carry `0000000000` too; without them, `dartvm` rejects the
 dills as a snapshot version mismatch (surfaces as `ApiError`).
 
-## What `restore.sh` does NOT produce (artifacts — tier 2)
 
-These are build outputs, not source. The script only verifies they exist and
-points here if not. Regen recipes:
-
-**Snapshot blobs** (`out/ReleaseX64/gen/runtime/bin/core_snapshot_{data,text}.bin`):
-
-```bash
-bazel build //runtime/bin:gen_snapshot
-bazel-bin/runtime/bin/gen_snapshot --snapshot_kind=core \
-  --snapshot_data=out/ReleaseX64/gen/runtime/bin/core_snapshot_data.bin \
-  --snapshot_text=out/ReleaseX64/gen/runtime/bin/core_snapshot_text.bin \
-  out/ReleaseX64/vm_platform_stripped.dill
-```
-
-**Dills** (`vm_platform.dill`, `vm_platform_stripped.dill`, `gen/kernel_service.dill`):
-rebuild with `-Dsdk_hash=0000000000` so the hash matches `dartvm`. Either
-`ninja -C out/ReleaseX64 gen/kernel_service.dill vm_platform.dill vm_platform_stripped.dill`
-(after the args.gn flips above), or via Flutter's `dart` driving
-`pkg/front_end/tool/compile_platform.dart` / `compile.dart`. Full recipes live in
-the migration hand-off notes.
 
 ## Updating the snapshot
 

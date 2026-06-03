@@ -81,14 +81,7 @@ RENAMES=(
   "third_party/perfetto/src/python/BUILD"
 )
 
-# Build artifacts this script does NOT produce but the build needs (see README).
-ARTIFACTS=(
-  "out/ReleaseX64/vm_platform.dill"
-  "out/ReleaseX64/vm_platform_stripped.dill"
-  "out/ReleaseX64/gen/kernel_service.dill"
-  "out/ReleaseX64/gen/runtime/bin/core_snapshot_data.bin"
-  "out/ReleaseX64/gen/runtime/bin/core_snapshot_text.bin"
-)
+# Heavy build artifacts (dills, snapshots) are now fully produced by Bazel.
 
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
@@ -105,7 +98,7 @@ echo
 # 1. Verbatim files (wholly ours): every *.snap under snapshot/ maps to the
 #    same path with the snapshot/ prefix and .snap suffix removed.
 # --------------------------------------------------------------------------
-echo "[1/7] Verbatim files (.snap)"
+echo "[1/6] Verbatim files (.snap)"
 while IFS= read -r -d '' src; do
   rel="${src#"$SNAP"/}"          # e.g. third_party/icu/BUILD.bazel.snap
   dest="${rel%.snap}"           # e.g. third_party/icu/BUILD.bazel
@@ -124,7 +117,7 @@ echo
 # 2. Append blocks: every *.append appends a "# Dart Bazel M5:" marked block
 #    to an upstream file. Idempotent via the marker.
 # --------------------------------------------------------------------------
-echo "[2/7] Append blocks (.append)"
+echo "[2/6] Append blocks (.append)"
 while IFS= read -r -d '' src; do
   rel="${src#"$SNAP"/}"          # third_party/icu/source/common/BUILD.bazel.append
   dest="${rel%.append}"         # third_party/icu/source/common/BUILD.bazel
@@ -145,7 +138,7 @@ echo
 # --------------------------------------------------------------------------
 # 3. Disabling renames (move blocking upstream BUILD/WORKSPACE files aside).
 # --------------------------------------------------------------------------
-echo "[3/7] Disabling renames"
+echo "[3/6] Disabling renames"
 for f in "${RENAMES[@]}"; do
   disabled="${f}${DISABLED_SUFFIX}"
   if [ -e "$disabled" ]; then
@@ -163,7 +156,7 @@ echo
 # --------------------------------------------------------------------------
 # 4. GN args flips (sdk_hash determinism — see README "SDK hash discipline").
 # --------------------------------------------------------------------------
-echo "[4/7] out/ReleaseX64/args.gn flags"
+echo "[4/6] out/ReleaseX64/args.gn flags"
 ARGS_GN="out/ReleaseX64/args.gn"
 set_gn_false() {
   local key="$1"
@@ -191,7 +184,7 @@ echo
 # --------------------------------------------------------------------------
 # 5. Nested-subrepo DEPS pins (package APIs must match current SDK source).
 # --------------------------------------------------------------------------
-echo "[5/7] Nested-subrepo DEPS pins"
+echo "[5/6] Nested-subrepo DEPS pins"
 for path in "${SUBREPO_PINS[@]}"; do
   var_name="${path##*/}_rev"
   pin=$(grep -E "\"${var_name}\"" DEPS | grep -oE '[a-f0-9]{40}' | head -1)
@@ -225,7 +218,7 @@ echo
 #    it resolves against the correct subrepo revisions. This replaces any stale
 #    or hand-hacked config (e.g. the historical uniform-3.12 languageVersion).
 # --------------------------------------------------------------------------
-echo "[6/7] .dart_tool/package_config.json"
+echo "[6/6] .dart_tool/package_config.json"
 if [ -x "tools/sdks/dart-sdk/bin/dart" ]; then
   before=""
   [ -f ".dart_tool/package_config.json" ] && before="$(cat .dart_tool/package_config.json)"
@@ -254,33 +247,11 @@ else
 fi
 echo
 
-# --------------------------------------------------------------------------
-# 7. Verify heavy artifacts (NOT produced here — see README for regen recipes).
-# --------------------------------------------------------------------------
-echo "[7/7] Build artifacts (verify only)"
-missing=0
-for a in "${ARTIFACTS[@]}"; do
-  if [ -f "$a" ]; then
-    say "present  $a"
-  else
-    yellow "  MISSING  $a"
-    missing=$((missing + 1))
-  fi
-done
-echo
-
 # --- summary --------------------------------------------------------------
 if [ "$changed" -eq 0 ]; then
   green "Source/config state: already fully in place (no changes)."
 else
   green "Source/config state: restored ($changed item(s) changed)."
-fi
-
-if [ "$missing" -gt 0 ]; then
-  echo
-  yellow "$missing build artifact(s) missing. The bazel build will fail until they exist."
-  yellow "Regen recipes are in tools/bazel/out_of_band/README.md ('Build artifacts')."
-  echo
 fi
 
 echo "Next: /home/linuxbrew/.linuxbrew/bin/bazelisk build //runtime/bin:dartvm"

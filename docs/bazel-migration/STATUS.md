@@ -26,7 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-_Last updated: 2026-06-03 (session 77, jetski) — **Backlog Expansion: Onboarded Tasks 17, 18, 19.**_
+_Last updated: 2026-06-03 (session 78, jetski) — **Completed TASK_016: Migrate VM Platform and Kernel Service Dill Compilation to Starlark.**_
+
+Session 78 — **(jetski) Completed TASK_016: Migrate VM Platform and Kernel Service Dill Compilation to Starlark.**
+- **Verified Native Starlark Compilation**: Confirmed that `//runtime/bin:dartvm` and `//sdk:create_sdk` build successfully without any dependency on GN artifacts in `out/ReleaseX64/`. Verified incremental rebuilds of platform dills when SDK sources are modified.
+- **Retired Out-of-Band GN Artifact Verification**: Removed the heavy artifact verification (`ARTIFACTS` array and Step 7) from `tools/bazel/out_of_band/restore.sh` and updated `tools/bazel/out_of_band/README.md` to remove references to GN-built dills and snapshots.
+- **Cleaned Up Obsolete Snapshot Templates**: Deleted the `out/ReleaseX64` `BUILD.bazel` snapshot templates (`BUILD.bazel.snap`, `gen/BUILD.bazel.snap`, `gen/runtime/bin/BUILD.bazel.snap`) from `tools/bazel/out_of_band/snapshot/`.
+- **Updated Coordination Docs**: Marked `TASK_016` as `[COMPLETED]` in `BACKLOG.md` and updated progress to 11/19. Regenerated the Mermaid dependency graph.
 
 Session 77 — **(jetski) Backlog Expansion: Surfaced Bzlmod overlays, dart_engine shared library stubs, and embedder samples.**
 - **Expanded Backlog**: Appended `TASK_017` (Bzlmod overlays), `TASK_018` (`dart_engine` shared libraries), and `TASK_019` (`samples/embedder`) to `BACKLOG.md`.

@@ -1,6 +1,0 @@
-package(default_visibility = ["//visibility:public"])
-
-exports_files([
-    "core_snapshot_data.bin",
-    "core_snapshot_text.bin",
-])

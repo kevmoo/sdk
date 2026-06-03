@@ -1,6 +1,0 @@
-package(default_visibility = ["//visibility:public"])
-
-exports_files([
-    "vm_platform.dill",
-    "vm_platform_stripped.dill",
-])
