@@ -51,12 +51,12 @@ def main():
                 if line.startswith('workspace:'):
                     in_workspace = True
                     continue
-                elif line and not line.startswith(' '):
+                elif line and not line.startswith(' ') and not line.startswith('-'):
                     in_workspace = False
                 
                 if in_workspace:
-                    if line.strip().startswith('- '):
-                        pkg_path = line.split('-')[1].strip()
+                    if line.strip().startswith('-'):
+                        pkg_path = line.strip().lstrip('-').strip()
                         dir_path = os.path.join(sdk_root, pkg_path)
                         if os.path.exists(os.path.join(dir_path, 'pubspec.yaml')):
                             pkg_name = os.path.basename(pkg_path)

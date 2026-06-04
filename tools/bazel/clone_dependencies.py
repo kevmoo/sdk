@@ -176,10 +176,9 @@ def main():
             except Exception:
                 import time
                 try:
-                    # Fallback modification time check: if PID file is missing/corrupted,
-                    # only wait 10 seconds since writing PID file is near-instant.
-                    if time.time() - os.path.getmtime(lock_dir) > 10:
-                        print("Detected stale lock (older than 10 seconds). Clearing it.")
+                    # Fallback modification time check: 5 minutes (300s)
+                    if time.time() - os.path.getmtime(lock_dir) > 300:
+                        print("Detected stale lock (older than 5 minutes). Clearing it.")
                         temp_stale_dir = lock_dir + ".stale." + str(os.getpid())
                         try:
                             os.rename(lock_dir, temp_stale_dir)
