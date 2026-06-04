@@ -18,9 +18,11 @@ def _filter_copts(copts, platform):
         # Strip Linux target cross-compilation flag
         if c.startswith("--target="):
             continue
+
         # Strip x86-specific flags on Mac (since host might be arm64/Apple Silicon)
         if c.startswith("-march=") or c.startswith("-msse") or c == "-mssse3" or c == "-msse4.1" or c == "-msse4.2" or c == "-mavx":
             continue
+
         # Strip PIE/PIC flags to let the host toolchain manage them
         if c == "-fPIE" or c == "-fpie" or c == "-fPIC" or c == "-fpic":
             continue
@@ -61,8 +63,14 @@ def cc_library(name, defines = [], local_defines = [], copts = [], linkopts = []
 
     if not has_target_arch:
         custom_local_defines = custom_local_defines + select({
-            "@platforms//cpu:arm64": ["TARGET_ARCH_ARM64"],
-            "@platforms//cpu:x86_64": ["TARGET_ARCH_X64"],
+            "@//build/config:target_arch_x64": ["TARGET_ARCH_X64"],
+            "@//build/config:target_arch_arm64": ["TARGET_ARCH_ARM64"],
+            "@//build/config:target_arch_simarm": ["TARGET_ARCH_ARM"],
+            "@//build/config:target_arch_simarm64": ["TARGET_ARCH_ARM64"],
+            "@//build/config:target_arch_simriscv32": ["TARGET_ARCH_RISCV32"],
+            "@//build/config:target_arch_simriscv64": ["TARGET_ARCH_RISCV64"],
+            "@//build/config:target_arch_default_x64": ["TARGET_ARCH_X64"],
+            "@//build/config:target_arch_default_arm64": ["TARGET_ARCH_ARM64"],
             "//conditions:default": [],
         })
 
@@ -133,8 +141,14 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
 
     if not has_target_arch:
         custom_local_defines = custom_local_defines + select({
-            "@platforms//cpu:arm64": ["TARGET_ARCH_ARM64"],
-            "@platforms//cpu:x86_64": ["TARGET_ARCH_X64"],
+            "@//build/config:target_arch_x64": ["TARGET_ARCH_X64"],
+            "@//build/config:target_arch_arm64": ["TARGET_ARCH_ARM64"],
+            "@//build/config:target_arch_simarm": ["TARGET_ARCH_ARM"],
+            "@//build/config:target_arch_simarm64": ["TARGET_ARCH_ARM64"],
+            "@//build/config:target_arch_simriscv32": ["TARGET_ARCH_RISCV32"],
+            "@//build/config:target_arch_simriscv64": ["TARGET_ARCH_RISCV64"],
+            "@//build/config:target_arch_default_x64": ["TARGET_ARCH_X64"],
+            "@//build/config:target_arch_default_arm64": ["TARGET_ARCH_ARM64"],
             "//conditions:default": [],
         })
 

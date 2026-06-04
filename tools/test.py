@@ -35,6 +35,31 @@ def ResolveConfig(named_config):
     elif 'tsan' in config_lower:
         injected_flags.append('--features=tsan')
 
+    arch = None
+    if 'simarm64' in config_lower:
+        arch = 'simarm64'
+    elif 'simarm' in config_lower:
+        arch = 'simarm'
+    elif 'simriscv64' in config_lower:
+        arch = 'simriscv64'
+    elif 'simriscv32' in config_lower:
+        arch = 'simriscv32'
+    elif 'arm64' in config_lower:
+        arch = 'arm64'
+    elif 'arm' in config_lower:
+        arch = 'arm'
+    elif 'riscv64' in config_lower:
+        arch = 'riscv64'
+    elif 'riscv32' in config_lower:
+        arch = 'riscv32'
+    elif 'ia32' in config_lower:
+        arch = 'ia32'
+    elif 'x64' in config_lower:
+        arch = 'x64'
+
+    if arch:
+        injected_flags.append(f'--//build/config:dart_target_arch={arch}')
+
     if is_wasm:
         if 'asserts' in config_lower:
             suffix = '_wasm_asserts'
@@ -61,6 +86,10 @@ def ResolveConfig(named_config):
         injected_flags.append('--//build/config:dart_product=true')
     else:
         suffix = '_vm_release'
+
+    sim_archs = {'simarm', 'simarm64', 'simriscv32', 'simriscv64'}
+    if arch in sim_archs:
+        suffix = f'{suffix}_{arch}'
 
     return repo_name, suffix, injected_flags
 

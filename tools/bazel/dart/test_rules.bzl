@@ -78,4 +78,4 @@ def _test_ext_impl(ctx):
     return ctx.extension_metadata(reproducible = True)
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
-# Force refetch trigger: 3
+# Force refetch trigger: 7

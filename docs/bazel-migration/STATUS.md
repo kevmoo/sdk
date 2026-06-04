@@ -26,6 +26,14 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 97 — **(jetski) Completed TASK_024: Simulator Target Configurations.**
+- **Registered Simulator Architectures**: Added `dart_target_arch` flag and configuration settings for `simarm`, `simarm64`, `simriscv32`, and `simriscv64` in `build/config/BUILD.bazel`.
+- **Mapped Compiler defines**: Updated `tools/bazel/rules.bzl` to inject conditional preprocessor defines (`TARGET_ARCH_ARM` for `simarm`, `TARGET_ARCH_ARM64` for `simarm64`, and `TARGET_ARCH_RISCV64` for `simriscv64`) based on the target architecture.
+- **Added Simulator Test Targets**: Modified `tools/bazel/dart/generate_test_targets.dart` to define simulator configurations (`vm_release_simarm`, `vm_release_simarm64`, `vm_aot_release_simarm64`, `vm_release_simriscv64`, `vm_aot_release_simriscv64`, `vm_aot_release_simarm`). Mapped CFE and platform dill dependencies to simulator targets to allow host compilation during sandboxed test runs.
+- **Forced ELF Format for AOT Simulators**: Configured AOT simulator targets to use `--gen-snapshot-format=elf` to generate ELF files directly in `gen_snapshot` and avoid requiring cross-compiler assemblers in the sandboxed test runner.
+- **Mapped Test Runner Configs**: Updated `ResolveConfig` in `tools/test.py` to parse target architectures, inject `--//build/config:dart_target_arch` into Bazel, and map simulator configurations to their respective sharded test targets.
+- **Verified JIT and AOT Simulators**: Successfully executed `simarm64` and `simriscv64` JIT and AOT tests end-to-end (e.g. `python3 tools/test.py --bazel -n dart-sdk-simarm64 corelib/list_test`). Documented that 32-bit simulator VMs (`simarm`) cannot run JIT VM tests or AOT tests requiring JIT training on 64-bit hosts due to word-size constraints in the simulator VM.
+
 Session 96 — **(jetski) Completed TASK_022: VM AOT Test Suite Integration.**
 - **Added AOT Configuration**: Defined `vm_aot_release` configuration in `tools/bazel/dart/generate_test_targets.dart` to discover AOT test targets (`dartkp`/`dart_precompiled`) for language, corelib, and standalone suites.
 - **Bypassed Discovery existence checks**: Modified `generate_test_targets.dart` to pass the `--list` flag to the dry-run test runner, bypassing binary existence checks (`dartaotruntime` etc.) during target generation.

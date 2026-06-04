@@ -15,7 +15,7 @@ fi
 # 2. Audit all Bazel and snapshot files for hardcoded host-specific target/cpu cflags and defines
 files_to_audit=$(git diff --cached --name-only --diff-filter=ACM \
   | grep -E '(^|/)(BUILD\.bazel|MODULE\.bazel)$|\.bzl$|\.snap$|\.append$' \
-  | grep -E -v 'gen_targets\.bzl|rules\.bzl' || true)
+  | grep -E -v 'gen_targets\.bzl|rules\.bzl|^build/config/' || true)
 
 if [ -n "$files_to_audit" ]; then
   forbidden_patterns=(

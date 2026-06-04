@@ -9,7 +9,7 @@
 # The arch and OS axes (recon §8) remain out of scope, as does WIRING either axis
 # into the real runtime targets (the translator-generalization slice does that).
 
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_flag")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -56,6 +56,65 @@ config_setting(
     constraint_values = ["@platforms//cpu:aarch64"],
 )
 
+string_flag(
+    name = "dart_target_arch",
+    build_setting_default = "",
+    values = [
+        "",
+        "x64",
+        "arm",
+        "arm64",
+        "riscv32",
+        "riscv64",
+        "simarm",
+        "simarm64",
+        "simriscv32",
+        "simriscv64",
+    ],
+)
+
+config_setting(
+    name = "target_arch_x64",
+    flag_values = {":dart_target_arch": "x64"},
+)
+
+config_setting(
+    name = "target_arch_arm64",
+    flag_values = {":dart_target_arch": "arm64"},
+)
+
+config_setting(
+    name = "target_arch_simarm",
+    flag_values = {":dart_target_arch": "simarm"},
+)
+
+config_setting(
+    name = "target_arch_simarm64",
+    flag_values = {":dart_target_arch": "simarm64"},
+)
+
+config_setting(
+    name = "target_arch_simriscv32",
+    flag_values = {":dart_target_arch": "simriscv32"},
+)
+
+config_setting(
+    name = "target_arch_simriscv64",
+    flag_values = {":dart_target_arch": "simriscv64"},
+)
+
+config_setting(
+    name = "target_arch_default_x64",
+    constraint_values = ["@platforms//cpu:x86_64"],
+    flag_values = {":dart_target_arch": ""},
+)
+
+config_setting(
+    name = "target_arch_default_arm64",
+    constraint_values = ["@platforms//cpu:aarch64"],
+    flag_values = {":dart_target_arch": ""},
+)
+
 # The single shared mechanism (recon §6): ONE config_setting + ONE select()-driven
 # carrier folds the whole debug<->release delta, instead of 141 per-target
 # select()s. A cc_library dep propagates `defines` and `linkopts` to its
@@ -70,8 +129,14 @@ cc_library(
         ":debug": ["DEBUG"],
         "//conditions:default": ["NDEBUG"],
     }) + select({
-        ":cpu_x64": ["TARGET_ARCH_" + "X64"],
-        ":cpu_arm64": ["TARGET_ARCH_ARM64"],
+        ":target_arch_x64": ["TARGET_ARCH_X64"],
+        ":target_arch_arm64": ["TARGET_ARCH_ARM64"],
+        ":target_arch_simarm": ["TARGET_ARCH_ARM"],
+        ":target_arch_simarm64": ["TARGET_ARCH_ARM64"],
+        ":target_arch_simriscv32": ["TARGET_ARCH_RISCV32"],
+        ":target_arch_simriscv64": ["TARGET_ARCH_RISCV64"],
+        ":target_arch_default_x64": ["TARGET_ARCH_X64"],
+        ":target_arch_default_arm64": ["TARGET_ARCH_ARM64"],
         "//conditions:default": [],
     }),
     linkopts = select({

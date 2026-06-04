@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 20/30 Tasks
+- **Overall Progress**: 21/30 Tasks
 
 ---
 
@@ -50,7 +50,7 @@ graph TD
     TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::completed
     TASK_022["TASK_022:<br>VM AOT Test Suite Integration"]:::completed
     TASK_023["TASK_023:<br>Sanitizer Test Configuration Mapping"]:::completed
-    TASK_024["TASK_024:<br>Simulator Target Configurations"]:::pending
+    TASK_024["TASK_024:<br>Simulator Target Configurations"]:::completed
     TASK_025["TASK_025:<br>Debian Package Build Target"]:::pending
     TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
     TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::completed
@@ -582,21 +582,26 @@ graph TD
 ---
 
 ### 🎯 [TASK_024] Simulator Target Configurations
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `build/config/BUILD.bazel`
+  - `tools/bazel/rules.bzl`
+  - `tools/bazel/dart/generate_test_targets.dart`
+  - `tools/bazel/dart/test_rules.bzl`
+  - `tools/test.py`
 - **Description**:
-  Register simulator CPU configurations (`simarm`, `simarm64`, `simriscv32`, `simriscv64`) in `build/config/BUILD.bazel` to enable cross-architecture simulator testing.
+  Register simulator CPU configurations (`simarm`, `simarm64`, `simriscv32`, `simriscv64`) in `build/config/BUILD.bazel` to enable cross-architecture simulator testing. Update `tools/test.py` and `generate_test_targets.dart` to support running simulator JIT and AOT tests under Bazel.
 - **Verification Command**:
   ```bash
   bazel build --//build/config:dart_target_arch=simarm //runtime/bin:dartvm
   ```
 - **Success Criteria**:
-  - [ ] Simulator architectures are registered as valid configurations.
-  - [ ] VM compiles successfully targeting simulated CPU architectures.
+  - [x] Simulator architectures are registered as valid configurations.
+  - [x] VM compiles successfully targeting simulated CPU architectures.
+  - [x] 64-bit simulator targets (simarm64, simriscv64) pass JIT and AOT tests end-to-end under Bazel.
 
 ---
 

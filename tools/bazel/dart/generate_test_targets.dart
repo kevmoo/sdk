@@ -346,7 +346,9 @@ void main(List<String> args) async {
         }
       }
 
-      if (config.compiler == 'fasta' || config.compiler == 'dartkp') {
+      if (config.compiler == 'fasta' ||
+          config.compiler == 'dartkp' ||
+          config.name.contains('sim')) {
         baselineDeps.addAll({
           '@//:front_end_tool_files',
           '@//:compile_platform_tool',
@@ -753,6 +755,54 @@ const _configs = <_TestConfig>[
     runtime: 'dart_precompiled',
     suites: ['language', 'corelib', 'standalone'],
     extraFlags: [],
+  ),
+  (
+    name: 'vm_release_simarm',
+    mode: 'release',
+    compiler: 'dartk',
+    runtime: 'vm',
+    suites: ['language', 'corelib', 'standalone', 'ffi'],
+    extraFlags: ['--arch=simarm'],
+  ),
+  (
+    name: 'vm_aot_release_simarm',
+    mode: 'release',
+    compiler: 'dartkp',
+    runtime: 'dart_precompiled',
+    suites: ['language', 'corelib', 'standalone'],
+    extraFlags: ['--arch=simarm', '--gen-snapshot-format=elf'],
+  ),
+  (
+    name: 'vm_release_simarm64',
+    mode: 'release',
+    compiler: 'dartk',
+    runtime: 'vm',
+    suites: ['language', 'corelib', 'standalone', 'ffi'],
+    extraFlags: ['--arch=simarm64'],
+  ),
+  (
+    name: 'vm_aot_release_simarm64',
+    mode: 'release',
+    compiler: 'dartkp',
+    runtime: 'dart_precompiled',
+    suites: ['language', 'corelib', 'standalone'],
+    extraFlags: ['--arch=simarm64', '--gen-snapshot-format=elf'],
+  ),
+  (
+    name: 'vm_release_simriscv64',
+    mode: 'release',
+    compiler: 'dartk',
+    runtime: 'vm',
+    suites: ['language', 'corelib', 'standalone', 'ffi'],
+    extraFlags: ['--arch=simriscv64'],
+  ),
+  (
+    name: 'vm_aot_release_simriscv64',
+    mode: 'release',
+    compiler: 'dartkp',
+    runtime: 'dart_precompiled',
+    suites: ['language', 'corelib', 'standalone'],
+    extraFlags: ['--arch=simriscv64', '--gen-snapshot-format=elf'],
   ),
 ];
 
