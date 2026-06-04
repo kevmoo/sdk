@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 91 — **(jetski) Resolved hybrid SDK packaging mismatch and hand-authored ODR violations.**
+- **Fixed SDK Packaging Mismatch**: Modified `sdk/BUILD.bazel` to unconditionally copy `_product` variants of `dartaotruntime` and `gen_snapshot` by default, matching the default hybrid JIT/AOT configuration of the GN SDK.
+- **Resolved Hand-Authored ODR Violations**: Refactored hand-authored `BUILD.bazel` files in `runtime/bin/`, `runtime/vm/`, and `runtime/platform/` to replace the dynamic command-line dependent `//build/config:dart_product_mode` with static `PRODUCT` defines for all dedicated product target variants (such as `dartaotruntime_product`). This ensures that product targets compile with `-DPRODUCT` even during default builds, preventing runtime ABI mismatch crashes like `Type '_NetworkProfiling' not found in library 'dart.io'`.
+- **Verified End-to-End**: Confirmed that `bazel build //sdk:create_sdk` completes successfully and the resulting SDK can successfully compile and run native standalone executables out-of-the-box.
+- **Added Backlog Tasks**: Expanded `BACKLOG.md` with 5 new tasks (`TASK_022` through `TASK_026`) covering VM AOT testing, sanitizer config mapping, simulator target configurations, Debian packaging build target, and CI LUCI recipe migration. Regenerated the backlog dependency graph.
+
 Session 90 — **(jetski) Resolved package wildcard analysis errors in samples/embedder.**
 - **Converted Obsolete cc_library Targets**: Modified `samples/embedder/BUILD.bazel` to convert `_dill` and `_gen_snapshot` targets from `cc_library` to `filegroup` targets.
 - **Fixed CcInfo Violations**: Resolved Bazel analysis errors caused by `cc_library` targets depending directly on non-CcInfo provider rules (like `dart_compile_dill` and `dart_aot_snapshot`), allowing the package wildcard build (`//samples/embedder:*`) to complete cleanly.

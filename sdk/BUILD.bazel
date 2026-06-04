@@ -236,10 +236,7 @@ genrule(
 # mixed-PRODUCT ODR).
 genrule(
     name = "copy_dart_aotruntime",
-    srcs = select({
-        "//build/config:product": ["//runtime/bin:dartaotruntime_product"],
-        "//conditions:default": ["//runtime/bin:dartaotruntime"],
-    }),
+    srcs = ["//runtime/bin:dartaotruntime_product"],
     outs = ["dart-sdk/bin/dartaotruntime"],
     cmd = select({
         "//build/config:os_macos": "strip -x -o $@ $<",
@@ -255,16 +252,10 @@ cc_library(name = "copy_dart_aotruntime_msan")
 
 genrule(
     name = "copy_dart_aotruntime_sym",
-    srcs = select({
-        "//build/config:product": [
-            "//runtime/bin:dartaotruntime_product",
-            "//runtime/tools:dart_profiler_symbols.py",
-        ],
-        "//conditions:default": [
-            "//runtime/bin:dartaotruntime",
-            "//runtime/tools:dart_profiler_symbols.py",
-        ],
-    }),
+    srcs = [
+        "//runtime/bin:dartaotruntime_product",
+        "//runtime/tools:dart_profiler_symbols.py",
+    ],
     outs = ["dart-sdk/bin/dartaotruntime.sym"],
     cmd = select({
         "//build/config:os_macos": "python3 $(location //runtime/tools:dart_profiler_symbols.py) --nm nm --output $@ --binary $$(echo '$(SRCS)' | cut -d' ' -f1)",
@@ -502,10 +493,7 @@ filegroup(
 # GN renames gen_snapshot_product -> gen_snapshot under bin/utils/.
 genrule(
     name = "copy_gen_snapshot_exe",
-    srcs = select({
-        "//build/config:product": ["//runtime/bin:gen_snapshot_product"],
-        "//conditions:default": ["//runtime/bin:gen_snapshot"],
-    }),
+    srcs = ["//runtime/bin:gen_snapshot_product"],
     outs = ["dart-sdk/bin/utils/gen_snapshot"],
     cmd = select({
         "//build/config:os_macos": "strip -x -o $@ $<",
@@ -515,16 +503,10 @@ genrule(
 
 genrule(
     name = "copy_gen_snapshot_sym",
-    srcs = select({
-        "//build/config:product": [
-            "//runtime/bin:gen_snapshot_product",
-            "//runtime/tools:dart_profiler_symbols.py",
-        ],
-        "//conditions:default": [
-            "//runtime/bin:gen_snapshot",
-            "//runtime/tools:dart_profiler_symbols.py",
-        ],
-    }),
+    srcs = [
+        "//runtime/bin:gen_snapshot_product",
+        "//runtime/tools:dart_profiler_symbols.py",
+    ],
     outs = ["dart-sdk/bin/utils/gen_snapshot.sym"],
     cmd = select({
         "//build/config:os_macos": "python3 $(location //runtime/tools:dart_profiler_symbols.py) --nm nm --output $@ --binary $$(echo '$(SRCS)' | cut -d' ' -f1)",

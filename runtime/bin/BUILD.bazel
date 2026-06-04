@@ -511,6 +511,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_IO_ROOT_CERTS_DISABLED",
@@ -526,7 +527,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
         "//third_party/boringssl",
         "@zlib",
@@ -863,6 +863,7 @@ cc_library(
     }),
     defines = [
         "DART_EMBED_ICU_DATA",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILED_RUNTIME",
@@ -886,7 +887,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -979,6 +979,7 @@ cc_library(
     }),
     defines = [
         "DART_EMBED_ICU_DATA",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_PRECOMPILED_RUNTIME",
@@ -1002,7 +1003,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:crashpad",
         "//runtime/bin:icudtl_cc",
         "//third_party/boringssl",
@@ -1480,6 +1480,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_SHARED_LIB",
@@ -1495,7 +1496,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
     ],
 )
@@ -1638,11 +1638,11 @@ cc_library(
 cc_library(
     name = "ffi_test_functions",
     srcs = [
+        "ffi_test/ffi_test_fields.h",
         "ffi_test/ffi_test_functions.cc",
         "ffi_test/ffi_test_functions_generated.cc",
         "ffi_test/ffi_test_functions_generated_2.cc",
         "ffi_test/ffi_test_functions_vmspecific.cc",
-        "ffi_test/ffi_test_fields.h",
     ] + select({
         "@platforms//cpu:arm64": ["ffi_test/clobber_arm64.S"],
         "@platforms//cpu:x86_64": ["ffi_test/clobber_x64.S"],
@@ -2019,6 +2019,7 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2034,7 +2035,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -2132,6 +2132,7 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
@@ -2146,7 +2147,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -2244,6 +2244,7 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2260,7 +2261,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -2358,6 +2358,7 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2374,7 +2375,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -2472,6 +2472,7 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2488,7 +2489,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -2586,6 +2586,7 @@ cc_library(
     }),
     defines = [
         "DART_IO_SECURE_SOCKET_DISABLED",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2602,7 +2603,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -2785,6 +2785,7 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
     ],
@@ -2799,7 +2800,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -2884,6 +2884,7 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -2900,7 +2901,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -2985,6 +2985,7 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3001,7 +3002,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -3086,6 +3086,7 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3102,7 +3103,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -3187,6 +3187,7 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3203,7 +3204,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "@zlib",
     ],
 )
@@ -3288,6 +3288,7 @@ cc_library(
     }),
     defines = [
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_PRECOMPILER",
         "DART_TARGET_OS_LINUX",
@@ -3303,7 +3304,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "@zlib",
     ] + TEMPLATE_IO_PLATFORM_DEPS,
 )
@@ -3777,6 +3777,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
     ],
@@ -3789,10 +3790,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -3873,6 +3871,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
     ],
     implementation_deps = [
@@ -3884,10 +3883,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -3968,6 +3964,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM",
@@ -3981,10 +3978,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(
@@ -4065,6 +4059,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_ARM64",
@@ -4078,10 +4073,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(
@@ -4162,6 +4154,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_RISCV64",
@@ -4175,10 +4168,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(
@@ -4259,6 +4249,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "TARGET_ARCH_" + "X64",
@@ -4272,10 +4263,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(
@@ -4427,6 +4415,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
     ],
@@ -4439,10 +4428,7 @@ cc_library(
         "-ldl",
         "-lpthread",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 # M5 Path-1.5: real vm_platform.dill embed.
@@ -5029,6 +5015,7 @@ cc_library(
         "//conditions:default": [],
     }),
     defines = [
+        "PRODUCT",
         "SUPPORT_PERFETTO",
         "DART_TARGET_OS_LINUX",
         "DART_SHARED_LIB",
@@ -5044,7 +5031,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//runtime/bin:libdart_builtin_product",
     ],
 )

@@ -204,6 +204,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -219,10 +220,7 @@ cc_library(
         "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -388,6 +386,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -401,10 +400,7 @@ cc_library(
         "DART_TARGET_OS_LINUX",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -756,6 +752,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -770,10 +767,7 @@ cc_library(
         "DART_PRECOMPILER",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -850,6 +844,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -863,10 +858,7 @@ cc_library(
         "DART_PRECOMPILER",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode"],
 )
 
 cc_library(
@@ -943,6 +935,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -958,10 +951,7 @@ cc_library(
         "DART_PRECOMPILER",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(
@@ -1038,6 +1028,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1053,10 +1044,7 @@ cc_library(
         "DART_PRECOMPILER",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(
@@ -1133,6 +1121,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1148,10 +1137,7 @@ cc_library(
         "DART_PRECOMPILER",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(
@@ -1228,6 +1214,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1243,10 +1230,7 @@ cc_library(
         "DART_PRECOMPILER",
         "PRODUCT",
     ],
-    deps = [
-        "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
-    ],
+    deps = ["//build/config:dart_mode_no_arch"],
 )
 
 cc_library(

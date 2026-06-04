@@ -142,12 +142,12 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
-    deps = [
-        "//build/config:dart_mode",
-    ],
     data = [
         "//runtime/vm:vm_platform",
         "//runtime/vm:vm_platform_stripped",
+    ],
+    deps = [
+        "//build/config:dart_mode",
     ],
 )
 
@@ -464,6 +464,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -480,7 +481,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -1136,6 +1136,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1153,7 +1154,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -1306,6 +1306,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1322,7 +1323,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -1475,6 +1475,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1493,7 +1494,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -1646,6 +1646,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1664,7 +1665,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -1817,6 +1817,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -1835,7 +1836,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -1988,6 +1988,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -2006,7 +2007,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
     ],
 )
@@ -2795,6 +2795,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -2822,7 +2823,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",
     ],
@@ -3442,6 +3442,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -3467,7 +3468,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",
     ],
@@ -4742,6 +4742,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -4768,7 +4769,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",
@@ -5069,6 +5069,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -5094,7 +5095,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode",
-        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",
@@ -5395,6 +5395,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -5422,7 +5423,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",
@@ -5723,6 +5723,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -5750,7 +5751,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",
@@ -6051,6 +6051,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -6078,7 +6079,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",
@@ -6379,6 +6379,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    defines = ["PRODUCT"],
     implementation_deps = [
         "//runtime/include:headers",
         "//runtime/lib:headers",
@@ -6406,7 +6407,6 @@ cc_library(
     ],
     deps = [
         "//build/config:dart_mode_no_arch",
-        "//build/config:dart_product_mode",
         "//third_party/boringssl",
         "//third_party/perfetto:libprotozero",
         "@icu//:icuuc",

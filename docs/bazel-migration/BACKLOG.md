@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 14/21 Tasks
+- **Overall Progress**: 17/26 Tasks
 
 ---
 
@@ -48,6 +48,11 @@ graph TD
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::completed
     TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::completed
     TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::completed
+    TASK_022["TASK_022:<br>VM AOT Test Suite Integration"]:::pending
+    TASK_023["TASK_023:<br>Sanitizer Test Configuration Mapping"]:::pending
+    TASK_024["TASK_024:<br>Simulator Target Configurations"]:::pending
+    TASK_025["TASK_025:<br>Debian Package Build Target"]:::pending
+    TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -58,6 +63,10 @@ graph TD
     TASK_017 --> TASK_020
     TASK_017 --> TASK_021
     TASK_020 --> TASK_021
+    TASK_003 --> TASK_026
+    TASK_004 --> TASK_026
+    TASK_005 --> TASK_026
+    TASK_006 --> TASK_026
 ```
 
 <!-- END_DEP_GRAPH -->
@@ -523,3 +532,97 @@ graph TD
   - [x] `restore.sh` and `README.md` are deleted.
   - [x] `tools/test.py` check is removed.
   - [x] Build works after a fresh `gclient sync` without running any restore scripts.
+
+---
+
+### 🎯 [TASK_022] VM AOT Test Suite Integration
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/generate_test_targets.dart`
+  - `tools/test.py`
+- **Description**:
+  Define AOT compilation and execution configurations in `generate_test_targets.dart` and add AOT configuration mapping in `tools/test.py` `ResolveConfig` to run sandboxed VM AOT tests using the packaged `dartaotruntime`.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel -n vm-aot-release-x64 corelib/list_test
+  ```
+- **Success Criteria**:
+  - [ ] AOT test targets are generated for core suites.
+  - [ ] `ResolveConfig` maps AOT configurations correctly to AOT target suffixes.
+  - [ ] VM AOT tests compile to ELF and execute green under the sandboxed dartaotruntime.
+
+---
+
+### 🎯 [TASK_023] Sanitizer Test Configuration Mapping
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/test.py`
+- **Description**:
+  Extend `ResolveConfig` in `tools/test.py` to parse sanitizer suffixes (e.g. `asan`, `msan`, `tsan`) and inject compiler configuration flags for Bazel-built sanitizer tests.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel -n dart-asan corelib/list_test
+  ```
+- **Success Criteria**:
+  - [ ] `ResolveConfig` detects `asan` suffix and injects `--features=asan` or corresponding flags.
+  - [ ] Sanitizer tests execute and pass cleanly under Bazel.
+
+---
+
+### 🎯 [TASK_024] Simulator Target Configurations
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `build/config/BUILD.bazel`
+- **Description**:
+  Register simulator CPU configurations (`simarm`, `simarm64`, `simriscv32`, `simriscv64`) in `build/config/BUILD.bazel` to enable cross-architecture simulator testing.
+- **Verification Command**:
+  ```bash
+  bazel build --//build/config:dart_target_arch=simarm //runtime/bin:dartvm
+  ```
+- **Success Criteria**:
+  - [ ] Simulator architectures are registered as valid configurations.
+  - [ ] VM compiles successfully targeting simulated CPU architectures.
+
+---
+
+### 🎯 [TASK_025] Debian Package Build Target
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/debian_package/BUILD.bazel`
+- **Description**:
+  Replace the `debian_package` placeholder stub in `tools/debian_package/BUILD.bazel` with a functional rule porting the Debian packaging logic.
+- **Verification Command**:
+  ```bash
+  bazel build //tools/debian_package:debian_package
+  ```
+- **Success Criteria**:
+  - [ ] Debian package target is compiled and packages all binaries hermetically.
+
+---
+
+### 🎯 [TASK_026] CI LUCI Recipe Migration
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_003, TASK_004, TASK_005, TASK_006]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `infra/specs/`
+- **Description**:
+  Update LUCI build and test recipes to call `tools/build.py --bazel` and `tools/test.py --bazel` respectively, and upload the Bazel-built SDK as a release artifact.
+- **Verification Command**:
+  Verify mock recipe runs green.
+- **Success Criteria**:
+  - [ ] CI builders successfully transition to Bazel for building and testing.
+  - [ ] Bazel-built SDK is uploaded to CIPD/GCS storage.
