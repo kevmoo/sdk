@@ -44,6 +44,7 @@ dart_app_jit_snapshot(
     training_args = [
         "--sdk=sdk/",
         "--train-using=pkg/compiler/lib",
+        "--packages=$(pwd)/$(location //:package_config_json)",
     ],
     # The --sdk training run reads sdk/lib/** (libraries.dart, dart:core, …) plus
     # the sdk/version stamp — all outside the pkg/ closure in `sources`; declare

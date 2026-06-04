@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 12/21 Tasks
+- **Overall Progress**: 13/21 Tasks
 
 ---
 
@@ -46,7 +46,7 @@ graph TD
     TASK_017["TASK_017:<br>Migrate Third-Party Dependencies to Hermetic Bzlmod Overlays"]:::completed
     TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::completed
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::completed
-    TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::pending
+    TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::completed
     TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::pending
 
     TASK_017 --> TASK_006
@@ -481,10 +481,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_020] Migrate `packages.bzl` target generation to a dynamic Bzlmod extension
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: `[TASK_017]`
 - **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/dart/packages.bzl`
   - `tools/bazel/dart/gen_packages.py`
@@ -497,9 +497,9 @@ graph TD
   bazel build @dart_packages//:all
   ```
 - **Success Criteria**:
-  - [ ] `tools/bazel/dart/packages.bzl` and `tools/bazel/dart/gen_packages.py` are deleted.
-  - [ ] A Bzlmod extension dynamically generates package targets.
-  - [ ] Build succeeds using dynamic targets.
+  - [x] `tools/bazel/dart/packages.bzl` and `tools/bazel/dart/gen_packages.py` are deleted.
+  - [x] A Bzlmod extension dynamically generates package targets.
+  - [x] Build succeeds using dynamic targets.
 
 ---
 

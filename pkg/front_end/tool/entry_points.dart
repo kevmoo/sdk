@@ -567,10 +567,15 @@ Future<List<Uri>> computeHostDependencies(Uri hostPlatform) {
   // self-hosting, this isn't an approximation. Regardless, strong mode
   // shouldn't affect which files are read.
   Target? hostTarget = getTarget("vm", new TargetFlags());
+  Uri? packagesUri;
+  if (Platform.packageConfig != null) {
+    packagesUri = Uri.parse(Platform.packageConfig!);
+  }
   return getDependencies(
     Platform.script,
     platform: hostPlatform,
     target: hostTarget,
+    packages: packagesUri,
   );
 }
 

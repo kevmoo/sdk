@@ -24,9 +24,17 @@
 - _(none — all resolved!)_
 
 **Active claims (who is editing what right now):**
-- _(none — all resolved!)_
+- _(none)_
 
-_Last updated: 2026-06-04 (session 83, jetski) — **Completed TASK_007: Sanitizer Suite Verification.**_
+_Last updated: 2026-06-04 (session 84, jetski) — **Completed TASK_020: Migrate packages.bzl target generation to a dynamic Bzlmod extension.**_
+
+Session 84 — **(jetski) Completed TASK_020: Migrate packages.bzl target generation to a dynamic Bzlmod extension.**
+- **Implemented Bzlmod Module Extension**: Replaced the static, checked-in `tools/bazel/dart/packages.bzl` and its generator `tools/bazel/dart/gen_packages.py` with a dynamic Bzlmod module extension (`tools/bazel/dart/packages_extension.bzl`).
+- **Declared Package Targets Dynamically**: The extension parses `.dart_tool/package_config.json` and package pubspecs to generate `dart_library` targets dynamically inside `@dart_packages`.
+- **Integrated with Test Runner**: Resolved sandboxed test execution failures by updating `pkg/test_runner/bin/run_single_test.dart` to dynamically parse and rewrite relative package paths in the generated `package_config.json` to resolved absolute paths at test runtime.
+- **Propagated Package Config in CFE**: Updated `pkg/front_end/tool/entry_points.dart` to propagate `Platform.packageConfig` when computing host dependencies.
+- **Verified End-to-End**: Confirmed all dynamic package targets build successfully and `@dart_tests//corelib:tests_vm_release` passes 100% green.
+- **Updated Backlog**: Marked `TASK_020` as `[COMPLETED]` in `BACKLOG.md` and regenerated the dependency graph.
 
 Session 83 — **(jetski) Completed TASK_007: Sanitizer Suite Verification.**
 - **Implemented Sanitizer features in Toolchain**: Declared `msan` and `tsan` compiler features in `build/toolchain/linux/cc_toolchain_config.bzl` (complementing the existing `asan` feature).

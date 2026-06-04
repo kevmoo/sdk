@@ -85,7 +85,7 @@ dart_app_jit_snapshot(
     sources = "//:dart_pkg_compiler",
     training_args = [
         "--invoker=gn_build",
-        "--packages=.dart_tool/package_config.json",
+        "--packages=$(location //:package_config_json)",
         "--libraries-spec=sdk/lib/libraries.json",
         # Elides running the CFE on the sdk sources (GN comment).
         "--platform-binaries=$(RULEDIR)/",

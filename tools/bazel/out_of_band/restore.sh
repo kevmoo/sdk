@@ -164,18 +164,7 @@ if [ -x "tools/sdks/dart-sdk/bin/dart" ]; then
     say "ok       .dart_tool/package_config.json (unchanged)"
   fi
 
-  # rules_dart Step 3: the per-package dart_library graph (tracked in git, unlike
-  # the gitignored package_config) is derived from package_config + the workspace
-  # pubspecs, so regenerate it right after. Drift here means the committed
-  # packages.bzl is stale vs the current pubspecs and should be re-committed.
-  pkgbzl_before=""
-  [ -f "tools/bazel/dart/packages.bzl" ] && pkgbzl_before="$(cat tools/bazel/dart/packages.bzl)"
-  python3 tools/bazel/dart/gen_packages.py >/dev/null
-  if [ "$pkgbzl_before" != "$(cat tools/bazel/dart/packages.bzl)" ]; then
-    yellow "  regenerated tools/bazel/dart/packages.bzl (CHANGED — git add + commit it)"
-  else
-    say "ok       tools/bazel/dart/packages.bzl (unchanged)"
-  fi
+
 else
   yellow "  tools/sdks/dart-sdk/bin/dart absent — run gclient sync/CIPD first; skipping"
 fi

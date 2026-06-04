@@ -512,7 +512,7 @@ def _dart_app_jit_training_impl(ctx):
     expanded_targs = []
     for arg in ctx.attr.training_args:
         if "$(" in arg:
-            expanded_arg = ctx.expand_location(arg, targets = ctx.attr.training_srcs)
+            expanded_arg = ctx.expand_location(arg, targets = ctx.attr.training_srcs + [ctx.attr.package_config])
         else:
             expanded_arg = arg
         expanded_targs.append(expanded_arg)

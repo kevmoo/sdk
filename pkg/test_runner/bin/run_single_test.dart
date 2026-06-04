@@ -231,9 +231,7 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
 
     arguments = arguments.map((arg) {
       if (arg.startsWith('--packages=')) {
-        final resolvedPkg = _Runfiles.resolve(
-          '_main/.dart_tool/package_config.json',
-        );
+        final resolvedPkg = _getRewrittenPackageConfig();
         return '--packages=$resolvedPkg';
       }
       return arg;
@@ -616,6 +614,45 @@ String _rewriteSandboxPathRaw(String path, String testTmpdir) {
   }
 
   return path;
+}
+
+String? _rewrittenPackageConfig;
+
+String _getRewrittenPackageConfig() {
+  return _rewrittenPackageConfig ??= _rewritePackageConfig();
+}
+
+String _rewritePackageConfig() {
+  final originalPath = _Runfiles.resolve('_main/package_config.json');
+  final file = File(originalPath);
+  if (!file.existsSync()) {
+    return originalPath;
+  }
+
+  final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+  final packages = json['packages'] as List<dynamic>;
+  final newPackages = <Map<String, dynamic>>[];
+
+  for (final pkg in packages) {
+    final map = Map<String, dynamic>.from(pkg as Map);
+    final rootUri = map['rootUri'] as String;
+    if (rootUri.startsWith('../../../')) {
+      final relativePath = rootUri.substring('../../../'.length);
+      final runfilesPath = '_main/$relativePath';
+      final physicalPath = _Runfiles.resolve(runfilesPath);
+      final uri = Uri.file(physicalPath);
+      map['rootUri'] = uri.toString();
+    }
+    newPackages.add(map);
+  }
+
+  json['packages'] = newPackages;
+
+  final tempDir = Directory.systemTemp.createTempSync('dart_package_config');
+  final tempFile = File('${tempDir.path}/package_config.json');
+  tempFile.writeAsStringSync(jsonEncode(json));
+
+  return tempFile.path;
 }
 
 abstract final class _Runfiles {
