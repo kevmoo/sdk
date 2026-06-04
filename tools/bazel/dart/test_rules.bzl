@@ -34,7 +34,21 @@ if [ -z "$DART_BIN" ] || [ -z "$RUNNER_DART" ]; then
   exit 2
 fi
 
-CHROMEDRIVER_BIN=$(find -L "$TEST_SRCDIR" -name chromedriver -type f -perm -u+x | head -n 1)
+CHROMEDRIVER_BIN=""
+for path in \
+  "$TEST_SRCDIR/chromedriver/chromedriver" \
+  "$TEST_SRCDIR/_main/external/chromedriver/chromedriver" \
+  "$TEST_SRCDIR/chromedriver/chromedriver.exe" \
+  "$TEST_SRCDIR/_main/external/chromedriver/chromedriver.exe"; do
+  if [ -f "$path" ] && [ -x "$path" ]; then
+    CHROMEDRIVER_BIN="$path"
+    break
+  fi
+done
+
+if [ -z "$CHROMEDRIVER_BIN" ]; then
+  CHROMEDRIVER_BIN=$(find -L "$TEST_SRCDIR" -name chromedriver -type f -perm -u+x 2>/dev/null | head -n 1)
+fi
 if [ -n "$CHROMEDRIVER_BIN" ]; then
   export CHROMEDRIVER_PATH="$CHROMEDRIVER_BIN"
 fi
@@ -82,4 +96,4 @@ def _test_ext_impl(ctx):
     return ctx.extension_metadata(reproducible = True)
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
-# Force refetch trigger: 8
+# Force refetch trigger: 9

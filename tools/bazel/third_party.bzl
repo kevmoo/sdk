@@ -95,21 +95,43 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
     # Intercept public browser dependencies to bypass restricted Google CIPD credentials
     if repo_type in ["chrome", "chromedriver", "firefox"]:
         version = dep_info.get("version")
-        if version.startswith("version:"):
+        if version and version.startswith("version:"):
             version = version.split(":", 1)[1]
 
+        os_name = repository_ctx.os.name
+        arch = repository_ctx.os.arch
+
         if repo_type == "chrome":
-            url = "https://storage.googleapis.com/chrome-for-testing-public/{}/linux64/chrome-linux64.zip".format(version)
+            if os_name == "linux":
+                platform = "linux64"
+            elif os_name == "mac os x":
+                platform = "mac-arm64" if arch in ["aarch64", "arm64"] else "mac-x64"
+            elif os_name.startswith("windows"):
+                platform = "win64"
+            else:
+                fail("Unsupported OS for chrome: " + os_name)
+            url = "https://storage.googleapis.com/chrome-for-testing-public/{}/{}/chrome-{}.zip".format(version, platform, platform)
             dl_type = "zip"
-            strip_prefix = "chrome-linux64"
+            strip_prefix = "chrome-{}".format(platform)
         elif repo_type == "chromedriver":
-            url = "https://storage.googleapis.com/chrome-for-testing-public/{}/linux64/chromedriver-linux64.zip".format(version)
+            if os_name == "linux":
+                platform = "linux64"
+            elif os_name == "mac os x":
+                platform = "mac-arm64" if arch in ["aarch64", "arm64"] else "mac-x64"
+            elif os_name.startswith("windows"):
+                platform = "win64"
+            else:
+                fail("Unsupported OS for chromedriver: " + os_name)
+            url = "https://storage.googleapis.com/chrome-for-testing-public/{}/{}/chromedriver-{}.zip".format(version, platform, platform)
             dl_type = "zip"
-            strip_prefix = "chromedriver-linux64"
+            strip_prefix = "chromedriver-{}".format(platform)
         elif repo_type == "firefox":
-            url = "https://archive.mozilla.org/pub/firefox/releases/{}/linux-x86_64/en-US/firefox-{}.tar.xz".format(version, version)
-            dl_type = "tar.xz"
-            strip_prefix = "firefox"
+            if os_name == "linux":
+                url = "https://archive.mozilla.org/pub/firefox/releases/{}/linux-x86_64/en-US/firefox-{}.tar.xz".format(version, version)
+                dl_type = "tar.xz"
+                strip_prefix = "firefox"
+            else:
+                fail("Firefox download is currently only supported on Linux in this Bazel setup")
         else:
             fail("Unreachable")
 

@@ -450,9 +450,16 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
             executable.contains('/Google Chrome.app/'))) {
       var resolvedChrome = _Runfiles.resolve('chrome/chrome$exeExt');
       if (!File(resolvedChrome).existsSync()) {
-        resolvedChrome = _Runfiles.resolve(
-          '_main/third_party/browsers/chrome/chrome$exeExt',
-        );
+        if (Platform.isMacOS) {
+          resolvedChrome = _Runfiles.resolve(
+            'chrome/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing',
+          );
+        }
+        if (!File(resolvedChrome).existsSync()) {
+          resolvedChrome = _Runfiles.resolve(
+            '_main/third_party/browsers/chrome/chrome$exeExt',
+          );
+        }
       }
       if (File(resolvedChrome).existsSync()) {
         executable = resolvedChrome;
