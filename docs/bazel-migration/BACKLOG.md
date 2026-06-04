@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 19/30 Tasks
+- **Overall Progress**: 20/30 Tasks
 
 ---
 
@@ -48,7 +48,7 @@ graph TD
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::completed
     TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::completed
     TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::completed
-    TASK_022["TASK_022:<br>VM AOT Test Suite Integration"]:::pending
+    TASK_022["TASK_022:<br>VM AOT Test Suite Integration"]:::completed
     TASK_023["TASK_023:<br>Sanitizer Test Configuration Mapping"]:::completed
     TASK_024["TASK_024:<br>Simulator Target Configurations"]:::pending
     TASK_025["TASK_025:<br>Debian Package Build Target"]:::pending
@@ -542,10 +542,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_022] VM AOT Test Suite Integration
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/dart/generate_test_targets.dart`
   - `tools/test.py`
@@ -556,9 +556,9 @@ graph TD
   python3 tools/test.py --bazel -n vm-aot-release-x64 corelib/list_test
   ```
 - **Success Criteria**:
-  - [ ] AOT test targets are generated for core suites.
-  - [ ] `ResolveConfig` maps AOT configurations correctly to AOT target suffixes.
-  - [ ] VM AOT tests compile to ELF and execute green under the sandboxed dartaotruntime.
+  - [x] AOT test targets are generated for core suites.
+  - [x] `ResolveConfig` maps AOT configurations correctly to AOT target suffixes.
+  - [x] VM AOT tests compile to ELF and execute green under the sandboxed dartaotruntime.
 
 ---
 

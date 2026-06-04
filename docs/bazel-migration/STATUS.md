@@ -26,6 +26,14 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 96 — **(jetski) Completed TASK_022: VM AOT Test Suite Integration.**
+- **Added AOT Configuration**: Defined `vm_aot_release` configuration in `tools/bazel/dart/generate_test_targets.dart` to discover AOT test targets (`dartkp`/`dart_precompiled`) for language, corelib, and standalone suites.
+- **Bypassed Discovery existence checks**: Modified `generate_test_targets.dart` to pass the `--list` flag to the dry-run test runner, bypassing binary existence checks (`dartaotruntime` etc.) during target generation.
+- **Implemented AOT target mapping**: Extended `ResolveConfig` in `tools/test.py` to map AOT configuration names to `_vm_aot_release` suffixes.
+- **Redirected AOT binaries and platform dill**: Modified `pkg/test_runner/bin/run_single_test.dart` to redirect `gen_snapshot` executions to the sandboxed SDK and support `--platform=` argument rewriting for `vm_platform.dill`.
+- **Verified AOT Tests**: Executed `python3 tools/test.py --bazel -n vm-aot-release-x64 corelib/list_test` which successfully compiled the AOT runtime and ran sandboxed corelib list tests green.
+- **Updated Backlog**: Marked `TASK_022` as `[COMPLETED]` and updated overall progress to `20/30` tasks.
+
 Session 95 — **(jetski) Completed TASK_023: Sanitizer Test Configuration Mapping.**
 - **Implemented Sanitizer Configuration Mapping**: Modified `ResolveConfig` in `tools/test.py` to parse sanitizer suffixes (`asan`, `msan`, `tsan`) from the named configuration and inject corresponding `--features` compiler configuration flags dynamically.
 - **Added Unit Tests**: Authored `test_sanitizer_configs` in `tools/test_wrapper_test.py` to verify sanitizer mappings (for `dart-asan`, `debug_x64_asan`, and `product_x64_tsan` combinations) and confirmed 100% pass.

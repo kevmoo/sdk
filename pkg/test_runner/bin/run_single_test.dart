@@ -243,6 +243,11 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
           '_main/runtime/vm/vm_platform.dill',
         );
         arguments[j + 1] = resolvedPlatform;
+      } else if (arguments[j].startsWith('--platform=')) {
+        final resolvedPlatform = _Runfiles.resolve(
+          '_main/runtime/vm/vm_platform.dill',
+        );
+        arguments[j] = '--platform=$resolvedPlatform';
       }
     }
     final dartBinEnv = Platform.environment['DART_BIN'];
@@ -409,6 +414,9 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
       } else if (executable.endsWith('/dartaotruntime')) {
         final sdkBinDir = File(dartBinEnv).parent.path;
         executable = '$sdkBinDir/dartaotruntime';
+      } else if (executable.endsWith('/gen_snapshot')) {
+        final sdkBinDir = File(dartBinEnv).parent.path;
+        executable = '$sdkBinDir/utils/gen_snapshot';
       }
     } else if (testSrcdir != null &&
         (executable == 'third_party/d8/linux/x64/d8' ||

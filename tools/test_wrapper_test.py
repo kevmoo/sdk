@@ -63,6 +63,19 @@ class TestResolveConfig(unittest.TestCase):
         self.assertEqual(suffix, '_vm_product')
         self.assertEqual(flags, ['--features=tsan', '--//build/config:dart_product=true'])
 
+    def test_aot_configs(self):
+        repo, suffix, flags = test.ResolveConfig('vm-aot-release-x64')
+        self.assertEqual(suffix, '_vm_aot_release')
+        self.assertEqual(flags, [])
+
+        repo, suffix, flags = test.ResolveConfig('vm-aot-debug-x64')
+        self.assertEqual(suffix, '_vm_aot_debug')
+        self.assertEqual(flags, ['--//build/config:dart_debug=true'])
+
+        repo, suffix, flags = test.ResolveConfig('vm-aot-product-x64')
+        self.assertEqual(suffix, '_vm_aot_product')
+        self.assertEqual(flags, ['--//build/config:dart_product=true'])
+
 
 class TestTestWithBazel(unittest.TestCase):
 

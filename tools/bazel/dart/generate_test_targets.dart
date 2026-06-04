@@ -84,6 +84,7 @@ void main(List<String> args) async {
       config.runtime,
       '--dump-test-metadata=$jsonOutputPath',
       '--build-directory=$outputDir/out/${config.name}',
+      '--list',
       ...config.extraFlags,
       ...activeSuites,
     ];
@@ -345,7 +346,7 @@ void main(List<String> args) async {
         }
       }
 
-      if (config.compiler == 'fasta') {
+      if (config.compiler == 'fasta' || config.compiler == 'dartkp') {
         baselineDeps.addAll({
           '@//:front_end_tool_files',
           '@//:compile_platform_tool',
@@ -743,6 +744,14 @@ const _configs = <_TestConfig>[
     compiler: 'fasta',
     runtime: 'none',
     suites: ['language', 'corelib', 'standalone', 'ffi'],
+    extraFlags: [],
+  ),
+  (
+    name: 'vm_aot_release',
+    mode: 'release',
+    compiler: 'dartkp',
+    runtime: 'dart_precompiled',
+    suites: ['language', 'corelib', 'standalone'],
     extraFlags: [],
   ),
 ];

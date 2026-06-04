@@ -26,6 +26,7 @@ def ResolveConfig(named_config):
     is_debug = 'debug' in config_lower
     is_product = 'product' in config_lower
     is_cfe = 'cfe' in config_lower or 'fasta' in config_lower
+    is_aot = 'aot' in config_lower
 
     if 'asan' in config_lower:
         injected_flags.append('--features=asan')
@@ -43,6 +44,15 @@ def ResolveConfig(named_config):
             suffix = '_wasm_release'
     elif is_cfe:
         suffix = '_cfe_release'
+    elif is_aot:
+        if is_product:
+            suffix = '_vm_aot_product'
+            injected_flags.append('--//build/config:dart_product=true')
+        elif is_debug:
+            suffix = '_vm_aot_debug'
+            injected_flags.append('--//build/config:dart_debug=true')
+        else:
+            suffix = '_vm_aot_release'
     elif is_debug:
         suffix = '_vm_debug'
         injected_flags.append('--//build/config:dart_debug=true')
