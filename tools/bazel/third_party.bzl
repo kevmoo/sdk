@@ -95,7 +95,7 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
         url = dep_info["url"]
         commit = dep_info["commit"]
 
-        if "github.com" in url:
+        if url.startswith("https://github.com") or url.startswith("http://github.com"):
             tarball_url = url + "/archive/" + commit + ".tar.gz"
         else:
             # Googlesource archive URL format
