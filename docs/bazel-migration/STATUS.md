@@ -26,6 +26,11 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 104 — **(jetski) Completed TASK_032: Fix package config generator for workspace packages and dynamic language versions.**
+- **Fixed Package Config Generator**: Refactored `tools/bazel/generate_debug_package_config.py` to parse the `workspace` section from the root `pubspec.yaml` instead of hardcoding the scanning of `pkg/`. This ensures workspace packages located under `third_party/pkg/` (such as `dap` and `language_server_protocol`) are correctly included.
+- **Dynamic Language Version Resolution**: Updated the generator to extract the language version dynamically from each package's `pubspec.yaml` environment constraint instead of hardcoding `3.13` for all packages. This resolves compilation failures for packages like `protobuf` that require older language versions (e.g. `3.7` to allow legacy `var` in parameters while supporting private final field promotion).
+- **Verified green build**: Confirmed that `bazel build //sdk:create_sdk` now builds successfully.
+
 Session 103 — **(jetski) Audited code review feedback and deferred sysroot hermeticity.**
 - **Deferred Sysroot Hermeticity in Debian Package**: Evaluated Comment #27 regarding non-hermetic sysroots in `debian_package/BUILD.bazel`. Confirmed it is deferred to the backlog task `TASK_031`.
 - **Declined Speculative Refactorings**: Audited and declined other review recommendations (Comments #26, #28, #29, #30, #31) to maintain simplicity and focus on verified correctness.
