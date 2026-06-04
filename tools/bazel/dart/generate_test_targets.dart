@@ -368,17 +368,12 @@ void main(List<String> args) async {
         'chromeOnAndroid',
         'chromedriver',
       ].contains(config.runtime)) {
-        if (Directory(
-          '$workspaceDir/third_party/browsers/chrome',
-        ).existsSync()) {
-          baselineDeps.add('@//third_party/browsers/chrome:chrome_files');
-        }
+        baselineDeps.addAll({
+          '@chrome//:chrome_files',
+          '@chromedriver//:chromedriver_files',
+        });
       } else if (['firefox', 'jsshell'].contains(config.runtime)) {
-        if (Directory(
-          '$workspaceDir/third_party/browsers/firefox',
-        ).existsSync()) {
-          baselineDeps.add('@//third_party/browsers/firefox:firefox_files');
-        }
+        baselineDeps.add('@firefox//:firefox_files');
       } else if (config.runtime == 'firefox_jsshell') {
         if (Directory(
           '$workspaceDir/third_party/firefox_jsshell',

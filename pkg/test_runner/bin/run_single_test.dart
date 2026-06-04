@@ -448,9 +448,12 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
             executable.endsWith('/google-chrome') ||
             executable.endsWith('/chrome.exe') ||
             executable.contains('/Google Chrome.app/'))) {
-      final resolvedChrome = _Runfiles.resolve(
-        '_main/third_party/browsers/chrome/chrome$exeExt',
-      );
+      var resolvedChrome = _Runfiles.resolve('chrome/chrome$exeExt');
+      if (!File(resolvedChrome).existsSync()) {
+        resolvedChrome = _Runfiles.resolve(
+          '_main/third_party/browsers/chrome/chrome$exeExt',
+        );
+      }
       if (File(resolvedChrome).existsSync()) {
         executable = resolvedChrome;
       }
@@ -459,9 +462,12 @@ Future<bool> _runTestCase(Map<String, dynamic> testCase) async {
             executable.endsWith('/firefox') ||
             executable.endsWith('/firefox.exe') ||
             executable.contains('/Firefox.app/'))) {
-      final resolvedFirefox = _Runfiles.resolve(
-        '_main/third_party/browsers/firefox/firefox$exeExt',
-      );
+      var resolvedFirefox = _Runfiles.resolve('firefox/firefox$exeExt');
+      if (!File(resolvedFirefox).existsSync()) {
+        resolvedFirefox = _Runfiles.resolve(
+          '_main/third_party/browsers/firefox/firefox$exeExt',
+        );
+      }
       if (File(resolvedFirefox).existsSync()) {
         executable = resolvedFirefox;
       }

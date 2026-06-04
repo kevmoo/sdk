@@ -20,7 +20,6 @@ def _dynamic_test_repo_impl(repository_ctx):
     # Define the generator script path
     generator_path = workspace_dir.get_child("tools").get_child("bazel").get_child("dart").get_child("generate_test_targets.dart")
 
-    # Generate run_single_test.sh wrapper inside the external repo
     repository_ctx.file("run_single_test.sh", content = """#!/bin/bash
 if [ -z "$TEST_SRCDIR" ]; then
   echo "Error: TEST_SRCDIR environment variable is not set!"
@@ -33,6 +32,11 @@ RUNNER_DART=$(find -L "$TEST_SRCDIR" -name run_single_test.dart -type f | head -
 if [ -z "$DART_BIN" ] || [ -z "$RUNNER_DART" ]; then
   echo "Error: Dynamic launcher was unable to locate dart or run_single_test.dart in runfiles!"
   exit 2
+fi
+
+CHROMEDRIVER_BIN=$(find -L "$TEST_SRCDIR" -name chromedriver -type f -perm -u+x | head -n 1)
+if [ -n "$CHROMEDRIVER_BIN" ]; then
+  export CHROMEDRIVER_PATH="$CHROMEDRIVER_BIN"
 fi
 
 export DART_BIN="$DART_BIN"
@@ -78,4 +82,4 @@ def _test_ext_impl(ctx):
     return ctx.extension_metadata(reproducible = True)
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
-# Force refetch trigger: 7
+# Force refetch trigger: 8

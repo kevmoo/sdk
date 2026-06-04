@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 25/32 Tasks
+- **Overall Progress**: 26/32 Tasks
 
 ---
 
@@ -31,7 +31,7 @@ graph TD
     TASK_002["TASK_002:<br>Pre-Computed Package Import Mapping {Fine-Grained Opt-in}"]:::completed
     TASK_003["TASK_003:<br>Windows MSVC Toolchain Port"]:::pending
     TASK_004["TASK_004:<br>Android & Fuchsia Target Platform Registration"]:::pending
-    TASK_005["TASK_005:<br>Dynamic Browser Testing Downloads"]:::pending
+    TASK_005["TASK_005:<br>Dynamic Browser Testing Downloads"]:::completed
     TASK_006["TASK_006:<br>RBE {Remote Build Execution} Verification"]:::pending
     TASK_007["TASK_007:<br>Sanitizer Suite Verification"]:::completed
     TASK_008["TASK_008:<br>Minor SDK Assembly Stubs Resolution"]:::completed
@@ -169,10 +169,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_005] Dynamic Browser Testing Downloads
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/dart/test_rules.bzl`
   - `MODULE.bazel`
@@ -183,8 +183,8 @@ graph TD
   python3 tools/test.py --bazel -n dart2wasm-chrome corelib/list_test
   ```
 - **Success Criteria**:
-  - [ ] Chrome and ChromeDriver archives are downloaded dynamically via Bzlmod on first run.
-  - [ ] Browser-based WASM/Web tests execute and pass inside the sandbox.
+  - [x] Chrome and ChromeDriver archives are downloaded dynamically via Bzlmod on first run.
+  - [x] Browser-based WASM/Web tests execute and pass inside the sandbox.
 - **Context & Hints**:
   See browser downloader configs in GN's `third_party/browsers/`.
 
