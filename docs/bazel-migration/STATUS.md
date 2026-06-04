@@ -26,6 +26,10 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 90 — **(jetski) Resolved package wildcard analysis errors in samples/embedder.**
+- **Converted Obsolete cc_library Targets**: Modified `samples/embedder/BUILD.bazel` to convert `_dill` and `_gen_snapshot` targets from `cc_library` to `filegroup` targets.
+- **Fixed CcInfo Violations**: Resolved Bazel analysis errors caused by `cc_library` targets depending directly on non-CcInfo provider rules (like `dart_compile_dill` and `dart_aot_snapshot`), allowing the package wildcard build (`//samples/embedder:*`) to complete cleanly.
+
 Session 89 — **(jetski) Retired restore.sh and relocated Bzlmod overlays.**
 - **Deleted restore.sh**: Removed the obsolete out-of-band environment restoration script (`tools/bazel/out_of_band/restore.sh`) and its documentation.
 - **Relocated Bzlmod Overlays**: Moved all active Bzlmod third-party overlay templates (ICU, zlib, and prebuilt SDK) from `tools/bazel/out_of_band/snapshot/` to a dedicated `tools/bazel/third_party_overlays/` directory.

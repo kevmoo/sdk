@@ -75,14 +75,14 @@ cc_library(
     data = [":futures_aot_snapshot"],
 )
 
-cc_library(
+filegroup(
     name = "futures_aot_dill",
-    deps = [":futures_aot_snapshot_dill"],
+    srcs = [":futures_aot_snapshot_dill"],
 )
 
-cc_library(
+filegroup(
     name = "futures_aot_gen_snapshot",
-    deps = [":futures_aot_snapshot"],
+    srcs = [":futures_aot_snapshot"],
 )
 
 cc_library(
@@ -111,9 +111,9 @@ cc_library(
     data = [":futures_kernel_dill_compile"],
 )
 
-cc_library(
+filegroup(
     name = "futures_kernel_dill",
-    deps = [":futures_kernel_dill_compile"],
+    srcs = [":futures_kernel_dill_compile"],
 )
 
 cc_library(
@@ -138,14 +138,14 @@ cc_library(
     data = [":hello_aot_snapshot"],
 )
 
-cc_library(
+filegroup(
     name = "hello_aot_dill",
-    deps = [":hello_aot_snapshot_dill"],
+    srcs = [":hello_aot_snapshot_dill"],
 )
 
-cc_library(
+filegroup(
     name = "hello_aot_gen_snapshot",
-    deps = [":hello_aot_snapshot"],
+    srcs = [":hello_aot_snapshot"],
 )
 
 cc_library(
@@ -174,9 +174,9 @@ cc_library(
     data = [":hello_kernel_dill_compile"],
 )
 
-cc_library(
+filegroup(
     name = "hello_kernel_dill",
-    deps = [":hello_kernel_dill_compile"],
+    srcs = [":hello_kernel_dill_compile"],
 )
 
 cc_library(
@@ -217,14 +217,14 @@ cc_library(
     data = [":program1_aot_snapshot"],
 )
 
-cc_library(
+filegroup(
     name = "program1_aot_dill",
-    deps = [":program1_aot_snapshot_dill"],
+    srcs = [":program1_aot_snapshot_dill"],
 )
 
-cc_library(
+filegroup(
     name = "program1_aot_gen_snapshot",
-    deps = [":program1_aot_snapshot"],
+    srcs = [":program1_aot_snapshot"],
 )
 
 cc_library(
@@ -253,9 +253,9 @@ cc_library(
     data = [":program1_kernel_dill_compile"],
 )
 
-cc_library(
+filegroup(
     name = "program1_kernel_dill",
-    deps = [":program1_kernel_dill_compile"],
+    srcs = [":program1_kernel_dill_compile"],
 )
 
 cc_library(
@@ -280,14 +280,14 @@ cc_library(
     data = [":program2_aot_snapshot"],
 )
 
-cc_library(
+filegroup(
     name = "program2_aot_dill",
-    deps = [":program2_aot_snapshot_dill"],
+    srcs = [":program2_aot_snapshot_dill"],
 )
 
-cc_library(
+filegroup(
     name = "program2_aot_gen_snapshot",
-    deps = [":program2_aot_snapshot"],
+    srcs = [":program2_aot_snapshot"],
 )
 
 cc_library(
@@ -316,9 +316,9 @@ cc_library(
     data = [":program2_kernel_dill_compile"],
 )
 
-cc_library(
+filegroup(
     name = "program2_kernel_dill",
-    deps = [":program2_kernel_dill_compile"],
+    srcs = [":program2_kernel_dill_compile"],
 )
 
 cc_library(
@@ -1643,14 +1643,14 @@ cc_library(
     data = [":timer_aot_snapshot"],
 )
 
-cc_library(
+filegroup(
     name = "timer_aot_dill",
-    deps = [":timer_aot_snapshot_dill"],
+    srcs = [":timer_aot_snapshot_dill"],
 )
 
-cc_library(
+filegroup(
     name = "timer_aot_gen_snapshot",
-    deps = [":timer_aot_snapshot"],
+    srcs = [":timer_aot_snapshot"],
 )
 
 cc_library(
@@ -1679,9 +1679,9 @@ cc_library(
     data = [":timer_kernel_dill_compile"],
 )
 
-cc_library(
+filegroup(
     name = "timer_kernel_dill",
-    deps = [":timer_kernel_dill_compile"],
+    srcs = [":timer_kernel_dill_compile"],
 )
 
 cc_library(
