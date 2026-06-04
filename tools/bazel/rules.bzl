@@ -34,8 +34,8 @@ def _filter_linkopts(linkopts, platform):
         return linkopts
     cleaned = []
     for l in linkopts:
-        # Strip Linux-specific libs and linker options that fail on macOS
-        if l == "-lrt" or l == "-Wl,--gc-sections" or l == "-lutil":
+        # Strip Linux-specific libs and linker options that fail or are redundant on macOS
+        if l in ("-lrt", "-Wl,--gc-sections", "-lutil", "-ldl", "-lpthread", "-stdlib=libc++"):
             continue
         cleaned.append(l)
     return cleaned
