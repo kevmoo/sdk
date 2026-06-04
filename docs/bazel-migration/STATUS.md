@@ -26,6 +26,11 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 93 — **(jetski) Added TASK_030 for live-parsing DEPS, updated TASK_027 report path.**
+- **Added TASK_030**: Appended `TASK_030` to `BACKLOG.md` to track live-parsing the `DEPS` file in a Bzlmod module extension for dynamic dependency downloads, eliminating the reliance on `gclient sync` for Bazel.
+- **Updated TASK_027 Target**: Updated `TASK_027` (upstreaming candidates audit) in `BACKLOG.md` to write the audit report to the persistent repository path `docs/bazel-migration/UPSTREAM_CANDIDATES.md` instead of a temporary Jetski artifact path.
+- **Regenerated Backlog Graph**: Executed the backlog graph generator to update the Mermaid dependency graph in `BACKLOG.md`.
+
 Session 92 — **(jetski) Onboarded tasks for upstreaming, google3 alignment, and streamlining build definitions.**
 - **Expanded Backlog**: Added `TASK_027` (Investigate Upstreaming Non-Bazel Fixes), `TASK_028` (Investigate Google3 Alignment), and `TASK_029` (Streamline and Optimize Build Definitions) to `BACKLOG.md`.
 - **Linked Dependencies**: Linked `TASK_006` (RBE) as a prerequisite for `TASK_028` (google3 alignment). Linked `TASK_003` (Windows MSVC) as a prerequisite for `TASK_029` (streamlining).

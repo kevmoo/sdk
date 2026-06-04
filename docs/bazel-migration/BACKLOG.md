@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 17/29 Tasks
+- **Overall Progress**: 17/30 Tasks
 
 ---
 
@@ -56,6 +56,7 @@ graph TD
     TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::pending
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
     TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
+    TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -640,15 +641,13 @@ graph TD
 - **Owner**: `[none]`
 - **Commit**: `[none]`
 - **Target Files**:
-  - `runtime/`
-  - `pkg/`
-  - `tools/`
+  - `docs/bazel-migration/UPSTREAM_CANDIDATES.md`
 - **Description**:
   Audit the diff between the `bazel` branch and `main` (merge base) to isolate non-Bazel changes (VM bug fixes, test runner improvements, third-party decoupling). Categorize these changes and prepare them for upstreaming to `main` via Gerrit CLs.
 - **Verification Command**:
   `git diff origin/main...HEAD --name-only | grep -v -E "(\.bazel|\.bzl|MODULE\.bazel|tools/bazel/)"`
 - **Success Criteria**:
-  - [ ] Audit report created listing all candidate changes for upstreaming.
+  - [ ] Audit report created at `docs/bazel-migration/UPSTREAM_CANDIDATES.md` listing all candidate changes for upstreaming.
   - [ ] Upstream Gerrit CLs submitted and linked for approved core fixes.
 
 ---
@@ -685,3 +684,26 @@ graph TD
 - **Success Criteria**:
   - [ ] macOS flag filtering moved from macro wrappers to toolchain definitions where possible.
   - [ ] Starlark macro complexity reduced (audited by a senior engineer review).
+
+---
+
+### 🎯 [TASK_030] Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/third_party.bzl`
+  - `DEPS`
+- **Description**:
+  Implement a dynamic Bzlmod module extension (or custom repository rule) that reads the `DEPS` file at the repository root, uses a Python helper script to parse git repository pins, and dynamically downloads them via Bazel's `git_repository` or `http_archive` rules. This allows building the project with Bazel without requiring a prior `gclient sync` on the host machine.
+- **Verification Command**:
+  ```bash
+  # Temporarily remove a third-party checkout and verify Bazel still fetches and builds it:
+  rm -rf third_party/boringssl/src
+  bazel build //runtime/bin:dartvm
+  ```
+- **Success Criteria**:
+  - [ ] A Bzlmod extension or repository rule dynamically parses the root `DEPS` file.
+  - [ ] Git repository dependencies (e.g. BoringSSL, Perfetto) are fetched hermetically by Bazel based on `DEPS` pins.
+  - [ ] Bazel build succeeds without relying on local workspace directories for these dependencies.
