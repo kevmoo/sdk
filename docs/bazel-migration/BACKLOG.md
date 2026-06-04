@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 17/26 Tasks
+- **Overall Progress**: 17/29 Tasks
 
 ---
 
@@ -53,6 +53,9 @@ graph TD
     TASK_024["TASK_024:<br>Simulator Target Configurations"]:::pending
     TASK_025["TASK_025:<br>Debian Package Build Target"]:::pending
     TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
+    TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::pending
+    TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
+    TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -67,6 +70,8 @@ graph TD
     TASK_004 --> TASK_026
     TASK_005 --> TASK_026
     TASK_006 --> TASK_026
+    TASK_006 --> TASK_028
+    TASK_003 --> TASK_029
 ```
 
 <!-- END_DEP_GRAPH -->
@@ -626,3 +631,57 @@ graph TD
 - **Success Criteria**:
   - [ ] CI builders successfully transition to Bazel for building and testing.
   - [ ] Bazel-built SDK is uploaded to CIPD/GCS storage.
+
+---
+
+### 🎯 [TASK_027] Investigate Upstreaming Non-Bazel Fixes to Main
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `runtime/`
+  - `pkg/`
+  - `tools/`
+- **Description**:
+  Audit the diff between the `bazel` branch and `main` (merge base) to isolate non-Bazel changes (VM bug fixes, test runner improvements, third-party decoupling). Categorize these changes and prepare them for upstreaming to `main` via Gerrit CLs.
+- **Verification Command**:
+  `git diff origin/main...HEAD --name-only | grep -v -E "(\.bazel|\.bzl|MODULE\.bazel|tools/bazel/)"`
+- **Success Criteria**:
+  - [ ] Audit report created listing all candidate changes for upstreaming.
+  - [ ] Upstream Gerrit CLs submitted and linked for approved core fixes.
+
+---
+
+### 🎯 [TASK_028] Investigate Google3 Alignment
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_006]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/`
+- **Description**:
+  Investigate Google3's internal Dart Bazel build and evaluate the feasibility of aligning it with this open-source Bzlmod configuration. Identify blocker issues (monorepo path differences, internal toolchains, RBE configs).
+- **Verification Command**:
+  N/A (Investigation Task)
+- **Success Criteria**:
+  - [ ] Investigation document detailing differences and migration path for google3.
+  - [ ] Prototype alignment run in a CitC workspace (if feasible).
+
+---
+
+### 🎯 [TASK_029] Streamline and Optimize Bazel Build Definitions
+- **Status**: `[PENDING]`
+- **Prerequisites**: `[TASK_003]`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/defs.bzl`
+  - `tools/bazel/rules.bzl`
+- **Description**:
+  Audit current Bazel build files and custom Starlark rules (`tools/bazel/dart/defs.bzl`, `tools/bazel/rules.bzl`) to simplify flag propagation, reduce macro complexity, and optimize build graph analysis times.
+- **Verification Command**:
+  `bazel analyze-profile`
+- **Success Criteria**:
+  - [ ] macOS flag filtering moved from macro wrappers to toolchain definitions where possible.
+  - [ ] Starlark macro complexity reduced (audited by a senior engineer review).

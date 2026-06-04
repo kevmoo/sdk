@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 92 — **(jetski) Onboarded tasks for upstreaming, google3 alignment, and streamlining build definitions.**
+- **Expanded Backlog**: Added `TASK_027` (Investigate Upstreaming Non-Bazel Fixes), `TASK_028` (Investigate Google3 Alignment), and `TASK_029` (Streamline and Optimize Build Definitions) to `BACKLOG.md`.
+- **Linked Dependencies**: Linked `TASK_006` (RBE) as a prerequisite for `TASK_028` (google3 alignment). Linked `TASK_003` (Windows MSVC) as a prerequisite for `TASK_029` (streamlining).
+- **Regenerated Dependency Graph**: Ran the graph generator to update the Mermaid diagram in `BACKLOG.md`.
+- **Updated Metrics**: Adjusted progress tracking to 17/29 tasks (58.6%).
+
 Session 91 — **(jetski) Resolved hybrid SDK packaging mismatch and hand-authored ODR violations.**
 - **Fixed SDK Packaging Mismatch**: Modified `sdk/BUILD.bazel` to unconditionally copy `_product` variants of `dartaotruntime` and `gen_snapshot` by default, matching the default hybrid JIT/AOT configuration of the GN SDK.
 - **Resolved Hand-Authored ODR Violations**: Refactored hand-authored `BUILD.bazel` files in `runtime/bin/`, `runtime/vm/`, and `runtime/platform/` to replace the dynamic command-line dependent `//build/config:dart_product_mode` with static `PRODUCT` defines for all dedicated product target variants (such as `dartaotruntime_product`). This ensures that product targets compile with `-DPRODUCT` even during default builds, preventing runtime ABI mismatch crashes like `Type '_NetworkProfiling' not found in library 'dart.io'`.
