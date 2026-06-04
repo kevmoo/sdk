@@ -26,6 +26,14 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 98 — **(jetski) Completed TASK_030: Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads.**
+- **Implemented Dynamic DEPS Parsing**: Created a Python helper script `tools/bazel/parse_deps.py` that evaluates the root python-based `DEPS` file and outputs dependency info (URL, commit, type) as JSON.
+- **Added dynamic Bzlmod overlay repository rule**: Implemented `overlay_repository` rule in `tools/bazel/third_party.bzl` that dynamically downloads git and cipd dependencies based on `DEPS` revisions, extracts them, and applies custom overlays.
+- **Relocated BoringSSL and Perfetto build overlays**: Moved BoringSSL and Perfetto `BUILD.bazel` files to `tools/bazel/third_party_overlays/` as `.snap` templates, following Bzlmod architecture.
+- **Authored BoringSSL and Perfetto local shims**: Replaced the local `BUILD.bazel` files in `third_party/boringssl` and `third_party/perfetto` with lightweight shims that delegate compilation to Bzlmod external repositories while exporting checked-in files (like Perfetto's checked-in `protos/` and dynamic `perfetto_build_flags.h` copy) to keep the sandboxed compilation of the VM green.
+- **Fixed assembly compile include paths**: Dynamically replaced hardcoded `-Ithird_party/boringssl/...` compiler options with Bazel's `includes` attribute inside Bzlmod `@boringssl` targets.
+- **Verified Hermetic remote mode**: Confirmed that moving `third_party/boringssl/src` away triggers remote Googlesource tarball downloads, and compiles `//runtime/bin:dartvm` completely green in a clean sandboxed environment, and falls back to local symlink mode when the checkout is present.
+
 Session 97 — **(jetski) Completed TASK_024: Simulator Target Configurations.**
 - **Registered Simulator Architectures**: Added `dart_target_arch` flag and configuration settings for `simarm`, `simarm64`, `simriscv32`, and `simriscv64` in `build/config/BUILD.bazel`.
 - **Mapped Compiler defines**: Updated `tools/bazel/rules.bzl` to inject conditional preprocessor defines (`TARGET_ARCH_ARM` for `simarm`, `TARGET_ARCH_ARM64` for `simarm64`, and `TARGET_ARCH_RISCV64` for `simriscv64`) based on the target architecture.

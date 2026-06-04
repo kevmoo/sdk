@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 21/30 Tasks
+- **Overall Progress**: 22/30 Tasks
 
 ---
 
@@ -56,7 +56,7 @@ graph TD
     TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::completed
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
     TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
-    TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::pending
+    TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -693,10 +693,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_030] Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/third_party.bzl`
   - `DEPS`
@@ -709,6 +709,6 @@ graph TD
   bazel build //runtime/bin:dartvm
   ```
 - **Success Criteria**:
-  - [ ] A Bzlmod extension or repository rule dynamically parses the root `DEPS` file.
-  - [ ] Git repository dependencies (e.g. BoringSSL, Perfetto) are fetched hermetically by Bazel based on `DEPS` pins.
-  - [ ] Bazel build succeeds without relying on local workspace directories for these dependencies.
+  - [x] A Bzlmod extension or repository rule dynamically parses the root `DEPS` file.
+  - [x] Git repository dependencies (e.g. BoringSSL, Perfetto) are fetched hermetically by Bazel based on `DEPS` pins.
+  - [x] Bazel build succeeds without relying on local workspace directories for these dependencies.

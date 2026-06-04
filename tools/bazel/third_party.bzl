@@ -4,14 +4,9 @@
 
 """Bzlmod module extensions for staging external third-party dependencies non-invasively."""
 
-def _local_overlay_repository_impl(repository_ctx):
-    # Get source directory path and sandbox destination path
-    src_dir = repository_ctx.path(str(repository_ctx.workspace_root) + "/" + repository_ctx.attr.path)
-    dest_dir = repository_ctx.path(".")
-
+def _symlink_local(repository_ctx, src_dir, dest_dir, prefix):
     # Define a python script to recursively symlink the local directory,
     # supporting an optional subdirectory prefix, and skipping conflicting build files.
-    prefix = repository_ctx.attr.prefix
     py_script = repository_ctx.path("symlink_exclude.py")
     repository_ctx.file(py_script, content = """
 import os
@@ -47,6 +42,113 @@ for root, dirs, files in os.walk(src, followlinks=True):
     # Clean up the temporary script
     repository_ctx.delete(py_script)
 
+def _get_cipd_platform(repository_ctx):
+    os_name = repository_ctx.os.name
+    if os_name == "linux":
+        os_str = "linux"
+    elif os_name == "mac os x":
+        os_str = "mac"
+    elif os_name.startswith("windows"):
+        os_str = "windows"
+    else:
+        fail("Unsupported OS for CIPD: " + os_name)
+
+    # Detect architecture
+    if os_str == "windows":
+        arch = repository_ctx.os.environ.get("PROCESSOR_ARCHITECTURE", "AMD64").lower()
+        if arch == "amd64":
+            arch_str = "amd64"
+        elif arch == "arm64":
+            arch_str = "arm64"
+        else:
+            fail("Unsupported Windows arch for CIPD: " + arch)
+    else:
+        res = repository_ctx.execute(["uname", "-m"])
+        if res.return_code != 0:
+            fail("Failed to detect CPU architecture: " + res.stderr)
+        arch = res.stdout.strip()
+        if arch in ("x86_64", "amd64"):
+            arch_str = "amd64"
+        elif arch in ("aarch64", "arm64"):
+            arch_str = "arm64"
+        else:
+            fail("Unsupported arch for CIPD: " + arch)
+
+    return os_str + "-" + arch_str
+
+def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
+    deps_file = repository_ctx.path(repository_ctx.attr.deps_file)
+    parse_script = repository_ctx.path(repository_ctx.attr.parse_script)
+
+    res = repository_ctx.execute([
+        "python3",
+        str(parse_script),
+        str(deps_file),
+        repo_type,
+    ])
+    if res.return_code != 0:
+        fail("Failed to parse DEPS for {}: {}".format(repo_type, res.stderr))
+
+    dep_info = json.decode(res.stdout.strip())
+
+    if dep_info["dep_type"] == "git":
+        url = dep_info["url"]
+        commit = dep_info["commit"]
+
+        # Googlesource archive URL format
+        tarball_url = url + "/+archive/" + commit + ".tar.gz"
+
+        # Extract directly to the prefix directory if specified
+        output_dir = prefix if prefix else "."
+
+        repository_ctx.download_and_extract(
+            url = tarball_url,
+            output = output_dir,
+            type = "tar.gz",
+        )
+    elif dep_info["dep_type"] == "cipd":
+        package = dep_info["package"]
+        version = dep_info["version"]
+
+        platform = _get_cipd_platform(repository_ctx)
+        resolved_package = package.replace("${{platform}}", platform)
+
+        url = "https://chrome-infra-packages.appspot.com/dl/" + resolved_package + "/+/" + version
+
+        output_dir = prefix if prefix else "."
+
+        repository_ctx.download_and_extract(
+            url = url,
+            output = output_dir,
+            type = "zip",
+        )
+    else:
+        fail("Unsupported dependency type: " + dep_info["dep_type"])
+
+    # Clean up all extracted BUILD/WORKSPACE/MODULE.bazel files to avoid package conflicts
+    py_code = """
+import os
+for root, dirs, files in os.walk('.'):
+    for f in files:
+        if f in ('BUILD', 'BUILD.bazel', 'WORKSPACE', 'MODULE.bazel'):
+            os.remove(os.path.join(root, f))
+"""
+    res = repository_ctx.execute(["python3", "-c", py_code])
+    if res.return_code != 0:
+        fail("Failed to clean up extracted build files: " + res.stderr)
+
+def _overlay_repository_impl(repository_ctx):
+    dest_dir = repository_ctx.path(".")
+
+    # 1. Determine if we should use local path or fetch remote
+    local_path = repository_ctx.path(str(repository_ctx.workspace_root) + "/" + repository_ctx.attr.path)
+    use_local = local_path.exists and not repository_ctx.attr.force_remote
+
+    if use_local:
+        _symlink_local(repository_ctx, local_path, dest_dir, repository_ctx.attr.prefix)
+    else:
+        _fetch_remote(repository_ctx, repository_ctx.attr.repo_type, dest_dir, repository_ctx.attr.prefix)
+
     # Dynamic overlays and appends (Option 1 Custom Overlay System)
     if repository_ctx.attr.repo_type == "icu":
         # Resolve snapshot directory path from build_file label absolute path
@@ -66,7 +168,10 @@ for root, dirs, files in os.walk(src, followlinks=True):
             append_path = root_snap_dir.get_child("source").get_child(subpkg).get_child("BUILD.bazel.append")
             append_content = repository_ctx.read(append_path)
 
-            upstream_build = src_dir.get_child("source").get_child(subpkg).get_child("BUILD.bazel")
+            if use_local:
+                upstream_build = local_path.get_child("source").get_child(subpkg).get_child("BUILD.bazel")
+            else:
+                upstream_build = repository_ctx.path("source/{}/BUILD.bazel".format(subpkg))
             if upstream_build.exists:
                 upstream_content = repository_ctx.read(upstream_build)
                 repository_ctx.file("source/{}/BUILD.bazel".format(subpkg), upstream_content + "\n" + append_content)
@@ -125,6 +230,26 @@ with open(file_path, "w") as f:
         root_content = root_content.replace("//third_party/boringssl:", ":")
         root_content = root_content.replace("//runtime/", "@//runtime/")
         root_content = root_content.replace("//tools/bazel:rules.bzl", "@//tools/bazel:rules.bzl")
+
+        # Replace hardcoded -I flags with Bazel includes
+        root_content = root_content.replace('        "-Ithird_party/boringssl/src/include",', "")
+        root_content = root_content.replace('    name = "boringssl",', '    name = "boringssl",\n    includes = ["src/include"],')
+        root_content = root_content.replace('    name = "boringssl_asm",', '    name = "boringssl_asm",\n    includes = ["src/include"],')
+
+        repository_ctx.file("BUILD.bazel", root_content)
+
+    elif repository_ctx.attr.repo_type == "perfetto":
+        # Symlink build flags from main workspace
+        flags_file = repository_ctx.path(str(repository_ctx.workspace_root) + "/third_party/perfetto/perfetto_build_flags.h")
+        repository_ctx.symlink(flags_file, "perfetto_build_flags.h")
+
+        # Symlink checked-in protos directory from main workspace
+        protos_dir = repository_ctx.path(str(repository_ctx.workspace_root) + "/third_party/perfetto/protos")
+        repository_ctx.symlink(protos_dir, "protos")
+
+        root_snap = repository_ctx.path(repository_ctx.attr.build_file)
+        root_content = repository_ctx.read(root_snap)
+        root_content = root_content.replace("//tools/bazel:rules.bzl", "@//tools/bazel:rules.bzl")
         repository_ctx.file("BUILD.bazel", root_content)
 
     else:
@@ -134,20 +259,22 @@ with open(file_path, "w") as f:
         root_content = root_content.replace("//tools/bazel:rules.bzl", "@//tools/bazel:rules.bzl")
         repository_ctx.file("BUILD.bazel", root_content)
 
-local_overlay_repository = repository_rule(
-    implementation = _local_overlay_repository_impl,
-    local = True,
+overlay_repository = repository_rule(
+    implementation = _overlay_repository_impl,
     attrs = {
         "repo_type": attr.string(mandatory = True),
         "path": attr.string(mandatory = True),
         "prefix": attr.string(default = ""),
         "build_file": attr.label(mandatory = True, allow_single_file = True),
+        "deps_file": attr.label(default = "@//:DEPS"),
+        "parse_script": attr.label(default = "@//tools/bazel:parse_deps.py"),
+        "force_remote": attr.bool(default = False),
     },
 )
 
 def _third_party_ext_impl(ctx):
     # 1. ICU Dynamic Overlay Repository
-    local_overlay_repository(
+    overlay_repository(
         name = "icu",
         repo_type = "icu",
         path = "third_party/icu",
@@ -155,7 +282,7 @@ def _third_party_ext_impl(ctx):
     )
 
     # 2. Zlib Dynamic Overlay Repository
-    local_overlay_repository(
+    overlay_repository(
         name = "zlib",
         repo_type = "zlib",
         path = "third_party/zlib",
@@ -164,23 +291,25 @@ def _third_party_ext_impl(ctx):
     )
 
     # 3. BoringSSL Dynamic Overlay Repository
-    local_overlay_repository(
+    overlay_repository(
         name = "boringssl",
         repo_type = "boringssl",
-        path = "third_party/boringssl",
-        build_file = "@//third_party/boringssl:BUILD.bazel",
+        path = "third_party/boringssl/src",
+        prefix = "src",
+        build_file = "@//tools/bazel:third_party_overlays/boringssl/BUILD.bazel.snap",
     )
 
     # 4. Perfetto Dynamic Overlay Repository
-    local_overlay_repository(
+    overlay_repository(
         name = "perfetto",
         repo_type = "perfetto",
-        path = "third_party/perfetto",
-        build_file = "@//third_party/perfetto:BUILD.bazel",
+        path = "third_party/perfetto/src",
+        prefix = "src",
+        build_file = "@//tools/bazel:third_party_overlays/perfetto/BUILD.bazel.snap",
     )
 
     # 5. Prebuilt Dart SDK Dynamic Overlay Repository
-    local_overlay_repository(
+    overlay_repository(
         name = "prebuilt_dart_sdk",
         repo_type = "prebuilt_dart_sdk",
         path = "tools/sdks/dart-sdk",

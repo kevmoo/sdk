@@ -354,3 +354,5 @@ filegroup(
         allow_empty = True,
     ),
 )
+
+exports_files(["DEPS"])
