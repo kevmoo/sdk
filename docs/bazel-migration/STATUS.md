@@ -21,10 +21,14 @@
 > rules" for the fetch-rebase-before-editing protocol.
 
 **Open handoffs / residuals:**
-- _(none — all resolved!)_
+- **Blocked on NDK for TASK_004**: Android cross-compilation target `android_arm64` requires the Android NDK to be installed on the host or `download_android_deps` checked out.
 
 **Active claims (who is editing what right now):**
 - `[none]`
+
+Session 107 — **(jetski) Partially Completed TASK_004: Target Platform Registration (Blocked on NDK).**
+- **Registered Target Platforms**: Added platform constraint mappings in `build/platforms/BUILD.bazel` for `android_arm64`, `fuchsia_x64`, and `fuchsia_arm64`.
+- **NDK Environment Block**: Identified that cross-compiling for Android targets is blocked because the local host environment lacks `ANDROID_NDK_HOME` and the `third_party/android_tools` SDK/NDK dependency is not checked out (requires `download_android_deps = True` in `DEPS` and `gclient sync`).
 
 Session 106 — **(jetski) Completed TASK_005: Dynamic Browser Testing Downloads.**
 - **Implemented Dynamic Browser Downloader**: Updated `tools/bazel/third_party.bzl` remote fetcher (`_fetch_remote`) to intercept requests for `chrome`, `chromedriver`, and `firefox`. Rather than calling Google CIPD (which returns 403 Forbidden without credentials), it dynamically downloads and extracts packages from public unauthenticated mirrors (Google's Chrome for Testing public bucket and Mozilla's Firefox release archive) with directory prefix stripping.

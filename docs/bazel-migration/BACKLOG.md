@@ -147,15 +147,17 @@ graph TD
 ---
 
 ### 🎯 [TASK_004] Android & Fuchsia Target Platform Registration
-- **Status**: `[PENDING]`
+- **Status**: `[BLOCKED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `build/platforms/BUILD.bazel`
   - `MODULE.bazel`
 - **Description**:
   Register full target platforms for Android and Fuchsia. Map Android NDK references via `android_ndk_repository` and Fuchsia toolchains via Google's `rules_fuchsia`.
+  > [!WARNING]
+  > **BLOCKED**: Cross-compiling for Android requires the Android NDK, which is currently missing on the host environment (no `ANDROID_NDK_HOME` or `third_party/android_tools`). The platforms have been registered in `build/platforms/BUILD.bazel`, but verification is blocked.
 - **Verification Command**:
   ```bash
   /usr/local/google/home/kevmoo/bin/bazel build --platforms=//build/platforms:android_arm64 //runtime/bin:dart_aotruntime
