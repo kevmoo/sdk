@@ -26,6 +26,9 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 102 — **(jetski) Added try-except blocks around stale lock folder deletions in clone script.**
+- **Mitigated Stale Lock Deletion Race Condition**: Wrapped `os.rmdir(lock_dir)` calls inside the stale lock recovery code in `tools/bazel/clone_dependencies.py` in `try...except` blocks. This ensures that when parallel loading threads concurrently identify and attempt to clear a stale lock, the losing thread does not crash the build with a `FileNotFoundError`.
+
 Session 101 — **(jetski) Addressed code review feedback on process locking, YAML parsing, and GHA workflows.**
 - **Fixed YAML Comment Parser Bug**: Patched `tools/bazel/generate_debug_package_config.py` to skip full comment lines starting with `#` in `dependency_overrides` block, preventing root comments from prematurely halting override parsing.
 - **Improved Concurrency Lock Robustness**: Updated `tools/bazel/clone_dependencies.py` lock validation to handle `PermissionError` (errno `EPERM`) by checking process liveness correctly when the lock PID is owned by another user.

@@ -156,7 +156,10 @@ def main():
                         os.remove(pid_file)
                     except Exception:
                         pass
-                    os.rmdir(lock_dir)
+                    try:
+                        os.rmdir(lock_dir)
+                    except Exception:
+                        pass
                     continue
             except Exception:
                 import time
@@ -168,7 +171,10 @@ def main():
                             os.remove(pid_file)
                         except Exception:
                             pass
-                        os.rmdir(lock_dir)
+                        try:
+                            os.rmdir(lock_dir)
+                        except Exception:
+                            pass
                         continue
                 except Exception:
                     pass
