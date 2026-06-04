@@ -33,6 +33,16 @@ def _parse_dependencies(ctx, pubspec_path):
     return deps
 
 def _packages_repo_impl(ctx):
+    # Dynamically clone third_party/pkg dependencies from DEPS if missing
+    clone_script = ctx.path(Label("@//tools/bazel:clone_dependencies.py"))
+    res = ctx.execute(["python3", str(clone_script)])
+    if res.stdout:
+        print("Clone stdout:\n" + res.stdout)
+    if res.stderr:
+        print("Clone stderr:\n" + res.stderr)
+    if res.return_code != 0:
+        fail("Failed to clone third-party Dart package dependencies: " + res.stderr)
+
     workspace_dir = ctx.workspace_root
     package_config_path = workspace_dir.get_child(".dart_tool").get_child("package_config.json")
     if not package_config_path.exists:

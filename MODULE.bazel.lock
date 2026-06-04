@@ -190,12 +190,16 @@
   "moduleExtensions": {
     "//build/toolchain/linux:clang_repo.bzl%dart_clang": {
       "general": {
-        "bzlTransitiveDigest": "axLDTq+lbxproxLE2c2QPh8RK0arVb3LztZ84X9b09U=",
+        "bzlTransitiveDigest": "K5LUd0Pna0yKw2PxRlRnpQE0jwmH5ugYsD1vtEs51hw=",
         "usagesDigest": "36gqeFAgo2QQk4GuenjjLQqEAvjEhN/xHYhtEB9PiUE=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "dart_linux_x64_clang": {
             "repoRuleId": "@@//build/toolchain/linux:clang_repo.bzl%_dart_linux_clang",
+            "attributes": {}
+          },
+          "dart_linux_x64_sysroot": {
+            "repoRuleId": "@@//build/toolchain/linux:clang_repo.bzl%_dart_linux_sysroot",
             "attributes": {}
           }
         }

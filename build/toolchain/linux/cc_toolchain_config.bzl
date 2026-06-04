@@ -16,6 +16,7 @@ load(
     "tool_path",
 )
 load("@dart_linux_x64_clang//:paths.bzl", "CLANG_BIN", "CLANG_ROOT_REAL")
+load("@dart_linux_x64_sysroot//:paths.bzl", "SYSROOT_ROOT")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 
 # Absolute paths emitted by the @dart_linux_x64_clang repo rule at fetch
@@ -200,12 +201,12 @@ def _impl(ctx):
 
     # Target architecture specific flags (triple, ISA, sysroot)
     target_flags = [
-        "--sysroot=buildtools/sysroot/linux",
+        "--sysroot=" + SYSROOT_ROOT,
         "-D_FILE_OFFSET_BITS=64",
         "-D_LARGEFILE_SOURCE",
         "-D_LARGEFILE64_SOURCE",
     ]
-    target_linkopts = ["--sysroot=buildtools/sysroot/linux"]
+    target_linkopts = ["--sysroot=" + SYSROOT_ROOT]
 
     if cpu == "aarch64":
         target_flags.append("--target=" + triple)
@@ -266,7 +267,7 @@ def _impl(ctx):
         abi_version = "unknown",
         abi_libc_version = "unknown",
         tool_paths = tool_paths,
-        builtin_sysroot = "buildtools/sysroot/linux",
+        builtin_sysroot = SYSROOT_ROOT,
         features = [
             force_c_language,
             target_arch_feature,

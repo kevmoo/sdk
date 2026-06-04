@@ -26,6 +26,16 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 100 — **(jetski) Added GitHub Actions workflow for Bazel build validation.**
+- **Created GitHub Actions Workflow**: Authored `.github/workflows/bazel.yml` configured to trigger on push and pull requests targeting the `bazel` branch.
+- **Implemented Python package_config generator**: Created `tools/bazel/generate_debug_package_config.py` to parse workspace packages and overrides into a synthetic `.dart_tool/package_config.json` without requiring host Dart or a full `gclient sync` checkout.
+- **Wired build validation**: Configured the GHA runner to bootstrap package config using Python, setup Bazel (with `bazelisk-cache: true` enabled), and build the C++ Dart VM (`//runtime/bin:dartvm`) hermetically.
+- **Fixed ICU subpackage conflicts**: Modified `tools/bazel/third_party.bzl` to introduce conditional cleanup of upstream `BUILD` files via `clean_upstream_build_files` attribute, preserving ICU's subpackage files while continuing to clean them for BoringSSL and Perfetto.
+- **Implemented dynamic Clang download**: Updated `build/toolchain/linux/clang_repo.bzl` to dynamically fetch the Clang compiler CIPD package defined in `DEPS` when the local `buildtools/` checkout is missing, enabling C++ compilation on clean hosts.
+- **Implemented dynamic sysroot download**: Added `dart_linux_x64_sysroot` repository rule in `build/toolchain/linux/clang_repo.bzl` to dynamically fetch the Debian sysroot from CIPD when local `buildtools/sysroot/linux` is missing. Updated `cc_toolchain_config.bzl` to use the dynamic `SYSROOT_ROOT` path for compilation/link flags.
+- **Upgraded synthetic package config language version**: Patched `tools/bazel/generate_debug_package_config.py` to specify `"3.13"` as the language version for all packages (instead of `"3.0"`), resolving compiler diagnostics (like field promotion errors in `pkg/front_end`).
+- **Cloned Dart Package Dependencies**: Authored `tools/bazel/clone_dependencies.py` to parse the `DEPS` file and clone all required third-party Dart repositories under `third_party/pkg/` on clean hosts. Wired the cloning script into the custom Bzlmod extensions `_third_party_ext_impl` in `tools/bazel/third_party.bzl` and `_packages_repo_impl` in `tools/bazel/dart/packages_extension.bzl`, ensuring dependencies are available prior to both target generation and compilation (bypassing GHA workflow modification restrictions).
+
 Session 99 — **(jetski) Completed TASK_025: Debian Package Build Target.**
 - **Implemented Debian Package Genrule**: Replaced the `cc_library` placeholder target in `tools/debian_package/BUILD.bazel` with a functional `genrule` target named `debian_package` that compiles and packages the entire SDK tree as a Debian package.
 - **Handled Sandboxed Output Copying**: Configured the genrule to copy the built SDK directory `sdk/dart-sdk` to `dart-sdk` in the workspace root instead of symlinking, and applied `chmod -R +w` to make all directories and files writable, ensuring `dh_install` can successfully copy them without ODR/permission denied conflicts.

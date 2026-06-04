@@ -13,7 +13,7 @@ bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
 
 dart_clang = use_extension("//build/toolchain/linux:clang_repo.bzl", "dart_clang")
-use_repo(dart_clang, "dart_linux_x64_clang")
+use_repo(dart_clang, "dart_linux_x64_clang", "dart_linux_x64_sysroot")
 
 register_toolchains(
     "//build/toolchain/linux:clang_x64_toolchain",
