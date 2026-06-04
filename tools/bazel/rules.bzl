@@ -69,7 +69,9 @@ def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
     # Automatically inject platform-specific compiler options
     if type(copts) == "list":
         custom_copts = select({
-            "@platforms//os:macos": _filter_copts(copts, "macos"),
+            "@platforms//os:macos": _filter_copts(copts, "macos") + [
+                "-mmacosx-version-min=14.0",
+            ],
             "@platforms//os:linux": _filter_copts(copts, "linux") + [
                 "-m64",
                 "-march=x86-64",
@@ -80,6 +82,9 @@ def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
         })
     else:
         custom_copts = copts + select({
+            "@platforms//os:macos": [
+                "-mmacosx-version-min=14.0",
+            ],
             "@platforms//os:linux": [
                 "-m64",
                 "-march=x86-64",
@@ -126,7 +131,9 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
     # Automatically inject platform-specific compiler options
     if type(copts) == "list":
         custom_copts = select({
-            "@platforms//os:macos": _filter_copts(copts, "macos"),
+            "@platforms//os:macos": _filter_copts(copts, "macos") + [
+                "-mmacosx-version-min=14.0",
+            ],
             "@platforms//os:linux": _filter_copts(copts, "linux") + [
                 "-m64",
                 "-march=x86-64",
@@ -137,6 +144,9 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
         })
     else:
         custom_copts = copts + select({
+            "@platforms//os:macos": [
+                "-mmacosx-version-min=14.0",
+            ],
             "@platforms//os:linux": [
                 "-m64",
                 "-march=x86-64",
@@ -149,11 +159,18 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
     # Automatically inject platform-specific linker options
     if type(linkopts) == "list":
         custom_linkopts = select({
-            "@platforms//os:macos": _filter_linkopts(linkopts, "macos"),
+            "@platforms//os:macos": _filter_linkopts(linkopts, "macos") + [
+                "-mmacosx-version-min=14.0",
+            ],
             "//conditions:default": linkopts,
         })
     else:
-        custom_linkopts = linkopts
+        custom_linkopts = linkopts + select({
+            "@platforms//os:macos": [
+                "-mmacosx-version-min=14.0",
+            ],
+            "//conditions:default": [],
+        })
 
     _cc_binary(
         name = name,
