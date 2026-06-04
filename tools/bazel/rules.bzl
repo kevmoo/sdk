@@ -8,6 +8,38 @@ load("@rules_cc//cc:defs.bzl", _cc_binary = "cc_binary", _cc_library = "cc_libra
 
 cc_shared_library = _cc_shared_library
 
+def _filter_copts(copts, platform):
+    if platform != "macos":
+        return copts
+    if type(copts) != "list":
+        return copts
+    cleaned = []
+    for c in copts:
+        # Strip Linux target cross-compilation flag
+        if c.startswith("--target="):
+            continue
+        # Strip x86-specific flags on Mac (since host might be arm64/Apple Silicon)
+        if c.startswith("-march=") or c.startswith("-msse") or c == "-mssse3" or c == "-msse4.1" or c == "-msse4.2" or c == "-mavx":
+            continue
+        # Strip PIE/PIC flags to let the host toolchain manage them
+        if c == "-fPIE" or c == "-fpie" or c == "-fPIC" or c == "-fpic":
+            continue
+        cleaned.append(c)
+    return cleaned
+
+def _filter_linkopts(linkopts, platform):
+    if platform != "macos":
+        return linkopts
+    if type(linkopts) != "list":
+        return linkopts
+    cleaned = []
+    for l in linkopts:
+        # Strip Linux-specific libs and linker options that fail on macOS
+        if l == "-lrt" or l == "-Wl,--gc-sections" or l == "-lutil":
+            continue
+        cleaned.append(l)
+    return cleaned
+
 def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
     # Automatically inject platform preprocessor defines (local to the target compile)
     custom_local_defines = local_defines + select({
@@ -35,15 +67,27 @@ def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
         })
 
     # Automatically inject platform-specific compiler options
-    custom_copts = copts + select({
-        "@platforms//os:linux": [
-            "-m64",
-            "-march=x86-64",
-            "-msse2",
-            "--target=x86_64-linux-gnu",
-        ],
-        "//conditions:default": [],
-    })
+    if type(copts) == "list":
+        custom_copts = select({
+            "@platforms//os:macos": _filter_copts(copts, "macos"),
+            "@platforms//os:linux": _filter_copts(copts, "linux") + [
+                "-m64",
+                "-march=x86-64",
+                "-msse2",
+                "--target=x86_64-linux-gnu",
+            ],
+            "//conditions:default": copts,
+        })
+    else:
+        custom_copts = copts + select({
+            "@platforms//os:linux": [
+                "-m64",
+                "-march=x86-64",
+                "-msse2",
+                "--target=x86_64-linux-gnu",
+            ],
+            "//conditions:default": [],
+        })
 
     _cc_library(
         name = name,
@@ -80,18 +124,36 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
         })
 
     # Automatically inject platform-specific compiler options
-    custom_copts = copts + select({
-        "@platforms//os:linux": [
-            "-m64",
-            "-march=x86-64",
-            "-msse2",
-            "--target=x86_64-linux-gnu",
-        ],
-        "//conditions:default": [],
-    })
+    if type(copts) == "list":
+        custom_copts = select({
+            "@platforms//os:macos": _filter_copts(copts, "macos"),
+            "@platforms//os:linux": _filter_copts(copts, "linux") + [
+                "-m64",
+                "-march=x86-64",
+                "-msse2",
+                "--target=x86_64-linux-gnu",
+            ],
+            "//conditions:default": copts,
+        })
+    else:
+        custom_copts = copts + select({
+            "@platforms//os:linux": [
+                "-m64",
+                "-march=x86-64",
+                "-msse2",
+                "--target=x86_64-linux-gnu",
+            ],
+            "//conditions:default": [],
+        })
 
     # Automatically inject platform-specific linker options
-    custom_linkopts = linkopts
+    if type(linkopts) == "list":
+        custom_linkopts = select({
+            "@platforms//os:macos": _filter_linkopts(linkopts, "macos"),
+            "//conditions:default": linkopts,
+        })
+    else:
+        custom_linkopts = linkopts
 
     _cc_binary(
         name = name,
