@@ -151,7 +151,7 @@ def _third_party_ext_impl(ctx):
         name = "icu",
         repo_type = "icu",
         path = "third_party/icu",
-        build_file = "@//tools/bazel:out_of_band/snapshot/third_party/icu/BUILD.bazel.snap",
+        build_file = "@//tools/bazel:third_party_overlays/icu/BUILD.bazel.snap",
     )
 
     # 2. Zlib Dynamic Overlay Repository
@@ -160,7 +160,7 @@ def _third_party_ext_impl(ctx):
         repo_type = "zlib",
         path = "third_party/zlib",
         prefix = "zlib",
-        build_file = "@//tools/bazel:out_of_band/snapshot/third_party/zlib/BUILD.bazel.snap",
+        build_file = "@//tools/bazel:third_party_overlays/zlib/BUILD.bazel.snap",
     )
 
     # 3. BoringSSL Dynamic Overlay Repository
@@ -184,7 +184,7 @@ def _third_party_ext_impl(ctx):
         name = "prebuilt_dart_sdk",
         repo_type = "prebuilt_dart_sdk",
         path = "tools/sdks/dart-sdk",
-        build_file = "@//tools/bazel:out_of_band/snapshot/tools/sdks/dart-sdk/BUILD.bazel.snap",
+        build_file = "@//tools/bazel:third_party_overlays/tools/sdks/dart-sdk/BUILD.bazel.snap",
     )
     return ctx.extension_metadata(reproducible = True)
 

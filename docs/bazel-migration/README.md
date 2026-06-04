@@ -38,11 +38,7 @@ another agent.
   * The human relays pushes between forks; don't assume your local commits are visible to
     the other agent until pushed, and don't assume the remote is idle while you work.
 * **⚠️ The translator clobbers the tree.** Running `tools/bazel/translate_gn_desc.py`
-  regenerates SDK `BUILD.bazel` files **and** overwrites the hand-authored
-  `third_party/*/BUILD.bazel` shims (zlib especially → build then dies with
-  `-std=c++20 not allowed with C`). **Always run `tools/bazel/out_of_band/restore.sh`
-  afterward** (idempotent). Note `git checkout -- .` reverts *uncommitted source edits
-  too* — commit first, or you'll lose work. Full story: `tools/bazel/out_of_band/README.md`.
+  regenerates SDK `BUILD.bazel` files. Third-party dependencies and their overlays (like `zlib` or `icu`) are managed dynamically by Bzlmod, so you no longer need to run restore scripts. Note `git checkout -- .` reverts *uncommitted source edits too* — commit first, or you'll lose work.
 * **Some `BUILD.bazel` files are hand overlays — don't assume the translator owns them.**
   Files marked `# … NOT translator output` / clobber-guarded (e.g. `runtime/vm`,
   `runtime/bin`, `runtime/lib`, `sdk`) are hand-maintained; a re-translation will **not**

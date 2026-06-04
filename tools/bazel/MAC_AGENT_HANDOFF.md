@@ -16,10 +16,10 @@ git fetch origin
 git checkout kevmoo/bazel-m1-cc-toolchain
 ```
 
-### Step 2: Restore Out-of-Band Configurations
-Because nested depot_tools/gclient subrepos (like zlib, BoringSSL, etc.) are git-ignored by the outer SDK, run the idempotent restore script to copy our custom cross-platform snapshots and restore package pins:
+### Step 2: Align Subrepos
+Ensure all subrepos and packages are synced to the current branch DEPS pins:
 ```bash
-./tools/bazel/out_of_band/restore.sh
+gclient sync
 ```
 
 ### Step 3: Run Native Apple Silicon VM Compile

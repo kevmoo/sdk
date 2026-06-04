@@ -2,8 +2,8 @@
 # not tracked by SDK git. This BUILD.bazel exposes the prebuilt `dart` /
 # `dartaotruntime` binaries (and their sibling lib/snapshots, which `dart`
 # resolves relative to its own path) to the Dart-compilation rules in
-# //tools/bazel/dart. Re-create via tools/bazel/out_of_band/restore.sh after a
-# gclient sync. See docs/todo_issues/rules_dart_scoping.md.
+# //tools/bazel/dart. Applied dynamically as a Bzlmod overlay repository
+# (@prebuilt_dart_sdk) by tools/bazel/third_party.bzl.
 
 package(default_visibility = ["//visibility:public"])
 

@@ -17,29 +17,18 @@ git fetch origin
 git merge origin/main --no-commit --no-ff
 ```
 
-### Step 2: Out-of-Band Workspace Restoration (Critical)
-Upstream merges often update the `DEPS` pins or structural packages. In addition, routine `gclient sync` operations can wipe out critical out-of-band states needed by the Bazel sandbox.
-Always restore out-of-band states right after the merge:
+### Step 2: Sync dependencies and hooks
+Upstream merges often update the `DEPS` pins or structural packages. Make sure your local workspace subrepos are fully aligned and the `.dart_tool/package_config.json` is regenerated via the repo hooks:
 
 ```bash
-# Restores CIPD pins, regenerates package_config.json and packages.bzl
-tools/bazel/out_of_band/restore.sh
-```
-
-### Step 3: Stage and Verify Regenerated Configs
-The restoration script will likely regenerate `tools/bazel/dart/packages.bzl` and other files due to dependency upgrades. Verify and stage them:
-
-```bash
-# Stage updated Bazel package graphs and snapshots
-git add tools/bazel/dart/packages.bzl
-git add tools/bazel/out_of_band/snapshot/tools/sdks/dart-sdk/BUILD.bazel.snap
+gclient sync
 ```
 
 ---
 
 ## 🔍 Validation and Troubleshooting
 
-### Step 4: Bazel Sanity Build
+### Step 3: Bazel Sanity Build
 Verify that the compiler service and target VM build cleanly under Bazel.
 
 ```bash
@@ -47,7 +36,7 @@ Verify that the compiler service and target VM build cleanly under Bazel.
 /usr/local/google/home/kevmoo/bin/bazel build //runtime/bin:dartvm
 ```
 
-### Step 5: Handle Bazel Output Lock and Orphaned Processes
+### Step 4: Handle Bazel Output Lock and Orphaned Processes
 Bazel builds in large workspaces can take substantial memory/CPU and sometimes leave orphaned processes or server locks. If you encounter `Another command is running` or similar hangs:
 
 1. List running Bazel processes:
@@ -63,11 +52,11 @@ Bazel builds in large workspaces can take substantial memory/CPU and sometimes l
    kill -9 <server_pid>
    ```
 
-### Step 6: Handle Visibility Errors on Prebuilt SDK
+### Step 5: Handle Visibility Errors on Prebuilt SDK
 If you encounter a Bazel visibility error like:
 `target '//tools/sdks/dart-sdk:bin/dart' is not visible from target '//tools/bazel/dart:prebuilt_dart_toolchain_impl'`
 
-Ensure that `tools/sdks/dart-sdk/BUILD.bazel` and its tracked snapshot `tools/bazel/out_of_band/snapshot/tools/sdks/dart-sdk/BUILD.bazel.snap` explicitly export the prebuilt binaries:
+Ensure that `tools/sdks/dart-sdk/BUILD.bazel` and its tracked overlay template `tools/bazel/third_party_overlays/tools/sdks/dart-sdk/BUILD.bazel.snap` explicitly export the prebuilt binaries:
 
 ```bazel
 exports_files([
@@ -80,7 +69,7 @@ exports_files([
 
 ## 💾 Committing the Merge
 
-### Step 7: PATH-Aware Git Commit
+### Step 6: PATH-Aware Git Commit
 The repository contains Git pre-commit hooks (e.g., `dart_format_pre_commit.sh`) that automatically format staged files. These hooks require a functional `dart` compiler on the system `PATH`.
 
 Because the host environment might not have `dart` in its global `PATH`, you **must** temporarily prepend the prebuilt Dart SDK to the `PATH` when running the commit command:

@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 13/21 Tasks
+- **Overall Progress**: 14/21 Tasks
 
 ---
 
@@ -47,7 +47,7 @@ graph TD
     TASK_018["TASK_018:<br>Compile `dart_engine` Shared Libraries JIT/AOT"]:::completed
     TASK_019["TASK_019:<br>Port `samples/embedder` targets to Bazel"]:::completed
     TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::completed
-    TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::pending
+    TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::completed
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -504,10 +504,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_021] Retire `restore.sh` entirely
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: `[TASK_017, TASK_020]`
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[be97c7e236f]`
 - **Target Files**:
   - `tools/bazel/out_of_band/restore.sh`
   - `tools/bazel/out_of_band/README.md`
@@ -520,6 +520,6 @@ graph TD
   git status
   ```
 - **Success Criteria**:
-  - [ ] `restore.sh` and `README.md` are deleted.
-  - [ ] `tools/test.py` check is removed.
-  - [ ] Build works after a fresh `gclient sync` without running any restore scripts.
+  - [x] `restore.sh` and `README.md` are deleted.
+  - [x] `tools/test.py` check is removed.
+  - [x] Build works after a fresh `gclient sync` without running any restore scripts.

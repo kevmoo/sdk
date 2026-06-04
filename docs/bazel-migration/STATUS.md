@@ -26,6 +26,11 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 89 — **(jetski) Retired restore.sh and relocated Bzlmod overlays.**
+- **Deleted restore.sh**: Removed the obsolete out-of-band environment restoration script (`tools/bazel/out_of_band/restore.sh`) and its documentation.
+- **Relocated Bzlmod Overlays**: Moved all active Bzlmod third-party overlay templates (ICU, zlib, and prebuilt SDK) from `tools/bazel/out_of_band/snapshot/` to a dedicated `tools/bazel/third_party_overlays/` directory.
+- **Updated Overlay References**: Updated Bzlmod extension `tools/bazel/third_party.bzl` and documentation (`README.md`, `merge_main_to_bazel.md`, `MAC_AGENT_HANDOFF.md`) to point to the relocated overlay templates.
+
 Session 88 — **(jetski) Cleaned up redundant linker warnings on macOS.**
 - **Filtered Redundant macOS Linker Flags**: Modified `tools/bazel/rules.bzl` to strip `"-ldl"`, `"-lpthread"`, and `"-stdlib=libc++"` from `linkopts` (in both `cc_library` and `cc_binary` macros) when building on macOS.
 - **Excised Duplicate Warning Logs**: Resolved duplicate library warnings (`ignoring duplicate libraries`) and unused compilation argument warnings during the linking phase of targets like `runtime/bin:dartvm` and all embedder samples on macOS.
