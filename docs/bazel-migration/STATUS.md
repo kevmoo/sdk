@@ -24,7 +24,7 @@
 - _(none — all resolved!)_
 
 **Active claims (who is editing what right now):**
-- _(none)_
+- `[jetski]`: `TASK_031` (Audit and Apply Code Review Learnings)
 
 Session 103 — **(jetski) Audited code review feedback and deferred sysroot hermeticity.**
 - **Deferred Sysroot Hermeticity in Debian Package**: Evaluated Comment #27 regarding non-hermetic sysroots in `debian_package/BUILD.bazel`. Confirmed it is deferred to the backlog task `TASK_031`.

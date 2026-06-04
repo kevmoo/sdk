@@ -57,7 +57,7 @@ graph TD
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
     TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
-    TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::pending
+    TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::inProgress
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -717,9 +717,9 @@ graph TD
 ---
 
 ### 🎯 [TASK_031] Audit and Apply Code Review Learnings across Bazel codebase
-- **Status**: `[PENDING]`
+- **Status**: `[IN_PROGRESS]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
+- **Owner**: `[jetski]`
 - **Commit**: `[none]`
 - **Target Files**:
   - `tools/bazel/`
