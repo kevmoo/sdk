@@ -24,7 +24,14 @@
 - _(none — all resolved!)_
 
 **Active claims (who is editing what right now):**
-- `[jetski]`: `TASK_031` (Audit and Apply Code Review Learnings)
+- `[none]`
+
+Session 104 — **(jetski) Completed TASK_031: C++ Toolchain Bzlmod Compatibility, Sandbox-Safe Relative Paths, and verified build.**
+- **Implemented Sandbox-Safe Relative Paths**: Defined `CLANG_BIN_VAL`, `CLANG_ROOT_REAL_VAL`, and `SYSROOT_ROOT_VAL` using relative paths under the external repository (e.g. `external/dart_linux_x64_clang`) to satisfy Requirement 7.
+- **Fixed Strict Include Checker via Compiler Flag**: Resolved the "absolute path inclusion" errors in symlinked worktrees by adding the `-no-canonical-prefixes` flag to `cc_toolchain_config.bzl`. This prevents the compiler from resolving symlinks for system/builtin headers, allowing relative include paths to match the Bazel strict include checker.
+- **Implemented Hermetic Tool Wrappers**: Resolved `rules_cc` normalization check constraints (forbidding `..` in `tool_path`) by generating executable python wrappers for `llvm-ar`, `ld.lld`, `clang-cpp`, `llvm-dwp`, `llvm-nm`, `llvm-objdump`, `llvm-strip` in `build/toolchain/linux/`. These wrappers dynamically find the real binaries in the execroot.
+- **Wired Wrappers in Toolchain**: Updated `BUILD.bazel` to include the wrappers in the `clang_files` filegroup, and updated `cc_toolchain_config.bzl` to reference the wrappers using normalized, package-relative paths.
+- **Verified Build VM and Debian Package**: Verified that `bazel build //runtime/bin:dartvm //tools/debian_package:debian_package` compiles 100% successfully after a clean.
 
 Session 103 — **(jetski) Audited code review feedback and deferred sysroot hermeticity.**
 - **Deferred Sysroot Hermeticity in Debian Package**: Evaluated Comment #27 regarding non-hermetic sysroots in `debian_package/BUILD.bazel`. Confirmed it is deferred to the backlog task `TASK_031`.

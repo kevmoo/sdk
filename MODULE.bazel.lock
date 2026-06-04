@@ -190,7 +190,7 @@
   "moduleExtensions": {
     "//build/toolchain/linux:clang_repo.bzl%dart_clang": {
       "general": {
-        "bzlTransitiveDigest": "lrsuSs3ZkSsN+hxCJ5MNLVD4uBmmSMVhSa+DvWkGLGA=",
+        "bzlTransitiveDigest": "9TX817Q8L7M7dp+agtm+QnPvTsvjDgyC3P6B/gBx0gw=",
         "usagesDigest": "36gqeFAgo2QQk4GuenjjLQqEAvjEhN/xHYhtEB9PiUE=",
         "recordedInputs": [],
         "generatedRepoSpecs": {

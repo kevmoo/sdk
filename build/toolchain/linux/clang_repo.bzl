@@ -31,11 +31,10 @@ def _dart_linux_clang_impl(repo_ctx):
             if child.exists:
                 repo_ctx.symlink(child, sub)
 
-        # Resolve real path in case buildtools is symlinked (e.g. in git worktrees)
-        res = repo_ctx.execute(["python3", "-c", "import os, sys; print(os.path.realpath(sys.argv[1]))", str(src)])
-        real_src = res.stdout.strip() if res.return_code == 0 else str(src)
         CLANG_BIN_VAL = str(src.get_child("bin"))
-        CLANG_ROOT_REAL_VAL = real_src
+
+        # Use relative paths under external repository to ensure sandbox safety
+        CLANG_ROOT_REAL_VAL = "external/{}".format(repo_ctx.name)
     else:
         # Fetch dynamically!
         deps_file = repo_ctx.path(Label("@//:DEPS"))
@@ -63,7 +62,9 @@ def _dart_linux_clang_impl(repo_ctx):
             type = "zip",
         )
         CLANG_BIN_VAL = str(repo_ctx.path("bin"))
-        CLANG_ROOT_REAL_VAL = str(repo_ctx.path("."))
+
+        # Use relative paths under external repository to ensure sandbox safety
+        CLANG_ROOT_REAL_VAL = "external/{}".format(repo_ctx.name)
 
     repo_ctx.file("BUILD.bazel", _BUILD_FILE)
     repo_ctx.file(
@@ -112,7 +113,9 @@ for root, dirs, files in os.walk(src, followlinks=True):
         repo_ctx.delete(py_script)
         if res.return_code != 0:
             fail("Failed to symlink sysroot: " + res.stderr)
-        SYSROOT_ROOT_VAL = str(repo_ctx.path("."))
+
+        # Use relative paths under external repository to ensure sandbox safety
+        SYSROOT_ROOT_VAL = "external/{}".format(repo_ctx.name)
     else:
         # Fetch dynamically!
         deps_file = repo_ctx.path(Label("@//:DEPS"))
@@ -138,7 +141,9 @@ for root, dirs, files in os.walk(src, followlinks=True):
             output = ".",
             type = "zip",
         )
-        SYSROOT_ROOT_VAL = str(repo_ctx.path("."))
+
+        # Use relative paths under external repository to ensure sandbox safety
+        SYSROOT_ROOT_VAL = "external/{}".format(repo_ctx.name)
 
     repo_ctx.file("BUILD.bazel", _SYSROOT_BUILD_FILE)
     repo_ctx.file(

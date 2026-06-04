@@ -77,7 +77,7 @@ def parse_deps(deps_file_path, dep_name):
         if dep_val.get('dep_type') == 'cipd':
             result['dep_type'] = 'cipd'
             packages = dep_val.get('packages', [])
-            if packages:
+            if packages and isinstance(packages[0], dict):
                 result['package'] = packages[0].get('package')
                 result['version'] = packages[0].get('version')
         else:

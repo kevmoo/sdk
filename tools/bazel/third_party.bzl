@@ -90,10 +90,11 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
         fail("Failed to parse DEPS for {}: {}".format(repo_type, res.stderr))
 
     dep_info = json.decode(res.stdout.strip())
+    dep_type = dep_info.get("dep_type")
 
-    if dep_info["dep_type"] == "git":
-        url = dep_info["url"]
-        commit = dep_info["commit"]
+    if dep_type == "git":
+        url = dep_info.get("url")
+        commit = dep_info.get("commit")
 
         if url.startswith("https://github.com") or url.startswith("http://github.com"):
             tarball_url = url + "/archive/" + commit + ".tar.gz"
@@ -109,9 +110,9 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
             output = output_dir,
             type = "tar.gz",
         )
-    elif dep_info["dep_type"] == "cipd":
-        package = dep_info["package"]
-        version = dep_info["version"]
+    elif dep_type == "cipd":
+        package = dep_info.get("package")
+        version = dep_info.get("version")
 
         platform = _get_cipd_platform(repository_ctx)
         resolved_package = package.replace("${{platform}}", platform)
@@ -126,7 +127,7 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
             type = "zip",
         )
     else:
-        fail("Unsupported dependency type: " + dep_info["dep_type"])
+        fail("Unsupported dependency type: " + str(dep_type))
 
     # Clean up all extracted BUILD/WORKSPACE/MODULE.bazel files if requested to avoid package conflicts
     if repository_ctx.attr.clean_upstream_build_files:

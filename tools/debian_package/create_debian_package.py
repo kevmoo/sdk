@@ -54,6 +54,16 @@ def Main():
 
     version = options.version
     timestamp = options.timestamp
+    arch = options.arch
+    if not arch:
+        import platform
+        machine = platform.machine()
+        if machine == 'x86_64':
+            arch = 'amd64'
+        elif machine in ('aarch64', 'arm64'):
+            arch = 'arm64'
+        else:
+            arch = machine
     versiondir = 'dart-%s' % version
     shutil.copytree(join(DART_DIR, 'tools', 'debian_package', 'debian'),
                     join(versiondir, 'debian'),
@@ -62,9 +72,10 @@ def Main():
     GenerateChangeLog(join(versiondir, 'debian', 'changelog'), version,
                       timestamp)
 
-    cmd = ['dpkg-buildpackage', '-B', '-a', options.arch, '-us', '-uc']
+    cmd = ['dpkg-buildpackage', '-B', '-a', arch, '-us', '-uc']
     env = os.environ.copy()
-    env["LIB_DIR"] = options.lib_dir
+    if options.lib_dir is not None:
+        env["LIB_DIR"] = options.lib_dir
     process = subprocess.check_call(cmd, cwd=versiondir, env=env)
 
 

@@ -134,8 +134,9 @@ def make_load_statement(rules_used):
 def get_rules_used(targets):
     rules = set()
     for name, t in targets:
-        if t["type"] in EMITTERS:
-            if t["type"] == "executable":
+        t_type = t.get("type")
+        if t_type in EMITTERS:
+            if t_type == "executable":
                 rules.add("cc_binary")
             else:
                 rules.add("cc_library")
@@ -353,7 +354,7 @@ def emit_stub(rule_kind):
     """Empty cc_library stub keeps the label resolvable at analysis time."""
     def _emit(name, t, pkg, packages):
         return (
-            f'# TODO(M3): {rule_kind} for {name} (gn type={t["type"]})\n'
+            f'# TODO(M3): {rule_kind} for {name} (gn type={t.get("type")})\n'
             f'cc_library(name = "{name}")\n'
         )
     return _emit
@@ -378,9 +379,10 @@ def _emit_targets_body(targets, pkg, packages):
     writer and the §7 gen_targets.bzl macro writer so both emit identically."""
     parts = []
     for name, t in sorted(targets):
-        emit = EMITTERS.get(t["type"])
+        t_type = t.get("type")
+        emit = EMITTERS.get(t_type)
         if emit is None:
-            parts.append(f'# TODO(M3): unknown gn type {t["type"]} for {name}\n')
+            parts.append(f'# TODO(M3): unknown gn type {t_type} for {name}\n')
             continue
         parts.append(emit(name, t, pkg, packages))
         parts.append("\n")
@@ -397,8 +399,14 @@ def _owned_target_names(build_path):
     pathname, …)."""
     if not os.path.exists(build_path):
         return set()
+    names = set()
     with open(build_path) as f:
-        return set(re.findall(r"""\bname\s*=\s*["']([^"']+)["']""", f.read()))
+        for line in f:
+            clean_line = line.split('#')[0]
+            m = re.search(r"""\bname\s*=\s*["']([^"']+)["']""", clean_line)
+            if m:
+                names.add(m.group(1))
+    return names
 
 
 # Rules/attributes the translator NEVER emits, so their presence in an existing
@@ -419,7 +427,11 @@ def _is_hand_authored_overlay(build_path):
     if not os.path.exists(build_path):
         return False
     with open(build_path) as f:
-        return bool(_HAND_AUTHORED_MARKERS.search(f.read()))
+        lines_clean = []
+        for line in f:
+            lines_clean.append(line.split('#')[0])
+        content = '\n'.join(lines_clean)
+        return bool(_HAND_AUTHORED_MARKERS.search(content))
 
 
 def write_gen_targets_bzl(root, pkg, targets, packages):

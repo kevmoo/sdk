@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 23/31 Tasks
+- **Overall Progress**: 24/31 Tasks
 
 ---
 
@@ -57,7 +57,7 @@ graph TD
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
     TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
-    TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::inProgress
+    TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -717,10 +717,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_031] Audit and Apply Code Review Learnings across Bazel codebase
-- **Status**: `[IN_PROGRESS]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
 - **Owner**: `[jetski]`
-- **Commit**: `[none]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/`
   - `build/toolchain/`
@@ -732,8 +732,8 @@ graph TD
   python3 -m py_compile tools/bazel/*.py tools/debian_package/*.py && bazel build //runtime/bin:dartvm //tools/debian_package:debian_package
   ```
 - **Success Criteria**:
-  - [ ] All custom Python parsing scripts under `tools/bazel` are audited and use defensive `.get()` lookups.
-  - [ ] Custom repository setup scripts are audited for process ID (PID) locking to prevent parallel build deadlocks.
-  - [ ] Starlark toolchain configurations under `build/toolchain` are verified to use sandbox-safe label/external paths.
-  - [ ] Property configuration generators are verified to strip inline comments and outer quotes.
-  - [ ] genrules and packaging scripts are verified to use hermetic dynamic sysroot references instead of host paths, dynamically check architecture using `uname -m`, and support ARM64.
+  - [x] All custom Python parsing scripts under `tools/bazel` are audited and use defensive `.get()` lookups.
+  - [x] Custom repository setup scripts are audited for process ID (PID) locking to prevent parallel build deadlocks.
+  - [x] Starlark toolchain configurations under `build/toolchain` are verified to use sandbox-safe label/external paths.
+  - [x] Property configuration generators are verified to strip inline comments and outer quotes.
+  - [x] genrules and packaging scripts are verified to use hermetic dynamic sysroot references instead of host paths, dynamically check architecture using `uname -m`, and support ARM64.

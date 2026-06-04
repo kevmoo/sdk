@@ -13,10 +13,16 @@ def main():
     if matches:
         real_clang = matches[0]
     else:
-        # Fallback to host absolute path if not in sandbox or if glob failed
-        real_clang = "/usr/local/google/home/kevmoo/github/sdk/buildtools/linux-x64/clang/bin/clang++"
+        # Fallback to relative path from script location if not in sandbox, supporting arm64 hosts
+        import platform
+        machine = platform.machine()
+        arch = "x64"
+        if machine in ("aarch64", "arm64"):
+            arch = "arm64"
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        real_clang = os.path.normpath(os.path.join(script_dir, "../../..", f"buildtools/linux-{arch}/clang/bin/clang++"))
         if not os.path.exists(real_clang):
-            print("Error: clang++ not found by wrapper", file=sys.stderr)
+            print("Error: clang++ not found by wrapper at: " + real_clang, file=sys.stderr)
             sys.exit(1)
             
     # Strip -fPIE if -fPIC is present

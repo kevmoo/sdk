@@ -135,10 +135,17 @@ def main():
     for _ in range(300):
         try:
             os.mkdir(lock_dir)
-            with open(os.path.join(lock_dir, 'pid'), 'w') as f:
-                f.write(str(os.getpid()))
-            acquired_lock = True
-            break
+            try:
+                with open(os.path.join(lock_dir, 'pid'), 'w') as f:
+                    f.write(str(os.getpid()))
+                acquired_lock = True
+                break
+            except OSError:
+                try:
+                    os.rmdir(lock_dir)
+                except Exception:
+                    pass
+                continue
         except FileExistsError:
             pid_file = os.path.join(lock_dir, 'pid')
             try:
@@ -152,27 +159,38 @@ def main():
                     pid_running = e.errno == errno.EPERM
                 if not pid_running:
                     print(f"Detected stale lock (PID {pid} is not running). Clearing it.")
+                    temp_stale_dir = lock_dir + ".stale." + str(os.getpid())
                     try:
-                        os.remove(pid_file)
-                    except Exception:
-                        pass
-                    try:
-                        os.rmdir(lock_dir)
+                        os.rename(lock_dir, temp_stale_dir)
+                        try:
+                            os.remove(os.path.join(temp_stale_dir, 'pid'))
+                        except Exception:
+                            pass
+                        try:
+                            os.rmdir(temp_stale_dir)
+                        except Exception:
+                            pass
                     except Exception:
                         pass
                     continue
             except Exception:
                 import time
                 try:
-                    # Fallback modification time check: 5 minutes (300s)
-                    if time.time() - os.path.getmtime(lock_dir) > 300:
-                        print("Detected stale lock (older than 5 minutes). Clearing it.")
+                    # Fallback modification time check: if PID file is missing/corrupted,
+                    # only wait 10 seconds since writing PID file is near-instant.
+                    if time.time() - os.path.getmtime(lock_dir) > 10:
+                        print("Detected stale lock (older than 10 seconds). Clearing it.")
+                        temp_stale_dir = lock_dir + ".stale." + str(os.getpid())
                         try:
-                            os.remove(pid_file)
-                        except Exception:
-                            pass
-                        try:
-                            os.rmdir(lock_dir)
+                            os.rename(lock_dir, temp_stale_dir)
+                            try:
+                                os.remove(os.path.join(temp_stale_dir, 'pid'))
+                            except Exception:
+                                pass
+                            try:
+                                os.rmdir(temp_stale_dir)
+                            except Exception:
+                                pass
                         except Exception:
                             pass
                         continue

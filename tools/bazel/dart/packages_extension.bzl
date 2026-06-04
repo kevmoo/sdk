@@ -13,7 +13,10 @@ def _parse_dependencies(ctx, pubspec_path):
     in_deps = False
     for line in content.split("\n"):
         line = line.rstrip("\r")
-        if not line:
+
+        # Strip comments to handle inline comments and commented-out packages correctly
+        line = line.split("#", 1)[0]
+        if not line.strip():
             continue
         first_char = line[0] if len(line) > 0 else ""
         if first_char.isalpha():
@@ -55,9 +58,12 @@ def _packages_repo_impl(ctx):
     known = []
 
     # First pass: identify all valid packages in the config
-    for p in config["packages"]:
-        name = p["name"]
-        root_uri = p["rootUri"]
+    packages_list = config.get("packages", [])
+    for p in packages_list:
+        name = p.get("name")
+        root_uri = p.get("rootUri")
+        if not name or not root_uri:
+            continue
 
         # Resolve path relative to .dart_tool/
         package_root = ctx.path(str(package_config_path.dirname) + "/" + root_uri)
