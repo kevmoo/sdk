@@ -104,7 +104,7 @@ class LspClientCapabilities {
   final bool completionDefaultEditRange;
   final bool completionDefaultTextMode;
   final bool experimentalSnippetTextEdit;
-  final Set<String> codeActionCommandParameterSupportedKinds;
+  final Set<String> supportedInteractiveFormInputTypes;
   final bool supportsShowMessageRequest;
 
   /// A set of commands that exist on the client that the server may call.
@@ -223,8 +223,8 @@ class LspClientCapabilities {
       completionDefaultEditRange: completionDefaultEditRange,
       completionDefaultTextMode: completionDefaultTextMode,
       experimentalSnippetTextEdit: experimental.snippetTextEdit,
-      codeActionCommandParameterSupportedKinds:
-          experimental.commandParameterKinds,
+      supportedInteractiveFormInputTypes:
+          experimental.interactiveFormInputTypes,
       supportsShowMessageRequest: experimental.showMessageRequest,
       supportedCommands: experimental.commands,
       experimentalCapabilitiesErrors: experimental.errors,
@@ -264,7 +264,7 @@ class LspClientCapabilities {
     required this.completionDefaultEditRange,
     required this.completionDefaultTextMode,
     required this.experimentalSnippetTextEdit,
-    required this.codeActionCommandParameterSupportedKinds,
+    required this.supportedInteractiveFormInputTypes,
     required this.supportsShowMessageRequest,
     required this.supportedCommands,
     required this.experimentalCapabilitiesErrors,
@@ -290,13 +290,13 @@ class _ExperimentalClientCapabilities {
   final List<String> errors;
 
   final bool snippetTextEdit;
-  final Set<String> commandParameterKinds;
+  final Set<String> interactiveFormInputTypes;
   final Set<String> commands;
   final bool showMessageRequest;
 
   new({
     required this.snippetTextEdit,
-    required this.commandParameterKinds,
+    required this.interactiveFormInputTypes,
     required this.commands,
     required this.showMessageRequest,
     required this.errors,
@@ -346,20 +346,14 @@ class _ExperimentalClientCapabilities {
       experimental['snippetTextEdit'],
     );
 
-    // Refactor command parameters.
-    var experimentalActions = expectMap(
-      '.dartCodeAction',
-      experimental['dartCodeAction'],
+    // Interactive Forms.
+    var interactiveForms = expectMap(
+      '.interactiveResolve',
+      experimental['interactiveResolve'],
     );
-    experimentalActions ??= const {};
-    var commandParameters = expectMap(
-      '.dartCodeAction.commandParameterSupport',
-      experimentalActions['commandParameterSupport'],
-    );
-    commandParameters ??= {};
-    var commandParameterKinds = expectNullableStringSet(
-      '.dartCodeAction.commandParameterSupport.supportedKinds',
-      commandParameters['supportedKinds'],
+    var interactiveFormInputTypes = expectNullableStringSet(
+      '.interactiveResolve.inputTypes',
+      interactiveForms?['inputTypes'],
     );
 
     // Executable commands.
@@ -383,7 +377,7 @@ class _ExperimentalClientCapabilities {
 
     return _ExperimentalClientCapabilities(
       snippetTextEdit: snippetTextEdit ?? false,
-      commandParameterKinds: commandParameterKinds ?? {},
+      interactiveFormInputTypes: interactiveFormInputTypes ?? {},
       commands: commands ?? {},
       showMessageRequest: showMessageRequest ?? false,
       errors: errors,

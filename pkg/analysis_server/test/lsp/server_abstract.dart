@@ -780,10 +780,16 @@ mixin ClientCapabilitiesHelperMixin {
     );
   }
 
-  void setSupportedCommandParameterKinds(Set<String>? kinds) {
-    experimentalCapabilities['dartCodeAction'] = {
-      'commandParameterSupport': {'supportedKinds': kinds?.toList()},
-    };
+  void setSupportedInteractiveFormInputKinds(Set<String>? inputTypes) {
+    const parentKey = 'interactiveResolve';
+    const inputTypesKey = 'inputTypes';
+    if (inputTypes != null) {
+      experimentalCapabilities[parentKey] = {
+        inputTypesKey: inputTypes.toList(),
+      };
+    } else {
+      experimentalCapabilities.remove(parentKey);
+    }
   }
 
   void setSupportsWindowShowMessageRequest([bool supported = true]) {

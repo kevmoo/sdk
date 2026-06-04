@@ -670,8 +670,12 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     var element = fragment.element;
 
     _checkAugmentationWithoutDeclaration(node.augmentKeyword, fragment);
+    _checkForAugmentationFormalParameters(
+      executableFragment: fragment,
+      formalParameterList: node.parameters,
+    );
 
-    if (fragment.isAugmentation && fragment.isCompleteDeclaration) {
+    if (fragment.isAugmentation && fragment.isComplete) {
       var precedingComplete = fragment.nearestPrecedingCompleteFragment;
       if (precedingComplete != null) {
         diagnosticReporter.report(
@@ -1216,6 +1220,12 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
       returnTypeNode: node.returnType,
       errorEntity: node.returnType ?? node.name,
     );
+    if (node.functionExpression.parameters case var parameters?) {
+      _checkForAugmentationFormalParameters(
+        executableFragment: fragment,
+        formalParameterList: parameters,
+      );
+    }
 
     if (element.enclosingElement is! LibraryElement) {
       _hiddenElements!.declare(element);
@@ -1484,6 +1494,12 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
       returnTypeNode: node.returnType,
       errorEntity: node.returnType ?? node.name,
     );
+    if (node.parameters case var parameters?) {
+      _checkForAugmentationFormalParameters(
+        executableFragment: fragment,
+        formalParameterList: parameters,
+      );
+    }
 
     _withEnclosingExecutable(
       element,
@@ -2743,12 +2759,233 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     }
   }
 
+  void _checkForAugmentationFormalParameters({
+    required ExecutableFragmentImpl executableFragment,
+    required FormalParameterList formalParameterList,
+  }) {
+    if (!executableFragment.isAugmentation) {
+      return;
+    }
+
+    var firstExecutableFragment = executableFragment.element.firstFragment;
+    if (identical(executableFragment, firstExecutableFragment) ||
+        firstExecutableFragment.isAugmentation) {
+      return;
+    }
+
+    var firstParameters = firstExecutableFragment.formalParameters
+        .where((parameter) => !parameter.isOriginOtherFragmentOfEnclosing)
+        .toList();
+    var currentParameters = executableFragment.formalParameters
+        .where((parameter) => !parameter.isOriginOtherFragmentOfEnclosing)
+        .toList();
+
+    var firstExecutableContextMessages = [
+      ?firstExecutableFragment.contextMessageAt(
+        'The declaration being augmented.',
+      ),
+    ];
+
+    var firstRequiredPositionalCount = firstParameters
+        .where((parameter) => parameter.isRequiredPositional)
+        .length;
+    var currentRequiredPositionalCount = currentParameters
+        .where((parameter) => parameter.isRequiredPositional)
+        .length;
+
+    var firstOptionalPositionalCount = firstParameters
+        .where((parameter) => parameter.isOptionalPositional)
+        .length;
+    var currentOptionalPositionalCount = currentParameters
+        .where((parameter) => parameter.isOptionalPositional)
+        .length;
+
+    FormalParameter? formalParameterAtPositionalIndex(int index) {
+      return formalParameterList.parameters
+          .where((parameter) => parameter.isPositional)
+          .elementAtOrNull(index);
+    }
+
+    SyntacticEntity formalParameterErrorEntity(FormalParameter? parameter) {
+      if (parameter == null) {
+        return formalParameterList.rightParenthesis;
+      }
+      return parameter.name ?? parameter;
+    }
+
+    if (currentRequiredPositionalCount < firstRequiredPositionalCount) {
+      diagnosticReporter.report(
+        diag.augmentationRequiredPositionalFormalParameterCount
+            .withArguments(
+              expectedCount: firstRequiredPositionalCount,
+              actualCount: currentRequiredPositionalCount,
+            )
+            .withContextMessages(firstExecutableContextMessages)
+            .at(
+              formalParameterList.leftDelimiter ??
+                  formalParameterErrorEntity(
+                    formalParameterAtPositionalIndex(
+                      currentRequiredPositionalCount,
+                    ),
+                  ),
+            ),
+      );
+    } else if (currentRequiredPositionalCount > firstRequiredPositionalCount) {
+      diagnosticReporter.report(
+        diag.augmentationRequiredPositionalFormalParameterCount
+            .withArguments(
+              expectedCount: firstRequiredPositionalCount,
+              actualCount: currentRequiredPositionalCount,
+            )
+            .withContextMessages(firstExecutableContextMessages)
+            .at(
+              formalParameterErrorEntity(
+                formalParameterAtPositionalIndex(firstRequiredPositionalCount),
+              ),
+            ),
+      );
+    } else {
+      if (currentOptionalPositionalCount < firstOptionalPositionalCount) {
+        diagnosticReporter.report(
+          diag.augmentationOptionalPositionalFormalParameterCount
+              .withArguments(
+                expectedCount: firstOptionalPositionalCount,
+                actualCount: currentOptionalPositionalCount,
+              )
+              .withContextMessages(firstExecutableContextMessages)
+              .at(formalParameterList.rightParenthesis),
+        );
+      } else if (currentOptionalPositionalCount >
+          firstOptionalPositionalCount) {
+        diagnosticReporter.report(
+          diag.augmentationOptionalPositionalFormalParameterCount
+              .withArguments(
+                expectedCount: firstOptionalPositionalCount,
+                actualCount: currentOptionalPositionalCount,
+              )
+              .withContextMessages(firstExecutableContextMessages)
+              .at(
+                firstOptionalPositionalCount == 0
+                    ? formalParameterList.leftDelimiter ??
+                          formalParameterErrorEntity(
+                            formalParameterAtPositionalIndex(
+                              firstRequiredPositionalCount,
+                            ),
+                          )
+                    : formalParameterErrorEntity(
+                        formalParameterAtPositionalIndex(
+                          firstRequiredPositionalCount +
+                              firstOptionalPositionalCount,
+                        ),
+                      ),
+              ),
+        );
+      }
+    }
+
+    // Positional parameter names can be `_`, but every non-wildcard name must
+    // match all preceding non-wildcard declarations for the same parameter.
+    if (currentRequiredPositionalCount == firstRequiredPositionalCount &&
+        currentOptionalPositionalCount == firstOptionalPositionalCount) {
+      for (var formalParameter in formalParameterList.parameters) {
+        if (!formalParameter.isPositional) {
+          continue;
+        }
+
+        var currentParameter = formalParameter.declaredFragment;
+        if (currentParameter is! FormalParameterFragmentImpl ||
+            currentParameter.isOriginOtherFragmentOfEnclosing) {
+          continue;
+        }
+
+        var currentName = currentParameter.name;
+        if (currentName == null || currentName == '_') {
+          continue;
+        }
+
+        for (var precedingParameter in currentParameter.precedingFragments) {
+          if (precedingParameter.isOriginOtherFragmentOfEnclosing ||
+              precedingParameter.nameOffset == null) {
+            continue;
+          }
+
+          var precedingName = precedingParameter.name;
+          if (precedingName == null ||
+              precedingName == '_' ||
+              precedingName == currentName) {
+            continue;
+          }
+
+          diagnosticReporter.report(
+            diag.augmentationPositionalFormalParameterName
+                .withArguments(
+                  expectedName: precedingName,
+                  actualName: currentName,
+                )
+                .withContextMessages([
+                  ?precedingParameter.contextMessageAt(
+                    'The preceding declaration is here.',
+                  ),
+                ])
+                .at(formalParameterErrorEntity(formalParameter)),
+          );
+          break;
+        }
+      }
+    }
+
+    var firstNamedParametersByName = <String, FormalParameterFragmentImpl>{};
+    for (var parameter in firstParameters) {
+      var name = parameter.name;
+      if (parameter.isNamed && name != null) {
+        firstNamedParametersByName[name] = parameter;
+      }
+    }
+
+    var currentNamedParametersByName = <String, FormalParameter>{};
+    for (var formalParameter in formalParameterList.parameters) {
+      var parameter = formalParameter.declaredFragment;
+      if (parameter is FormalParameterFragmentImpl && parameter.isNamed) {
+        var name = parameter.name;
+        if (name != null) {
+          currentNamedParametersByName.putIfAbsent(name, () => formalParameter);
+        }
+      }
+    }
+
+    for (var entry in currentNamedParametersByName.entries) {
+      var name = entry.key;
+      if (!firstNamedParametersByName.containsKey(name)) {
+        diagnosticReporter.report(
+          diag.augmentationNamedFormalParameterExtra
+              .withArguments(name: name)
+              .withContextMessages(firstExecutableContextMessages)
+              .at(formalParameterErrorEntity(entry.value)),
+        );
+      }
+    }
+
+    for (var entry in firstNamedParametersByName.entries) {
+      var name = entry.key;
+      if (!currentNamedParametersByName.containsKey(name)) {
+        diagnosticReporter.report(
+          diag.augmentationNamedFormalParameterMissing
+              .withArguments(name: name)
+              .withContextMessages([
+                ?entry.value.contextMessageAt('The formal parameter is here.'),
+              ])
+              .at(formalParameterList.rightParenthesis),
+        );
+      }
+    }
+  }
+
   void _checkForAugmentationInducedAccessorsAlreadyComplete({
     required Token errorToken,
     required PropertyInducingFragmentImpl fragment,
   }) {
     if (fragment.inducedGetter case var inducedGetter?) {
-      if (inducedGetter.isCompleteDeclaration) {
+      if (inducedGetter.isComplete) {
         var precedingComplete = inducedGetter.nearestPrecedingCompleteFragment;
         if (precedingComplete != null) {
           diagnosticReporter.report(
@@ -2765,7 +3002,7 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     }
 
     if (fragment.inducedSetter case var inducedSetter?) {
-      if (inducedSetter.isCompleteDeclaration) {
+      if (inducedSetter.isComplete) {
         var precedingComplete = inducedSetter.nearestPrecedingCompleteFragment;
         if (precedingComplete != null) {
           diagnosticReporter.report(
@@ -4704,7 +4941,7 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     }
 
     var element = node.declaredFragment!.element;
-    if (element.fragments.any((f) => f.isCompleteDeclaration)) {
+    if (element.fragments.any((f) => f.isComplete)) {
       return;
     }
 
@@ -4851,7 +5088,7 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     required Token? augmentKeyword,
     required FragmentImpl fragment,
   }) {
-    if (augmentKeyword != null && fragment.isCompleteDeclaration) {
+    if (augmentKeyword != null && fragment.isComplete) {
       var precedingComplete = fragment.nearestPrecedingCompleteFragment;
       if (precedingComplete != null) {
         diagnosticReporter.report(
@@ -4898,7 +5135,7 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
       return;
     }
 
-    if (element.fragments.any((f) => f.isCompleteDeclaration)) {
+    if (element.fragments.any((f) => f.isComplete)) {
       return;
     }
 
@@ -5045,7 +5282,7 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
         (setter?.element.fragments.length ?? 0) > 1;
 
     if (getter != null) {
-      if (getter.element.fragments.none((f) => f.isCompleteDeclaration)) {
+      if (getter.element.fragments.none((f) => f.isComplete)) {
         var diagnostic = hasAugmentations
             ? diag.inducedGetterNotCompleteAfterAugmentations
             : diag.inducedGetterWithoutBody;
@@ -5056,7 +5293,7 @@ class ErrorVerifier extends RecursiveAstVisitor<void>
     }
 
     if (setter != null) {
-      if (setter.element.fragments.none((f) => f.isCompleteDeclaration)) {
+      if (setter.element.fragments.none((f) => f.isComplete)) {
         var diagnostic = hasAugmentations
             ? diag.inducedSetterNotCompleteAfterAugmentations
             : diag.inducedSetterWithoutBody;
