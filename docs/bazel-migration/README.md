@@ -51,10 +51,14 @@ another agent.
   tools/sdks/dart-sdk/bin/dart tools/setup_worktree_links.dart
   ```
   This dynamically resolves the parent checkout path, verifies directory setups, and safely establishes symbolic links (with automatic Windows junctions and copy fallbacks if symlink privileges are missing), avoiding gigabytes of duplicate checkouts.
-* **Commit discipline.** Branch is `kevmoo/bazel`; **never push without
-  explicit human approval.** Prefer small atomic commits. The pre-commit hook re-`git add`s
-  the *whole* staged BUILD/.bzl file (buildifier `--lint=fix`), so per-hunk atomic commits
-  of one file need `git commit --no-verify` (the files are already canonical).
+* **Branching & PR Workflow (Do not commit directly to `bazel`)**:
+  - The `bazel` branch represents our main development target. **Do not commit directly to `bazel`.**
+  - For each new backlog task (e.g. `TASK_031`), create a feature branch off `bazel`:
+    `git checkout -b task-031-sysroot-hermetic bazel`
+  - Implement changes, verify locally, and commit.
+  - Push the feature branch and submit a GitHub Pull Request targeting the `bazel` branch.
+  - Once reviewed and CI completes successfully, squash-merge the PR via GitHub.
+* **Commit discipline**: **Never push to `bazel` or any branch without explicit human approval.** Prefer small atomic commits on your feature branches. The pre-commit hook re-`git add`s the *whole* staged BUILD/.bzl file (buildifier `--lint=fix`), so per-hunk atomic commits of one file need `git commit --no-verify` (since files are already canonical).
   * **Lockfile Drift:** Bazel's `MODULE.bazel.lock` might show `bzlTransitiveDigest` drift between different machines or OSes (macOS and Linux) even when Starlark files are identical. This is due to platform-specific built-ins in the Bazel binaries. Do not commit these lockfile changes unless you intentionally modified `MODULE.bazel`. Revert them using `git checkout MODULE.bazel.lock` before committing.
 
 ## Directory Map
