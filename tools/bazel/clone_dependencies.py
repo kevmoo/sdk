@@ -102,7 +102,7 @@ def clone_repo(repo_path, dep_val):
     if not is_git:
         print(f"Initializing new git repository in {repo_path}...")
         os.makedirs(repo_path, exist_ok=True)
-        subprocess.run(["git", "init"], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "init", "--quiet"], env=git_env, cwd=repo_path, check=True)
         subprocess.run(["git", "remote", "add", "origin", url], env=git_env, cwd=repo_path, check=True)
     else:
         print(f"Reusing existing git repository in {repo_path}...")
@@ -114,12 +114,12 @@ def clone_repo(repo_path, dep_val):
     
     # Try fetching the specific revision directly first (faster, shallow)
     try:
-        subprocess.run(["git", "fetch", "--depth=1", "origin", rev], env=git_env, cwd=repo_path, check=True)
-        subprocess.run(["git", "checkout", "FETCH_HEAD"], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "fetch", "--quiet", "--depth=1", "origin", rev], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "checkout", "--quiet", "FETCH_HEAD"], env=git_env, cwd=repo_path, check=True)
     except subprocess.CalledProcessError:
         print(f"Direct fetch of {rev} failed, falling back to full fetch...")
-        subprocess.run(["git", "fetch", "origin"], env=git_env, cwd=repo_path, check=True)
-        subprocess.run(["git", "checkout", rev], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "fetch", "--quiet", "origin"], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "checkout", "--quiet", rev], env=git_env, cwd=repo_path, check=True)
 
 def main():
     sdk_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
