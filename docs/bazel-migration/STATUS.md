@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 99 — **(jetski) Completed TASK_025: Debian Package Build Target.**
+- **Implemented Debian Package Genrule**: Replaced the `cc_library` placeholder target in `tools/debian_package/BUILD.bazel` with a functional `genrule` target named `debian_package` that compiles and packages the entire SDK tree as a Debian package.
+- **Handled Sandboxed Output Copying**: Configured the genrule to copy the built SDK directory `sdk/dart-sdk` to `dart-sdk` in the workspace root instead of symlinking, and applied `chmod -R +w` to make all directories and files writable, ensuring `dh_install` can successfully copy them without ODR/permission denied conflicts.
+- **Mapped Dynamic Variables**: Authored subshell command arguments calling `get_version.py` and `get_timestamp.py` to extract dynamic SDK versions and changelog timestamps at build time, and wrapped them in double quotes to prevent shell word-splitting.
+- **Verified Debian Package**: Successfully executed `bazel build //tools/debian_package:debian_package` on the Linux host, producing `bazel-bin/tools/debian_package/dart.deb`. Verified via `dpkg -c` that all binaries, libraries, snapshots, and symlinks (including `/usr/bin/dart` pointing to `/usr/lib/dart/bin/dart`) are correctly packaged inside the archive.
+
 Session 98 — **(jetski) Completed TASK_030: Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads.**
 - **Implemented Dynamic DEPS Parsing**: Created a Python helper script `tools/bazel/parse_deps.py` that evaluates the root python-based `DEPS` file and outputs dependency info (URL, commit, type) as JSON.
 - **Added dynamic Bzlmod overlay repository rule**: Implemented `overlay_repository` rule in `tools/bazel/third_party.bzl` that dynamically downloads git and cipd dependencies based on `DEPS` revisions, extracts them, and applies custom overlays.

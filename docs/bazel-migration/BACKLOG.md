@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 22/30 Tasks
+- **Overall Progress**: 23/30 Tasks
 
 ---
 
@@ -51,7 +51,7 @@ graph TD
     TASK_022["TASK_022:<br>VM AOT Test Suite Integration"]:::completed
     TASK_023["TASK_023:<br>Sanitizer Test Configuration Mapping"]:::completed
     TASK_024["TASK_024:<br>Simulator Target Configurations"]:::completed
-    TASK_025["TASK_025:<br>Debian Package Build Target"]:::pending
+    TASK_025["TASK_025:<br>Debian Package Build Target"]:::completed
     TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
     TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::completed
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
@@ -606,10 +606,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_025] Debian Package Build Target
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/debian_package/BUILD.bazel`
 - **Description**:
@@ -619,7 +619,7 @@ graph TD
   bazel build //tools/debian_package:debian_package
   ```
 - **Success Criteria**:
-  - [ ] Debian package target is compiled and packages all binaries hermetically.
+  - [x] Debian package target is compiled and packages all binaries hermetically.
 
 ---
 

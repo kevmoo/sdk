@@ -2,8 +2,6 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
-
 package(default_visibility = ["//visibility:public"])
 
 # GN lets one target's sources reach into other BUILD.gn dirs; Bazel
@@ -24,5 +22,46 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for debian_package (gn type=action)
-cc_library(name = "debian_package")
+# genrule for debian_package (gn type=action)
+genrule(
+    name = "debian_package",
+    srcs = [
+        "//sdk:create_sdk",
+        "//sdk:copy_dart",  # Include copy_dart output to easily locate dart-sdk dir
+        "//tools:utils.py",
+        "//:LICENSE",
+        "create_debian_package.py",
+        "get_version.py",
+        "get_timestamp.py",
+        "debian/compat",
+        "debian/control",
+        "debian/dart.install",
+        "debian/dart.links",
+        "debian/rules",
+        "debian/source/format",
+    ],
+    outs = ["dart.deb"],
+    cmd = """
+    # 1. Symlink the SDK to dart-sdk at the root of the build directory
+    SDK_FILE="$(location //sdk:copy_dart)"
+    SDK_DIR="$$(dirname $$(dirname $$(dirname $$SDK_FILE)))"
+    cp -R "$$SDK_DIR/dart-sdk" dart-sdk
+    chmod -R +w dart-sdk
+
+    # 2. Run the packaging script
+    LIB_DIR="/lib/x86_64-linux-gnu"
+    if [ ! -d "$$LIB_DIR" ]; then
+        LIB_DIR="buildtools/sysroot/linux/lib/x86_64-linux-gnu"
+    fi
+
+    python3 $(location create_debian_package.py) \
+        --version="$$(python3 $(location get_version.py))" \
+        --timestamp="$$(python3 $(location get_timestamp.py))" \
+        --arch=amd64 \
+        --lib_dir="$$LIB_DIR"
+
+    # 3. Copy the output debian package to the expected Bazel output path
+    mv dart_*.deb $@
+    """,
+    tags = ["no-sandbox"],  # Runs locally to access host tools like dpkg-buildpackage and fakeroot
+)
