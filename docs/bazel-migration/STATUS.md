@@ -26,6 +26,14 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 101 — **(jetski) Addressed code review feedback on process locking, YAML parsing, and GHA workflows.**
+- **Fixed YAML Comment Parser Bug**: Patched `tools/bazel/generate_debug_package_config.py` to skip full comment lines starting with `#` in `dependency_overrides` block, preventing root comments from prematurely halting override parsing.
+- **Improved Concurrency Lock Robustness**: Updated `tools/bazel/clone_dependencies.py` lock validation to handle `PermissionError` (errno `EPERM`) by checking process liveness correctly when the lock PID is owned by another user.
+- **Prevented Duplicate Package Entries**: Refactored `generate_debug_package_config.py` to store synthetic package configurations in a dictionary mapping instead of a list, allowing local dependency overrides to correctly overwrite scanned packages instead of appending duplicates.
+- **Upgraded GitHub Actions Checkout**: Upgraded `actions/checkout` from `@v4` to `@v6` in `.github/workflows/bazel.yml` to run checkout steps on Node 24 and suppress deprecation warnings regarding Node 20.
+- **Logged Debian package sysroot hermeticity**: Appended detailed requirements to `TASK_031` in `BACKLOG.md` to track and resolve the non-hermetic host sysroot dependency in the `debian_package` genrule.
+- **Verified GHA validation**: Confirmed the final GHA validation run (`26971507928`) completed 100% green without any runner deprecation warnings.
+
 Session 100 — **(jetski) Added GitHub Actions workflow for Bazel build validation.**
 - **Created GitHub Actions Workflow**: Authored `.github/workflows/bazel.yml` configured to trigger on push and pull requests targeting the `bazel` branch.
 - **Implemented Python package_config generator**: Created `tools/bazel/generate_debug_package_config.py` to parse workspace packages and overrides into a synthetic `.dart_tool/package_config.json` without requiring host Dart or a full `gclient sync` checkout.
