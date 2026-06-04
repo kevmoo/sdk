@@ -26,7 +26,11 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
-_Last updated: 2026-06-04 (session 84, jetski) — **Completed TASK_020: Migrate packages.bzl target generation to a dynamic Bzlmod extension.**_
+_Last updated: 2026-06-04 (session 85, jetski) — **Fixed macOS compiler flag conflicts in rules.bzl.**_
+
+Session 85 — **(jetski) Fixed macOS compiler flag conflicts in rules.bzl.**
+- **Removed Hardcoded macOS SDK Version**: Excised the hardcoded `-mmacosx-version-min=14.0` compiler and linker options from the `cc_library` and `cc_binary` wrappers in `tools/bazel/rules.bzl`.
+- **Enabled Dynamic SDK Versioning**: Allowed Bazel's auto-configured macOS toolchain to manage the target SDK version dynamically, resolving unused argument errors/warnings (treated as errors under `-Werror`) during compiles.
 
 Session 84 — **(jetski) Completed TASK_020: Migrate packages.bzl target generation to a dynamic Bzlmod extension.**
 - **Implemented Bzlmod Module Extension**: Replaced the static, checked-in `tools/bazel/dart/packages.bzl` and its generator `tools/bazel/dart/gen_packages.py` with a dynamic Bzlmod module extension (`tools/bazel/dart/packages_extension.bzl`).

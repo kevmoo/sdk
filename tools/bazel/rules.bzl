@@ -36,9 +36,6 @@ def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
 
     # Automatically inject platform-specific compiler options
     custom_copts = copts + select({
-        "@platforms//os:macos": [
-            "-mmacosx-version-min=14.0",
-        ],
         "@platforms//os:linux": [
             "-m64",
             "-march=x86-64",
@@ -84,9 +81,6 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
 
     # Automatically inject platform-specific compiler options
     custom_copts = copts + select({
-        "@platforms//os:macos": [
-            "-mmacosx-version-min=14.0",
-        ],
         "@platforms//os:linux": [
             "-m64",
             "-march=x86-64",
@@ -97,12 +91,7 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
     })
 
     # Automatically inject platform-specific linker options
-    custom_linkopts = linkopts + select({
-        "@platforms//os:macos": [
-            "-mmacosx-version-min=14.0",
-        ],
-        "//conditions:default": [],
-    })
+    custom_linkopts = linkopts
 
     _cc_binary(
         name = name,
