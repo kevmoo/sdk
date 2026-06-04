@@ -11,7 +11,7 @@ def main():
     dart_tool_dir = os.path.join(sdk_root, '.dart_tool')
     os.makedirs(dart_tool_dir, exist_ok=True)
 
-    packages = []
+    packages = {}
 
     # 1. Scan pkg/ for workspace packages
     pkg_dir = os.path.join(sdk_root, 'pkg')
@@ -25,12 +25,12 @@ def main():
                         if line.startswith('name:'):
                             pkg_name = line.split(':', 1)[1].split('#', 1)[0].strip().strip("'").strip('"')
                             break
-                packages.append({
+                packages[pkg_name] = {
                     "name": pkg_name,
                     "rootUri": f"../pkg/{name}",
                     "packageUri": "lib/",
                     "languageVersion": "3.13"
-                })
+                }
 
     # 2. Parse root pubspec.yaml for overrides
     root_pubspec = os.path.join(sdk_root, 'pubspec.yaml')
@@ -55,17 +55,17 @@ def main():
                         parts = line.strip().split(':', 1)
                         if len(parts) == 2 and parts[0].strip() == 'path':
                             pkg_path = parts[1].split('#', 1)[0].strip().strip("'").strip('"')
-                            packages.append({
+                            packages[curr_pkg] = {
                                 "name": curr_pkg,
                                 "rootUri": f"../{pkg_path}",
                                 "packageUri": "lib/",
                                 "languageVersion": "3.13"
-                            })
+                            }
                             curr_pkg = None
 
     config = {
         "configVersion": 2,
-        "packages": packages,
+        "packages": list(packages.values()),
         "generated": "2026-06-04T08:00:00Z",
         "generator": "generate_debug_package_config.py"
     }
