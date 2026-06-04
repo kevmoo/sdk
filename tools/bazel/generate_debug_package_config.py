@@ -40,7 +40,7 @@ def main():
             curr_pkg = None
             for line in f:
                 line = line.rstrip()
-                if not line:
+                if not line or line.strip().startswith('#'):
                     continue
                 if line.startswith('dependency_overrides:'):
                     in_overrides = True

@@ -147,8 +147,9 @@ def main():
                 try:
                     os.kill(pid, 0)
                     pid_running = True
-                except OSError:
-                    pid_running = False
+                except OSError as e:
+                    import errno
+                    pid_running = e.errno == errno.EPERM
                 if not pid_running:
                     print(f"Detected stale lock (PID {pid} is not running). Clearing it.")
                     try:

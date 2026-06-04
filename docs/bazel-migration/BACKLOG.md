@@ -726,7 +726,7 @@ graph TD
   - `build/toolchain/`
   - `tools/debian_package/`
 - **Description**:
-  Audit all custom Python parsing scripts, genrules, and Starlark definitions in the repository to systematically apply the code quality, safety, and compatibility improvements learned during the gemini-code-assist reviews (documented in docs/bazel-migration/review_learnings.md). Verify safe dictionary evaluations, process ID (PID) locks for repository rules, strict sandboxing compatibility by avoiding absolute host paths in toolchains, comment stripping in naive YAML/properties parsers, and multi-architecture portability (supporting ARM64 alongside x86_64).
+  Audit all custom Python parsing scripts, genrules, and Starlark definitions in the repository to systematically apply the code quality, safety, and compatibility improvements learned during the gemini-code-assist reviews (documented in docs/bazel-migration/review_learnings.md). Verify safe dictionary evaluations, process ID (PID) locks for repository rules, strict sandboxing compatibility by avoiding absolute host paths in toolchains, comment stripping in naive YAML/properties parsers, and multi-architecture portability (supporting ARM64 alongside x86_64, and using hermetic sysroot references instead of host libraries).
 - **Verification Command**:
   ```bash
   python3 -m py_compile tools/bazel/*.py tools/debian_package/*.py && bazel build //runtime/bin:dartvm //tools/debian_package:debian_package
@@ -736,4 +736,4 @@ graph TD
   - [ ] Custom repository setup scripts are audited for process ID (PID) locking to prevent parallel build deadlocks.
   - [ ] Starlark toolchain configurations under `build/toolchain` are verified to use sandbox-safe label/external paths.
   - [ ] Property configuration generators are verified to strip inline comments and outer quotes.
-  - [ ] genrules and packaging scripts are verified to dynamically check architecture using `uname -m` and support ARM64.
+  - [ ] genrules and packaging scripts are verified to use hermetic dynamic sysroot references instead of host paths, dynamically check architecture using `uname -m`, and support ARM64.
