@@ -36,7 +36,7 @@ def parse_deps(deps_file_path):
 
     global_dict = {}
     def Var(name):
-        return global_dict['vars'][name]
+        return global_dict.get('vars', {}).get(name, '')
     global_dict['Var'] = Var
 
     try:
@@ -135,9 +135,42 @@ def main():
     for _ in range(300):
         try:
             os.mkdir(lock_dir)
+            with open(os.path.join(lock_dir, 'pid'), 'w') as f:
+                f.write(str(os.getpid()))
             acquired_lock = True
             break
         except FileExistsError:
+            pid_file = os.path.join(lock_dir, 'pid')
+            try:
+                with open(pid_file, 'r') as f:
+                    pid = int(f.read().strip())
+                try:
+                    os.kill(pid, 0)
+                    pid_running = True
+                except OSError:
+                    pid_running = False
+                if not pid_running:
+                    print(f"Detected stale lock (PID {pid} is not running). Clearing it.")
+                    try:
+                        os.remove(pid_file)
+                    except Exception:
+                        pass
+                    os.rmdir(lock_dir)
+                    continue
+            except Exception:
+                import time
+                try:
+                    # Fallback modification time check: 5 minutes (300s)
+                    if time.time() - os.path.getmtime(lock_dir) > 300:
+                        print("Detected stale lock (older than 5 minutes). Clearing it.")
+                        try:
+                            os.remove(pid_file)
+                        except Exception:
+                            pass
+                        os.rmdir(lock_dir)
+                        continue
+                except Exception:
+                    pass
             import time
             time.sleep(1)
 
@@ -159,6 +192,10 @@ def main():
                 
             clone_repo(os.path.join(sdk_root, repo), deps[dep_key])
     finally:
+        try:
+            os.remove(os.path.join(lock_dir, 'pid'))
+        except Exception:
+            pass
         try:
             os.rmdir(lock_dir)
         except Exception:

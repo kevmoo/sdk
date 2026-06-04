@@ -23,7 +23,7 @@ def main():
                 with open(os.path.join(dir_path, 'pubspec.yaml'), 'r') as f:
                     for line in f:
                         if line.startswith('name:'):
-                            pkg_name = line.split(':', 1)[1].strip().strip("'").strip('"')
+                            pkg_name = line.split(':', 1)[1].split('#', 1)[0].strip().strip("'").strip('"')
                             break
                 packages.append({
                     "name": pkg_name,
@@ -54,7 +54,7 @@ def main():
                     elif line.startswith('    ') and curr_pkg:
                         parts = line.strip().split(':', 1)
                         if len(parts) == 2 and parts[0].strip() == 'path':
-                            pkg_path = parts[1].strip().strip("'").strip('"')
+                            pkg_path = parts[1].split('#', 1)[0].strip().strip("'").strip('"')
                             packages.append({
                                 "name": curr_pkg,
                                 "rootUri": f"../{pkg_path}",
