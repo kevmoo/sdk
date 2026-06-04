@@ -26,8 +26,6 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
-_Last updated: 2026-06-04 (session 86, jetski) — **Handled select() objects in rules.bzl compiler wrappers.**_
-
 Session 86 — **(jetski) Handled select() objects in rules.bzl compiler wrappers.**
 - **Added Type Verification**: Modified `tools/bazel/rules.bzl` to verify if `copts` or `linkopts` are plain lists before applying macOS flag filtering.
 - **Resolved Starlark Tracebacks**: Ensured that targets passing `select()` configurations (which are not iterable at load-time) bypass filtering and safely use clean concatenation, resolving load-time `expected value of type 'list(string)'` traceback errors tree-wide.
