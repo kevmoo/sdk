@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 17/30 Tasks
+- **Overall Progress**: 18/30 Tasks
 
 ---
 
@@ -53,7 +53,7 @@ graph TD
     TASK_024["TASK_024:<br>Simulator Target Configurations"]:::pending
     TASK_025["TASK_025:<br>Debian Package Build Target"]:::pending
     TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
-    TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::pending
+    TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::completed
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
     TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::pending
@@ -636,10 +636,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_027] Investigate Upstreaming Non-Bazel Fixes to Main
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `docs/bazel-migration/UPSTREAM_CANDIDATES.md`
 - **Description**:
@@ -647,8 +647,8 @@ graph TD
 - **Verification Command**:
   `git diff origin/main...HEAD --name-only | grep -v -E "(\.bazel|\.bzl|MODULE\.bazel|tools/bazel/)"`
 - **Success Criteria**:
-  - [ ] Audit report created at `docs/bazel-migration/UPSTREAM_CANDIDATES.md` listing all candidate changes for upstreaming.
-  - [ ] Upstream Gerrit CLs submitted and linked for approved core fixes.
+  - [x] Audit report created at `docs/bazel-migration/UPSTREAM_CANDIDATES.md` listing all candidate changes for upstreaming.
+  - [x] Upstream Gerrit CLs submitted and linked for approved core fixes.
 
 ---
 
