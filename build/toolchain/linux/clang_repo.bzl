@@ -112,7 +112,7 @@ for root, dirs, files in os.walk(src, followlinks=True):
         repo_ctx.delete(py_script)
         if res.return_code != 0:
             fail("Failed to symlink sysroot: " + res.stderr)
-        SYSROOT_ROOT_VAL = str(src)
+        SYSROOT_ROOT_VAL = str(repo_ctx.path("."))
     else:
         # Fetch dynamically!
         deps_file = repo_ctx.path(Label("@//:DEPS"))

@@ -95,8 +95,11 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
         url = dep_info["url"]
         commit = dep_info["commit"]
 
-        # Googlesource archive URL format
-        tarball_url = url + "/+archive/" + commit + ".tar.gz"
+        if "github.com" in url:
+            tarball_url = url + "/archive/" + commit + ".tar.gz"
+        else:
+            # Googlesource archive URL format
+            tarball_url = url + "/+archive/" + commit + ".tar.gz"
 
         # Extract directly to the prefix directory if specified
         output_dir = prefix if prefix else "."

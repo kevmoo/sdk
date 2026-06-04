@@ -76,6 +76,10 @@ def clone_repo(repo_path, dep_val):
         print(f"Unknown dependency format for {repo_path}: {dep_val}")
         return
 
+    if not url:
+        print(f"Warning: No URL found for dependency {repo_path}, skipping.")
+        return
+
     if url.endswith('.git'):
         url = url[:-4]
 
@@ -122,20 +126,39 @@ def main():
     deps_file = os.path.join(sdk_root, 'DEPS')
     deps = parse_deps(deps_file)
 
-    for repo in REPOS:
-        # Key in DEPS is usually "sdk/third_party/pkg/..."
-        # But let's find the key that ends with the repo path
-        dep_key = None
-        for k in deps.keys():
-            if k.endswith(repo):
-                dep_key = k
-                break
-        
-        if not dep_key:
-            print(f"Warning: Repository {repo} not found in DEPS, skipping.")
-            continue
+    lock_dir = os.path.join(sdk_root, '.clone_dependencies.lock')
+    acquired_lock = False
+    for _ in range(300):
+        try:
+            os.mkdir(lock_dir)
+            acquired_lock = True
+            break
+        except FileExistsError:
+            import time
+            time.sleep(1)
+
+    if not acquired_lock:
+        print("Error: Could not acquire lock for cloning dependencies", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        for repo in REPOS:
+            dep_key = None
+            for k in deps.keys():
+                if k.endswith(repo):
+                    dep_key = k
+                    break
             
-        clone_repo(os.path.join(sdk_root, repo), deps[dep_key])
+            if not dep_key:
+                print(f"Warning: Repository {repo} not found in DEPS, skipping.")
+                continue
+                
+            clone_repo(os.path.join(sdk_root, repo), deps[dep_key])
+    finally:
+        try:
+            os.rmdir(lock_dir)
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     main()
