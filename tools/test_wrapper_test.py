@@ -50,6 +50,19 @@ class TestResolveConfig(unittest.TestCase):
         self.assertEqual(suffix, '_vm_product')
         self.assertEqual(flags, ['--//build/config:dart_product=true'])
 
+    def test_sanitizer_configs(self):
+        repo, suffix, flags = test.ResolveConfig('dart-asan')
+        self.assertEqual(suffix, '_vm_release')
+        self.assertEqual(flags, ['--features=asan'])
+
+        repo, suffix, flags = test.ResolveConfig('debug_x64_asan')
+        self.assertEqual(suffix, '_vm_debug')
+        self.assertEqual(flags, ['--features=asan', '--//build/config:dart_debug=true'])
+
+        repo, suffix, flags = test.ResolveConfig('product_x64_tsan')
+        self.assertEqual(suffix, '_vm_product')
+        self.assertEqual(flags, ['--features=tsan', '--//build/config:dart_product=true'])
+
 
 class TestTestWithBazel(unittest.TestCase):
 

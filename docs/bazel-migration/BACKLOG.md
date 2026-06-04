@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 18/30 Tasks
+- **Overall Progress**: 19/30 Tasks
 
 ---
 
@@ -49,7 +49,7 @@ graph TD
     TASK_020["TASK_020:<br>Migrate `packages.bzl` target generation to a dynamic Bzlmod extension"]:::completed
     TASK_021["TASK_021:<br>Retire `restore.sh` entirely"]:::completed
     TASK_022["TASK_022:<br>VM AOT Test Suite Integration"]:::pending
-    TASK_023["TASK_023:<br>Sanitizer Test Configuration Mapping"]:::pending
+    TASK_023["TASK_023:<br>Sanitizer Test Configuration Mapping"]:::completed
     TASK_024["TASK_024:<br>Simulator Target Configurations"]:::pending
     TASK_025["TASK_025:<br>Debian Package Build Target"]:::pending
     TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
@@ -563,10 +563,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_023] Sanitizer Test Configuration Mapping
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/test.py`
 - **Description**:
@@ -576,8 +576,8 @@ graph TD
   python3 tools/test.py --bazel -n dart-asan corelib/list_test
   ```
 - **Success Criteria**:
-  - [ ] `ResolveConfig` detects `asan` suffix and injects `--features=asan` or corresponding flags.
-  - [ ] Sanitizer tests execute and pass cleanly under Bazel.
+  - [x] `ResolveConfig` detects `asan` suffix and injects `--features=asan` or corresponding flags.
+  - [x] Sanitizer tests execute and pass cleanly under Bazel.
 
 ---
 

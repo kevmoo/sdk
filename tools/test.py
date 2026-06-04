@@ -27,6 +27,13 @@ def ResolveConfig(named_config):
     is_product = 'product' in config_lower
     is_cfe = 'cfe' in config_lower or 'fasta' in config_lower
 
+    if 'asan' in config_lower:
+        injected_flags.append('--features=asan')
+    elif 'msan' in config_lower:
+        injected_flags.append('--features=msan')
+    elif 'tsan' in config_lower:
+        injected_flags.append('--features=tsan')
+
     if is_wasm:
         if 'asserts' in config_lower:
             suffix = '_wasm_asserts'

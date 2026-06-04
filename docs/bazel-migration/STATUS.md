@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 95 — **(jetski) Completed TASK_023: Sanitizer Test Configuration Mapping.**
+- **Implemented Sanitizer Configuration Mapping**: Modified `ResolveConfig` in `tools/test.py` to parse sanitizer suffixes (`asan`, `msan`, `tsan`) from the named configuration and inject corresponding `--features` compiler configuration flags dynamically.
+- **Added Unit Tests**: Authored `test_sanitizer_configs` in `tools/test_wrapper_test.py` to verify sanitizer mappings (for `dart-asan`, `debug_x64_asan`, and `product_x64_tsan` combinations) and confirmed 100% pass.
+- **Verified End-to-End**: Executed `python3 tools/test.py --bazel -n dart-asan corelib/list_test` which successfully compiled the VM with AddressSanitizer (ASAN) and ran tests green in the sandbox.
+- **Updated Backlog**: Marked `TASK_023` as `[COMPLETED]` and updated overall progress to `19/30` tasks.
+
 Session 94 — **(jetski) Completed TASK_027: Audited and documented non-Bazel upstream candidates.**
 - **Audited Non-Bazel Changes**: Audited the git diff between `bazel` branch and `origin/main` to identify fixes, optimizations, and test improvements that do not depend on Bazel.
 - **Created Audit Report**: Documented the findings in `docs/bazel-migration/UPSTREAM_CANDIDATES.md`, highlighting candidates in VM compiler metadata parsing, dart2wasm covariance checks, verbose GC tests, CFE entry points, and version tool arguments.
