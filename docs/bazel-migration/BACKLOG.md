@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 23/31 Tasks
+- **Overall Progress**: 25/32 Tasks
 
 ---
 
@@ -57,7 +57,8 @@ graph TD
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
     TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
-    TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::pending
+    TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
+    TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -717,10 +718,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_031] Audit and Apply Code Review Learnings across Bazel codebase
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/`
   - `build/toolchain/`
@@ -732,8 +733,28 @@ graph TD
   python3 -m py_compile tools/bazel/*.py tools/debian_package/*.py && bazel build //runtime/bin:dartvm //tools/debian_package:debian_package
   ```
 - **Success Criteria**:
-  - [ ] All custom Python parsing scripts under `tools/bazel` are audited and use defensive `.get()` lookups.
-  - [ ] Custom repository setup scripts are audited for process ID (PID) locking to prevent parallel build deadlocks.
-  - [ ] Starlark toolchain configurations under `build/toolchain` are verified to use sandbox-safe label/external paths.
-  - [ ] Property configuration generators are verified to strip inline comments and outer quotes.
-  - [ ] genrules and packaging scripts are verified to use hermetic dynamic sysroot references instead of host paths, dynamically check architecture using `uname -m`, and support ARM64.
+  - [x] All custom Python parsing scripts under `tools/bazel` are audited and use defensive `.get()` lookups.
+  - [x] Custom repository setup scripts are audited for process ID (PID) locking to prevent parallel build deadlocks.
+  - [x] Starlark toolchain configurations under `build/toolchain` are verified to use sandbox-safe label/external paths.
+  - [x] Property configuration generators are verified to strip inline comments and outer quotes.
+  - [x] genrules and packaging scripts are verified to use hermetic dynamic sysroot references instead of host paths, dynamically check architecture using `uname -m`, and support ARM64.
+
+---
+
+### 🎯 [TASK_032] Fix package config generator for workspace packages and dynamic language versions
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
+- **Target Files**:
+  - `tools/bazel/generate_debug_package_config.py`
+- **Description**:
+  Fix the synthetic package config generator to correctly scan workspace packages from the root `pubspec.yaml` (including nested `third_party/pkg/` packages like `dap` and `language_server_protocol`) and dynamically resolve their target language versions from their individual `pubspec.yaml` files, resolving build failures caused by hardcoded SDK version mismatches (e.g. `protobuf` compilation failing on Dart 3.13 due to legacy `var` in parameters).
+- **Verification Command**:
+  ```bash
+  bazel build //sdk:create_sdk
+  ```
+- **Success Criteria**:
+  - [x] Workspace packages in `third_party/pkg` are discovered and included in the synthetic package config.
+  - [x] Language versions are dynamically resolved from `pubspec.yaml` files.
+  - [x] SDK builds successfully under Bazel.

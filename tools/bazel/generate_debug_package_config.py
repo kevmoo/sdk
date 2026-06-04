@@ -6,6 +6,32 @@
 import os
 import json
 
+def get_language_version(pubspec_path, default="3.13"):
+    if not os.path.exists(pubspec_path):
+        return default
+    try:
+        with open(pubspec_path, 'r') as f:
+            in_env = False
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith('#'):
+                    continue
+                if stripped.startswith('environment:'):
+                    in_env = True
+                    continue
+                elif in_env and not line.startswith(' ') and not line.startswith('-') and ':' in stripped:
+                    in_env = False
+                
+                if in_env and stripped.startswith('sdk:'):
+                    val = stripped.split(':', 1)[1].strip().strip("'").strip('"')
+                    val = val.replace('^', '').replace('>=', '').replace('>', '').strip()
+                    parts = val.split(' ')[0].split('.')
+                    if len(parts) >= 2:
+                        return f"{parts[0]}.{parts[1]}"
+    except Exception:
+        pass
+    return default
+
 def main():
     sdk_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     dart_tool_dir = os.path.join(sdk_root, '.dart_tool')
@@ -13,24 +39,38 @@ def main():
 
     packages = {}
 
-    # 1. Scan pkg/ for workspace packages
-    pkg_dir = os.path.join(sdk_root, 'pkg')
-    if os.path.exists(pkg_dir):
-        for name in os.listdir(pkg_dir):
-            dir_path = os.path.join(pkg_dir, name)
-            if os.path.isdir(dir_path) and os.path.exists(os.path.join(dir_path, 'pubspec.yaml')):
-                pkg_name = name
-                with open(os.path.join(dir_path, 'pubspec.yaml'), 'r') as f:
-                    for line in f:
-                        if line.startswith('name:'):
-                            pkg_name = line.split(':', 1)[1].split('#', 1)[0].strip().strip("'").strip('"')
-                            break
-                packages[pkg_name] = {
-                    "name": pkg_name,
-                    "rootUri": f"../pkg/{name}",
-                    "packageUri": "lib/",
-                    "languageVersion": "3.13"
-                }
+    # 1. Parse root pubspec.yaml for workspace packages
+    root_pubspec = os.path.join(sdk_root, 'pubspec.yaml')
+    if os.path.exists(root_pubspec):
+        with open(root_pubspec, 'r') as f:
+            in_workspace = False
+            for line in f:
+                line = line.rstrip()
+                if not line or line.strip().startswith('#'):
+                    continue
+                if line.startswith('workspace:'):
+                    in_workspace = True
+                    continue
+                elif line and not line.startswith(' ') and not line.startswith('-'):
+                    in_workspace = False
+                
+                if in_workspace:
+                    if line.strip().startswith('-'):
+                        pkg_path = line.strip().lstrip('-').strip()
+                        dir_path = os.path.join(sdk_root, pkg_path)
+                        if os.path.exists(os.path.join(dir_path, 'pubspec.yaml')):
+                            pkg_name = os.path.basename(pkg_path)
+                            with open(os.path.join(dir_path, 'pubspec.yaml'), 'r') as pf:
+                                for pline in pf:
+                                    if pline.startswith('name:'):
+                                        pkg_name = pline.split(':', 1)[1].split('#', 1)[0].strip().strip("'").strip('"')
+                                        break
+                            packages[pkg_name] = {
+                                "name": pkg_name,
+                                "rootUri": f"../{pkg_path}",
+                                "packageUri": "lib/",
+                                "languageVersion": get_language_version(os.path.join(dir_path, 'pubspec.yaml'))
+                            }
 
     # 2. Parse root pubspec.yaml for overrides
     root_pubspec = os.path.join(sdk_root, 'pubspec.yaml')
@@ -55,11 +95,12 @@ def main():
                         parts = line.strip().split(':', 1)
                         if len(parts) == 2 and parts[0].strip() == 'path':
                             pkg_path = parts[1].split('#', 1)[0].strip().strip("'").strip('"')
+                            pubspec_path = os.path.join(sdk_root, pkg_path, 'pubspec.yaml')
                             packages[curr_pkg] = {
                                 "name": curr_pkg,
                                 "rootUri": f"../{pkg_path}",
                                 "packageUri": "lib/",
-                                "languageVersion": "3.13"
+                                "languageVersion": get_language_version(pubspec_path)
                             }
                             curr_pkg = None
 

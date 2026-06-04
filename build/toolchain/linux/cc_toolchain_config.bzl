@@ -15,18 +15,18 @@ load(
     "flag_set",
     "tool_path",
 )
-load("@dart_linux_x64_clang//:paths.bzl", "CLANG_BIN", "CLANG_ROOT_REAL")
-load("@dart_linux_x64_sysroot//:paths.bzl", "SYSROOT_ROOT")
+load("@dart_linux_x64_clang//:paths.bzl", "CLANG_ROOT_REAL")
+
+# SYSROOT_ROOT loaded dynamically below
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 
-# Absolute paths emitted by the @dart_linux_x64_clang repo rule at fetch
-# time (see build/toolchain/linux/clang_repo.bzl). tool_paths must be
-# forward-only (no `..`) when relative; absolute paths are accepted.
-_CLANG_BIN = CLANG_BIN
+# Clang bin is resolved via wrappers
 
 def _impl(ctx):
     cpu = ctx.attr.cpu
     triple = ctx.attr.target_triple
+    sysroot_repo_canonical = str(Label("@dart_linux_x64_sysroot//:dummy")).split("//")[0].lstrip("@")
+    SYSROOT_ROOT = "external/" + sysroot_repo_canonical
 
     tool_paths = [
         # Use clang++ as the "gcc" driver so cc_binary links auto-pull
@@ -34,12 +34,12 @@ def _impl(ctx):
         # .c files as C based on extension.
         tool_path(name = "gcc", path = "clang_wrapper.py"),
         tool_path(name = "ld", path = "clang_wrapper.py"),
-        tool_path(name = "ar", path = _CLANG_BIN + "/llvm-ar"),
-        tool_path(name = "cpp", path = _CLANG_BIN + "/clang-cpp"),
+        tool_path(name = "ar", path = "ar_wrapper.py"),
+        tool_path(name = "cpp", path = "cpp_wrapper.py"),
         tool_path(name = "gcov", path = "/bin/false"),
-        tool_path(name = "nm", path = _CLANG_BIN + "/llvm-nm"),
-        tool_path(name = "objdump", path = _CLANG_BIN + "/llvm-objdump"),
-        tool_path(name = "strip", path = _CLANG_BIN + "/llvm-strip"),
+        tool_path(name = "nm", path = "nm_wrapper.py"),
+        tool_path(name = "objdump", path = "objdump_wrapper.py"),
+        tool_path(name = "strip", path = "strip_wrapper.py"),
         tool_path(name = "dwp", path = "/bin/false"),
         tool_path(name = "llvm-cov", path = "/bin/false"),
         tool_path(name = "llvm-profdata", path = "/bin/false"),
@@ -205,6 +205,7 @@ def _impl(ctx):
         "-D_FILE_OFFSET_BITS=64",
         "-D_LARGEFILE_SOURCE",
         "-D_LARGEFILE64_SOURCE",
+        "-no-canonical-prefixes",
     ]
     target_linkopts = ["--sysroot=" + SYSROOT_ROOT]
 
@@ -255,7 +256,7 @@ def _impl(ctx):
 
     # System include roots Bazel treats as toolchain-builtin (suppresses
     # the "absolute path inclusion(s) found" error from strict-includes).
-    clang_root = CLANG_BIN.rstrip("/").rsplit("/", 1)[0]
+    clang_repo_canonical = str(Label("@dart_linux_x64_clang//:dummy")).split("//")[0]
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         toolchain_identifier = "clang_" + cpu,
@@ -279,10 +280,10 @@ def _impl(ctx):
         cxx_builtin_include_directories = [
             "/usr/include",
             "/usr/local/include",
-            clang_root + "/include",
-            clang_root + "/lib/clang",
             CLANG_ROOT_REAL + "/include",
             CLANG_ROOT_REAL + "/lib/clang",
+            "%package(" + clang_repo_canonical + "//)%/include",
+            "%package(" + clang_repo_canonical + "//)%/lib/clang",
             "%sysroot%/usr/include",
             "%sysroot%/usr/include/aarch64-linux-gnu",
             "%sysroot%/usr/include/x86_64-linux-gnu",
