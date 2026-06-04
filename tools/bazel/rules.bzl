@@ -40,7 +40,7 @@ def _filter_linkopts(linkopts, platform):
         cleaned.append(l)
     return cleaned
 
-def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
+def cc_library(name, defines = [], local_defines = [], copts = [], linkopts = [], **kwargs):
     # Automatically inject platform preprocessor defines (local to the target compile)
     custom_local_defines = local_defines + select({
         "@platforms//os:macos": ["DART_TARGET_OS_MACOS", "_DARWIN_C_SOURCE"],
@@ -94,11 +94,21 @@ def cc_library(name, defines = [], local_defines = [], copts = [], **kwargs):
             "//conditions:default": [],
         })
 
+    # Automatically inject platform-specific linker options
+    if type(linkopts) == "list":
+        custom_linkopts = select({
+            "@platforms//os:macos": _filter_linkopts(linkopts, "macos"),
+            "//conditions:default": linkopts,
+        })
+    else:
+        custom_linkopts = linkopts
+
     _cc_library(
         name = name,
         defines = defines,
         local_defines = custom_local_defines,
         copts = custom_copts,
+        linkopts = custom_linkopts,
         **kwargs
     )
 

@@ -27,8 +27,8 @@
 - _(none)_
 
 Session 88 — **(jetski) Cleaned up redundant linker warnings on macOS.**
-- **Filtered Redundant macOS Linker Flags**: Modified `tools/bazel/rules.bzl` to strip `"-ldl"`, `"-lpthread"`, and `"-stdlib=libc++"` from `linkopts` when building on macOS.
-- **Excised Duplicate Warning Logs**: Resolved duplicate library warnings (`ignoring duplicate libraries`) and unused compilation argument warnings during the linking phase of targets like `runtime/bin:dartvm` on macOS.
+- **Filtered Redundant macOS Linker Flags**: Modified `tools/bazel/rules.bzl` to strip `"-ldl"`, `"-lpthread"`, and `"-stdlib=libc++"` from `linkopts` (in both `cc_library` and `cc_binary` macros) when building on macOS.
+- **Excised Duplicate Warning Logs**: Resolved duplicate library warnings (`ignoring duplicate libraries`) and unused compilation argument warnings during the linking phase of targets like `runtime/bin:dartvm` and all embedder samples on macOS.
 
 Session 87 — **(jetski) Resolved macOS version check crash and redirected embedder samples to tools wrapper.**
 - **Redirected Embedder Samples**: Modified `samples/embedder/BUILD.bazel` to load `cc_binary` and `cc_library` from our unified wrapper (`//tools/bazel:rules.bzl`) instead of `@rules_cc`. This allows the wrapper to filter out incompatible compiler and linker options on macOS.
