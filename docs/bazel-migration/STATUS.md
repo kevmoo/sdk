@@ -26,6 +26,31 @@
 **Active claims (who is editing what right now):**
 - _(none)_
 
+Session 103 — **(jetski) Audited code review feedback and deferred sysroot hermeticity.**
+- **Deferred Sysroot Hermeticity in Debian Package**: Evaluated Comment #27 regarding non-hermetic sysroots in `debian_package/BUILD.bazel`. Confirmed it is deferred to the backlog task `TASK_031`.
+- **Declined Speculative Refactorings**: Audited and declined other review recommendations (Comments #26, #28, #29, #30, #31) to maintain simplicity and focus on verified correctness.
+
+Session 102 — **(jetski) Added try-except blocks around stale lock folder deletions in clone script.**
+- **Mitigated Stale Lock Deletion Race Condition**: Wrapped `os.rmdir(lock_dir)` calls inside the stale lock recovery code in `tools/bazel/clone_dependencies.py` in `try...except` blocks. This ensures that when parallel loading threads concurrently identify and attempt to clear a stale lock, the losing thread does not crash the build with a `FileNotFoundError`.
+
+Session 101 — **(jetski) Addressed code review feedback on process locking, YAML parsing, and GHA workflows.**
+- **Fixed YAML Comment Parser Bug**: Patched `tools/bazel/generate_debug_package_config.py` to skip full comment lines starting with `#` in `dependency_overrides` block, preventing root comments from prematurely halting override parsing.
+- **Improved Concurrency Lock Robustness**: Updated `tools/bazel/clone_dependencies.py` lock validation to handle `PermissionError` (errno `EPERM`) by checking process liveness correctly when the lock PID is owned by another user.
+- **Prevented Duplicate Package Entries**: Refactored `generate_debug_package_config.py` to store synthetic package configurations in a dictionary mapping instead of a list, allowing local dependency overrides to correctly overwrite scanned packages instead of appending duplicates.
+- **Upgraded GitHub Actions Checkout**: Upgraded `actions/checkout` from `@v4` to `@v6` in `.github/workflows/bazel.yml` to run checkout steps on Node 24 and suppress deprecation warnings regarding Node 20.
+- **Logged Debian package sysroot hermeticity**: Appended detailed requirements to `TASK_031` in `BACKLOG.md` to track and resolve the non-hermetic host sysroot dependency in the `debian_package` genrule.
+- **Verified GHA validation**: Confirmed the final GHA validation run (`26971507928`) completed 100% green without any runner deprecation warnings.
+
+Session 100 — **(jetski) Added GitHub Actions workflow for Bazel build validation.**
+- **Created GitHub Actions Workflow**: Authored `.github/workflows/bazel.yml` configured to trigger on push and pull requests targeting the `bazel` branch.
+- **Implemented Python package_config generator**: Created `tools/bazel/generate_debug_package_config.py` to parse workspace packages and overrides into a synthetic `.dart_tool/package_config.json` without requiring host Dart or a full `gclient sync` checkout.
+- **Wired build validation**: Configured the GHA runner to bootstrap package config using Python, setup Bazel (with `bazelisk-cache: true` enabled), and build the C++ Dart VM (`//runtime/bin:dartvm`) hermetically.
+- **Fixed ICU subpackage conflicts**: Modified `tools/bazel/third_party.bzl` to introduce conditional cleanup of upstream `BUILD` files via `clean_upstream_build_files` attribute, preserving ICU's subpackage files while continuing to clean them for BoringSSL and Perfetto.
+- **Implemented dynamic Clang download**: Updated `build/toolchain/linux/clang_repo.bzl` to dynamically fetch the Clang compiler CIPD package defined in `DEPS` when the local `buildtools/` checkout is missing, enabling C++ compilation on clean hosts.
+- **Implemented dynamic sysroot download**: Added `dart_linux_x64_sysroot` repository rule in `build/toolchain/linux/clang_repo.bzl` to dynamically fetch the Debian sysroot from CIPD when local `buildtools/sysroot/linux` is missing. Updated `cc_toolchain_config.bzl` to use the dynamic `SYSROOT_ROOT` path for compilation/link flags.
+- **Upgraded synthetic package config language version**: Patched `tools/bazel/generate_debug_package_config.py` to specify `"3.13"` as the language version for all packages (instead of `"3.0"`), resolving compiler diagnostics (like field promotion errors in `pkg/front_end`).
+- **Cloned Dart Package Dependencies**: Authored `tools/bazel/clone_dependencies.py` to parse the `DEPS` file and clone all required third-party Dart repositories under `third_party/pkg/` on clean hosts. Wired the cloning script into the custom Bzlmod extensions `_third_party_ext_impl` in `tools/bazel/third_party.bzl` and `_packages_repo_impl` in `tools/bazel/dart/packages_extension.bzl`, ensuring dependencies are available prior to both target generation and compilation (bypassing GHA workflow modification restrictions).
+
 Session 99 — **(jetski) Completed TASK_025: Debian Package Build Target.**
 - **Implemented Debian Package Genrule**: Replaced the `cc_library` placeholder target in `tools/debian_package/BUILD.bazel` with a functional `genrule` target named `debian_package` that compiles and packages the entire SDK tree as a Debian package.
 - **Handled Sandboxed Output Copying**: Configured the genrule to copy the built SDK directory `sdk/dart-sdk` to `dart-sdk` in the workspace root instead of symlinking, and applied `chmod -R +w` to make all directories and files writable, ensuring `dh_install` can successfully copy them without ODR/permission denied conflicts.

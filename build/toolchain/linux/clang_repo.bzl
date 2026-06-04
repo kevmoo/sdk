@@ -23,20 +23,133 @@ def _dart_linux_clang_impl(repo_ctx):
     src = repo_ctx.workspace_root.get_child("buildtools").get_child(
         "linux-x64",
     ).get_child("clang")
-    for sub in ["bin", "lib", "include"]:
-        child = src.get_child(sub)
-        if child.exists:
-            repo_ctx.symlink(child, sub)
+    use_local = src.exists
+
+    if use_local:
+        for sub in ["bin", "lib", "include"]:
+            child = src.get_child(sub)
+            if child.exists:
+                repo_ctx.symlink(child, sub)
+
+        # Resolve real path in case buildtools is symlinked (e.g. in git worktrees)
+        res = repo_ctx.execute(["python3", "-c", "import os, sys; print(os.path.realpath(sys.argv[1]))", str(src)])
+        real_src = res.stdout.strip() if res.return_code == 0 else str(src)
+        CLANG_BIN_VAL = str(src.get_child("bin"))
+        CLANG_ROOT_REAL_VAL = real_src
+    else:
+        # Fetch dynamically!
+        deps_file = repo_ctx.path(Label("@//:DEPS"))
+        parse_script = repo_ctx.path(Label("@//tools/bazel:parse_deps.py"))
+
+        res = repo_ctx.execute([
+            "python3",
+            str(parse_script),
+            str(deps_file),
+            "clang",
+        ])
+        if res.return_code != 0:
+            fail("Failed to parse DEPS for clang: " + res.stderr)
+
+        dep_info = json.decode(res.stdout.strip())
+        package = dep_info["package"]
+        version = dep_info["version"]
+
+        url = "https://chrome-infra-packages.appspot.com/dl/" + package + "/+/" + version
+
+        # Extract directly to the root of the external repository
+        repo_ctx.download_and_extract(
+            url = url,
+            output = ".",
+            type = "zip",
+        )
+        CLANG_BIN_VAL = str(repo_ctx.path("bin"))
+        CLANG_ROOT_REAL_VAL = str(repo_ctx.path("."))
+
     repo_ctx.file("BUILD.bazel", _BUILD_FILE)
-
-    # Resolve real path in case buildtools is symlinked (e.g. in git worktrees)
-    res = repo_ctx.execute(["python3", "-c", "import os, sys; print(os.path.realpath(sys.argv[1]))", str(src)])
-    real_src = res.stdout.strip() if res.return_code == 0 else str(src)
-
     repo_ctx.file(
         "paths.bzl",
-        "CLANG_BIN = \"{}\"\nCLANG_ROOT_REAL = \"{}\"\n".format(str(src.get_child("bin")), real_src),
+        "CLANG_BIN = \"{}\"\nCLANG_ROOT_REAL = \"{}\"\n".format(CLANG_BIN_VAL, CLANG_ROOT_REAL_VAL),
     )
+
+_SYSROOT_BUILD_FILE = """
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"], allow_empty = True),
+)
+"""
+
+def _dart_linux_sysroot_impl(repo_ctx):
+    src = repo_ctx.workspace_root.get_child("buildtools").get_child("sysroot").get_child("linux")
+    use_local = src.exists
+
+    if use_local:
+        py_script = repo_ctx.path("symlink_sysroot.py")
+        repo_ctx.file(py_script, content = """
+import os
+import sys
+
+src = sys.argv[1]
+dest = sys.argv[2]
+
+for root, dirs, files in os.walk(src, followlinks=True):
+    rel = os.path.relpath(root, src)
+    if rel == ".":
+        td = dest
+    else:
+        td = os.path.join(dest, rel)
+    os.makedirs(td, exist_ok=True)
+    for f in files:
+        src_file = os.path.join(root, f)
+        dest_file = os.path.join(td, f)
+        try:
+            os.symlink(src_file, dest_file)
+        except FileExistsError:
+            pass
+""")
+        res = repo_ctx.execute(["python3", str(py_script), str(src), "."])
+        repo_ctx.delete(py_script)
+        if res.return_code != 0:
+            fail("Failed to symlink sysroot: " + res.stderr)
+        SYSROOT_ROOT_VAL = str(repo_ctx.path("."))
+    else:
+        # Fetch dynamically!
+        deps_file = repo_ctx.path(Label("@//:DEPS"))
+        parse_script = repo_ctx.path(Label("@//tools/bazel:parse_deps.py"))
+
+        res = repo_ctx.execute([
+            "python3",
+            str(parse_script),
+            str(deps_file),
+            "sysroot/linux",
+        ])
+        if res.return_code != 0:
+            fail("Failed to parse DEPS for sysroot/linux: " + res.stderr)
+
+        dep_info = json.decode(res.stdout.strip())
+        package = dep_info["package"]
+        version = dep_info["version"]
+
+        url = "https://chrome-infra-packages.appspot.com/dl/" + package + "/+/" + version
+
+        repo_ctx.download_and_extract(
+            url = url,
+            output = ".",
+            type = "zip",
+        )
+        SYSROOT_ROOT_VAL = str(repo_ctx.path("."))
+
+    repo_ctx.file("BUILD.bazel", _SYSROOT_BUILD_FILE)
+    repo_ctx.file(
+        "paths.bzl",
+        "SYSROOT_ROOT = \"{}\"\n".format(SYSROOT_ROOT_VAL),
+    )
+
+_dart_linux_sysroot = repository_rule(
+    implementation = _dart_linux_sysroot_impl,
+    local = True,
+)
 
 _dart_linux_clang = repository_rule(
     implementation = _dart_linux_clang_impl,
@@ -45,5 +158,6 @@ _dart_linux_clang = repository_rule(
 
 def _ext_impl(_ctx):
     _dart_linux_clang(name = "dart_linux_x64_clang")
+    _dart_linux_sysroot(name = "dart_linux_x64_sysroot")
 
 dart_clang = module_extension(implementation = _ext_impl)

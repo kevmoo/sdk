@@ -148,7 +148,7 @@ filegroup(
     name = "dartdoc_resources_files",
     srcs = glob(
         ["third_party/pkg/dartdoc/lib/resources/**"],
-        allow_empty = False,
+        allow_empty = True,
     ),
 )
 
@@ -156,7 +156,7 @@ filegroup(
     name = "dartdoc_templates_files",
     srcs = glob(
         ["third_party/pkg/dartdoc/lib/templates/**"],
-        allow_empty = False,
+        allow_empty = True,
     ),
 )
 

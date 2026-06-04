@@ -15,7 +15,7 @@ def parse_deps(deps_file_path, dep_name):
     
     # We define Var to read from global_dict['vars']
     def Var(name):
-        return global_dict['vars'][name]
+        return global_dict.get('vars', {}).get(name, '')
         
     global_dict['Var'] = Var
     
@@ -83,15 +83,22 @@ def parse_deps(deps_file_path, dep_name):
         else:
             # Git repo with dict format (e.g. url, condition)
             url_val = dep_val.get('url')
-            if url_val and '@' in url_val:
-                url, rev = url_val.split('@', 1)
-                result['url'] = url
-                result['commit'] = rev
+            if url_val:
+                if '@' in url_val:
+                    url, rev = url_val.split('@', 1)
+                    result['url'] = url
+                    result['commit'] = rev
+                else:
+                    result['url'] = url_val
                 result['dep_type'] = 'git'
                 
     # Normalize Git URLs (strip .git suffix if present, etc.)
     if 'url' in result and result['url'].endswith('.git'):
          result['url'] = result['url'][:-4]
+
+    if 'dep_type' not in result:
+        print(f"Error: Could not resolve dependency details for '{dep_name}'", file=sys.stderr)
+        sys.exit(1)
 
     print(json.dumps(result, indent=2))
 

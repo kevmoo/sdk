@@ -95,8 +95,11 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
         url = dep_info["url"]
         commit = dep_info["commit"]
 
-        # Googlesource archive URL format
-        tarball_url = url + "/+archive/" + commit + ".tar.gz"
+        if url.startswith("https://github.com") or url.startswith("http://github.com"):
+            tarball_url = url + "/archive/" + commit + ".tar.gz"
+        else:
+            # Googlesource archive URL format
+            tarball_url = url + "/+archive/" + commit + ".tar.gz"
 
         # Extract directly to the prefix directory if specified
         output_dir = prefix if prefix else "."
@@ -125,17 +128,18 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
     else:
         fail("Unsupported dependency type: " + dep_info["dep_type"])
 
-    # Clean up all extracted BUILD/WORKSPACE/MODULE.bazel files to avoid package conflicts
-    py_code = """
+    # Clean up all extracted BUILD/WORKSPACE/MODULE.bazel files if requested to avoid package conflicts
+    if repository_ctx.attr.clean_upstream_build_files:
+        py_code = """
 import os
 for root, dirs, files in os.walk('.'):
     for f in files:
         if f in ('BUILD', 'BUILD.bazel', 'WORKSPACE', 'MODULE.bazel'):
             os.remove(os.path.join(root, f))
 """
-    res = repository_ctx.execute(["python3", "-c", py_code])
-    if res.return_code != 0:
-        fail("Failed to clean up extracted build files: " + res.stderr)
+        res = repository_ctx.execute(["python3", "-c", py_code])
+        if res.return_code != 0:
+            fail("Failed to clean up extracted build files: " + res.stderr)
 
 def _overlay_repository_impl(repository_ctx):
     dest_dir = repository_ctx.path(".")
@@ -269,10 +273,21 @@ overlay_repository = repository_rule(
         "deps_file": attr.label(default = "@//:DEPS"),
         "parse_script": attr.label(default = "@//tools/bazel:parse_deps.py"),
         "force_remote": attr.bool(default = False),
+        "clean_upstream_build_files": attr.bool(default = False),
     },
 )
 
 def _third_party_ext_impl(ctx):
+    # Dynamically clone third_party/pkg dependencies from DEPS if missing
+    clone_script = ctx.path(Label("@//tools/bazel:clone_dependencies.py"))
+    res = ctx.execute(["python3", str(clone_script)])
+    if res.stdout:
+        print("Clone stdout:\n" + res.stdout)
+    if res.stderr:
+        print("Clone stderr:\n" + res.stderr)
+    if res.return_code != 0:
+        fail("Failed to clone third-party Dart package dependencies: " + res.stderr)
+
     # 1. ICU Dynamic Overlay Repository
     overlay_repository(
         name = "icu",
@@ -297,6 +312,7 @@ def _third_party_ext_impl(ctx):
         path = "third_party/boringssl/src",
         prefix = "src",
         build_file = "@//tools/bazel:third_party_overlays/boringssl/BUILD.bazel.snap",
+        clean_upstream_build_files = True,
     )
 
     # 4. Perfetto Dynamic Overlay Repository
@@ -306,6 +322,7 @@ def _third_party_ext_impl(ctx):
         path = "third_party/perfetto/src",
         prefix = "src",
         build_file = "@//tools/bazel:third_party_overlays/perfetto/BUILD.bazel.snap",
+        clean_upstream_build_files = True,
     )
 
     # 5. Prebuilt Dart SDK Dynamic Overlay Repository

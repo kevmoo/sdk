@@ -1,0 +1,30 @@
+name: Bazel CI
+
+on:
+  push:
+    branches: [ bazel ]
+  pull_request:
+    branches: [ bazel ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Generate Synthetic Package Configuration
+      run: |
+        python3 tools/bazel/generate_debug_package_config.py
+
+    - name: Set up Bazel
+      uses: bazel-contrib/setup-bazel@0.19.0
+      with:
+        disk-cache: true
+        repository-cache: true
+        bazelisk-cache: true
+
+    - name: Build Dart VM
+      run: |
+        bazel build //runtime/bin:dartvm
