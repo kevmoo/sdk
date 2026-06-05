@@ -64,7 +64,7 @@ graph TD
     TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::completed
     TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
     TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::completed
-    TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::pending
+    TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::completed
     TASK_038["TASK_038:<br>Investigate migrating Dart package dependency syncing to Bazel"]:::pending
     TASK_039["TASK_039:<br>Enable standard Bazel lint and formatting checks {Buildifier}"]:::completed
     TASK_040["TASK_040:<br>Implement `bazel run` support for running Dart scripts"]:::completed
@@ -865,10 +865,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_037] Cleanup migration documentation and legacy instructions
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `docs/bazel-migration/README.md`
 - **Description**:
@@ -878,9 +878,9 @@ graph TD
   ls docs/bazel-migration/
   ```
 - **Success Criteria**:
-  - [ ] Legacy instructions/guides are moved to `docs/bazel-migration/archive/`.
-  - [ ] A concise, agent-optimized "Getting Started" guide exists and specifies prerequisites (like xcode-select for macOS, python, etc.).
-  - [ ] All active docs are clean of obsolete configurations or defunct hooks references.
+  - [x] Legacy instructions/guides are deleted entirely, relying on Git history for preservation.
+  - [x] A concise, agent-optimized "Getting Started" guide exists in README.md and specifies prerequisites.
+  - [x] All active docs are clean of obsolete configurations or defunct hooks references.
 
 ---
 

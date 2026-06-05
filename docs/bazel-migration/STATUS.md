@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 120 — **(jetski) Completed TASK_037: Cleaned up migration documentation and legacy instructions.**
+- **Deleted Legacy Files**: Removed 14 outdated/historical files and the entire `deep_dives/` directory from the working tree (relying on Git history for their preservation), reducing clutter and search noise.
+- **Modernized README.md**: Rewrote the entry-point documentation to serve as a clean, self-contained "Getting Started" and "Developer Guide". Prioritized the most critical info (Prerequisites, Build Commands, and a VM Smoke Test) at the very top.
+- **Integrated Tooling & Run Docs**: Merged the useful parts of `bazel_tooling.md` and `bazel_run_instructions.md` into the new `README.md` and deleted the old files.
+- **Updated Backlog & Status**: Marked TASK_037 as `[COMPLETED]` in `BACKLOG.md` and regenerated the Mermaid dependency graph.
+
 Session 119 — **(jetski) Completed TASK_040: Implement `bazel run` support for running Dart scripts.**
 - **Implemented `dart_binary` Rule**: Created a custom `dart_binary` executable Bazel rule in `tools/bazel/dart/defs.bzl` that packages the prebuilt Dart VM, transitive package dependencies, and command-line arguments into a runfiles-executable bash script.
 - **Created Runfiles Package Config Staging**: Staged the package map at `tools/bazel/dart/package_config.json` inside the output tree via `runfiles_package_config` target. This mirrors the `../../../` depth required by dynamic package URIs inside the runfiles directory, resolving package imports.

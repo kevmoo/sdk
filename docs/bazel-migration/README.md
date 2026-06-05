@@ -1,90 +1,117 @@
-# Bazel Build Migration
+# Dart SDK Bazel Migration
 
-This directory houses the documentation, designs, and live status tracking for the migration of the Dart SDK build and packaging engine from GN+Ninja to Bazel.
+This directory houses the active coordination, progress tracking, and developer guidelines for the ongoing migration of the Dart SDK build and packaging engine from GN+Ninja to Bazel.
 
-## 🧭 Quick Start for Agents & Contributors
+---
 
-If you are an autonomous agent or human contributor picking up this migration workstream, follow this sequence:
+## ⚡ Quick Start (Build & Run)
 
-1. **Start with [BACKLOG.md](BACKLOG.md) & [STATUS.md](STATUS.md)**: If you are an agent, read the `BACKLOG.md` first to claim an open task and set your lock. Check `STATUS.md` for live coordination. These two files are the single source of truth for what needs to be done next and what is currently running.
-2. **Read the [DESIGN.md](DESIGN.md)**: Understand the overarching target architecture, rule definitions, phase sequence, and design constraints.
-3. **Follow the Protocols**:
-   - **SDK-Independent Gaps/Defects**: If you discover a non-hermetic script, undocumented SDK coupling, or packaging defect, consult the **[todo_issues/README.md](todo_issues/README.md)** protocol. Document the defect as a numbered issue in `todo_issues/` *before* writing a workaround.
-   - **Session Handoff**: When wrapping up a session, update `STATUS.md` with your notes and consult **[WRAP_HANDOFF.md](WRAP_HANDOFF.md)** to ensure cross-host and cross-agent consistency.
-4. **Local Testing**: Use **[bazel_run_instructions.md](bazel_run_instructions.md)** to run local builds and tests.
+If you are a contributor (human or AI agent) looking to build or run the SDK using Bazel, here is what you need to know right now.
 
-## 🚨 Before you build or edit — operational rules (read this)
+### 1. Host Prerequisites
+Ensure your host machine has:
+*   **Python 3** (used for minor helper scripts).
+*   **Bazel** (recommended to use [bazelisk](https://github.com/bazelbuild/bazelisk) to automatically respect the [.bazelversion](file:///usr/local/google/home/kevmoo/github/sdk/.bazelversion) file).
+*   **Xcode-select** (macOS only) or **MSVC** (Windows only) for native C++ compilation.
+*   All third-party dependencies are fetched hermetically by Bazel via Bzlmod overlays. No manual sync scripts (like the retired `restore.sh`) are required.
 
-The Quick Start tells you *what to read*; this tells you *what will break you* and
-*how to behave*. Skipping it is the fastest way to a broken tree or a collision with
-another agent.
+### 2. Core Build Commands
+Execute these from the repository root:
 
-* **You may not be alone in here.** More than one agent works this branch concurrently.
-  There is **no realtime channel — git is the coordination bus.**
-  * **`git fetch` and rebase onto the remote tip BEFORE you start editing — not after.**
-    The other agent is probably already ahead of your local tip. If you base work on a
-    stale commit you *will* have to rebase later, and the hot files (`runtime/bin/BUILD.bazel`,
-    `STATUS.md`) conflict badly — partly because both agents run `buildifier`, so two
-    whole-file canonicalizations of the same drifted file overlap textually even when the
-    edits are semantically independent. Starting from the live tip avoids the whole mess.
-  * Then `git log --oneline -20` and look for `TAG=` trailers (e.g. `TAG=agy`) to see who
-    did what recently, and read the **Cross-agent notes** block at the top of `STATUS.md`
-    for open claims/handoffs.
-  * When you finish *or* discover something the other agent needs, write it into
-    **`STATUS.md`** — a session entry for completed work, and the **Cross-agent notes**
-    block for live claims/residuals. That is how the other agent finds out.
-  * If you intend to take a chunk of work, post a **soft claim** in the Cross-agent notes
-    block so two agents don't grab the same thing.
-  * The human relays pushes between forks; don't assume your local commits are visible to
-    the other agent until pushed, and don't assume the remote is idle while you work.
-* **⚠️ The translator clobbers the tree.** Running `tools/bazel/translate_gn_desc.py`
-  regenerates SDK `BUILD.bazel` files. Third-party dependencies and their overlays (like `zlib` or `icu`) are managed dynamically by Bzlmod, so you no longer need to run restore scripts. Note `git checkout -- .` reverts *uncommitted source edits too* — commit first, or you'll lose work.
-* **Some `BUILD.bazel` files are hand overlays — don't assume the translator owns them.**
-  Files marked `# … NOT translator output` / clobber-guarded (e.g. `runtime/vm`,
-  `runtime/bin`, `runtime/lib`, `sdk`) are hand-maintained; a re-translation will **not**
-  rewrite them, so GN-side changes to those packages need a **manual** Bazel-side update.
-* **Environment.** `bazel` = `/home/linuxbrew/.linuxbrew/bin/bazel`; `gn` =
-  `depot_tools/gn`. On a fresh clone, re-activate the buildifier pre-commit hook:
-  `ln -sf ../../tools/bazel/hooks/pre-commit .git/hooks/pre-commit`.
-* **Git Worktrees:** If you are working in a secondary Git worktree (rather than the main SDK checkout), you must bootstrap untracked gclient dependencies (`third_party/`, `buildtools/`, `.dart_tool/package_config.json`) from the main SDK checkout. Run this cross-platform Dart CLI tool from the root of your newly created secondary Git worktree:
-  ```bash
-  tools/sdks/dart-sdk/bin/dart tools/setup_worktree_links.dart
-  ```
-  This dynamically resolves the parent checkout path, verifies directory setups, and safely establishes symbolic links (with automatic Windows junctions and copy fallbacks if symlink privileges are missing), avoiding gigabytes of duplicate checkouts.
-* **Branching & PR Workflow (Do not commit directly to `bazel`)**:
-  - The `bazel` branch represents our main development target. **Do not commit directly to `bazel`.**
-  - For each new backlog task (e.g. `TASK_031`), create a feature branch off `bazel`:
-    `git checkout -b task-031-sysroot-hermetic bazel`
-  - Implement changes, verify locally, and commit.
-  - Push the feature branch and submit a GitHub Pull Request targeting the `bazel` branch.
-  - Once reviewed and CI completes successfully, squash-merge the PR via GitHub.
-* **Commit discipline**: **Never push to `bazel` or any branch without explicit human approval.** Prefer small atomic commits on your feature branches. The pre-commit hook re-`git add`s the *whole* staged BUILD/.bzl file (buildifier `--lint=fix`), so per-hunk atomic commits of one file need `git commit --no-verify` (since files are already canonical).
-  * **Lockfile Drift:** Bazel's `MODULE.bazel.lock` might show `bzlTransitiveDigest` drift between different machines or OSes (macOS and Linux) even when Starlark files are identical. This is due to platform-specific built-ins in the Bazel binaries. Do not commit these lockfile changes unless you intentionally modified `MODULE.bazel`. Revert them using `git checkout MODULE.bazel.lock` before committing.
+*   **Build the full, packaged Dart SDK:**
+    ```bash
+    bazel build //sdk:create_sdk
+    ```
+    This assembles the complete Dart SDK (binaries, snapshots, libraries) under `bazel-bin/sdk/create_sdk/dart-sdk/`.
 
-## Directory Map
+*   **Build the standalone Dart VM:**
+    ```bash
+    bazel build //runtime/bin:dartvm
+    ```
+    This produces a self-contained `dartvm` binary at `bazel-bin/runtime/bin/dartvm` with all necessary dills and ICU data embedded hermetically from source.
 
-### 🗺️ Design & Status
-* **[BACKLOG.md](BACKLOG.md)** — The agent backlog and coordination board. Houses active lock states, task claims, and detailed success criteria for remaining work.
-* **[DESIGN.md](DESIGN.md)** — The core plan of record: target Bazel design, rule mappings, toolchain shims, third-party vendoring strategies, and sequence phases.
-* **[STATUS.md](STATUS.md)** — The living session-by-session progress tracker. Maps actual progress against the DESIGN.md phases. **The single source of truth for the current migration state.**
+### 3. Smoke Test (Verify the VM)
+To verify your built VM works correctly, run a simple Dart script:
 
-### 🔍 Deep-Dives & Scoping
-Architectural characterization of core migration seams:
-* **[deep_dives/rules_dart_scoping.md](deep_dives/rules_dart_scoping.md)** — Design of the per-package dependencies graph (`packages.bzl`).
-* **[deep_dives/testing_migration_roadmap.md](deep_dives/testing_migration_roadmap.md)** — Dynamic dry-run metadata JSON and hermetic sandbox executor roadmap.
-* **[deep_dives/m4_multiconfig_scoping.md](deep_dives/m4_multiconfig_scoping.md)** — Scoping of the Debug/Release and Product compilation axes.
-* **[deep_dives/m4_arch_axis_scoping.md](deep_dives/m4_arch_axis_scoping.md)** — Cross-compilation mapping (x64 host to ARM64 target).
-* **[deep_dives/other_agent_review.md](deep_dives/other_agent_review.md)** — Multi-agent execution reviews.
-* **[deep_dives/agent_c_migration_guide_reflection_mac_agy.md](deep_dives/agent_c_migration_guide_reflection_mac_agy.md)** — Architectural reflection on Bzlmod, macros, overlays, toolchains, and analysis latencies.
-* **[deep_dives/agent_g_migration_guide_reflection_mac_agy.md](deep_dives/agent_g_migration_guide_reflection_mac_agy.md)** — Architectural reflection on Windows runfiles manifests, private header encapsulation, and include flag propagation.
-* **[deep_dives/flutter_bazel_history.md](deep_dives/flutter_bazel_history.md)** — Analysis of historical context and prior art in rules_dart.
+```bash
+# Create a simple hello world script
+cat > /tmp/hello.dart <<'EOF'
+void main() {
+  print('Hello from Bazel-built dartvm!');
+  print([1, 2, 3].map((x) => x * x).toList());
+}
+EOF
 
-### 🛠️ Local Tooling & Verification
-* **[bazel_tooling.md](bazel_tooling.md)** — Setup for local Starlark formatting/linting tools (`buildifier`, `buildozer`).
-* **[bazel_run_instructions.md](bazel_run_instructions.md)** — Instructions for executing and validating compiled outputs locally.
-* **[mac_build_verification_report.md](mac_build_verification_report.md)** — Apple Silicon native compilation verification report.
-* **[WRAP_HANDOFF.md](WRAP_HANDOFF.md)** — Cross-host and cross-agent handoff protocol.
+# Run it using the Bazel-built VM
+bazel-bin/runtime/bin/dartvm /tmp/hello.dart
+# Output should be:
+# Hello from Bazel-built dartvm!
+# [1, 4, 9]
+```
 
-### 🚨 Discovered SDK Issues
-* **[todo_issues/README.md](todo_issues/README.md)** — Strict filter rules and agent protocol for documenting SDK-internal bugs surfaced by the migration.
-* **[todo_issues/](todo_issues/)** — The live directory containing only open SDK-independent bug proposals.
+### 4. Running Dart Scripts with `bazel run`
+We support running Dart scripts directly inside the Bazel sandbox using `bazel run` (thanks to the `dart_binary` rule):
+
+```bash
+bazel run //tools/bazel/dart:test_hello -- --verbose
+```
+
+---
+
+## 🤝 Coordination Protocol (How We Work)
+
+To prevent communication breakdowns and avoid merge collisions (especially when multiple AI agents are working concurrently):
+
+1.  **Scan the Backlog:** Always read [BACKLOG.md](BACKLOG.md) first. Look for `[PENDING]` tasks.
+2.  **Claim a Task:** Before editing any code, post a "Soft Claim" by changing the task status to `[IN_PROGRESS]`, adding your Owner ID, and committing [BACKLOG.md](BACKLOG.md) first to lock the task.
+3.  **Log Your Session:** Document your progress session-by-session in [STATUS.md](STATUS.md). Update the **"Cross-agent notes"** at the top of [STATUS.md](STATUS.md) for live claims and handoffs.
+4.  **Report SDK Defects:** If you discover a non-hermetic script or packaging defect in the upstream SDK, document it as a numbered issue in [todo_issues/](todo_issues/) following the protocol in [todo_issues/README.md](todo_issues/README.md) *before* implementing a workaround.
+
+---
+
+## 🛠️ Developer Workflow & Tooling
+
+### 1. Branching & PR Workflow (No Direct Commits to `bazel`)
+*   The `bazel` branch is our main development target. **Do not commit directly to `bazel`.**
+*   Create a feature branch for your task: `git checkout -b task-037-cleanup bazel`
+*   Push your branch and submit a GitHub Pull Request targeting `bazel`.
+*   **Never push to the remote `bazel` branch without explicit human approval.**
+
+### 2. Formatting & Linting (Buildifier)
+We enforce standard Starlark formatting and linting repository-wide.
+*   **Automated Gate:** A pre-commit hook is active. On a fresh clone, activate it via:
+    ```bash
+    ln -sf ../../tools/bazel/hooks/pre-commit .git/hooks/pre-commit
+    ```
+    This hook automatically runs `buildifier --lint=fix` on any staged `BUILD.bazel` or `.bzl` files.
+*   **Manual Check:** You can audit formatting and lints manually:
+    ```bash
+    # Check formatting and warnings without editing
+    buildifier --mode=check --lint=warn path/to/BUILD.bazel
+    
+    # Apply automatic fixes
+    buildifier --lint=fix path/to/BUILD.bazel
+    ```
+
+### 3. Programmatic Edits (Buildozer)
+For scripted, bulk edits to BUILD files, use `buildozer`:
+```bash
+# Inspect dependencies of a target
+buildozer 'print deps' //runtime/bin:dartvm
+
+# Add a dependency
+buildozer 'add deps //some:lib' //runtime/bin:dartvm
+```
+
+---
+
+## 🗺️ Directory Map
+
+Only the following active files and directories are maintained in `docs/bazel-migration/`. All historical scoping and design documents have been pruned and are preserved in the **Git history**.
+
+*   [README.md](README.md) — This file. Entry point and developer guide.
+*   [BACKLOG.md](BACKLOG.md) — The active backlog and coordination board.
+*   [STATUS.md](STATUS.md) — The living session-by-session progress tracker.
+*   [UPSTREAM_CANDIDATES.md](UPSTREAM_CANDIDATES.md) — List of non-Bazel fixes to be upstreamed to `main`.
+*   [generate_backlog_graph.dart](generate_backlog_graph.dart) — Script to regenerate the dependency graph in `BACKLOG.md`.
+*   [todo_issues/](todo_issues/) — Directory containing open, unresolved SDK-internal issues.
