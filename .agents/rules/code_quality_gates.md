@@ -19,3 +19,11 @@ To maintain high code quality standards and keep the Dart SDK codebase clean, yo
 3. **Python Test Wrapper Gate (`test_wrapper_test.py`):**
    - If `tools/test.py` is modified, you MUST run `python3 tools/test_wrapper_test.py` and verify it passes 100% green before committing.
 
+4. **Python Formatting Gate (`yapf`):**
+   - Every modified or newly created `.py` file MUST be perfectly formatted using `yapf` in accordance with the `.style.yapf` configuration.
+   - Run the formatter in-place using:
+     `PATH=$PATH:~/github/depot_tools ~/github/depot_tools/yapf -i <file>`
+   - Verify that there are no formatting diffs before committing by running:
+     `PATH=$PATH:~/github/depot_tools ~/github/depot_tools/yapf -d <file>`
+
+
