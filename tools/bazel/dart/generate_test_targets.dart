@@ -72,8 +72,9 @@ void main(List<String> args) async {
 
   // 2. Run dry-run exporter natively for all configurations in parallel
   final futures = _configs.map((config) async {
-    final activeSuites =
-        config.suites.where((s) => suites.contains(s)).toList();
+    final activeSuites = config.suites
+        .where((s) => suites.contains(s))
+        .toList();
     if (activeSuites.isEmpty) {
       debugBuf.writeln('No active suites for config ${config.name}, skipping.');
       return (config: config, testCases: <Map<String, dynamic>>[]);
@@ -148,8 +149,9 @@ void main(List<String> args) async {
 
       final filePathAbs = tc['file_path'] as String;
       if (filePathAbs.startsWith(generatedPrefix)) {
-        final relativeToGenerated =
-            filePathAbs.substring(generatedPrefix.length);
+        final relativeToGenerated = filePathAbs.substring(
+          generatedPrefix.length,
+        );
         final norm = relativeToGenerated.replaceAll('\\', '/');
         final parts = norm.split('/');
         if (parts.isNotEmpty) {
@@ -157,12 +159,15 @@ void main(List<String> args) async {
           final key = remainingSegments.join('/');
           subDirToPkgDir[key] = pkgDir;
         }
-      } else if (filePathAbs.startsWith(workspaceDir)) {
-        final relative = filePathAbs.substring(workspaceDir.length + 1);
+      } else if (filePathAbs.startsWith('$workspaceDir${p.separator}')) {
+        final relative = filePathAbs.substring(
+          '$workspaceDir${p.separator}'.length,
+        );
         final norm = relative.replaceAll('\\', '/');
         final dotIndex = norm.lastIndexOf('.');
-        final pathWithoutExt =
-            dotIndex != -1 ? norm.substring(0, dotIndex) : norm;
+        final pathWithoutExt = dotIndex != -1
+            ? norm.substring(0, dotIndex)
+            : norm;
         final key = pathWithoutExt.replaceAll('/', '_');
         subDirToPkgDir[key] = pkgDir;
       }
@@ -192,11 +197,13 @@ void main(List<String> args) async {
       final filePathAbs = tc['file_path'] as String;
       final generatedPrefix = '$outputDir/out/$configName/generated_tests/';
       if (filePathAbs.startsWith(generatedPrefix)) {
-        final relativeToGenerated =
-            filePathAbs.substring(generatedPrefix.length);
+        final relativeToGenerated = filePathAbs.substring(
+          generatedPrefix.length,
+        );
         final slashIndex = relativeToGenerated.indexOf('/');
-        final relativePathFromSuite =
-            relativeToGenerated.substring(slashIndex + 1);
+        final relativePathFromSuite = relativeToGenerated.substring(
+          slashIndex + 1,
+        );
 
         final destDir = '$outputDir/$pkgDir/gen_tests/$configName';
         final destPath = '$destDir/$relativePathFromSuite';
@@ -219,8 +226,10 @@ void main(List<String> args) async {
                 if (args[i] == filePathAbs) {
                   args[i] = destPath;
                 } else if (args[i].toString().contains(filePathAbs)) {
-                  args[i] =
-                      args[i].toString().replaceAll(filePathAbs, destPath);
+                  args[i] = args[i].toString().replaceAll(
+                    filePathAbs,
+                    destPath,
+                  );
                 }
               }
             }
@@ -240,22 +249,33 @@ void main(List<String> args) async {
       for (final entity in genDir.listSync(recursive: true)) {
         if (entity is File) {
           final filePathAbs = entity.path.replaceAll('\\', '/');
-          final relativeToGenerated =
-              filePathAbs.substring(genDir.path.length + 1);
+          final relativeToGenerated = filePathAbs.substring(
+            genDir.path.length + 1,
+          );
           final parts = relativeToGenerated.split('/');
 
-          String pkgDir;
-          String relativePath;
+          final String flatName;
+          final String relativePath;
 
           if (parts[0].startsWith('custom-')) {
-            final flatName = parts[1];
+            flatName = parts[1];
             relativePath = parts.sublist(1).join('/');
-            pkgDir = _getPkgDirFromFlatName(flatName);
           } else {
-            final flatName = parts[0];
+            flatName = parts[0];
             relativePath = parts.join('/');
-            pkgDir = _getPkgDirFromFlatName(flatName);
           }
+
+          var pkgDir = subDirToPkgDir[flatName];
+          if (pkgDir == null) {
+            var strippedName = flatName;
+            if (flatName.startsWith('tests_')) {
+              strippedName = flatName.substring('tests_'.length);
+            } else if (flatName.startsWith('multitest_')) {
+              strippedName = flatName.substring('multitest_'.length);
+            }
+            pkgDir = subDirToPkgDir[strippedName];
+          }
+          pkgDir ??= _getPkgDirFromFlatName(flatName);
 
           final destPath =
               '$outputDir/$pkgDir/gen_tests/$configName/$relativePath';
@@ -591,8 +611,9 @@ void main(List<String> args) async {
               }
             }
 
-            final targetDepsStr =
-                targetDeps.map((d) => '        "$d"').join(',\n');
+            final targetDepsStr = targetDeps
+                .map((d) => '        "$d"')
+                .join(',\n');
             individualTargets.add('''sh_test(
     name = "$targetName",
     srcs = ["//:run_single_test.sh"],
@@ -632,8 +653,9 @@ $targetDepsStr
           baselineDepsSet.addAll(otherDeps);
           final baselineDepsList = baselineDepsSet.toList()..sort();
 
-          final dataListStr =
-              baselineDepsList.map((d) => '        "$d",').join('\n');
+          final dataListStr = baselineDepsList
+              .map((d) => '        "$d",')
+              .join('\n');
 
           var shardCount = enrichedCases.length ~/ 12;
           if (shardCount < 1) {
@@ -689,8 +711,9 @@ $targetsStr
     } else {
       if (shardedTargets.isNotEmpty) {
         final sortedWorkspaceFiles = packageWorkspaceFiles.toList()..sort();
-        final workspaceFilesStr =
-            sortedWorkspaceFiles.map((f) => '        "$f",').join('\n');
+        final workspaceFilesStr = sortedWorkspaceFiles
+            .map((f) => '        "$f",')
+            .join('\n');
 
         final targetsStr = shardedTargets.join('\n\n');
         pkgBuild.writeAsStringSync(

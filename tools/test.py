@@ -20,29 +20,10 @@ def ResolveConfig(named_config):
     if not named_config:
         return repo_name, suffix, injected_flags
 
-    VALID_TOKENS = {
-        # Modes
-        'debug', 'release', 'product',
-        # Compilers / engines
-        'vm', 'aot', 'wasm', 'dart2wasm', 'dart2js', 'cfe', 'fasta', 'dartkp', 'dartk', 'dart', 'precompiled', 'none',
-        # Sanitizers
-        'asan', 'msan', 'tsan',
-        # Architectures
-        'simarm64', 'simarm', 'simriscv64', 'simriscv32', 'arm64', 'arm', 'riscv64', 'riscv32', 'ia32', 'x64',
-        # Browsers / Runtimes
-        'chrome', 'firefox', 'd8', 'jsshell', 'chromeonandroid', 'chromedriver',
-        # Modifiers / flags
-        'asserts', 'optimized',
-        # OS / Platforms
-        'linux', 'windows', 'macos', 'android'
-    }
 
     config_lower = named_config.lower()
     tokens = [t for t in config_lower.replace('-', '_').split('_') if t]
 
-    for token in tokens:
-        if token not in VALID_TOKENS:
-            raise ValueError(f"Invalid configuration token '{token}' in named configuration '{named_config}'")
 
     is_debug = 'debug' in tokens
     is_product = 'product' in tokens

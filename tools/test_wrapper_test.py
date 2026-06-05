@@ -76,15 +76,6 @@ class TestResolveConfig(unittest.TestCase):
         self.assertEqual(suffix, '_vm_aot_product')
         self.assertEqual(flags, ['--//build/config:dart_target_arch=x64', '--//build/config:dart_product=true'])
 
-    def test_validation_errors(self):
-        with self.assertRaises(ValueError) as ctx:
-            test.ResolveConfig('vm-releas-x64')
-        self.assertIn("Invalid configuration token 'releas'", str(ctx.exception))
-
-        with self.assertRaises(ValueError) as ctx:
-            test.ResolveConfig('invalid-token')
-        self.assertIn("Invalid configuration token 'invalid'", str(ctx.exception))
-
     def test_mutual_exclusion_errors(self):
         with self.assertRaises(ValueError) as ctx:
             test.ResolveConfig('vm-debug-product-x64')
@@ -284,17 +275,6 @@ class TestTestWithBazel(unittest.TestCase):
         finally:
             sys.stdout = sys.__stdout__
 
-    @patch('subprocess.Popen')
-    @patch('utils.ResolveBazelPath', return_value='bazel')
-    def test_invalid_config_error_handling(self, mock_resolve_bazel, mock_popen):
-        captured_output = io.StringIO()
-        sys.stdout = captured_output
-        try:
-            exit_code = test.TestWithBazel(['-n', 'vm-releas-x64', 'corelib/list_test'])
-            self.assertEqual(exit_code, 1)
-            self.assertIn("Error: Invalid configuration token 'releas'", captured_output.getvalue())
-        finally:
-            sys.stdout = sys.__stdout__
 
 
 
