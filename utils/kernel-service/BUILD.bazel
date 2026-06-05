@@ -31,7 +31,7 @@ exports_files(glob(
 filegroup(
     name = "copy_kernel-service_snapshot",
     srcs = [
-        "//utils/kernel-service:kernel-service_snapshot",
+        ":kernel-service_snapshot",
     ],
 )
 
@@ -102,7 +102,7 @@ filegroup(name = "frontend_server_files_stamp")
 filegroup(
     name = "kernel-service",
     srcs = [
-        "//utils/kernel-service:copy_kernel-service_snapshot",
+        ":copy_kernel-service_snapshot",
     ],
 )
 
