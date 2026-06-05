@@ -26,8 +26,9 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-Session 119 — **(jetski) Completed TASK_040: Implement `bazel run` support for running Dart scripts.**
+Session 119 — **(jetski) Completed TASK_040: Implement `bazel run` support for running Dart scripts, and fixed shell injection.**
 - **Implemented `dart_binary` Rule**: Created a custom `dart_binary` executable Bazel rule in `tools/bazel/dart/defs.bzl` that packages the prebuilt Dart VM, transitive package dependencies, and command-line arguments into a runfiles-executable bash script.
+- **Fixed Shell Injection Vulnerability**: Properly escaped VM arguments (`vm_args`) in the generated launcher script using single quotes and escaping existing single quotes, preventing shell injection and argument splitting issues as flagged by `@gemini-code-assist` in PR #15.
 - **Created Runfiles Package Config Staging**: Staged the package map at `tools/bazel/dart/package_config.json` inside the output tree via `runfiles_package_config` target. This mirrors the `../../../` depth required by dynamic package URIs inside the runfiles directory, resolving package imports.
 - **Unblocked macOS Build (Firefox Bypass)**: Bypassed remote Firefox downloads on non-Linux platforms by returning early from the fetch step in `tools/bazel/third_party.bzl`, allowing macOS builds to proceed warning-free.
 - **Verified E2E**: Created a test target `//tools/bazel/dart:test_hello` and verified it compiles, builds, and runs successfully on macOS with parameters (`bazel run //tools/bazel/dart:test_hello -- --verbose`).

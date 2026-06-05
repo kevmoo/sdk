@@ -722,6 +722,7 @@ def _dart_binary_impl(ctx):
     main_path = _runfiles_path(ctx, ctx.file.main)
     pkg_config_path = _runfiles_path(ctx, ctx.file._package_config)
 
+    # Escape VM arguments to prevent shell injection and argument splitting
     vm_args_list = []
     for arg in ctx.attr.vm_args:
         vm_args_list.append("'" + arg.replace("'", "'\\''") + "'")
@@ -773,13 +774,13 @@ dart_binary = rule(
     implementation = _dart_binary_impl,
     executable = True,
     attrs = {
-        "main": attr.label(mandatory = True, allow_single_file = [".dart"]),
+        "_package_config": attr.label(
+            allow_single_file = True,
+            default = "//tools/bazel/dart:runfiles_package_config",
+        ),
+        "main": attr.label(allow_single_file = [".dart"], mandatory = True),
         "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
         "vm_args": attr.string_list(default = []),
-        "_package_config": attr.label(
-            default = "//tools/bazel/dart:runfiles_package_config",
-            allow_single_file = True,
-        ),
     },
     toolchains = ["//tools/bazel/dart:toolchain_type"],
 )

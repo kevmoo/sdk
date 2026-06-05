@@ -174,8 +174,8 @@ exec "$script_dir/Firefox.app/Contents/MacOS/firefox" "$@"
                 repository_ctx.delete("tmp_pkg")
                 return
             else:
-                # Firefox download is only supported on Linux and macOS.
-                # Return early on other platforms (e.g. Windows) to skip download and let the overlay BUILD file glob empty.
+                # Firefox download is only supported on Linux.
+                # Return early on macOS/Windows to skip download and let the overlay BUILD file glob empty.
                 return
         else:
             fail("Unreachable")

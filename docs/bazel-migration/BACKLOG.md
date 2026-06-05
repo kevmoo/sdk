@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 32/40 Tasks
+- **Overall Progress**: 31/39 Tasks
 
 ---
 
@@ -900,8 +900,6 @@ graph TD
   - [ ] Analysis document detailing feasibility, design options, and trade-offs for hermetic package syncing.
 
 ---
-
-
 ### 🎯 [TASK_039] Enable standard Bazel lint and formatting checks (Buildifier)
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: None
