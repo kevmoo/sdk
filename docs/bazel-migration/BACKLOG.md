@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 26/32 Tasks
+- **Overall Progress**: 26/33 Tasks
 
 ---
 
@@ -59,6 +59,7 @@ graph TD
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
     TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
     TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
+    TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -760,3 +761,22 @@ graph TD
   - [x] Workspace packages in `third_party/pkg` are discovered and included in the synthetic package config.
   - [x] Language versions are dynamically resolved from `pubspec.yaml` files.
   - [x] SDK builds successfully under Bazel.
+
+---
+
+### 🎯 [TASK_033] Fix SDK packaging VM product mode configuration mismatch
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `sdk/BUILD.bazel`
+- **Description**:
+  Resolve VM snapshot incompatibility failures (where prebuilt compiler snapshots compiled as `release` fail to execute under the staged `dartaotruntime` because it compiles as a `product` VM). Dynamically select between product and non-product VM targets (`//runtime/bin:dartaotruntime` vs `//runtime/bin:dartaotruntime_product`, and `gen_snapshot` counterparts) using Bazel `select()` based on the `//build/config:product` constraint.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel -n dart2wasm-chrome corelib/list_test
+  ```
+- **Success Criteria**:
+  - [ ] `copy_dart_aotruntime` and `copy_gen_snapshot_exe` genrules dynamically select the non-product VM target in default config and the product variant when product mode is true.
+  - [ ] E2E browser test target compilations execute and pass cleanly without snapshot configuration mismatch errors.
