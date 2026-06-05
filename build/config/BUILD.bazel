@@ -129,25 +129,25 @@ cc_library(
         ":debug": ["DEBUG"],
         "//conditions:default": ["NDEBUG"],
     }) + select({
-        ":target_arch_x64": ["TARGET_ARCH_X64"],
         ":target_arch_arm64": ["TARGET_ARCH_ARM64"],
+        ":target_arch_default_arm64": ["TARGET_ARCH_ARM64"],
+        ":target_arch_default_x64": ["TARGET_ARCH_X64"],
         ":target_arch_simarm": ["TARGET_ARCH_ARM"],
         ":target_arch_simarm64": ["TARGET_ARCH_ARM64"],
         ":target_arch_simriscv32": ["TARGET_ARCH_RISCV32"],
         ":target_arch_simriscv64": ["TARGET_ARCH_RISCV64"],
-        ":target_arch_default_x64": ["TARGET_ARCH_X64"],
-        ":target_arch_default_arm64": ["TARGET_ARCH_ARM64"],
+        ":target_arch_x64": ["TARGET_ARCH_X64"],
         "//conditions:default": [],
     }),
     linkopts = select({
-        ":release_macos": [
-            "-Wl,-dead_strip",
-        ],
         ":release_linux": [
             "-Wl,--icf=all",
             "-Wl,-O2",
             "-Wl,--gc-sections",
             "-Wl,--as-needed",
+        ],
+        ":release_macos": [
+            "-Wl,-dead_strip",
         ],
         "//conditions:default": [],
     }) + select({
@@ -258,14 +258,14 @@ cc_library(
         "//conditions:default": ["NDEBUG"],
     }),
     linkopts = select({
-        ":release_macos": [
-            "-Wl,-dead_strip",
-        ],
         ":release_linux": [
             "-Wl,--icf=all",
             "-Wl,-O2",
             "-Wl,--gc-sections",
             "-Wl,--as-needed",
+        ],
+        ":release_macos": [
+            "-Wl,-dead_strip",
         ],
         "//conditions:default": [],
     }) + select({

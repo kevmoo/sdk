@@ -275,6 +275,7 @@ cc_library(
         "//runtime/bin:libdart_builtin",
         "//runtime/include:headers",
     ],
+    # buildifier: disable=alwayslink-with-hdrs
     alwayslink = True,
 )
 
@@ -371,5 +372,6 @@ cc_library(
         "//runtime/bin:libdart_builtin",
         "//runtime/include:headers",
     ],
+    # buildifier: disable=alwayslink-with-hdrs
     alwayslink = True,
 )

@@ -26,4 +26,10 @@ To maintain high code quality standards and keep the Dart SDK codebase clean, yo
    - Verify that there are no formatting diffs before committing by running:
      `PATH=$PATH:~/github/depot_tools ~/github/depot_tools/yapf -d <file>`
 
+5. **Bazel Formatting and Linting Gate (`buildifier`):**
+   - Every modified or newly created Bazel file (`BUILD.bazel`, `MODULE.bazel`, `.bzl` files, excluding `gen_targets.bzl`) MUST be perfectly formatted and free of lint warnings using `buildifier`.
+   - Run `buildifier --mode=check --lint=warn --warnings=all <files>` to verify.
+   - You can run `buildifier --lint=fix --warnings=all <files>` to automatically fix formatting and some warnings.
+
+
 

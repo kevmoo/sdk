@@ -76,7 +76,7 @@ def _get_cipd_platform(repository_ctx):
 
     return os_str + "-" + arch_str
 
-def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
+def _fetch_remote(repository_ctx, repo_type, prefix):
     deps_file = repository_ctx.path(repository_ctx.attr.deps_file)
     parse_script = repository_ctx.path(repository_ctx.attr.parse_script)
 
@@ -132,9 +132,50 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                 url = "https://archive.mozilla.org/pub/firefox/releases/{}/linux-x86_64/en-US/firefox-{}.tar.xz".format(version, version)
                 dl_type = "tar.xz"
                 strip_prefix = "firefox"
+            elif os_name == "mac os x":
+                url = "https://archive.mozilla.org/pub/firefox/releases/{}/mac/en-US/Firefox%20{}.pkg".format(version, version)
+                repository_ctx.delete("Firefox.app")
+                repository_ctx.delete("firefox.pkg")
+                repository_ctx.delete("tmp_pkg")
+                repository_ctx.download(
+                    url = url,
+                    output = "firefox.pkg",
+                )
+                res = repository_ctx.execute(["pkgutil", "--expand-full", "firefox.pkg", "tmp_pkg"])
+                print(res.stdout)
+                print(res.stderr)
+                if res.return_code != 0:
+                    fail("Failed to expand Firefox pkg: " + res.stderr)
+                res = repository_ctx.execute(["find", "tmp_pkg", "-name", "Firefox.app", "-type", "d", "-exec", "cp", "-R", "{}", ".", ";"])
+                print(res.stdout)
+                print(res.stderr)
+                if res.return_code != 0:
+                    fail("Failed to locate and copy Firefox.app from payload: " + res.stderr)
+                if not repository_ctx.path("Firefox.app").exists:
+                    fail("Firefox.app was not found in the expanded package payload")
+                repository_ctx.file(
+                    "firefox",
+                    """#!/bin/bash
+target="$0"
+while [ -L "$target" ]; do
+  dir="$(dirname "$target")"
+  target="$(readlink "$target")"
+  case "$target" in
+    /*) ;;
+    *) target="$dir/$target" ;;
+  esac
+done
+script_dir="$(cd -P "$(dirname "$target")" && pwd)"
+exec "$script_dir/Firefox.app/Contents/MacOS/firefox" "$@"
+""",
+                    executable = True,
+                )
+                repository_ctx.delete("firefox.pkg")
+                repository_ctx.delete("tmp_pkg")
+                return
             else:
-                # Firefox download is only supported on Linux.
-                # Return early on macOS/Windows to skip download and let the overlay BUILD file glob empty.
+                # Firefox download is only supported on Linux and macOS.
+                # Return early on other platforms (e.g. Windows) to skip download and let the overlay BUILD file glob empty.
                 return
         else:
             fail("Unreachable")
@@ -207,7 +248,7 @@ def _overlay_repository_impl(repository_ctx):
     if use_local:
         _symlink_local(repository_ctx, local_path, dest_dir, repository_ctx.attr.prefix)
     else:
-        _fetch_remote(repository_ctx, repository_ctx.attr.repo_type, dest_dir, repository_ctx.attr.prefix)
+        _fetch_remote(repository_ctx, repository_ctx.attr.repo_type, repository_ctx.attr.prefix)
 
     # Dynamic overlays and appends (Option 1 Custom Overlay System)
     if repository_ctx.attr.repo_type == "icu":
@@ -322,14 +363,14 @@ with open(file_path, "w") as f:
 overlay_repository = repository_rule(
     implementation = _overlay_repository_impl,
     attrs = {
-        "repo_type": attr.string(mandatory = True),
+        "build_file": attr.label(mandatory = True, allow_single_file = True),
+        "clean_upstream_build_files": attr.bool(default = False),
+        "deps_file": attr.label(default = "@//:DEPS"),
+        "force_remote": attr.bool(default = False),
+        "parse_script": attr.label(default = "@//tools/bazel:parse_deps.py"),
         "path": attr.string(mandatory = True),
         "prefix": attr.string(default = ""),
-        "build_file": attr.label(mandatory = True, allow_single_file = True),
-        "deps_file": attr.label(default = "@//:DEPS"),
-        "parse_script": attr.label(default = "@//tools/bazel:parse_deps.py"),
-        "force_remote": attr.bool(default = False),
-        "clean_upstream_build_files": attr.bool(default = False),
+        "repo_type": attr.string(mandatory = True),
     },
 )
 
@@ -338,8 +379,10 @@ def _third_party_ext_impl(ctx):
     clone_script = ctx.path(Label("@//tools/bazel:clone_dependencies.py"))
     res = ctx.execute(["python3", str(clone_script)])
     if res.stdout:
+        # buildifier: disable=print
         print("Clone stdout:\n" + res.stdout)
     if res.stderr:
+        # buildifier: disable=print
         print("Clone stderr:\n" + res.stderr)
     if res.return_code != 0:
         fail("Failed to clone third-party Dart package dependencies: " + res.stderr)

@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 31/39 Tasks
+- **Overall Progress**: 32/40 Tasks
 
 ---
 
@@ -66,7 +66,8 @@ graph TD
     TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::completed
     TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::pending
     TASK_038["TASK_038:<br>Investigate migrating Dart package dependency syncing to Bazel"]:::pending
-    TASK_039["TASK_039:<br>Implement `bazel run` support for running Dart scripts"]:::completed
+    TASK_039["TASK_039:<br>Enable standard Bazel lint and formatting checks {Buildifier}"]:::completed
+    TASK_040["TASK_040:<br>Implement `bazel run` support for running Dart scripts"]:::completed
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -900,7 +901,38 @@ graph TD
 
 ---
 
-### 🎯 [TASK_039] Implement `bazel run` support for running Dart scripts
+
+### 🎯 [TASK_039] Enable standard Bazel lint and formatting checks (Buildifier)
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[jetski]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/defs.bzl`
+  - `runtime/platform/BUILD.bazel`
+  - `runtime/bin/BUILD.bazel`
+  - `runtime/engine/BUILD.bazel`
+  - `BUILD.bazel`
+  - `build/config/BUILD.bazel`
+  - `build/config/sanitizers/BUILD.bazel`
+  - `.agents/rules/code_quality_gates.md`
+  - `.github/workflows/buildifier.yml`
+- **Description**:
+  Enable standard Bazel formatting and linting (buildifier) across the repository. Fix formatting issues and resolve lint warnings repository-wide (excluding third_party and gen_targets). Add buildifier linter gate to CI and agent quality gates.
+- **Verification Command**:
+  ```bash
+  git ls-files '*BUILD.bazel' '*MODULE.bazel' '*.bzl' | grep -v 'gen_targets.bzl' | grep -v '^third_party/' | xargs buildifier --mode=check --lint=warn --warnings=all
+  ```
+- **Success Criteria**:
+  - [x] All internal Bazel files are formatted and clean of buildifier warnings.
+  - [x] Unused variables and parameters removed from `defs.bzl`.
+  - [x] C++ stub libraries marked `alwayslink = True` to fix lints and potential linking issues.
+  - [x] GitHub CI workflow checks formatting and linting on PRs using a custom step that downloads buildifier.
+  - [x] Agent rules updated with the new Bazel Quality Gate.
+
+---
+
+### 🎯 [TASK_040] Implement `bazel run` support for running Dart scripts
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: None
 - **Owner**: `[jetski]`
@@ -920,6 +952,3 @@ graph TD
   - [x] Package config helper `runfiles_package_config` is declared in `tools/bazel/dart/BUILD.bazel`.
   - [x] Remote fetch of Firefox on macOS/Windows is bypassed gracefully by skipping download instead of failing.
   - [x] Running the `test_hello` target via `bazel run` successfully executes and parses arguments cleanly.
-
-
-
