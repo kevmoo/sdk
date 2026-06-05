@@ -92,7 +92,60 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
     dep_info = json.decode(res.stdout.strip())
     dep_type = dep_info.get("dep_type")
 
-    if dep_type == "git":
+    # Intercept public browser dependencies to bypass restricted Google CIPD credentials
+    if repo_type in ["chrome", "chromedriver", "firefox"]:
+        version = dep_info.get("version")
+        if not version:
+            fail("Could not resolve version for repository: " + repo_type)
+        if version.startswith("version:"):
+            version = version.split(":", 1)[1]
+
+        os_name = repository_ctx.os.name
+        arch = repository_ctx.os.arch
+
+        if repo_type == "chrome":
+            if os_name == "linux":
+                platform = "linux64"
+            elif os_name == "mac os x":
+                platform = "mac-arm64" if arch in ["aarch64", "arm64"] else "mac-x64"
+            elif os_name.startswith("windows"):
+                platform = "win64"
+            else:
+                fail("Unsupported OS for chrome: " + os_name)
+            url = "https://storage.googleapis.com/chrome-for-testing-public/{}/{}/chrome-{}.zip".format(version, platform, platform)
+            dl_type = "zip"
+            strip_prefix = "chrome-{}".format(platform)
+        elif repo_type == "chromedriver":
+            if os_name == "linux":
+                platform = "linux64"
+            elif os_name == "mac os x":
+                platform = "mac-arm64" if arch in ["aarch64", "arm64"] else "mac-x64"
+            elif os_name.startswith("windows"):
+                platform = "win64"
+            else:
+                fail("Unsupported OS for chromedriver: " + os_name)
+            url = "https://storage.googleapis.com/chrome-for-testing-public/{}/{}/chromedriver-{}.zip".format(version, platform, platform)
+            dl_type = "zip"
+            strip_prefix = "chromedriver-{}".format(platform)
+        elif repo_type == "firefox":
+            if os_name == "linux":
+                url = "https://archive.mozilla.org/pub/firefox/releases/{}/linux-x86_64/en-US/firefox-{}.tar.xz".format(version, version)
+                dl_type = "tar.xz"
+                strip_prefix = "firefox"
+            else:
+                fail("Firefox download is currently only supported on Linux in this Bazel setup")
+        else:
+            fail("Unreachable")
+
+        output_dir = prefix if prefix else "."
+
+        repository_ctx.download_and_extract(
+            url = url,
+            output = output_dir,
+            type = dl_type,
+            strip_prefix = strip_prefix,
+        )
+    elif dep_type == "git":
         url = dep_info.get("url")
         commit = dep_info.get("commit")
 
@@ -332,6 +385,30 @@ def _third_party_ext_impl(ctx):
         repo_type = "prebuilt_dart_sdk",
         path = "tools/sdks/dart-sdk",
         build_file = "@//tools/bazel:third_party_overlays/tools/sdks/dart-sdk/BUILD.bazel.snap",
+    )
+
+    # 6. Chrome Browser Dynamic Overlay Repository
+    overlay_repository(
+        name = "chrome",
+        repo_type = "chrome",
+        path = "third_party/browsers/chrome",
+        build_file = "@//tools/bazel:third_party_overlays/chrome/BUILD.bazel.snap",
+    )
+
+    # 7. ChromeDriver Dynamic Overlay Repository
+    overlay_repository(
+        name = "chromedriver",
+        repo_type = "chromedriver",
+        path = "third_party/webdriver/chrome",
+        build_file = "@//tools/bazel:third_party_overlays/chromedriver/BUILD.bazel.snap",
+    )
+
+    # 8. Firefox Browser Dynamic Overlay Repository
+    overlay_repository(
+        name = "firefox",
+        repo_type = "firefox",
+        path = "third_party/browsers/firefox",
+        build_file = "@//tools/bazel:third_party_overlays/firefox/BUILD.bazel.snap",
     )
     return ctx.extension_metadata(reproducible = True)
 

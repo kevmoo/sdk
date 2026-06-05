@@ -30,6 +30,14 @@ Session 107 — **(jetski) Partially Completed TASK_004: Target Platform Registr
 - **Registered Target Platforms**: Added platform constraint mappings in `build/platforms/BUILD.bazel` for `android_arm64`, `fuchsia_x64`, and `fuchsia_arm64`.
 - **NDK Environment Block**: Identified that cross-compiling for Android targets is blocked because the local host environment lacks `ANDROID_NDK_HOME` and the `third_party/android_tools` SDK/NDK dependency is not checked out (requires `download_android_deps = True` in `DEPS` and `gclient sync`).
 
+Session 106 — **(jetski) Completed TASK_005: Dynamic Browser Testing Downloads.**
+- **Implemented Dynamic Browser Downloader**: Updated `tools/bazel/third_party.bzl` remote fetcher (`_fetch_remote`) to intercept requests for `chrome`, `chromedriver`, and `firefox`. Rather than calling Google CIPD (which returns 403 Forbidden without credentials), it dynamically downloads and extracts packages from public unauthenticated mirrors (Google's Chrome for Testing public bucket and Mozilla's Firefox release archive) with directory prefix stripping.
+- **Added Explicit Dependency Mappings**: Updated `tools/bazel/parse_deps.py` with explicit package mappings for `chrome`, `chromedriver`, and `firefox` to locate their CIPD paths in `DEPS`.
+- **Wired Browser Runfiles in Test Target Generator**: Updated `tools/bazel/dart/generate_test_targets.dart` to inject `@chrome//:chrome_files`, `@chromedriver//:chromedriver_files`, and `@firefox//:firefox_files` as data dependencies on browser/web test targets.
+- **Exported ChromeDriver Environment Path**: Patched launcher wrapper template `tools/bazel/dart/test_rules.bzl` to dynamically locate `chromedriver` inside the runfiles tree and export `CHROMEDRIVER_PATH` during test execution.
+- **Ported test runner runfiles mapping**: Patched `pkg/test_runner/bin/run_single_test.dart` to check and resolve Bzlmod runfiles directories (`chrome/chrome` and `firefox/firefox`) before falling back to legacy paths.
+- **Verified Browser target download**: Verified that `bazel build @chrome//:chrome_files @chromedriver//:chromedriver_files @firefox//:firefox_files` fetches and extracts successfully.
+
 Session 105 — **(jetski) Completed TASK_031: C++ Toolchain Bzlmod Compatibility, Sandbox-Safe Relative Paths, and verified build.**
 - **Implemented Sandbox-Safe Relative Paths**: Defined `CLANG_BIN_VAL`, `CLANG_ROOT_REAL_VAL`, and `SYSROOT_ROOT_VAL` using relative paths under the external repository (e.g. `external/dart_linux_x64_clang`) to satisfy Requirement 7.
 - **Fixed Strict Include Checker via Compiler Flag**: Resolved the "absolute path inclusion" errors in symlinked worktrees by adding the `-no-canonical-prefixes` flag to `cc_toolchain_config.bzl`. This prevents the compiler from resolving symlinks for system/builtin headers, allowing relative include paths to match the Bazel strict include checker.

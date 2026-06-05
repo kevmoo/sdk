@@ -44,6 +44,9 @@ def parse_deps(deps_file_path, dep_name):
         "icu": "sdk/third_party/icu",
         "perfetto": "sdk/third_party/perfetto/src",
         "prebuilt_dart_sdk": "sdk/tools/sdks/dart-sdk",
+        "chrome": "sdk/third_party/browsers/chrome",
+        "chromedriver": "sdk/third_party/webdriver/chrome",
+        "firefox": "sdk/third_party/browsers/firefox",
     }
     
     if dep_name in mappings:

@@ -1,0 +1,6 @@
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "firefox_files",
+    srcs = glob(["**"]),
+)
