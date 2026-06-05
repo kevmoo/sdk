@@ -25,10 +25,9 @@ exports_files(glob(
 ))
 
 # GN copy("copy_kernel-service_snapshot") restages the app-jit snapshot from
-# $root_gen_dir into $root_out_dir. The snapshot is now a real
-# dart_app_jit_snapshot genrule; the group keeps its cc_library shape (so
-# //:runtime's aggregate dep stays CcInfo-valid) but carries the snapshot via
-# `data`, per the dtd_aot / generate_dtd_snapshot pattern.
+# $root_gen_dir into $root_out_dir. The snapshot is a real
+# dart_app_jit_snapshot genrule; the target is a filegroup carrying the snapshot
+# via `srcs`, per the dtd_aot / generate_dtd_snapshot pattern.
 filegroup(
     name = "copy_kernel-service_snapshot",
     srcs = [

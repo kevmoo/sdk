@@ -259,12 +259,12 @@ void main(List<String> args) async {
           final String flatName;
           final String relativePath;
 
-          if (parts[0].startsWith('custom-')) {
+          if (parts[0].startsWith('custom-') && parts.length >= 2) {
             flatName = parts[1];
-            relativePath = parts.sublist(1).join('/');
+            relativePath = parts.length > 2 ? parts.sublist(2).join('/') : '';
           } else {
             flatName = parts[0];
-            relativePath = parts.join('/');
+            relativePath = parts.length > 1 ? parts.sublist(1).join('/') : '';
           }
 
           var pkgDir = subDirToPkgDir[flatName];
