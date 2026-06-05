@@ -616,12 +616,13 @@ String _rewriteSandboxPath(String arg, String testTmpdir) {
 }
 
 String _rewriteSandboxPathRaw(String path, String testTmpdir) {
-  if (!path.contains('/generated_compilations/')) {
+  if (!path.contains('/generated_compilations/') &&
+      !path.contains('/generated_tests/')) {
     return path;
   }
 
   final match = RegExp(
-    r'/out/([^/]+)/generated_compilations/',
+    r'/out/([^/]+)/generated_(compilations|tests)/',
   ).firstMatch(path);
   if (match != null) {
     final configName = match[1]!;

@@ -26,6 +26,7 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+<<<<<<< HEAD
 Session 109 — **(jetski) Resolved workspace-wide wildcard target evaluation and package loading errors.**
 - **Fixed Empty Glob Loading Error**: Corrected `tools/bazel/BUILD.bazel` to only export `parse_deps.py` after the deletion of the `out_of_band/` directory, resolving package loading errors during wildcard scans.
 - **Added Upstream Ignores to .bazelignore**: Appended `third_party/boringssl/src`, `third_party/perfetto/src`, `third_party/cpu_features/src`, `third_party/emsdk/bazel`, and `third_party/icu/source` to `.bazelignore` to prevent Bazel from scanning unignored upstream build files.
@@ -37,6 +38,12 @@ Session 108 — **(jetski) Fixed dart2wasm compiler snapshot product compatibili
 - **Identified and Fixed Snapshot Product Mismatch**: Resolved a test failure where executing dart2wasm tests in Bazel would crash because `dartaotruntime` (always product mode) mismatched the compiler snapshot `dart2wasm_product.snapshot` (staged as non-product release mode).
 - **Updated BUILD.bazel**: Modified `copy_dart2wasm_snapshot` in `sdk/BUILD.bazel` to always source the product snapshot (`//utils/dart2wasm:dart2wasm_product_snapshot`).
 - **Verified Tests**: Confirmed that `python3 tools/test.py --bazel -n wasm-unittest-asserts-linux tests/web/wasm/simd/simd_smoke_test.dart` compiles and passes successfully.
+=======
+Session 108 — **(jetski) Completed TASK_034: Add Chrome/Firefox test configurations to Bazel target generator.**
+- **Added Browser Configurations to Target Generator**: Added `wasm_chrome_release`, `wasm_chrome_asserts`, `wasm_chrome_optimized`, `wasm_firefox_release`, `wasm_firefox_asserts`, `dart2js_chrome_release`, and `dart2js_firefox_release` configurations to `tools/bazel/dart/generate_test_targets.dart`.
+- **Implemented Simplified Relocation Logic**: Refactored the auxiliary file relocation routing loop in `generate_test_targets.dart` to determine the correct suite package directory (`pkgDir`) using the flat unique name of test cases (`_getPkgDirFromFlatName` helper). This cleanly resolves path divergence for multitest split files and browser HTML wrappers, preventing them from leaking into the output root directory.
+- **Verified Browser target generation and E2E execution**: Verified that `python3 tools/bazel_browser_test_e2e.py` and `python3 tools/adv_test_wrapper_audit_test.py` execute and pass 100% successfully on the local branch, confirming that HTML wrappers are generated, globbed correctly, and routed properly under the suite `gen_tests/` subdirectories.
+>>>>>>> d1b4fbaced7 (Isolate and complete TASK_034: Add Chrome/Firefox test configurations to Bazel target generator)
 
 Session 107 — **(jetski) Partially Completed TASK_004: Target Platform Registration (Blocked on NDK).**
 - **Registered Target Platforms**: Added platform constraint mappings in `build/platforms/BUILD.bazel` for `android_arm64`, `fuchsia_x64`, and `fuchsia_arm64`.
