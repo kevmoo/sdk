@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 29/37 Tasks
+- **Overall Progress**: 30/37 Tasks
 
 ---
 
@@ -63,7 +63,7 @@ graph TD
     TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::completed
     TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::completed
     TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
-    TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::inProgress
+    TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::completed
     TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::pending
 
     TASK_017 --> TASK_006
@@ -838,10 +838,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_036] Audit and convert remaining cc_library stubs to filegroup or alias
-- **Status**: `[IN_PROGRESS]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
 - **Owner**: `[jetski]`
-- **Commit**: `[none]`
+- **Commit**: `[a047d5e924f]`
 - **Target Files**:
   - `sdk/BUILD.bazel`
   - `utils/BUILD.bazel`
@@ -855,9 +855,9 @@ graph TD
   bazel fetch //...
   ```
 - **Success Criteria**:
-  - [ ] Candidate stub targets are converted to `filegroup` or `alias`.
-  - [ ] Dependents are updated to reference them via `srcs` (for `filegroup`) or remain unchanged (for `alias`).
-  - [ ] `bazel fetch //...` and standard builds continue to pass cleanly.
+  - [x] Candidate stub targets are converted to `filegroup` or `alias`.
+  - [x] Dependents are updated to reference them via `srcs` (for `filegroup`) or remain unchanged (for `alias`).
+  - [x] `bazel fetch //...` and standard builds continue to pass cleanly.
 
 ---
 

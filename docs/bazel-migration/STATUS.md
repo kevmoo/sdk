@@ -26,11 +26,10 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-Session 115 — **(jetski) Audited backlog, verified JIT VM testing, and polished Mermaid graph visuals.**
-- **Verified Closed Items**: Confirmed 29 completed tasks. Ran `tools/test.py --bazel -n vm-release-x64 corelib/list_test` which compiled and executed 100% successfully under the sandboxed VM runner, verifying completed items are in a healthy state.
-- **Audited Open Items**: Reviewed dependencies and completeness of the 8 remaining open tasks. Verified that CI LUCI recipe migration (`TASK_026`) is blocked by Windows (`TASK_003`), Android/Fuchsia (`TASK_004`), and RBE (`TASK_006`) as expected.
-- **Updated Backlog Metrics**: Corrected the overall progress statistic in `BACKLOG.md` to reflect `29/37 Tasks` (was `28/35`).
-- **Polished Graph Generator**: Upgraded `generate_backlog_graph.dart` to support a `blocked` class in Mermaid and regenerate the dependency graph to style `TASK_004` (Android/Fuchsia target platforms) with a distinct red dashed theme.
+Session 115 — **(jetski) Audited backlog, completed TASK_036 (cc_library stubs cleanup), and verified E2E compiles.**
+- **Audited Backlog & Corrected Progress**: Conducted a verification sweep of completed tasks (confirming 29 completed items), updated progress metrics to `30/37` (stale from `28/35`), and upgraded `generate_backlog_graph.dart` to support a `blocked` class (visualized as a red dashed node for `TASK_004`).
+- **Completed TASK_036 (cc_library stubs cleanup)**: Audited all remaining placeholder `cc_library` targets in the repository that do not contain C++ source code. Converted them to `filegroup` targets across `sdk/BUILD.bazel`, `utils/BUILD.bazel`, `utils/kernel-service/BUILD.bazel`, and `utils/bazel/BUILD.bazel`. Removed unnecessary `rules_cc` load statements.
+- **Verified E2E Build and Queries**: Successfully built `//sdk:create_sdk` in the worktree (completing all 6,008 actions green), verifying that the new filegroup stubs are fully compatible with their filegroup/genrule consumers. Verified that `bazel fetch //...` wildcard query finishes successfully warning-free.
 
 Session 114 — **(jetski) Completed PR #9 feedback, added Python formatting quality gate, and cleaned up resource limits.**
 - **Fixed PR #9 feedback**: Aligned the `subDirToPkgDir` key population logic in `generate_test_targets.dart` to match `flatName` lookup by stripping the `custom-` prefix, resolving package lookup failures.
