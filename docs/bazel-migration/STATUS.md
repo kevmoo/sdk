@@ -26,6 +26,14 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 114 — **(jetski) Completed PR #9 feedback, added Python formatting quality gate, and cleaned up resource limits.**
+- **Fixed PR #9 feedback**: Aligned the `subDirToPkgDir` key population logic in `generate_test_targets.dart` to match `flatName` lookup by stripping the `custom-` prefix, resolving package lookup failures.
+- **Synchronized and Cleaned workspace**: Checked out `bazel` branch and reset to `kevmoo/bazel` to sync all upstream merged PRs. Force-removed the completed `cl508425_wasm_fix` worktree and deleted local branches `r1-task-033`, `r2-r3-task-034`, and `cl-508425-type-opt`.
+- **Enforced Python Formatting**: Added a new Python Formatting Gate to `code_quality_gates.md` requiring `yapf` formatting from `depot_tools`. Formatted all 21 modified/created Python files in-place using `yapf` and committed/pushed style changes.
+- **Reverted Bazel Resource Limits**: Removed `--jobs=4` and memory limits from `.bazelrc` to allow Bazel to scale to all workstation cores.
+- **Verified E2E**: Executed E2E browser test run `tools/test.py --bazel -n dart2wasm-chrome corelib/list_test` which compiled and passed cleanly.
+- **Updated Backlog**: Added `TASK_037` to BACKLOG.md to audit and clean up migration documentation and legacy instructions, and regenerated the Mermaid dependency graph.
+
 Session 113 — **(jetski) Rebased branches and verified compiler covariance fix under Bazel.**
 - **Rebased Task Branches**: Rebased both `r1-task-033` and `r2-r3-task-034` onto the updated remote `bazel` branch (which includes PR #6 and PR #7), resolving all backlog and status merge conflicts cleanly.
 - **Fixed Dynamic VM Snapshot selection**: Restored the `select()` conditional block for `copy_dart2wasm_snapshot` in `sdk/BUILD.bazel` to dynamically package the product vs non-product compiler snapshot. Verified the SDK compiles successfully in both configurations via `bazel build //sdk:create_sdk` and `bazel build --//build/config:dart_product=true //sdk:create_sdk`.
