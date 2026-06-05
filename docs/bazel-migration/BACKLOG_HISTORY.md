@@ -15,10 +15,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/dart/generate_test_targets.dart`
 - **Description**:
   Implement dynamic package dependency mapping inside the test target generator. For any test target generated under `pkg/<package_name>`, the generator must dynamically inject `@//:dart_pkg_<package_name>` into its Bazel `data` dependencies. This ensures package library files and their complete transitive closures are staged inside the hermetic sandbox, resolving missing imports during JIT VM test runs and establishing perfect cache invalidation boundaries.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `generate_test_targets.dart` dynamically adds `@//:dart_pkg_<pkgName>` to test targets generated for `pkg/` subdirectories.
   - [x] Hardcoded package mappings in `dataDeps` are minimized to baseline frameworks.
@@ -36,10 +32,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/dart/gen_test_imports.dart`
 - **Description**:
   Provide a high-performance developer tool to generate a static dependency map `test_imports.json` for huge packages like `pkg/analyzer`. Upgraded `generate_test_targets.dart` must consume this pre-computed JSON file to output individual fine-grained test targets with surgically precise file-level `data` dependencies, unlocking ultra-granular Bazel caching within packages without scanning overhead at Bazel runtime.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] A high-performance CLI tool `gen_test_imports.dart` is created to recursively parse imports and output `test_imports.json`.
   - [x] `generate_test_targets.dart` detects `test_imports.json` in package directories and dynamically outputs individual `sh_test` targets for each test case.
@@ -57,10 +49,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `MODULE.bazel`
 - **Description**:
   WASM and Web tests are currently limited to the D8 runtime. Integrate dynamic browser downloads (Chrome, Firefox, ChromeDriver) using Bzlmod `http_archive` rules and stage them dynamically in test runfiles to enable browser-based web testing under the sandbox.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Chrome and ChromeDriver archives are downloaded dynamically via Bzlmod on first run.
   - [x] Browser-based WASM/Web tests execute and pass inside the sandbox.
@@ -76,10 +64,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `build/toolchain/linux/cc_toolchain_config.bzl`
 - **Description**:
   Activate and verify the full sanitizer test suites (`asan`, `msan`, `tsan`) at scale in Bazel. Ensure compiler option selections for sanitizers map cleanly to execution environments.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Sanitizer configurations compile without linker errors.
   - [x] Sanitizer tests execute and report diagnostic outputs correctly.
@@ -97,10 +81,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   Resolve the remaining minor packaging stubs in the SDK assembly:
     1. Implement `dart2bytecode` AOT snapshot compilation and staging.
     2. Implement dynamic compilation of DevTools from source under Bazel instead of copying prebuilt assets via `copy_prebuilt_devtools` (if `build_devtools_from_sources` is enabled).
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `dart2bytecode` snapshot is built and staged successfully under `dart-sdk/bin/snapshots/`.
   - [x] DevTools builds hermetically from source when required.
@@ -117,10 +97,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/setup_worktree_links.dart`
 - **Description**:
   Relocate the git worktree helper script `setup_worktree_links.sh` from `tools/bazel/dart/` to the root of the `tools/` directory to make it a prominent, standard tool, and migrate its bash scripting logic to a robust, cross-platform Dart CLI tool (`tools/setup_worktree_links.dart`). The new Dart tool should recursively resolve the parent git checkout path using git worktree metadata, verify directories, and safely establish symlinks for untracked gclient dependencies (`third_party/`, `buildtools/`, prebuilt SDKs) across all supported platforms (Linux, macOS, and Windows).
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] **Task 1.1 (Port Symlinker):** Author the cross-platform Dart worktree symlinker at `tools/setup_worktree_links.dart`.
   - [x] **Task 1.2 (Excise Shell Script):** Delete the legacy shell script `tools/bazel/dart/setup_worktree_links.sh` completely.
@@ -139,10 +115,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/dart/gen_test_imports.dart`
 - **Description**:
   Refactor `test_imports.json` from storing fully-flattened transitive dependency lists to storing a minimal, non-flattened graph of **direct local imports/exports** for each file in the package (tests and libs). Upgrade `generate_test_targets.dart` to load this direct import graph and dynamically compute the transitive closure for each test using a memoized, cycle-safe Depth-First Search (DFS) traversal at generation time. This shrinks the JSON database sizes by ~95% (from 3.4MB to <150KB) and keeps Git history clean by ensuring changes to library imports only touch a single line in the JSON file.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `gen_test_imports.dart` is updated to only write out direct local imports for each file in `test_imports.json`, resulting in a vastly smaller JSON size.
   - [x] `generate_test_targets.dart` successfully implements a cycle-safe DFS with memoization to resolve closures in under 50ms.
@@ -159,10 +131,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `.agents/skills/merge_main_to_bazel.md`
 - **Description**:
   Design and document a dedicated repo-local skill for the synchronization and merge of the local `bazel` branch with the upstream SDK `origin/main`. Document the fetch, dry-run merge, out-of-band restore flow, visibility fixes for prebuilts, and PATH-aware git commit hook handling to allow future agents to handle merges cleanly.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] A dedicated, repo-local skill file `.agents/skills/merge_main_to_bazel.md` is authored to document the merge sequence, conflict resolution, restore workflow, and pre-commit formatting.
   - [x] The upstream branch `origin/main` is successfully merged into `bazel` via a merge commit and verified buildable.
@@ -178,10 +146,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/dart/generate_test_targets.dart`
 - **Description**:
   Optimize Starlark loading times and minimize filesystem overhead by grouping core test suites under unified package directories. For coarse-grained suites (`corelib`, `standalone`, `ffi`, `language`), replace the deeply nested sub-package folder generation (e.g., creating `corelib/list/BUILD.bazel`) with a single package-level `BUILD.bazel` in the suite root (e.g., `@dart_tests//corelib`). Declare all tests belonging to that suite inside this unified package, utilizing explicit target labels to preserve fine-grained file-level cache invalidation boundaries.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `generate_test_targets.dart` clusters generated targets under root suite directories (`corelib/BUILD.bazel`).
   - [x] Generated `BUILD.bazel` files are reduced by 700+ packages.
@@ -199,10 +163,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - None
 - **Description**:
   Consolidate the 7 redundant external Starlark test repositories into a single unified external repository `@dart_tests` to eliminate sequential Bazel repository fetch runs. Refactor target generation to define configuration subtargets inside the package `BUILD` files using configuration suffixes (e.g., `_vm_debug`, `_wasm_d8`) rather than distinct repository namespaces. Upgrade `generate_test_targets.dart` to run the 7 dry-run sweeps concurrently via Dart's `Future.wait` to complete target discovery under 2 seconds.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `MODULE.bazel` is refactored to define exactly **one** dynamic test repository (`@dart_tests`).
   - [x] `generate_test_targets.dart` parallelizes dry-run sweeps using `Future.wait` and completes target discovery in <2.5 seconds.
@@ -221,10 +181,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/test_wrapper_test.py`
 - **Description**:
   Implement a comprehensive Python unit test suite `tools/test_wrapper_test.py` to verify the target resolution and flag translation logic inside `tools/test.py` (`TestWithBazel` and `ResolveConfig`). The test suite must mock Bazel query executions and test various selector inputs (coarse-grained, fine-grained, broad directory, and completely invalid). It must assert that valid selectors resolve to correct targets without emitting any warning or error outputs, and invalid selectors emit the correct warning message.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `tools/test_wrapper_test.py` is authored utilizing Python's `unittest` standard library.
   - [x] Test cases verify configuration resolutions and flag conversions.
@@ -245,10 +201,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `MODULE.bazel.lock`
 - **Description**:
   Resolve the platform-induced `bzlTransitiveDigest` drift in `MODULE.bazel.lock` by marking our custom local repository extensions (`dart_tests_extension` and `third_party_extension`) as reproducible. This tells Bazel that their repository generations are deterministic and do not need to be locked, removing their digests from the lockfile and eliminating cross-platform Git churn.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `test_rules.bzl` returns `reproducible = True` in its extension metadata.
   - [x] `third_party.bzl` returns `reproducible = True` in its extension metadata.
@@ -267,10 +219,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/dart/defs.bzl`
 - **Description**:
   Replace the temporary `genrule` copies (which pull `kernel_service.dill` and `vm_platform*.dill` from the GN output directory `out/ReleaseX64/`) with native Bazel Starlark rules that compile these targets directly from Dart source code. This involves resolving the complex "Dart-builds-Dart" bootstrap loops (using the prebuilt SDK toolchain to compile the front-end compiler, which then compiles the platform libraries) hermetically within the Bazel graph.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Bazel targets `//runtime/bin:dartvm` and `//sdk:create_sdk` build successfully without requiring `out/ReleaseX64/` to exist or contain any pre-built dills.
   - [x] Modifying an SDK library source file (e.g. `sdk/lib/core/core.dart`) or compiler source file (under `pkg/front_end/`) correctly triggers incremental rebuilds of the dills and re-links the VM under Bazel.
@@ -294,10 +242,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
     2. Add the prebuilt SDK (`tools/sdks/dart-sdk`) as a local repository overlay, referencing a tracked BUILD file under `tools/bazel/` to avoid placing `BUILD.bazel` in the CIPD directory.
     3. Add `third_party/icu` and `third_party/zlib` to the skip list in `translate_gn_desc.py` so they are never translated locally.
     4. Retire the copying and renaming sections of `restore.sh`.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] No `.disabled-for-dart-bazel-migration` files exist in the workspace.
   - [x] No `BUILD.bazel` files are copied into `third_party/icu` or `third_party/zlib` source directories.
@@ -314,10 +258,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `runtime/engine/BUILD.bazel`
 - **Description**:
   Replace the copy stubs in `runtime/engine/BUILD.bazel` with actual shared library targets that compile `libdart_engine_jit_shared.so` and `libdart_engine_aot_shared.so` natively under Bazel.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Shared libraries compile and link successfully.
   - [x] Symbols match those exported in the GN build.
@@ -333,10 +273,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `samples/embedder/BUILD.bazel`
 - **Description**:
   Resolve all `TODO(M3)` compilation and copy stubs in `samples/embedder/BUILD.bazel` to enable building the embedder samples (compiling Dart programs to dills/AOT and linking/running them).
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] All embedder sample executables build green.
 
@@ -354,10 +290,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `BUILD.bazel`
 - **Description**:
   Replace the static, committed `tools/bazel/dart/packages.bzl` file with a dynamic Bzlmod module extension. The extension must read `.dart_tool/package_config.json` and the package `pubspec.yaml` files to dynamically generate `dart_library` targets in an external repository (e.g. `@dart_packages`). This removes `packages.bzl` from git and eliminates the need for `gen_packages.py`.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `tools/bazel/dart/packages.bzl` and `tools/bazel/dart/gen_packages.py` are deleted.
   - [x] A Bzlmod extension dynamically generates package targets.
@@ -376,10 +308,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/test.py`
 - **Description**:
   Delete `restore.sh` and its documentation. Remove the sanity check in `tools/test.py` that references `restore.sh` and `tools/sdks/dart-sdk/BUILD.bazel`. Ensure the development workflow relies solely on `gclient sync` for dependency alignment.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `restore.sh` and `README.md` are deleted.
   - [x] `tools/test.py` check is removed.
@@ -397,10 +325,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/test.py`
 - **Description**:
   Define AOT compilation and execution configurations in `generate_test_targets.dart` and add AOT configuration mapping in `tools/test.py` `ResolveConfig` to run sandboxed VM AOT tests using the packaged `dartaotruntime`.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] AOT test targets are generated for core suites.
   - [x] `ResolveConfig` maps AOT configurations correctly to AOT target suffixes.
@@ -417,10 +341,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/test.py`
 - **Description**:
   Extend `ResolveConfig` in `tools/test.py` to parse sanitizer suffixes (e.g. `asan`, `msan`, `tsan`) and inject compiler configuration flags for Bazel-built sanitizer tests.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `ResolveConfig` detects `asan` suffix and injects `--features=asan` or corresponding flags.
   - [x] Sanitizer tests execute and pass cleanly under Bazel.
@@ -440,10 +360,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/test.py`
 - **Description**:
   Register simulator CPU configurations (`simarm`, `simarm64`, `simriscv32`, `simriscv64`) in `build/config/BUILD.bazel` to enable cross-architecture simulator testing. Update `tools/test.py` and `generate_test_targets.dart` to support running simulator JIT and AOT tests under Bazel.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Simulator architectures are registered as valid configurations.
   - [x] VM compiles successfully targeting simulated CPU architectures.
@@ -460,10 +376,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/debian_package/BUILD.bazel`
 - **Description**:
   Replace the `debian_package` placeholder stub in `tools/debian_package/BUILD.bazel` with a functional rule porting the Debian packaging logic.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Debian package target is compiled and packages all binaries hermetically.
 
@@ -478,10 +390,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `docs/bazelmigration/UPSTREAM_CANDIDATES.md`
 - **Description**:
   Audit the diff between the `bazel` branch and `main` (merge base) to isolate non-Bazel changes (VM bug fixes, test runner improvements, third-party decoupling). Categorize these changes and prepare them for upstreaming to `main` via Gerrit CLs.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Audit report created at `docs/bazel-migration/UPSTREAM_CANDIDATES.md` listing all candidate changes for upstreaming.
   - [x] Upstream Gerrit CLs submitted and linked for approved core fixes.
@@ -498,10 +406,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `DEPS`
 - **Description**:
   Implement a dynamic Bzlmod module extension (or custom repository rule) that reads the `DEPS` file at the repository root, uses a Python helper script to parse git repository pins, and dynamically downloads them via Bazel's `git_repository` or `http_archive` rules. This allows building the project with Bazel without requiring a prior `gclient sync` on the host machine.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] A Bzlmod extension or repository rule dynamically parses the root `DEPS` file.
   - [x] Git repository dependencies (e.g. BoringSSL, Perfetto) are fetched hermetically by Bazel based on `DEPS` pins.
@@ -520,10 +424,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/debian_package/`
 - **Description**:
   Audit all custom Python parsing scripts, genrules, and Starlark definitions in the repository to systematically apply the code quality, safety, and compatibility improvements learned during the gemini-code-assist reviews (documented in docs/bazel-migration/review_learnings.md). Verify safe dictionary evaluations, process ID (PID) locks for repository rules, strict sandboxing compatibility by avoiding absolute host paths in toolchains, comment stripping in naive YAML/properties parsers, and multi-architecture portability (supporting ARM64 alongside x86_64, and using hermetic sysroot references instead of host libraries).
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] All custom Python parsing scripts under `tools/bazel` are audited and use defensive `.get()` lookups.
   - [x] Custom repository setup scripts are audited for process ID (PID) locking to prevent parallel build deadlocks.
@@ -542,10 +442,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/generate_debug_package_config.py`
 - **Description**:
   Fix the synthetic package config generator to correctly scan workspace packages from the root `pubspec.yaml` (including nested `third_party/pkg/` packages like `dap` and `language_server_protocol`) and dynamically resolve their target language versions from their individual `pubspec.yaml` files, resolving build failures caused by hardcoded SDK version mismatches (e.g. `protobuf` compilation failing on Dart 3.13 due to legacy `var` in parameters).
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Workspace packages in `third_party/pkg` are discovered and included in the synthetic package config.
   - [x] Language versions are dynamically resolved from `pubspec.yaml` files.
@@ -562,10 +458,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `sdk/BUILD.bazel`
 - **Description**:
   Resolve VM snapshot incompatibility failures (where prebuilt compiler snapshots compiled as `release` fail to execute under the staged `dartaotruntime` because it compiles as a `product` VM). Dynamically select between product and non-product VM targets (`//runtime/bin:dartaotruntime` vs `//runtime/bin:dartaotruntime_product`, and `gen_snapshot` counterparts) using Bazel `select()` based on the `//build/config:product` constraint.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `copy_dart_aotruntime` and `copy_gen_snapshot_exe` genrules dynamically select the non-product VM target in default config and the product variant when product mode is true.
   - [x] E2E browser test target compilations execute and pass cleanly without snapshot configuration mismatch errors.
@@ -581,10 +473,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/dart/generate_test_targets.dart`
 - **Description**:
   Add Chrome and Firefox browser test configurations to the target generator (`_configs` list) so Bazel outputs targets with browser runtimes (e.g. `tests_wasm_chrome_release` or `tests_dart2js_chrome_release`). This will ensure `@chrome//:chrome_files` and `@chromedriver//:chromedriver_files` are linked into the runfiles sandbox and executed E2E.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Chrome/Firefox test configurations are defined in `generate_test_targets.dart`.
   - [x] Bazel generates `tests_wasm_chrome_release` targets under the `@dart_tests` repository.
@@ -610,10 +498,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
     2. Adding unignored upstream third-party checkouts under `third_party/` to `.bazelignore`.
     3. Converting generic wrapper/stub targets in `BUILD.bazel` and `utils/ddc/BUILD.bazel` from `cc_library` to `filegroup`.
     4. Resolving DevTools target output path conflicts by introducing a staging rule `copy_directory`.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Wildcard target queries (`bazel fetch //...`) complete successfully without package loading or analysis errors.
   - [x] Conflicting action issues for built-from-source vs. prebuilt DevTools targets are resolved.
@@ -633,10 +517,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `samples/embedder/BUILD.bazel`
 - **Description**:
   Audit the remaining `cc_library` targets in the workspace that do not contain C++ source files (such as placeholders, copies, or stubs) and convert them to `filegroup` or `alias`. This ensures cleaner target definitions and prevents unnecessary C++ toolchain resolution or potential provider errors.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Candidate stub targets are converted to `filegroup` or `alias`.
   - [x] Dependents are updated to reference them via `srcs` (for `filegroup`) or remain unchanged (for `alias`).
@@ -653,10 +533,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `docs/bazelmigration/README.md`
 - **Description**:
   Audit and clean up the Bazel migration documentation. Modernize and simplify "getting started" guidelines to ensure they are optimized for both human developers and autonomous agents. Identify and archive legacy instruction files, outdated setup scripts, or superseded guides into an `archive/` subfolder.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] Legacy instructions/guides are deleted entirely, relying on Git history for preservation.
   - [x] A concise, agent-optimized "Getting Started" guide exists in README.md and specifies prerequisites.
@@ -681,10 +557,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `.github/workflows/buildifier.yml`
 - **Description**:
   Enable standard Bazel formatting and linting (buildifier) across the repository. Fix formatting issues and resolve lint warnings repository-wide (excluding third_party and gen_targets). Add buildifier linter gate to CI and agent quality gates.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] All internal Bazel files are formatted and clean of buildifier warnings.
   - [x] Unused variables and parameters removed from `defs.bzl`.
@@ -705,10 +577,6 @@ This file lists all successfully completed tasks in the Bazel migration. It is g
   - `tools/bazel/third_party.bzl`
 - **Description**:
   Implement the `dart_binary` rule to enable running Dart scripts inside the Bazel sandbox using `bazel run`. Generate a bash launcher wrapper that executes the prebuilt Dart VM, passing package configurations (staged at a specific depth in runfiles to resolve relative paths starting with `../../../`) and forwarding user command-line arguments. Add a bypass for Firefox remote downloads on non-Linux platforms to unblock macOS execution.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [x] `dart_binary` rule is implemented in `defs.bzl` and correctly bundles transitive dependencies (from `DartLibraryInfo`), the prebuilt Dart SDK, and the runfiles package config.
   - [x] Package config helper `runfiles_package_config` is declared in `tools/bazel/dart/BUILD.bazel`.

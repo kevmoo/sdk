@@ -301,14 +301,16 @@ String generateTaskMarkdown(Task task) {
       .join('\n');
   sb.writeln(indentedDesc);
 
-  sb.writeln('- **Verification Command**:');
-  sb.writeln('  ```bash');
-  final String indentedVer = task.verificationCommand
-      .split('\n')
-      .map((line) => '  $line')
-      .join('\n');
-  sb.writeln(indentedVer);
-  sb.writeln('  ```');
+  if (task.verificationCommand.isNotEmpty) {
+    sb.writeln('- **Verification Command**:');
+    sb.writeln('  ```bash');
+    final String indentedVer = task.verificationCommand
+        .split('\n')
+        .map((line) => '  $line')
+        .join('\n');
+    sb.writeln(indentedVer);
+    sb.writeln('  ```');
+  }
 
   sb.writeln('- **Success Criteria**:');
   for (final SuccessCriterion criterion in task.successCriteria) {

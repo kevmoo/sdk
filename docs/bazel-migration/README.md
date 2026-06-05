@@ -11,7 +11,7 @@ If you are a contributor (human or AI agent) looking to build or run the SDK usi
 ### 1. Host Prerequisites
 Ensure your host machine has:
 *   **Python 3** (used for minor helper scripts).
-*   **Bazel** (recommended to use [bazelisk](https://github.com/bazelbuild/bazelisk) to automatically respect the [.bazelversion](file:///usr/local/google/home/kevmoo/github/sdk/.bazelversion) file).
+*   **Bazel** (recommended to use [bazelisk](https://github.com/bazelbuild/bazelisk) to automatically respect the [.bazelversion](../../.bazelversion) file).
 *   **Xcode-select** (macOS only) or **MSVC** (Windows only) for native C++ compilation.
 *   All third-party dependencies are fetched hermetically by Bazel via Bzlmod overlays. No manual sync scripts (like the retired `restore.sh`) are required.
 

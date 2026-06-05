@@ -104,10 +104,6 @@ graph TD
   - `build/toolchain/win/cc_toolchain_config.bzl`
 - **Description**:
   Port MSVC toolchain discovery from `build/vs_toolchain.py` to a dynamic Bazel Starlark repository rule. The rule must auto-detect MSVC installations on the Windows host and generate appropriate `cc_toolchain` definitions dynamically.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [ ] MSVC installation path is dynamically detected on Windows hosts.
   - [ ] `//runtime/bin:dartvm` compiles and links cleanly under Windows.
@@ -127,10 +123,6 @@ graph TD
   Register full target platforms for Android and Fuchsia. Map Android NDK references via `android_ndk_repository` and Fuchsia toolchains via Google's `rules_fuchsia`.
     > [!WARNING]
     > **BLOCKED**: Cross-compiling for Android requires the Android NDK, which is currently missing on the host environment (no `ANDROID_NDK_HOME` or `third_party/android_tools`). The platforms have been registered in `build/platforms/BUILD.bazel`, but verification is blocked.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [ ] Android NDK toolchain resolves and compiles the AOT runtime.
   - [ ] Fuchsia target platforms compile and package cleanly.
@@ -147,10 +139,6 @@ graph TD
   - `.bazelrc`
 - **Description**:
   Verify remote execution (RBE) against Google's `flutter-rbe-prod` instance in CI. Ensure toolchain configurations correctly serialize and do not leak host-absolute paths to the remote worker.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [ ] Entire SDK compiles cleanly on remote RBE workers.
   - [ ] Cache hit rate is high and no local toolchain leaks are observed.
@@ -166,10 +154,6 @@ graph TD
   - `infra/specs/`
 - **Description**:
   Update LUCI build and test recipes to call `tools/build.py --bazel` and `tools/test.py --bazel` respectively, and upload the Bazel-built SDK as a release artifact.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [ ] CI builders successfully transition to Bazel for building and testing.
   - [ ] Bazel-built SDK is uploaded to CIPD/GCS storage.
@@ -185,10 +169,6 @@ graph TD
   - `tools/bazel/`
 - **Description**:
   Investigate Google3's internal Dart Bazel build and evaluate the feasibility of aligning it with this open-source Bzlmod configuration. Identify blocker issues (monorepo path differences, internal toolchains, RBE configs).
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [ ] Investigation document detailing differences and migration path for google3.
   - [ ] Prototype alignment run in a CitC workspace (if feasible).
@@ -205,10 +185,6 @@ graph TD
   - `tools/bazel/rules.bzl`
 - **Description**:
   Audit current Bazel build files and custom Starlark rules (`tools/bazel/dart/defs.bzl`, `tools/bazel/rules.bzl`) to simplify flag propagation, reduce macro complexity, and optimize build graph analysis times.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [ ] macOS flag filtering moved from macro wrappers to toolchain definitions where possible.
   - [ ] Starlark macro complexity reduced (audited by a senior engineer review).
@@ -225,10 +201,6 @@ graph TD
   - `tools/bazel/generate_debug_package_config.py`
 - **Description**:
   Evaluate the feasibility and trade-offs of migrating Dart package dependency resolution (currently handled by `gclient sync` and host-side `pubspec` resolution) to run hermetically inside Bazel (e.g., using a custom Bzlmod extension to fetch packages and generate the package config). Address developer workflow impact (ability to edit `third_party/pkg` sources), bootstrap loop implications, and alignment with Google3.
-- **Verification Command**:
-  ```bash
-  
-  ```
 - **Success Criteria**:
   - [ ] Analysis document detailing feasibility, design options, and trade-offs for hermetic package syncing.
 
