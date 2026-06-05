@@ -7,13 +7,13 @@ load("//tools/bazel:rules.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 TEMPLATE_PLATFORM_OS_SRCS = select({
-    "@platforms//os:macos": [
-        "syslog_macos.cc",
-        "utils_macos.cc",
-    ],
     "@platforms//os:linux": [
         "syslog_linux.cc",
         "utils_linux.cc",
+    ],
+    "@platforms//os:macos": [
+        "syslog_macos.cc",
+        "utils_macos.cc",
     ],
     "//conditions:default": [
         "syslog_linux.cc",

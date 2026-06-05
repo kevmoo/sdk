@@ -90,12 +90,12 @@ filegroup(name = "ddc_canary_sdk_ddc_module")
 
 filegroup(
     name = "ddc_canary_test",
-    # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
-    data = ["//utils/ddc:dartdevc"],
     srcs = [
         "//:create_sdk",
         "//utils/ddc:ddc_canary_test_local",
     ],
+    # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
+    data = ["//utils/ddc:dartdevc"],
 )
 
 filegroup(
@@ -153,12 +153,12 @@ filegroup(name = "ddc_stable_sdk")
 
 filegroup(
     name = "ddc_stable_test",
-    # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
-    data = ["//utils/ddc:dartdevc"],
     srcs = [
         "//:create_sdk",
         "//utils/ddc:ddc_stable_test_local",
     ],
+    # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
+    data = ["//utils/ddc:dartdevc"],
 )
 
 filegroup(

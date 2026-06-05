@@ -26,13 +26,20 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-Session 117 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
+Session 118 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
 - **Enabled macOS support for Firefox downloader**: Patched the public browser downloader rule in `tools/bazel/third_party.bzl` to support macOS. Rather than failing on non-Linux hosts, it now downloads the Firefox macOS installer package (`.pkg`), expands it using host `pkgutil`, copies `Firefox.app` to the repository root, and generates a relative launcher wrapper script named `firefox`.
 - **Addressed PR review feedback**: Improved the macOS downloader implementation by utilizing `find` to recursively locate `Firefox.app` inside the payload (making the extraction path resilient to naming changes). Patched the launcher wrapper script to recursively resolve symlinks via a portable bash loop, ensuring correctness when run under Bazel's runfiles tree.
 - **Resolved second round of PR feedback**: Added explicit verification of the extracted `Firefox.app` existence (`repository_ctx.path("Firefox.app").exists`) to fail early and avoid silent errors. Unconditionally printed standard output/error of the copy command to preserve terminal log visibility.
 - **Resolved third round of PR feedback**: Unconditionally printed standard output and error for both `pkgutil` and `find` commands to improve debug log visibility during loading/analysis phases.
 - **Resolved fourth round of PR feedback**: Explicitly deleted `Firefox.app`, `firefox.pkg`, and `tmp_pkg` before downloading and expanding the package to prevent stale files and directory nesting on re-execution.
 - **Verified Firefox E2E testing**: Successfully executed `python3 tools/test.py --bazel -n dart2wasm-firefox language/covariant/callable_class_field_getter_test` before and after all PR fixes, confirming the test suite runs green.
+
+Session 117 — **(jetski) Enabled standard Bazel formatting and linting (Buildifier) repository-wide.**
+- **Resolved warnings in defs.bzl**: Removed unused variables (`_PACKAGE_CONFIG`, `_PACKAGE_CONFIG_FILE`, `_COMPILE_PLATFORM`) and unused parameter `sdk_hash` from macros. Added buildifier disable comments for function docstrings on AOT/JIT macros, and sorted all `attrs` dictionaries.
+- **Resolved warnings in BUILD files**: Added `alwayslink = True` to 6 hand-authored C++ stub/linkable libraries in `runtime/bin/BUILD.bazel` to fix `no-hdrs-no-alwayslink` warning. Sorted `select` dictionary keys in `runtime/platform/BUILD.bazel`, `runtime/bin/BUILD.bazel`, and `build/config/BUILD.bazel`. Moved `tools/gn.py` out of glob in root `BUILD.bazel`. Added disable comments for `alwayslink-with-hdrs` in `runtime/engine/BUILD.bazel` and `platform-specific-binaries` in `build/config/sanitizers/BUILD.bazel`.
+- **Added CI Linter Gate**: Created a separate GitHub Actions workflow `.github/workflows/buildifier.yml` to run formatting/linting check on all tracked Bazel files (excluding `third_party` and `gen_targets.bzl`).
+- **Added Agent Linter Gate**: Updated `.agents/rules/code_quality_gates.md` with the new Bazel formatting and linting gate.
+- **Updated Backlog**: Added `TASK_039` to `BACKLOG.md` and regenerated the dependency graph.
 
 Session 116 — **(jetski) Completed TASK_036 (cc_library stubs cleanup) and resolved review feedback.**
 - **Completed TASK_036 (cc_library stubs cleanup)**: Audited all remaining placeholder `cc_library` targets in the repository that do not contain C++ source code. Converted them to `filegroup` targets across `sdk/BUILD.bazel`, `utils/BUILD.bazel`, `utils/kernel-service/BUILD.bazel`, and `utils/bazel/BUILD.bazel`. Removed unnecessary `rules_cc` load statements.

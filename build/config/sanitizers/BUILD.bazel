@@ -33,6 +33,7 @@ cc_library(
     srcs = [
         "//:build/sanitizers/sanitizer_options.cc",
     ],
+    # buildifier: disable=platform-specific-binaries
     copts = [
         "-Iruntime",
         "-m64",
