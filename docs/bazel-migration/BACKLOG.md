@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 26/33 Tasks
+- **Overall Progress**: 26/34 Tasks
 
 ---
 
@@ -60,6 +60,7 @@ graph TD
     TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
     TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
     TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::pending
+    TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -76,6 +77,7 @@ graph TD
     TASK_006 --> TASK_026
     TASK_006 --> TASK_028
     TASK_003 --> TASK_029
+    TASK_033 --> TASK_034
 ```
 
 <!-- END_DEP_GRAPH -->
@@ -780,3 +782,23 @@ graph TD
 - **Success Criteria**:
   - [ ] `copy_dart_aotruntime` and `copy_gen_snapshot_exe` genrules dynamically select the non-product VM target in default config and the product variant when product mode is true.
   - [ ] E2E browser test target compilations execute and pass cleanly without snapshot configuration mismatch errors.
+
+---
+
+### 🎯 [TASK_034] Add Chrome/Firefox test configurations to Bazel target generator
+- **Status**: `[PENDING]`
+- **Prerequisites**: TASK_033
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/generate_test_targets.dart`
+- **Description**:
+  Add Chrome and Firefox browser test configurations to the target generator (`_configs` list) so Bazel outputs targets with browser runtimes (e.g. `tests_wasm_chrome_release` or `tests_dart2js_chrome_release`). This will ensure `@chrome//:chrome_files` and `@chromedriver//:chromedriver_files` are linked into the runfiles sandbox and executed E2E.
+- **Verification Command**:
+  ```bash
+  python3 tools/test.py --bazel -n dart2wasm-chrome corelib/list_test
+  ```
+- **Success Criteria**:
+  - [ ] Chrome/Firefox test configurations are defined in `generate_test_targets.dart`.
+  - [ ] Bazel generates `tests_wasm_chrome_release` targets under the `@dart_tests` repository.
+  - [ ] E2E browser tests compile, spin up Chrome via chromedriver in the sandbox, and pass cleanly.
