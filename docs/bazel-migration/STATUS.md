@@ -26,12 +26,17 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-Session 115 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
+Session 116 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
 - **Enabled macOS support for Firefox downloader**: Patched the public browser downloader rule in `tools/bazel/third_party.bzl` to support macOS. Rather than failing on non-Linux hosts, it now downloads the Firefox macOS installer package (`.pkg`), expands it using host `pkgutil`, copies `Firefox.app` to the repository root, and generates a relative launcher wrapper script named `firefox`.
 - **Addressed PR review feedback**: Improved the macOS downloader implementation by utilizing `find` to recursively locate `Firefox.app` inside the payload (making the extraction path resilient to naming changes). Patched the launcher wrapper script to recursively resolve symlinks via a portable bash loop, ensuring correctness when run under Bazel's runfiles tree.
 - **Resolved second round of PR feedback**: Added explicit verification of the extracted `Firefox.app` existence (`repository_ctx.path("Firefox.app").exists`) to fail early and avoid silent errors. Unconditionally printed standard output/error of the copy command to preserve terminal log visibility.
 - **Resolved third round of PR feedback**: Unconditionally printed standard output and error for both `pkgutil` and `find` commands to improve debug log visibility during loading/analysis phases.
 - **Verified Firefox E2E testing**: Successfully executed `python3 tools/test.py --bazel -n dart2wasm-firefox language/covariant/callable_class_field_getter_test` before and after all PR fixes, confirming the test suite runs green.
+
+Session 115 — **(jetski) Fixed path duplication bug for test helpers, investigated browser testing, and added package sync investigation task.**
+- **Fixed Path Duplication Bug**: Staged a fix in `generate_test_targets.dart` to correctly strip the suite name from the destination path of auxiliary files, preventing duplicate nesting and resolving compile-time errors in split multitests.
+- **Investigated Browser Testing**: Found that browser testing under Bazel is currently not runnable due to the absence of HTTP server infrastructure in the sandboxed test executor (`run_single_test.dart`) and dummy URLs in target metadata. Reverted experimental execution changes.
+- **Added TASK_038 to Backlog**: Added a pending task to investigate migrating Dart package dependency syncing to Bazel, and regenerated the backlog graph.
 
 Session 114 — **(jetski) Completed PR #9 feedback, added Python formatting quality gate, and cleaned up resource limits.**
 - **Fixed PR #9 feedback**: Aligned the `subDirToPkgDir` key population logic in `generate_test_targets.dart` to match `flatName` lookup by stripping the `custom-` prefix, resolving package lookup failures.
