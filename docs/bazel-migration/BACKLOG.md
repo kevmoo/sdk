@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 26/34 Tasks
+- **Overall Progress**: 27/35 Tasks
 
 ---
 
@@ -61,6 +61,7 @@ graph TD
     TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
     TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::pending
     TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::pending
+    TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -802,3 +803,32 @@ graph TD
   - [ ] Chrome/Firefox test configurations are defined in `generate_test_targets.dart`.
   - [ ] Bazel generates `tests_wasm_chrome_release` targets under the `@dart_tests` repository.
   - [ ] E2E browser tests compile, spin up Chrome via chromedriver in the sandbox, and pass cleanly.
+
+---
+
+### 🎯 [TASK_035] Fix Bazel wildcard target evaluation and package loading errors
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
+- **Target Files**:
+  - `tools/bazel/BUILD.bazel`
+  - `.bazelignore`
+  - `BUILD.bazel`
+  - `sdk/BUILD.bazel`
+  - `tools/bazel/dart/defs.bzl`
+  - `utils/ddc/BUILD.bazel`
+- **Description**:
+  Resolve workspace-wide wildcard parsing (`//...`) failures and package loading errors by:
+  1. Removing deleted `out_of_band` directories from the exports glob.
+  2. Adding unignored upstream third-party checkouts under `third_party/` to `.bazelignore`.
+  3. Converting generic wrapper/stub targets in `BUILD.bazel` and `utils/ddc/BUILD.bazel` from `cc_library` to `filegroup`.
+  4. Resolving DevTools target output path conflicts by introducing a staging rule `copy_directory`.
+- **Verification Command**:
+  ```bash
+  bazel fetch //...
+  ```
+- **Success Criteria**:
+  - [x] Wildcard target queries (`bazel fetch //...`) complete successfully without package loading or analysis errors.
+  - [x] Conflicting action issues for built-from-source vs. prebuilt DevTools targets are resolved.
+

@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+# Empty build file to designate utils/ddc as a valid Bazel package.
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
@@ -83,33 +83,33 @@ dart_aot_snapshot(
 # kernel dill). No stub here.
 
 # TODO(M3): genrule for ddc_canary_sdk (gn type=action)
-cc_library(name = "ddc_canary_sdk")
+filegroup(name = "ddc_canary_sdk")
 
 # TODO(M3): genrule for ddc_canary_sdk_ddc_module (gn type=action)
-cc_library(name = "ddc_canary_sdk_ddc_module")
+filegroup(name = "ddc_canary_sdk_ddc_module")
 
-cc_library(
+filegroup(
     name = "ddc_canary_test",
     # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
     data = ["//utils/ddc:dartdevc"],
-    deps = [
+    srcs = [
         "//:create_sdk",
         "//utils/ddc:ddc_canary_test_local",
     ],
 )
 
-cc_library(
+filegroup(
     name = "ddc_canary_test_local",
-    deps = [
+    srcs = [
         "//utils/ddc:ddc_canary_sdk",
         "//utils/ddc:ddc_canary_sdk_ddc_module",
         "//utils/ddc:ddc_canary_test_pkg",
     ],
 )
 
-cc_library(
+filegroup(
     name = "ddc_canary_test_pkg",
-    deps = [
+    srcs = [
         "//utils/ddc:ddc_test_pkg_outline",
         "//utils/ddc:expect_canary_ddc_js",
         "//utils/ddc:expect_canary_js",
@@ -121,7 +121,7 @@ cc_library(
 )
 
 # TODO(M3): genrule for ddc_files_stamp (gn type=action)
-cc_library(name = "ddc_files_stamp")
+filegroup(name = "ddc_files_stamp")
 
 # rules_dart Step 2a (first compile_platform WEB variant). Ports
 # utils/ddc/BUILD.gn:compile_platform("ddc_platform") — the DDC SDK platform dill
@@ -146,32 +146,32 @@ dart_compile_platform(
 )
 
 # TODO(M3): genrule for ddc_sdk_patch_stamp (gn type=action)
-cc_library(name = "ddc_sdk_patch_stamp")
+filegroup(name = "ddc_sdk_patch_stamp")
 
 # TODO(M3): genrule for ddc_stable_sdk (gn type=action)
-cc_library(name = "ddc_stable_sdk")
+filegroup(name = "ddc_stable_sdk")
 
-cc_library(
+filegroup(
     name = "ddc_stable_test",
     # dartdevc is now a genrule (app-jit snapshot) -> carry via data, not deps.
     data = ["//utils/ddc:dartdevc"],
-    deps = [
+    srcs = [
         "//:create_sdk",
         "//utils/ddc:ddc_stable_test_local",
     ],
 )
 
-cc_library(
+filegroup(
     name = "ddc_stable_test_local",
-    deps = [
+    srcs = [
         "//utils/ddc:ddc_stable_sdk",
         "//utils/ddc:ddc_stable_test_pkg",
     ],
 )
 
-cc_library(
+filegroup(
     name = "ddc_stable_test_pkg",
-    deps = [
+    srcs = [
         "//utils/ddc:ddc_test_pkg_outline",
         "//utils/ddc:expect_stable_js",
         "//utils/ddc:js_stable_js",
@@ -179,9 +179,9 @@ cc_library(
     ],
 )
 
-cc_library(
+filegroup(
     name = "ddc_test_pkg_outline",
-    deps = [
+    srcs = [
         "//utils/ddc:expect_outline",
         "//utils/ddc:js_outline",
         "//utils/ddc:meta_outline",
@@ -189,40 +189,40 @@ cc_library(
 )
 
 # TODO(M3): genrule for expect_canary_ddc_js (gn type=action)
-cc_library(name = "expect_canary_ddc_js")
+filegroup(name = "expect_canary_ddc_js")
 
 # TODO(M3): genrule for expect_canary_js (gn type=action)
-cc_library(name = "expect_canary_js")
+filegroup(name = "expect_canary_js")
 
 # TODO(M3): genrule for expect_outline (gn type=action)
-cc_library(name = "expect_outline")
+filegroup(name = "expect_outline")
 
 # TODO(M3): genrule for expect_stable_js (gn type=action)
-cc_library(name = "expect_stable_js")
+filegroup(name = "expect_stable_js")
 
 # TODO(M3): genrule for js_canary_ddc_js (gn type=action)
-cc_library(name = "js_canary_ddc_js")
+filegroup(name = "js_canary_ddc_js")
 
 # TODO(M3): genrule for js_canary_js (gn type=action)
-cc_library(name = "js_canary_js")
+filegroup(name = "js_canary_js")
 
 # TODO(M3): genrule for js_outline (gn type=action)
-cc_library(name = "js_outline")
+filegroup(name = "js_outline")
 
 # TODO(M3): genrule for js_stable_js (gn type=action)
-cc_library(name = "js_stable_js")
+filegroup(name = "js_stable_js")
 
 # TODO(M3): genrule for meta_canary_ddc_js (gn type=action)
-cc_library(name = "meta_canary_ddc_js")
+filegroup(name = "meta_canary_ddc_js")
 
 # TODO(M3): genrule for meta_canary_js (gn type=action)
-cc_library(name = "meta_canary_js")
+filegroup(name = "meta_canary_js")
 
 # TODO(M3): genrule for meta_outline (gn type=action)
-cc_library(name = "meta_outline")
+filegroup(name = "meta_outline")
 
 # TODO(M3): genrule for meta_stable_js (gn type=action)
-cc_library(name = "meta_stable_js")
+filegroup(name = "meta_stable_js")
 
 # rules_dart: compile stack_trace_mapper JS utility using prebuilt dart compile js.
 # Ports utils/ddc/BUILD.gn:dart2js_compile("stack_trace_mapper").
