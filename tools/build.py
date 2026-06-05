@@ -27,6 +27,7 @@ usage: %%prog [options] [targets]
 This script invokes ninja to build Dart.
 """
 
+
 def BuildOptions():
     parser = argparse.ArgumentParser(
         description='Runs GN (if necessary) followed by ninja',
@@ -58,11 +59,10 @@ def BuildOptions():
         help="Check that a second invocation of Ninja has nothing to do",
         default=False,
         action='store_true')
-    other_group.add_argument(
-        "--bazel",
-        help="Use Bazel build instead of GN/Ninja",
-        default=False,
-        action='store_true')
+    other_group.add_argument("--bazel",
+                             help="Use Bazel build instead of GN/Ninja",
+                             default=False,
+                             action='store_true')
 
     parser.add_argument('build_targets', nargs='*')
 
@@ -335,7 +335,9 @@ def BuildWithBazel(options, targets, env):
         elif t.startswith('//') or t.startswith('@'):
             bazel_targets.append(t)
         else:
-            print("Warning: Unknown GN-to-Bazel target mapping for '%s'. Passing it as raw target." % t)
+            print(
+                "Warning: Unknown GN-to-Bazel target mapping for '%s'. Passing it as raw target."
+                % t)
             bazel_targets.append(t)
 
     if not bazel_targets:
@@ -350,12 +352,16 @@ def BuildWithBazel(options, targets, env):
                     if mode == 'debug':
                         bazel_command.append('--//build/config:dart_debug=true')
                     elif mode == 'product':
-                        bazel_command.append('--//build/config:dart_product=true')
+                        bazel_command.append(
+                            '--//build/config:dart_product=true')
 
                     if target_os == 'linux' and arch == 'arm64':
-                        bazel_command.append('--platforms=//build/platforms:linux_arm64')
+                        bazel_command.append(
+                            '--platforms=//build/platforms:linux_arm64')
                     elif arch != utils.GuessArchitecture():
-                        print("Warning: Cross-compilation to arch '%s' on OS '%s' is not fully mapped in Bazel yet." % (arch, target_os))
+                        print(
+                            "Warning: Cross-compilation to arch '%s' on OS '%s' is not fully mapped in Bazel yet."
+                            % (arch, target_os))
 
                     bazel_command.extend(bazel_targets)
 

@@ -110,9 +110,11 @@ def canonical_label(label):
         return label.replace("//third_party/icu", "@icu//")
     if label.startswith("//third_party/icu/flutter:"):
         return label.replace("//third_party/icu/flutter:", "@icu//flutter:")
-    if label == "//third_party/boringssl" or label.startswith("//third_party/boringssl:"):
+    if label == "//third_party/boringssl" or label.startswith(
+            "//third_party/boringssl:"):
         return label.replace("//third_party/boringssl", "@boringssl//")
-    if label == "//third_party/perfetto" or label.startswith("//third_party/perfetto:"):
+    if label == "//third_party/perfetto" or label.startswith(
+            "//third_party/perfetto:"):
         return label.replace("//third_party/perfetto", "@perfetto//")
 
     body = label[2:]
@@ -141,7 +143,6 @@ def get_rules_used(targets):
             else:
                 rules.add("cc_library")
     return rules
-
 
 
 _ROOT = "."  # set by main(); used by src_label for on-disk existence check
@@ -221,19 +222,24 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     if rule == "cc_binary":
         srcs += hdrs
         hdrs = []
-    deps = [f'"{canonical_label(d)}"' for d in t.get("deps", []) if "(" not in d]
+    deps = [
+        f'"{canonical_label(d)}"' for d in t.get("deps", []) if "(" not in d
+    ]
     # Drop TOOLCHAIN_VERSION=/SYSROOT_VERSION= — GN cache-buster defines carrying
     # the clang/sysroot CIPD instance_id (build/config/compiler/BUILD.gn). No
     # source reads them (verified), Bazel invalidates on toolchain change on its
     # own, and the per-box CIPD id made every generated BUILD.bazel diverge across
     # checkouts — the reproducibility killer. Strip so output is toolchain-pin
     # independent.
-    is_cross_target = any(suffix in name for suffix in ("_linux_arm", "_linux_arm64", "_linux_riscv64", "_linux_x64"))
+    is_cross_target = any(suffix in name
+                          for suffix in ("_linux_arm", "_linux_arm64",
+                                         "_linux_riscv64", "_linux_x64"))
     defines = [
-        f'"{d}"'
-        for d in t.get("defines", [])
-        if not d.startswith(("TOOLCHAIN_VERSION=", "SYSROOT_VERSION="))
-        and (is_cross_target or d not in ("DART_TARGET_OS_LINUX", "DART_TARGET_OS_MACOS", "TARGET_ARCH_X64", "TARGET_ARCH_ARM64"))
+        f'"{d}"' for d in t.get("defines", [])
+        if not d.startswith(("TOOLCHAIN_VERSION=", "SYSROOT_VERSION=")) and
+        (is_cross_target or d not in ("DART_TARGET_OS_LINUX",
+                                      "DART_TARGET_OS_MACOS", "TARGET_ARCH_X64",
+                                      "TARGET_ARCH_ARM64"))
     ]
     include_copts = []
     for inc in t.get("include_dirs", []):
@@ -252,12 +258,14 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     # by a real toolchain feature); filtered out, clang falls back to host headers.
     def _flags(key):
         return [
-            f'"{c}"'
-            for c in t.get(key, [])
-            if not c.startswith(("--sysroot=", "--target=", "-march=", "-mtune="))
-            and (c not in ("-m64", "-msse", "-msse2", "-msse3", "-msse4", "-msse4.1", "-msse4.2", "-mavx", "-mavx2")
-                 or "zlib_crc32" in name)
+            f'"{c}"' for c in t.get(key, [])
+            if not c.startswith(("--sysroot=", "--target=", "-march=",
+                                 "-mtune=")) and
+            (c not in ("-m64", "-msse", "-msse2", "-msse3", "-msse4",
+                       "-msse4.1", "-msse4.2", "-mavx",
+                       "-mavx2") or "zlib_crc32" in name)
         ]
+
     copts = include_copts + _flags("cflags")
     conlyopts = _flags("cflags_c")
     cxxopts = _flags("cflags_cc")
@@ -343,7 +351,9 @@ def emit_group(name, t, pkg, packages):
     A gn group is a named bundle of dependencies (no sources). The closest
     Bazel primitive that propagates cc deps is a cc_library with no srcs.
     """
-    deps = [f'"{canonical_label(d)}"' for d in t.get("deps", []) if "(" not in d]
+    deps = [
+        f'"{canonical_label(d)}"' for d in t.get("deps", []) if "(" not in d
+    ]
     out = [f'cc_library(\n    name = "{name}",\n']
     out.append(_attr_list("deps", deps))
     out.append(")\n")
@@ -352,23 +362,24 @@ def emit_group(name, t, pkg, packages):
 
 def emit_stub(rule_kind):
     """Empty cc_library stub keeps the label resolvable at analysis time."""
+
     def _emit(name, t, pkg, packages):
         return (
             f'# TODO(M3): {rule_kind} for {name} (gn type={t.get("type")})\n'
-            f'cc_library(name = "{name}")\n'
-        )
+            f'cc_library(name = "{name}")\n')
+
     return _emit
 
 
 EMITTERS = {
-    "source_set":     emit_cc_library,
+    "source_set": emit_cc_library,
     "static_library": emit_cc_library,
     "shared_library": emit_stub("cc_shared_library"),
-    "executable":     emit_cc_binary,
-    "action":         emit_stub("genrule"),
+    "executable": emit_cc_binary,
+    "action": emit_stub("genrule"),
     "action_foreach": emit_stub("genrule"),
-    "copy":           emit_stub("copy"),
-    "group":          emit_group,
+    "copy": emit_stub("copy"),
+    "group": emit_group,
     "generated_file": emit_stub("genrule"),
 }
 
@@ -415,8 +426,7 @@ def _owned_target_names(build_path):
 # bare words "genrule"/"cc_shared_library" in a comment but never followed by
 # "(", so the open-paren anchors keep this from matching pure-machine output.
 _HAND_AUTHORED_MARKERS = re.compile(
-    r'load\("//tools/bazel/dart|genrule\(|linkshared|cc_shared_library\('
-)
+    r'load\("//tools/bazel/dart|genrule\(|linkshared|cc_shared_library\(')
 
 
 def _is_hand_authored_overlay(build_path):
@@ -442,7 +452,8 @@ def write_gen_targets_bzl(root, pkg, targets, packages):
     owned = _owned_target_names(os.path.join(root, pkg, "BUILD.bazel"))
     drop = GEN_TARGETS_DROP.get(pkg, set())
     machine = [(n, t) for n, t in targets if n not in owned and n not in drop]
-    body = (_emit_targets_body(machine, pkg, packages) or "pass\n").rstrip() + "\n"
+    body = (_emit_targets_body(machine, pkg, packages) or
+            "pass\n").rstrip() + "\n"
     out_path = os.path.join(root, pkg, "gen_targets.bzl")
     rules_used = get_rules_used(machine)
     load_stmt = make_load_statement(rules_used)
@@ -452,22 +463,31 @@ def write_gen_targets_bzl(root, pkg, targets, packages):
         if load_stmt:
             f.write(load_stmt)
         f.write("def gen_targets():\n")
-        f.write('    """Declare this package\'s machine-derived cc_* targets (see header).\n\n')
-        f.write('    Called from the hand-authored BUILD.bazel, which owns every hand-fixed\n')
-        f.write('    target; targets defined there are excluded from this macro by the translator.\n')
+        f.write(
+            '    """Declare this package\'s machine-derived cc_* targets (see header).\n\n'
+        )
+        f.write(
+            '    Called from the hand-authored BUILD.bazel, which owns every hand-fixed\n'
+        )
+        f.write(
+            '    target; targets defined there are excluded from this macro by the translator.\n'
+        )
         f.write('    """\n\n')
         f.write(textwrap.indent(body, "    "))
     n_drop = sum(1 for n, _ in targets if n in drop)
     n_hand = len(targets) - len(machine) - n_drop
-    print(f"wrote {out_path} (gen_targets() macro: {len(machine)} machine targets; "
-          f"{n_hand} hand-owned in BUILD.bazel, {n_drop} obsolete dropped)",
-          file=sys.stderr)
+    print(
+        f"wrote {out_path} (gen_targets() macro: {len(machine)} machine targets; "
+        f"{n_hand} hand-owned in BUILD.bazel, {n_drop} obsolete dropped)",
+        file=sys.stderr)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("desc_json", help="gn desc //* --format=json output")
-    ap.add_argument("--root", default=".", help="Repo root for BUILD.bazel output")
+    ap.add_argument("--root",
+                    default=".",
+                    help="Repo root for BUILD.bazel output")
     args = ap.parse_args()
 
     global _ROOT
@@ -520,19 +540,20 @@ def main():
 
     for pkg, targets in sorted(by_pkg.items()):
         if pkg in {
-            "",
-            "runtime",
-            "runtime/platform",
-            "sdk",
-            "runtime/include",
-            "third_party/boringssl",
-            "third_party/icu",
-            "third_party/zlib",
-            "samples/embedder",
-            "third_party/binaryen",
-            "utils/bazel",
+                "",
+                "runtime",
+                "runtime/platform",
+                "sdk",
+                "runtime/include",
+                "third_party/boringssl",
+                "third_party/icu",
+                "third_party/zlib",
+                "samples/embedder",
+                "third_party/binaryen",
+                "utils/bazel",
         }:
-            print(f"skipping {pkg} (hand-authored BUILD.bazel overlay)", file=sys.stderr)
+            print(f"skipping {pkg} (hand-authored BUILD.bazel overlay)",
+                  file=sys.stderr)
             continue
         if pkg in GEN_TARGETS_PACKAGES:
             # §7 overlay: emit gen_targets.bzl; the hand-authored BUILD.bazel is
@@ -547,7 +568,8 @@ def main():
             continue
         out_path = os.path.join(args.root, pkg, "BUILD.bazel")
         if _is_hand_authored_overlay(out_path):
-            print(f"skipping {pkg} (hand-authored overlay detected)", file=sys.stderr)
+            print(f"skipping {pkg} (hand-authored overlay detected)",
+                  file=sys.stderr)
             continue
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
         rules_used = get_rules_used(targets)

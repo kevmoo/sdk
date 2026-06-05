@@ -30,13 +30,16 @@ REPOS = [
     "third_party/pkg/web",
 ]
 
+
 def parse_deps(deps_file_path):
     with open(deps_file_path, 'r') as f:
         content = f.read()
 
     global_dict = {}
+
     def Var(name):
         return global_dict.get('vars', {}).get(name, '')
+
     global_dict['Var'] = Var
 
     try:
@@ -48,6 +51,7 @@ def parse_deps(deps_file_path):
     deps_dict = global_dict.get('deps', {})
     return deps_dict
 
+
 def is_empty_dir(path):
     if not os.path.exists(path):
         return True
@@ -57,6 +61,7 @@ def is_empty_dir(path):
         return not contents or contents == ['.git']
     except Exception:
         return False
+
 
 def clone_repo(repo_path, dep_val):
     if isinstance(dep_val, str):
@@ -86,7 +91,9 @@ def clone_repo(repo_path, dep_val):
     # If the directory already exists and has files (other than .git), we skip it
     # to preserve developer local state.
     if os.path.exists(repo_path) and not is_empty_dir(repo_path):
-        print(f"Directory {repo_path} already exists and is not empty, skipping clone.")
+        print(
+            f"Directory {repo_path} already exists and is not empty, skipping clone."
+        )
         return
 
     # Sanitize environment to prevent parent git config leaks
@@ -97,36 +104,68 @@ def clone_repo(repo_path, dep_val):
 
     # Ensure parent dir exists
     os.makedirs(os.path.dirname(repo_path), exist_ok=True)
-    
+
     is_git = os.path.exists(os.path.join(repo_path, '.git'))
     if not is_git:
         print(f"Initializing new git repository in {repo_path}...")
         os.makedirs(repo_path, exist_ok=True)
-        subprocess.run(["git", "-c", "advice.defaultBranchName=false", "init"], env=git_env, cwd=repo_path, check=True)
-        subprocess.run(["git", "remote", "add", "origin", url], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "-c", "advice.defaultBranchName=false", "init"],
+                       env=git_env,
+                       cwd=repo_path,
+                       check=True)
+        subprocess.run(["git", "remote", "add", "origin", url],
+                       env=git_env,
+                       cwd=repo_path,
+                       check=True)
     else:
         print(f"Reusing existing git repository in {repo_path}...")
         try:
-            subprocess.run(["git", "remote", "set-url", "origin", url], env=git_env, cwd=repo_path, check=True)
+            subprocess.run(["git", "remote", "set-url", "origin", url],
+                           env=git_env,
+                           cwd=repo_path,
+                           check=True)
         except subprocess.CalledProcessError:
             # If set-url fails (e.g. no origin remote configured yet), try adding it
-            subprocess.run(["git", "remote", "add", "origin", url], env=git_env, cwd=repo_path, check=True)
-    
+            subprocess.run(["git", "remote", "add", "origin", url],
+                           env=git_env,
+                           cwd=repo_path,
+                           check=True)
+
     # Configure advice locally for this repository so it applies to all fetch/checkout/init calls
-    subprocess.run(["git", "config", "advice.defaultBranchName", "false"], env=git_env, cwd=repo_path, check=True)
-    subprocess.run(["git", "config", "advice.detachedHead", "false"], env=git_env, cwd=repo_path, check=True)
+    subprocess.run(["git", "config", "advice.defaultBranchName", "false"],
+                   env=git_env,
+                   cwd=repo_path,
+                   check=True)
+    subprocess.run(["git", "config", "advice.detachedHead", "false"],
+                   env=git_env,
+                   cwd=repo_path,
+                   check=True)
 
     # Try fetching the specific revision directly first (faster, shallow)
     try:
-        subprocess.run(["git", "fetch", "--depth=1", "origin", rev], env=git_env, cwd=repo_path, check=True)
-        subprocess.run(["git", "checkout", "FETCH_HEAD"], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "fetch", "--depth=1", "origin", rev],
+                       env=git_env,
+                       cwd=repo_path,
+                       check=True)
+        subprocess.run(["git", "checkout", "FETCH_HEAD"],
+                       env=git_env,
+                       cwd=repo_path,
+                       check=True)
     except subprocess.CalledProcessError:
         print(f"Direct fetch of {rev} failed, falling back to full fetch...")
-        subprocess.run(["git", "fetch", "origin"], env=git_env, cwd=repo_path, check=True)
-        subprocess.run(["git", "checkout", rev], env=git_env, cwd=repo_path, check=True)
+        subprocess.run(["git", "fetch", "origin"],
+                       env=git_env,
+                       cwd=repo_path,
+                       check=True)
+        subprocess.run(["git", "checkout", rev],
+                       env=git_env,
+                       cwd=repo_path,
+                       check=True)
+
 
 def main():
-    sdk_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+    sdk_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     deps_file = os.path.join(sdk_root, 'DEPS')
     deps = parse_deps(deps_file)
 
@@ -158,7 +197,9 @@ def main():
                     import errno
                     pid_running = e.errno == errno.EPERM
                 if not pid_running:
-                    print(f"Detected stale lock (PID {pid} is not running). Clearing it.")
+                    print(
+                        f"Detected stale lock (PID {pid} is not running). Clearing it."
+                    )
                     temp_stale_dir = lock_dir + ".stale." + str(os.getpid())
                     try:
                         os.rename(lock_dir, temp_stale_dir)
@@ -178,7 +219,9 @@ def main():
                 try:
                     # Fallback modification time check: 5 minutes (300s)
                     if time.time() - os.path.getmtime(lock_dir) > 300:
-                        print("Detected stale lock (older than 5 minutes). Clearing it.")
+                        print(
+                            "Detected stale lock (older than 5 minutes). Clearing it."
+                        )
                         temp_stale_dir = lock_dir + ".stale." + str(os.getpid())
                         try:
                             os.rename(lock_dir, temp_stale_dir)
@@ -199,7 +242,8 @@ def main():
             time.sleep(1)
 
     if not acquired_lock:
-        print("Error: Could not acquire lock for cloning dependencies", file=sys.stderr)
+        print("Error: Could not acquire lock for cloning dependencies",
+              file=sys.stderr)
         sys.exit(1)
 
     try:
@@ -209,11 +253,12 @@ def main():
                 if k.endswith(repo):
                     dep_key = k
                     break
-            
+
             if not dep_key:
-                print(f"Warning: Repository {repo} not found in DEPS, skipping.")
+                print(
+                    f"Warning: Repository {repo} not found in DEPS, skipping.")
                 continue
-                
+
             clone_repo(os.path.join(sdk_root, repo), deps[dep_key])
     finally:
         try:
@@ -224,6 +269,7 @@ def main():
             os.rmdir(lock_dir)
         except Exception:
             pass
+
 
 if __name__ == '__main__':
     main()

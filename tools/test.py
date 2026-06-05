@@ -20,16 +20,16 @@ def ResolveConfig(named_config):
     if not named_config:
         return repo_name, suffix, injected_flags
 
-
     config_lower = named_config.lower()
     tokens = [t for t in config_lower.replace('-', '_').split('_') if t]
-
 
     is_debug = 'debug' in tokens
     is_product = 'product' in tokens
 
     if is_debug and is_product:
-        raise ValueError(f"Configuration '{named_config}' cannot contain both 'debug' and 'product'")
+        raise ValueError(
+            f"Configuration '{named_config}' cannot contain both 'debug' and 'product'"
+        )
 
     is_wasm = 'wasm' in tokens or 'dart2wasm' in tokens
     is_dart2js = 'dart2js' in tokens
@@ -44,7 +44,10 @@ def ResolveConfig(named_config):
         injected_flags.append('--features=tsan')
 
     arch = None
-    for a in ['simarm64', 'simarm', 'simriscv64', 'simriscv32', 'arm64', 'arm', 'riscv64', 'riscv32', 'ia32', 'x64']:
+    for a in [
+            'simarm64', 'simarm', 'simriscv64', 'simriscv32', 'arm64', 'arm',
+            'riscv64', 'riscv32', 'ia32', 'x64'
+    ]:
         if a in tokens:
             arch = a
             break
@@ -111,7 +114,7 @@ def TestWithBazel(args):
         arg = args[i]
         if arg == '-n' or arg == '--named-configuration':
             if i + 1 < len(args):
-                named_config = args[i+1]
+                named_config = args[i + 1]
                 i += 2
                 continue
         elif arg.startswith('--named-configuration='):
@@ -187,17 +190,25 @@ def TestWithBazel(args):
             i += 1
 
     if not selectors:
-        print("Error: Bazel test delegation requires at least one test selector (e.g., 'web/wasm/simd/vector_test').")
+        print(
+            "Error: Bazel test delegation requires at least one test selector (e.g., 'web/wasm/simd/vector_test')."
+        )
         return 1
 
     # Query all targets recursively in the dynamic test repository
     query_command = [utils.ResolveBazelPath(), 'query', f'@{repo_name}//...']
-    process = subprocess.Popen(query_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(query_command,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
     out, err = process.communicate()
     if process.returncode != 0:
-        print(f"Error: Failed to query Bazel targets for repository '@{repo_name}'. Make sure the named configuration is valid.")
+        print(
+            f"Error: Failed to query Bazel targets for repository '@{repo_name}'. Make sure the named configuration is valid."
+        )
         return 1
-    all_targets = [t.strip() for t in out.decode('utf-8').splitlines() if t.strip()]
+    all_targets = [
+        t.strip() for t in out.decode('utf-8').splitlines() if t.strip()
+    ]
 
     bazel_targets = []
     filter_parts = []
@@ -218,7 +229,7 @@ def TestWithBazel(args):
             pkg_dir = f"{parts[0]}/misc"
 
         target = f"@{repo_name}//{pkg_dir}:tests{suffix}"
-        rel_path = name[len(pkg_dir)+1:] if len(name) > len(pkg_dir) else ""
+        rel_path = name[len(pkg_dir) + 1:] if len(name) > len(pkg_dir) else ""
         fine_grained_target_name = rel_path.replace('/', '_')
         if fine_grained_target_name.endswith('.dart'):
             fine_grained_target_name = fine_grained_target_name[:-5]
@@ -241,7 +252,8 @@ def TestWithBazel(args):
                 for t in all_targets:
                     if t.startswith(pkg_prefix) and t.endswith(suffix):
                         target_name = t.split(':', 1)[1]
-                        target_name_nosuffix = target_name[:-len(suffix)] if suffix else target_name
+                        target_name_nosuffix = target_name[:-len(
+                            suffix)] if suffix else target_name
                         if target_name_nosuffix.startswith(target_prefix):
                             matches.append(t)
                 if matches:
@@ -254,7 +266,11 @@ def TestWithBazel(args):
                 # Support broad directory suite selectors (e.g. 'web', 'language')
                 prefix1 = f"@{repo_name}//{name}/"
                 prefix2 = f"@{repo_name}//{name}:"
-                matches = [t for t in all_targets if (t.startswith(prefix1) or t.startswith(prefix2)) and t.endswith(suffix)]
+                matches = [
+                    t for t in all_targets
+                    if (t.startswith(prefix1) or t.startswith(prefix2)) and
+                    t.endswith(suffix)
+                ]
                 if matches:
                     for m in matches:
                         if m not in bazel_targets:
@@ -263,17 +279,22 @@ def TestWithBazel(args):
                     matched = True
 
             if not matched:
-                print(f"Warning: No matching Bazel test targets found for selector '{selector}' under configuration '{repo_name}' with suffix '{suffix}'")
+                print(
+                    f"Warning: No matching Bazel test targets found for selector '{selector}' under configuration '{repo_name}' with suffix '{suffix}'"
+                )
 
     if not bazel_targets:
-        print("Error: No valid Bazel test targets were resolved from the selectors.")
+        print(
+            "Error: No valid Bazel test targets were resolved from the selectors."
+        )
         return 1
 
     if filter_parts:
         combined_filter = '|'.join(filter_parts)
         bazel_flags.append(f'--test_filter={combined_filter}')
 
-    bazel_command = [utils.ResolveBazelPath(), 'test'] + injected_flags + bazel_flags + bazel_targets
+    bazel_command = [utils.ResolveBazelPath(), 'test'
+                    ] + injected_flags + bazel_flags + bazel_targets
     print('Running Bazel Tests: ' + ' '.join(bazel_command))
     process = subprocess.Popen(bazel_command)
     process.wait()

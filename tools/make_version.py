@@ -43,7 +43,8 @@ def MakeSnapshotHashString(snapshot_files=None):
         if os.path.exists(vmfilename):
             vmfilepath = vmfilename
         else:
-            vmfilepath = os.path.join(utils.DART_DIR, 'runtime', 'vm', vmfilename)
+            vmfilepath = os.path.join(utils.DART_DIR, 'runtime', 'vm',
+                                      vmfilename)
         with open(vmfilepath, 'rb') as vmfile:
             vmhash.update(vmfile.read())
     return vmhash.hexdigest()
@@ -54,7 +55,12 @@ def GetSemanticVersionFormat(no_git_hash):
     return version_format
 
 
-def FormatVersionString(version, no_git_hash, no_sdk_hash, version_file=None, git_hash=None, snapshot_files=None):
+def FormatVersionString(version,
+                        no_git_hash,
+                        no_sdk_hash,
+                        version_file=None,
+                        git_hash=None,
+                        snapshot_files=None):
     semantic_sdk_version = utils.GetVersion(no_git_hash, version_file, git_hash)
     semantic_version_format = GetSemanticVersionFormat(no_git_hash)
     version_str = (semantic_sdk_version
@@ -121,17 +127,21 @@ def main():
             help='Version format used if no input template is given.')
         parser.add_argument('--dart-dir', help='Path to the DART_DIR.')
         parser.add_argument('--git-hash', help='Explicit SDK git hash.')
-        parser.add_argument('--snapshot-files', help='Comma-separated list of snapshot files.')
+        parser.add_argument('--snapshot-files',
+                            help='Comma-separated list of snapshot files.')
 
         args = parser.parse_args()
 
         if args.dart_dir:
             utils.DART_DIR = os.path.abspath(args.dart_dir)
-            utils.VERSION_FILE = os.path.join(utils.DART_DIR, 'tools', 'VERSION')
+            utils.VERSION_FILE = os.path.join(utils.DART_DIR, 'tools',
+                                              'VERSION')
 
         snapshot_files = None
         if args.snapshot_files:
-            snapshot_files = [f.strip() for f in args.snapshot_files.split(',') if f.strip()]
+            snapshot_files = [
+                f.strip() for f in args.snapshot_files.split(',') if f.strip()
+            ]
 
         # If there is no input template, then write the bare version string to
         # args.output. If there is no args.output, then write the version
@@ -145,10 +155,12 @@ def main():
         else:
             raise 'No version template given! Set either --input or --format.'
 
-        version = FormatVersionString(version_template, args.no_git_hash,
-                                       args.no_sdk_hash, args.version_file,
-                                       git_hash=args.git_hash,
-                                       snapshot_files=snapshot_files)
+        version = FormatVersionString(version_template,
+                                      args.no_git_hash,
+                                      args.no_sdk_hash,
+                                      args.version_file,
+                                      git_hash=args.git_hash,
+                                      snapshot_files=snapshot_files)
 
         if args.output:
             # If the output already exists and there is no change, don't even
