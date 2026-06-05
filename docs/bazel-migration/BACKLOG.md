@@ -60,8 +60,9 @@ graph TD
     TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
     TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
     TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::completed
-    TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::pending
+    TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::completed
     TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
+    TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -787,10 +788,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_034] Add Chrome/Firefox test configurations to Bazel target generator
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: TASK_033
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[local]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `tools/bazel/dart/generate_test_targets.dart`
 - **Description**:
@@ -800,9 +801,9 @@ graph TD
   python3 tools/test.py --bazel -n dart2wasm-chrome corelib/list_test
   ```
 - **Success Criteria**:
-  - [ ] Chrome/Firefox test configurations are defined in `generate_test_targets.dart`.
-  - [ ] Bazel generates `tests_wasm_chrome_release` targets under the `@dart_tests` repository.
-  - [ ] E2E browser tests compile, spin up Chrome via chromedriver in the sandbox, and pass cleanly.
+  - [x] Chrome/Firefox test configurations are defined in `generate_test_targets.dart`.
+  - [x] Bazel generates `tests_wasm_chrome_release` targets under the `@dart_tests` repository.
+  - [x] E2E browser tests compile, spin up Chrome via chromedriver in the sandbox, and pass cleanly.
 
 ---
 
@@ -832,3 +833,26 @@ graph TD
   - [x] Wildcard target queries (`bazel fetch //...`) complete successfully without package loading or analysis errors.
   - [x] Conflicting action issues for built-from-source vs. prebuilt DevTools targets are resolved.
 
+---
+
+### 🎯 [TASK_036] Audit and convert remaining cc_library stubs to filegroup or alias
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `sdk/BUILD.bazel`
+  - `utils/BUILD.bazel`
+  - `utils/kernel-service/BUILD.bazel`
+  - `utils/bazel/BUILD.bazel`
+  - `samples/embedder/BUILD.bazel`
+- **Description**:
+  Audit the remaining `cc_library` targets in the workspace that do not contain C++ source files (such as placeholders, copies, or stubs) and convert them to `filegroup` or `alias`. This ensures cleaner target definitions and prevents unnecessary C++ toolchain resolution or potential provider errors.
+- **Verification Command**:
+  ```bash
+  bazel fetch //...
+  ```
+- **Success Criteria**:
+  - [ ] Candidate stub targets are converted to `filegroup` or `alias`.
+  - [ ] Dependents are updated to reference them via `srcs` (for `filegroup`) or remain unchanged (for `alias`).
+  - [ ] `bazel fetch //...` and standard builds continue to pass cleanly.

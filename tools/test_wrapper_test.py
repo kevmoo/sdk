@@ -43,12 +43,12 @@ class TestResolveConfig(unittest.TestCase):
     def test_vm_debug_config(self):
         repo, suffix, flags = test.ResolveConfig('debug_x64')
         self.assertEqual(suffix, '_vm_debug')
-        self.assertEqual(flags, ['--//build/config:dart_debug=true'])
+        self.assertEqual(flags, ['--//build/config:dart_target_arch=x64', '--//build/config:dart_debug=true'])
 
     def test_vm_product_config(self):
         repo, suffix, flags = test.ResolveConfig('product_x64')
         self.assertEqual(suffix, '_vm_product')
-        self.assertEqual(flags, ['--//build/config:dart_product=true'])
+        self.assertEqual(flags, ['--//build/config:dart_target_arch=x64', '--//build/config:dart_product=true'])
 
     def test_sanitizer_configs(self):
         repo, suffix, flags = test.ResolveConfig('dart-asan')
@@ -57,24 +57,51 @@ class TestResolveConfig(unittest.TestCase):
 
         repo, suffix, flags = test.ResolveConfig('debug_x64_asan')
         self.assertEqual(suffix, '_vm_debug')
-        self.assertEqual(flags, ['--features=asan', '--//build/config:dart_debug=true'])
+        self.assertEqual(flags, ['--features=asan', '--//build/config:dart_target_arch=x64', '--//build/config:dart_debug=true'])
 
         repo, suffix, flags = test.ResolveConfig('product_x64_tsan')
         self.assertEqual(suffix, '_vm_product')
-        self.assertEqual(flags, ['--features=tsan', '--//build/config:dart_product=true'])
+        self.assertEqual(flags, ['--features=tsan', '--//build/config:dart_target_arch=x64', '--//build/config:dart_product=true'])
 
     def test_aot_configs(self):
         repo, suffix, flags = test.ResolveConfig('vm-aot-release-x64')
         self.assertEqual(suffix, '_vm_aot_release')
-        self.assertEqual(flags, [])
+        self.assertEqual(flags, ['--//build/config:dart_target_arch=x64'])
 
         repo, suffix, flags = test.ResolveConfig('vm-aot-debug-x64')
         self.assertEqual(suffix, '_vm_aot_debug')
-        self.assertEqual(flags, ['--//build/config:dart_debug=true'])
+        self.assertEqual(flags, ['--//build/config:dart_target_arch=x64', '--//build/config:dart_debug=true'])
 
         repo, suffix, flags = test.ResolveConfig('vm-aot-product-x64')
         self.assertEqual(suffix, '_vm_aot_product')
-        self.assertEqual(flags, ['--//build/config:dart_product=true'])
+        self.assertEqual(flags, ['--//build/config:dart_target_arch=x64', '--//build/config:dart_product=true'])
+
+    def test_mutual_exclusion_errors(self):
+        with self.assertRaises(ValueError) as ctx:
+            test.ResolveConfig('vm-debug-product-x64')
+        self.assertIn("cannot contain both 'debug' and 'product'", str(ctx.exception))
+
+    def test_browser_configs_with_modifiers(self):
+        # dart2wasm-asserts-chrome -> _wasm_chrome_asserts
+        repo, suffix, flags = test.ResolveConfig('dart2wasm-asserts-chrome')
+        self.assertEqual(suffix, '_wasm_chrome_asserts')
+        self.assertEqual(flags, [])
+
+        # dart2wasm-optimized-chrome -> _wasm_chrome_optimized
+        repo, suffix, flags = test.ResolveConfig('dart2wasm-optimized-chrome')
+        self.assertEqual(suffix, '_wasm_chrome_optimized')
+        self.assertEqual(flags, [])
+
+        # dart2wasm-asserts-firefox -> _wasm_firefox_asserts
+        repo, suffix, flags = test.ResolveConfig('dart2wasm-asserts-firefox')
+        self.assertEqual(suffix, '_wasm_firefox_asserts')
+        self.assertEqual(flags, [])
+
+        # dart2wasm-optimized-firefox -> _wasm_firefox_optimized
+        repo, suffix, flags = test.ResolveConfig('dart2wasm-optimized-firefox')
+        self.assertEqual(suffix, '_wasm_firefox_optimized')
+        self.assertEqual(flags, [])
+
 
 
 class TestTestWithBazel(unittest.TestCase):
@@ -247,6 +274,7 @@ class TestTestWithBazel(unittest.TestCase):
             self.assertIn("Error: No valid Bazel test targets were resolved", captured_output.getvalue())
         finally:
             sys.stdout = sys.__stdout__
+
 
 
 

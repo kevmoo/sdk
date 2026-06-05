@@ -40,6 +40,11 @@ void main(List<String> args) async {
     return;
   }
 
+  workspaceDir = p.absolute(workspaceDir);
+  outputDir = p.absolute(outputDir);
+
+  final subDirToPkgDir = <String, String>{};
+
   final debugLog = File('$outputDir/debug.log');
   final debugBuf = StringBuffer();
   debugBuf.writeln('=== Debug Log ===');
@@ -122,7 +127,56 @@ void main(List<String> args) async {
     return;
   }
 
-  // 3. Move generated files to configuration-specific package subdirectories and group
+  // 3. Populate subDirToPkgDir mapping for all test cases across all configurations
+  for (final res in results) {
+    final configName = res.config.name;
+    final generatedPrefix = '$outputDir/out/$configName/generated_tests/';
+    for (final tc in res.testCases) {
+      final name = tc['name'] as String;
+      if (name == 'standalone/check_for_aot_snapshot_jit_test') continue;
+
+      final parts = name.split('/');
+      String pkgDir;
+      const coarseSuites = {'corelib', 'standalone', 'ffi', 'language'};
+      if (parts.isNotEmpty && coarseSuites.contains(parts[0])) {
+        pkgDir = parts[0];
+      } else if (parts.length >= 2) {
+        pkgDir = '${parts[0]}/${parts[1]}';
+      } else {
+        pkgDir = '${parts[0]}/misc';
+      }
+
+      final filePathAbs = tc['file_path'] as String;
+      if (filePathAbs.startsWith(generatedPrefix)) {
+        final relativeToGenerated = filePathAbs.substring(
+          generatedPrefix.length,
+        );
+        final norm = relativeToGenerated.replaceAll('\\', '/');
+        final parts = norm.split('/');
+        if (parts.isNotEmpty) {
+          final String key;
+          if (parts[0].startsWith('custom-') && parts.length >= 2) {
+            key = parts[1];
+          } else {
+            key = parts[0];
+          }
+          subDirToPkgDir[key] = pkgDir;
+        }
+      } else if (filePathAbs.startsWith('$workspaceDir${p.separator}')) {
+        final relative = filePathAbs.substring(
+          '$workspaceDir${p.separator}'.length,
+        );
+        final norm = relative.replaceAll('\\', '/');
+        final dotIndex = norm.lastIndexOf('.');
+        final pathWithoutExt =
+            dotIndex != -1 ? norm.substring(0, dotIndex) : norm;
+        final key = pathWithoutExt.replaceAll('/', '_');
+        subDirToPkgDir[key] = pkgDir;
+      }
+    }
+  }
+
+  // 4. Move generated files to configuration-specific package subdirectories and group
   final packageGroups = <String, Map<String, List<Map<String, dynamic>>>>{};
   for (final res in results) {
     final configName = res.config.name;
@@ -145,11 +199,13 @@ void main(List<String> args) async {
       final filePathAbs = tc['file_path'] as String;
       final generatedPrefix = '$outputDir/out/$configName/generated_tests/';
       if (filePathAbs.startsWith(generatedPrefix)) {
-        final relativeToGenerated =
-            filePathAbs.substring(generatedPrefix.length);
+        final relativeToGenerated = filePathAbs.substring(
+          generatedPrefix.length,
+        );
         final slashIndex = relativeToGenerated.indexOf('/');
-        final relativePathFromSuite =
-            relativeToGenerated.substring(slashIndex + 1);
+        final relativePathFromSuite = relativeToGenerated.substring(
+          slashIndex + 1,
+        );
 
         final destDir = '$outputDir/$pkgDir/gen_tests/$configName';
         final destPath = '$destDir/$relativePathFromSuite';
@@ -172,8 +228,10 @@ void main(List<String> args) async {
                 if (args[i] == filePathAbs) {
                   args[i] = destPath;
                 } else if (args[i].toString().contains(filePathAbs)) {
-                  args[i] =
-                      args[i].toString().replaceAll(filePathAbs, destPath);
+                  args[i] = args[i].toString().replaceAll(
+                        filePathAbs,
+                        destPath,
+                      );
                 }
               }
             }
@@ -193,27 +251,36 @@ void main(List<String> args) async {
       for (final entity in genDir.listSync(recursive: true)) {
         if (entity is File) {
           final filePathAbs = entity.path.replaceAll('\\', '/');
-          final relativeToGenerated =
-              filePathAbs.substring(genDir.path.length + 1);
+          final relativeToGenerated = filePathAbs.substring(
+            genDir.path.length + 1,
+          );
           final parts = relativeToGenerated.split('/');
 
-          String pkgDir;
-          String relativePathFromSuite;
-          const coarseSuites = {'corelib', 'standalone', 'ffi', 'language'};
+          final String flatName;
+          final String relativePath;
 
-          if (parts.length >= 2 && coarseSuites.contains(parts[0])) {
-            pkgDir = parts[0];
-            relativePathFromSuite = parts.sublist(1).join('/');
-          } else if (parts.length >= 2) {
-            pkgDir = '${parts[0]}/${parts[1]}';
-            relativePathFromSuite = parts.sublist(2).join('/');
+          if (parts[0].startsWith('custom-')) {
+            flatName = parts[1];
+            relativePath = parts.sublist(1).join('/');
           } else {
-            pkgDir = '${parts[0]}/misc';
-            relativePathFromSuite = parts.sublist(1).join('/');
+            flatName = parts[0];
+            relativePath = parts.join('/');
           }
 
-          final destDir = '$outputDir/$pkgDir/gen_tests/$configName';
-          final destPath = '$destDir/$relativePathFromSuite';
+          var pkgDir = subDirToPkgDir[flatName];
+          if (pkgDir == null) {
+            var strippedName = flatName;
+            if (flatName.startsWith('tests_')) {
+              strippedName = flatName.substring('tests_'.length);
+            } else if (flatName.startsWith('multitest_')) {
+              strippedName = flatName.substring('multitest_'.length);
+            }
+            pkgDir = subDirToPkgDir[strippedName];
+          }
+          pkgDir ??= _getPkgDirFromFlatName(flatName);
+
+          final destPath =
+              '$outputDir/$pkgDir/gen_tests/$configName/$relativePath';
 
           Directory(p.dirname(destPath)).createSync(recursive: true);
           entity.renameSync(destPath);
@@ -599,7 +666,7 @@ $targetDepsStr
           shardedTargets.add('''sh_test(
     name = "tests_$configName",
     srcs = ["//:run_single_test.sh"],
-    data = glob(["gen_tests/$configName/**/*.dart"], allow_empty = True) + [
+    data = glob(["gen_tests/$configName/**/*.dart", "gen_tests/$configName/**/*.html"], allow_empty = True) + [
         ":workspace_files",
         ":tests_metadata_$configName.json",
 $dataListStr
@@ -734,6 +801,62 @@ const _configs = <_TestConfig>[
     runtime: 'd8',
     suites: ['language', 'corelib', 'web/wasm'],
     extraFlags: ['--dart2wasm-options=-O1'],
+  ),
+  (
+    name: 'wasm_chrome_release',
+    mode: 'release',
+    compiler: 'dart2wasm',
+    runtime: 'chrome',
+    suites: ['language', 'corelib', 'web/wasm'],
+    extraFlags: [],
+  ),
+  (
+    name: 'wasm_chrome_asserts',
+    mode: 'release',
+    compiler: 'dart2wasm',
+    runtime: 'chrome',
+    suites: ['language', 'corelib', 'web/wasm'],
+    extraFlags: ['--enable-asserts', '--dart2wasm-options=-O0'],
+  ),
+  (
+    name: 'wasm_chrome_optimized',
+    mode: 'release',
+    compiler: 'dart2wasm',
+    runtime: 'chrome',
+    suites: ['language', 'corelib', 'web/wasm'],
+    extraFlags: ['--dart2wasm-options=-O1'],
+  ),
+  (
+    name: 'wasm_firefox_release',
+    mode: 'release',
+    compiler: 'dart2wasm',
+    runtime: 'firefox',
+    suites: ['language', 'corelib', 'web/wasm'],
+    extraFlags: [],
+  ),
+  (
+    name: 'wasm_firefox_asserts',
+    mode: 'release',
+    compiler: 'dart2wasm',
+    runtime: 'firefox',
+    suites: ['language', 'corelib', 'web/wasm'],
+    extraFlags: ['--enable-asserts', '--dart2wasm-options=-O0'],
+  ),
+  (
+    name: 'dart2js_chrome_release',
+    mode: 'release',
+    compiler: 'dart2js',
+    runtime: 'chrome',
+    suites: ['language', 'corelib', 'web/wasm'],
+    extraFlags: [],
+  ),
+  (
+    name: 'dart2js_firefox_release',
+    mode: 'release',
+    compiler: 'dart2js',
+    runtime: 'firefox',
+    suites: ['language', 'corelib', 'web/wasm'],
+    extraFlags: [],
   ),
   (
     name: 'cfe_release',
@@ -981,4 +1104,23 @@ Set<String> _parsePubspecDependencies(
     }
   }
   return deps;
+}
+
+String _getPkgDirFromFlatName(String flatName) {
+  var name = flatName;
+  if (name.startsWith('tests_')) {
+    name = name.substring('tests_'.length);
+  } else if (name.startsWith('multitest_')) {
+    name = name.substring('multitest_'.length);
+  }
+
+  final parts = name.split('_');
+  const coarseSuites = {'corelib', 'standalone', 'ffi', 'language'};
+  if (parts.isNotEmpty && coarseSuites.contains(parts[0])) {
+    return parts[0];
+  } else if (parts.length >= 2) {
+    return '${parts[0]}/${parts[1]}';
+  } else {
+    return '${parts[0]}/misc';
+  }
 }

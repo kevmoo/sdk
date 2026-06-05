@@ -26,6 +26,21 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 113 — **(jetski) Rebased branches and verified compiler covariance fix under Bazel.**
+- **Rebased Task Branches**: Rebased both `r1-task-033` and `r2-r3-task-034` onto the updated remote `bazel` branch (which includes PR #6 and PR #7), resolving all backlog and status merge conflicts cleanly.
+- **Fixed Dynamic VM Snapshot selection**: Restored the `select()` conditional block for `copy_dart2wasm_snapshot` in `sdk/BUILD.bazel` to dynamically package the product vs non-product compiler snapshot. Verified the SDK compiles successfully in both configurations via `bazel build //sdk:create_sdk` and `bazel build --//build/config:dart_product=true //sdk:create_sdk`.
+- **Restored Corrupted ICU directory**: Fixed a circular symlink cycle inside the main repository's untracked `third_party/icu/source` directory by force-syncing the dependency using `/usr/local/google/home/kevmoo/github/depot_tools/gclient sync -f`.
+- **Verified E2E Browser Testing and Compiler Covariance Fix**: Rebased the user's local compiler covariance fix branch `cl-508425-type-opt` onto `r2-r3-task-034` and ran `python3 tools/test.py --bazel -n dart2wasm-chrome language/covariant/callable_class_field_getter_test` inside the worktree. The test compiled, loaded chromedriver, and executed green.
+
+Session 112 — **(jetski) Added TASK_036 to backlog based on PR #7 review.**
+- **Reviewed PR #7**: Reviewed the changes in PR #7 and identified generalizations for the rest of the migration.
+- **Added TASK_036 to Backlog**: Added a new task to audit and convert remaining `cc_library` stubs to `filegroup` or `alias` across the workspace.
+
+Session 111 — **(jetski) Completed TASK_034: Add Chrome/Firefox test configurations to Bazel target generator.**
+- **Added Browser Configurations to Target Generator**: Added `wasm_chrome_release`, `wasm_chrome_asserts`, `wasm_chrome_optimized`, `wasm_firefox_release`, `wasm_firefox_asserts`, `dart2js_chrome_release`, and `dart2js_firefox_release` configurations to `tools/bazel/dart/generate_test_targets.dart`.
+- **Implemented Simplified Relocation Logic**: Refactored the auxiliary file relocation routing loop in `generate_test_targets.dart` to determine the correct suite package directory (`pkgDir`) using the flat unique name of test cases (`_getPkgDirFromFlatName` helper). This cleanly resolves path divergence for multitest split files and browser HTML wrappers, preventing them from leaking into the output root directory.
+- **Verified Browser target generation and E2E execution**: Verified that `python3 tools/bazel_browser_test_e2e.py` and `python3 tools/adv_test_wrapper_audit_test.py` execute and pass 100% successfully on the local branch, confirming that HTML wrappers are generated, globbed correctly, and routed properly under the suite `gen_tests/` subdirectories.
+
 Session 110 — **(worker_4) Completed and Isolated TASK_033: Fix SDK packaging VM product mode configuration mismatch.**
 - **Isolated R1 changes**: Created local branch `r1-task-033` and discarded all changes outside of R1 (specifically `pkg/test_runner/bin/run_single_test.dart`, `tools/bazel/dart/generate_test_targets.dart`, `tools/bazel/dart/test_rules.bzl`, `tools/test.py`, and `tools/test_wrapper_test.py`).
 - **Verified Build VM target**: Successfully executed `bazel build //runtime/bin:dartvm`.

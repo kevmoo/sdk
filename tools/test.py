@@ -20,53 +20,62 @@ def ResolveConfig(named_config):
     if not named_config:
         return repo_name, suffix, injected_flags
 
+
     config_lower = named_config.lower()
+    tokens = [t for t in config_lower.replace('-', '_').split('_') if t]
 
-    is_wasm = 'wasm' in config_lower or 'dart2wasm' in config_lower
-    is_debug = 'debug' in config_lower
-    is_product = 'product' in config_lower
-    is_cfe = 'cfe' in config_lower or 'fasta' in config_lower
-    is_aot = 'aot' in config_lower
 
-    if 'asan' in config_lower:
+    is_debug = 'debug' in tokens
+    is_product = 'product' in tokens
+
+    if is_debug and is_product:
+        raise ValueError(f"Configuration '{named_config}' cannot contain both 'debug' and 'product'")
+
+    is_wasm = 'wasm' in tokens or 'dart2wasm' in tokens
+    is_dart2js = 'dart2js' in tokens
+    is_cfe = 'cfe' in tokens or 'fasta' in tokens
+    is_aot = 'aot' in tokens
+
+    if 'asan' in tokens:
         injected_flags.append('--features=asan')
-    elif 'msan' in config_lower:
+    elif 'msan' in tokens:
         injected_flags.append('--features=msan')
-    elif 'tsan' in config_lower:
+    elif 'tsan' in tokens:
         injected_flags.append('--features=tsan')
 
     arch = None
-    if 'simarm64' in config_lower:
-        arch = 'simarm64'
-    elif 'simarm' in config_lower:
-        arch = 'simarm'
-    elif 'simriscv64' in config_lower:
-        arch = 'simriscv64'
-    elif 'simriscv32' in config_lower:
-        arch = 'simriscv32'
-    elif 'arm64' in config_lower:
-        arch = 'arm64'
-    elif 'arm' in config_lower:
-        arch = 'arm'
-    elif 'riscv64' in config_lower:
-        arch = 'riscv64'
-    elif 'riscv32' in config_lower:
-        arch = 'riscv32'
-    elif 'ia32' in config_lower:
-        arch = 'ia32'
-    elif 'x64' in config_lower:
-        arch = 'x64'
+    for a in ['simarm64', 'simarm', 'simriscv64', 'simriscv32', 'arm64', 'arm', 'riscv64', 'riscv32', 'ia32', 'x64']:
+        if a in tokens:
+            arch = a
+            break
 
     if arch:
         injected_flags.append(f'--//build/config:dart_target_arch={arch}')
 
     if is_wasm:
-        if 'asserts' in config_lower:
-            suffix = '_wasm_asserts'
-        elif 'optimized' in config_lower:
-            suffix = '_wasm_optimized'
+        browser = None
+        if 'chrome' in tokens:
+            browser = 'chrome'
+        elif 'firefox' in tokens:
+            browser = 'firefox'
+
+        modifier = 'release'
+        if 'asserts' in tokens:
+            modifier = 'asserts'
+        elif 'optimized' in tokens:
+            modifier = 'optimized'
+
+        if browser:
+            suffix = f'_wasm_{browser}_{modifier}'
         else:
-            suffix = '_wasm_release'
+            suffix = f'_wasm_{modifier}'
+    elif is_dart2js:
+        if 'chrome' in tokens:
+            suffix = '_dart2js_chrome_release'
+        elif 'firefox' in tokens:
+            suffix = '_dart2js_firefox_release'
+        else:
+            suffix = '_dart2js_release'
     elif is_cfe:
         suffix = '_cfe_release'
     elif is_aot:
@@ -112,7 +121,11 @@ def TestWithBazel(args):
         remaining_args.append(arg)
         i += 1
 
-    repo_name, suffix, injected_flags = ResolveConfig(named_config)
+    try:
+        repo_name, suffix, injected_flags = ResolveConfig(named_config)
+    except ValueError as e:
+        print(f"Error: {e}")
+        return 1
 
     selectors = []
     bazel_flags = []
