@@ -134,6 +134,9 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                 strip_prefix = "firefox"
             elif os_name == "mac os x":
                 url = "https://archive.mozilla.org/pub/firefox/releases/{}/mac/en-US/Firefox%20{}.pkg".format(version, version)
+                repository_ctx.delete("Firefox.app")
+                repository_ctx.delete("firefox.pkg")
+                repository_ctx.delete("tmp_pkg")
                 repository_ctx.download(
                     url = url,
                     output = "firefox.pkg",

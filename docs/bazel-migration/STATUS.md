@@ -31,6 +31,7 @@ Session 116 — **(Antigravity) Enabled Firefox browser testing on macOS and ver
 - **Addressed PR review feedback**: Improved the macOS downloader implementation by utilizing `find` to recursively locate `Firefox.app` inside the payload (making the extraction path resilient to naming changes). Patched the launcher wrapper script to recursively resolve symlinks via a portable bash loop, ensuring correctness when run under Bazel's runfiles tree.
 - **Resolved second round of PR feedback**: Added explicit verification of the extracted `Firefox.app` existence (`repository_ctx.path("Firefox.app").exists`) to fail early and avoid silent errors. Unconditionally printed standard output/error of the copy command to preserve terminal log visibility.
 - **Resolved third round of PR feedback**: Unconditionally printed standard output and error for both `pkgutil` and `find` commands to improve debug log visibility during loading/analysis phases.
+- **Resolved fourth round of PR feedback**: Explicitly deleted `Firefox.app`, `firefox.pkg`, and `tmp_pkg` before downloading and expanding the package to prevent stale files and directory nesting on re-execution.
 - **Verified Firefox E2E testing**: Successfully executed `python3 tools/test.py --bazel -n dart2wasm-firefox language/covariant/callable_class_field_getter_test` before and after all PR fixes, confirming the test suite runs green.
 
 Session 115 — **(jetski) Fixed path duplication bug for test helpers, investigated browser testing, and added package sync investigation task.**
