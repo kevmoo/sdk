@@ -142,13 +142,13 @@ def _fetch_remote(repository_ctx, repo_type, prefix):
                     output = "firefox.pkg",
                 )
                 res = repository_ctx.execute(["pkgutil", "--expand-full", "firefox.pkg", "tmp_pkg"])
-                print(res.stdout)
-                print(res.stderr)
+                print(res.stdout)  # buildifier: disable=print
+                print(res.stderr)  # buildifier: disable=print
                 if res.return_code != 0:
                     fail("Failed to expand Firefox pkg: " + res.stderr)
                 res = repository_ctx.execute(["find", "tmp_pkg", "-name", "Firefox.app", "-type", "d", "-exec", "cp", "-R", "{}", ".", ";"])
-                print(res.stdout)
-                print(res.stderr)
+                print(res.stdout)  # buildifier: disable=print
+                print(res.stderr)  # buildifier: disable=print
                 if res.return_code != 0:
                     fail("Failed to locate and copy Firefox.app from payload: " + res.stderr)
                 if not repository_ctx.path("Firefox.app").exists:

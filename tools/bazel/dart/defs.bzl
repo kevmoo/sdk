@@ -774,13 +774,13 @@ dart_binary = rule(
     implementation = _dart_binary_impl,
     executable = True,
     attrs = {
+        "main": attr.label(allow_single_file = [".dart"], mandatory = True),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "vm_args": attr.string_list(default = []),
         "_package_config": attr.label(
             allow_single_file = True,
             default = "//tools/bazel/dart:runfiles_package_config",
         ),
-        "main": attr.label(allow_single_file = [".dart"], mandatory = True),
-        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
-        "vm_args": attr.string_list(default = []),
     },
     toolchains = ["//tools/bazel/dart:toolchain_type"],
 )
