@@ -72,9 +72,8 @@ void main(List<String> args) async {
 
   // 2. Run dry-run exporter natively for all configurations in parallel
   final futures = _configs.map((config) async {
-    final activeSuites = config.suites
-        .where((s) => suites.contains(s))
-        .toList();
+    final activeSuites =
+        config.suites.where((s) => suites.contains(s)).toList();
     if (activeSuites.isEmpty) {
       debugBuf.writeln('No active suites for config ${config.name}, skipping.');
       return (config: config, testCases: <Map<String, dynamic>>[]);
@@ -155,8 +154,12 @@ void main(List<String> args) async {
         final norm = relativeToGenerated.replaceAll('\\', '/');
         final parts = norm.split('/');
         if (parts.isNotEmpty) {
-          final remainingSegments = parts.sublist(0, parts.length - 1);
-          final key = remainingSegments.join('/');
+          final String key;
+          if (parts[0].startsWith('custom-') && parts.length >= 2) {
+            key = parts[1];
+          } else {
+            key = parts[0];
+          }
           subDirToPkgDir[key] = pkgDir;
         }
       } else if (filePathAbs.startsWith('$workspaceDir${p.separator}')) {
@@ -165,9 +168,8 @@ void main(List<String> args) async {
         );
         final norm = relative.replaceAll('\\', '/');
         final dotIndex = norm.lastIndexOf('.');
-        final pathWithoutExt = dotIndex != -1
-            ? norm.substring(0, dotIndex)
-            : norm;
+        final pathWithoutExt =
+            dotIndex != -1 ? norm.substring(0, dotIndex) : norm;
         final key = pathWithoutExt.replaceAll('/', '_');
         subDirToPkgDir[key] = pkgDir;
       }
@@ -227,9 +229,9 @@ void main(List<String> args) async {
                   args[i] = destPath;
                 } else if (args[i].toString().contains(filePathAbs)) {
                   args[i] = args[i].toString().replaceAll(
-                    filePathAbs,
-                    destPath,
-                  );
+                        filePathAbs,
+                        destPath,
+                      );
                 }
               }
             }
@@ -611,9 +613,8 @@ void main(List<String> args) async {
               }
             }
 
-            final targetDepsStr = targetDeps
-                .map((d) => '        "$d"')
-                .join(',\n');
+            final targetDepsStr =
+                targetDeps.map((d) => '        "$d"').join(',\n');
             individualTargets.add('''sh_test(
     name = "$targetName",
     srcs = ["//:run_single_test.sh"],
@@ -653,9 +654,8 @@ $targetDepsStr
           baselineDepsSet.addAll(otherDeps);
           final baselineDepsList = baselineDepsSet.toList()..sort();
 
-          final dataListStr = baselineDepsList
-              .map((d) => '        "$d",')
-              .join('\n');
+          final dataListStr =
+              baselineDepsList.map((d) => '        "$d",').join('\n');
 
           var shardCount = enrichedCases.length ~/ 12;
           if (shardCount < 1) {
@@ -711,9 +711,8 @@ $targetsStr
     } else {
       if (shardedTargets.isNotEmpty) {
         final sortedWorkspaceFiles = packageWorkspaceFiles.toList()..sort();
-        final workspaceFilesStr = sortedWorkspaceFiles
-            .map((f) => '        "$f",')
-            .join('\n');
+        final workspaceFilesStr =
+            sortedWorkspaceFiles.map((f) => '        "$f",').join('\n');
 
         final targetsStr = shardedTargets.join('\n\n');
         pkgBuild.writeAsStringSync(
