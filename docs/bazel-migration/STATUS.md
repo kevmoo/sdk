@@ -26,6 +26,11 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 115 — **(jetski) Fixed path duplication bug for test helpers, investigated browser testing, and added package sync investigation task.**
+- **Fixed Path Duplication Bug**: Staged a fix in `generate_test_targets.dart` to correctly strip the suite name from the destination path of auxiliary files, preventing duplicate nesting and resolving compile-time errors in split multitests.
+- **Investigated Browser Testing**: Found that browser testing under Bazel is currently not runnable due to the absence of HTTP server infrastructure in the sandboxed test executor (`run_single_test.dart`) and dummy URLs in target metadata. Reverted experimental execution changes.
+- **Added TASK_038 to Backlog**: Added a pending task to investigate migrating Dart package dependency syncing to Bazel, and regenerated the backlog graph.
+
 Session 114 — **(jetski) Completed PR #9 feedback, added Python formatting quality gate, and cleaned up resource limits.**
 - **Fixed PR #9 feedback**: Aligned the `subDirToPkgDir` key population logic in `generate_test_targets.dart` to match `flatName` lookup by stripping the `custom-` prefix, resolving package lookup failures.
 - **Synchronized and Cleaned workspace**: Checked out `bazel` branch and reset to `kevmoo/bazel` to sync all upstream merged PRs. Force-removed the completed `cl508425_wasm_fix` worktree and deleted local branches `r1-task-033`, `r2-r3-task-034`, and `cl-508425-type-opt`.

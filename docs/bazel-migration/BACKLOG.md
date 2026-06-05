@@ -64,6 +64,7 @@ graph TD
     TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
     TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::pending
     TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::pending
+    TASK_038["TASK_038:<br>Investigate migrating Dart package dependency syncing to Bazel"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -877,4 +878,22 @@ graph TD
   - [ ] Legacy instructions/guides are moved to `docs/bazel-migration/archive/`.
   - [ ] A concise, agent-optimized "Getting Started" guide exists and specifies prerequisites (like xcode-select for macOS, python, etc.).
   - [ ] All active docs are clean of obsolete configurations or defunct hooks references.
+
+---
+
+### 🎯 [TASK_038] Investigate migrating Dart package dependency syncing to Bazel
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/generate_test_targets.dart`
+  - `tools/bazel/generate_debug_package_config.py`
+- **Description**:
+  Evaluate the feasibility and trade-offs of migrating Dart package dependency resolution (currently handled by `gclient sync` and host-side `pubspec` resolution) to run hermetically inside Bazel (e.g., using a custom Bzlmod extension to fetch packages and generate the package config). Address developer workflow impact (ability to edit `third_party/pkg` sources), bootstrap loop implications, and alignment with Google3.
+- **Verification Command**:
+  N/A (Investigation Task)
+- **Success Criteria**:
+  - [ ] Analysis document detailing feasibility, design options, and trade-offs for hermetic package syncing.
+
 
