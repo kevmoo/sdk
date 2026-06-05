@@ -37,4 +37,3 @@ genrule(
     outs = ["package_config.json"],
     cmd = "cp $< $@",
 )
-
