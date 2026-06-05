@@ -5,12 +5,23 @@
 
 import os
 import re
+import subprocess
 import sys
 
 def main():
-    repo_dir = "/usr/local/google/home/kevmoo/.cache/bazel/_bazel_kevmoo/ead12c53352f3731a78765b752097237/external/+dart_tests_extension+dart_tests"
+    try:
+        output_base = subprocess.check_output(
+            ["bazel", "info", "output_base"], text=True).strip()
+    except (subprocess.SubprocessError, FileNotFoundError) as e:
+        print(f"Error running bazel info output_base: {e}")
+        return 1
+
+    repo_dir = os.path.join(output_base, "external", "+dart_tests_extension+dart_tests")
     if not os.path.exists(repo_dir):
-        print(f"Error: Repository directory {repo_dir} does not exist. Run a bazel test first.")
+        repo_dir = os.path.join(output_base, "external", "dart_tests")
+
+    if not os.path.exists(repo_dir):
+        print(f"Error: Repository directory under output_base '{output_base}' does not exist. Run a bazel test first.")
         return 1
 
     print("Auditing generated files and Bazel BUILD configuration...")
