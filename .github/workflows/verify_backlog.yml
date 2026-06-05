@@ -1,0 +1,38 @@
+name: Verify Backlog Alignment
+
+on:
+  pull_request:
+    branches:
+      - bazel
+    paths:
+      - 'docs/bazel-migration/backlog.json'
+      - 'docs/bazel-migration/BACKLOG.md'
+      - 'docs/bazel-migration/BACKLOG_HISTORY.md'
+      - 'docs/bazel-migration/generate_backlog_graph.dart'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert PR is targeting bazel branch
+        run: |
+          echo "PR Target Branch: ${{ github.base_ref }}"
+          if [ "${{ github.base_ref }}" != "bazel" ]; then
+            echo "Error: This workflow should only run on PRs targeting the bazel branch."
+            exit 1
+          fi
+
+      - name: Checkout SDK
+        uses: actions/checkout@v4
+
+      - name: Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Regenerate Backlog Files
+        run: dart docs/bazel-migration/generate_backlog_graph.dart
+
+      - name: Verify No Drift
+        run: |
+          git diff --exit-code docs/bazel-migration/BACKLOG.md docs/bazel-migration/BACKLOG_HISTORY.md
