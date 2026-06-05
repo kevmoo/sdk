@@ -26,6 +26,10 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 114 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
+- **Enabled macOS support for Firefox downloader**: Patched the public browser downloader rule in `tools/bazel/third_party.bzl` to support macOS. Rather than failing on non-Linux hosts, it now downloads the Firefox macOS installer package (`.pkg`), expands it using host `pkgutil`, copies `Firefox.app` to the repository root, and generates a relative launcher wrapper script named `firefox`.
+- **Verified Firefox E2E testing**: Successfully executed `python3 tools/test.py --bazel -n dart2wasm-firefox language/covariant/callable_class_field_getter_test`, confirming that the downloader resolves, extracts, and runs Firefox tests green under macOS.
+
 Session 113 — **(jetski) Rebased branches and verified compiler covariance fix under Bazel.**
 - **Rebased Task Branches**: Rebased both `r1-task-033` and `r2-r3-task-034` onto the updated remote `bazel` branch (which includes PR #6 and PR #7), resolving all backlog and status merge conflicts cleanly.
 - **Fixed Dynamic VM Snapshot selection**: Restored the `select()` conditional block for `copy_dart2wasm_snapshot` in `sdk/BUILD.bazel` to dynamically package the product vs non-product compiler snapshot. Verified the SDK compiles successfully in both configurations via `bazel build //sdk:create_sdk` and `bazel build --//build/config:dart_product=true //sdk:create_sdk`.

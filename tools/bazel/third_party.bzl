@@ -132,8 +132,28 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                 url = "https://archive.mozilla.org/pub/firefox/releases/{}/linux-x86_64/en-US/firefox-{}.tar.xz".format(version, version)
                 dl_type = "tar.xz"
                 strip_prefix = "firefox"
+            elif os_name == "mac os x":
+                url = "https://archive.mozilla.org/pub/firefox/releases/{}/mac/en-US/Firefox%20{}.pkg".format(version, version)
+                repository_ctx.download(
+                    url = url,
+                    output = "firefox.pkg",
+                )
+                res = repository_ctx.execute(["pkgutil", "--expand-full", "firefox.pkg", "tmp_pkg"])
+                if res.return_code != 0:
+                    fail("Failed to expand Firefox pkg: " + res.stderr)
+                res = repository_ctx.execute(["/bin/bash", "-c", "cp -R tmp_pkg/Firefox*.pkg/Payload/Firefox.app ."])
+                if res.return_code != 0:
+                    fail("Failed to copy Firefox.app from payload: " + res.stderr)
+                repository_ctx.file(
+                    "firefox",
+                    "#!/bin/bash\nexec \"$(dirname \"$0\")/Firefox.app/Contents/MacOS/firefox\" \"$@\"\n",
+                    executable = True
+                )
+                repository_ctx.delete("firefox.pkg")
+                repository_ctx.delete("tmp_pkg")
+                return
             else:
-                fail("Firefox download is currently only supported on Linux in this Bazel setup")
+                fail("Firefox download is currently only supported on Linux and macOS in this Bazel setup")
         else:
             fail("Unreachable")
 
