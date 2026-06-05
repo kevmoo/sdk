@@ -219,7 +219,10 @@ filegroup(
 # rules_dart Step 5: copy dart2wasm snapshot. Ports GN copy("copy_dart2wasm_snapshot")
 genrule(
     name = "copy_dart2wasm_snapshot",
-    srcs = ["//utils/dart2wasm:dart2wasm_product_snapshot"],
+    srcs = select({
+        "//build/config:product": ["//utils/dart2wasm:dart2wasm_product_snapshot"],
+        "//conditions:default": ["//utils/dart2wasm:dart2wasm_snapshot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/dart2wasm_product.snapshot"],
     cmd = "cp $< $@",
 )
@@ -724,11 +727,11 @@ copy_tree(
 
 copy_directory(
     name = "copy_devtools",
+    out_dir = "dart-sdk/bin/resources/devtools",
     src_dir = select({
         "//build/config:devtools_from_sources": "//sdk:build_devtools",
         "//conditions:default": "//sdk:copy_prebuilt_devtools",
     }),
-    out_dir = "dart-sdk/bin/resources/devtools",
 )
 
 # GN renames README.dart-sdk -> README at the SDK root.
@@ -816,6 +819,7 @@ filegroup(
         "//sdk:copy_dartdoc_files",
         "//sdk:copy_dartvm",
         "//sdk:copy_dartvm_sym",
+        "//sdk:copy_devtools",
         "//sdk:copy_headers",
         "//sdk:copy_libraries_specification",
         "//sdk:copy_license",
@@ -828,7 +832,6 @@ filegroup(
         "//sdk:write_dartdoc_options",
         "//sdk:write_revision_file",
         "//sdk:write_version_file",
-        "//sdk:copy_devtools",
     ],
 )
 
