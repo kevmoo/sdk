@@ -28,7 +28,8 @@
 
 Session 114 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
 - **Enabled macOS support for Firefox downloader**: Patched the public browser downloader rule in `tools/bazel/third_party.bzl` to support macOS. Rather than failing on non-Linux hosts, it now downloads the Firefox macOS installer package (`.pkg`), expands it using host `pkgutil`, copies `Firefox.app` to the repository root, and generates a relative launcher wrapper script named `firefox`.
-- **Verified Firefox E2E testing**: Successfully executed `python3 tools/test.py --bazel -n dart2wasm-firefox language/covariant/callable_class_field_getter_test`, confirming that the downloader resolves, extracts, and runs Firefox tests green under macOS.
+- **Addressed PR review feedback**: Improved the macOS downloader implementation by utilizing `find` to recursively locate `Firefox.app` inside the payload (making the extraction path resilient to naming changes). Patched the launcher wrapper script to recursively resolve symlinks via a portable bash loop, ensuring correctness when run under Bazel's runfiles tree.
+- **Verified Firefox E2E testing**: Successfully executed `python3 tools/test.py --bazel -n dart2wasm-firefox language/covariant/callable_class_field_getter_test` before and after the PR fixes, confirming the test suite runs green.
 
 Session 113 — **(jetski) Rebased branches and verified compiler covariance fix under Bazel.**
 - **Rebased Task Branches**: Rebased both `r1-task-033` and `r2-r3-task-034` onto the updated remote `bazel` branch (which includes PR #6 and PR #7), resolving all backlog and status merge conflicts cleanly.

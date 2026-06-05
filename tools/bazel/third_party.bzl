@@ -141,12 +141,12 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                 res = repository_ctx.execute(["pkgutil", "--expand-full", "firefox.pkg", "tmp_pkg"])
                 if res.return_code != 0:
                     fail("Failed to expand Firefox pkg: " + res.stderr)
-                res = repository_ctx.execute(["/bin/bash", "-c", "cp -R tmp_pkg/Firefox*.pkg/Payload/Firefox.app ."])
+                res = repository_ctx.execute(["/bin/bash", "-c", "find tmp_pkg -name Firefox.app -type d -exec cp -R {} . \\;"])
                 if res.return_code != 0:
-                    fail("Failed to copy Firefox.app from payload: " + res.stderr)
+                    fail("Failed to locate and copy Firefox.app from payload: " + res.stderr)
                 repository_ctx.file(
                     "firefox",
-                    "#!/bin/bash\nexec \"$(dirname \"$0\")/Firefox.app/Contents/MacOS/firefox\" \"$@\"\n",
+                    "#!/bin/bash\ntarget=\"$0\"\nwhile [ -L \"$target\" ]; do\n  dir=\"$(dirname \"$target\")\"\n  target=\"$(readlink \"$target\")\"\n  case \"$target\" in\n    /*) ;;\n    *) target=\"$dir/$target\" ;;\n  esac\ndone\nscript_dir=\"$(cd -P \"$(dirname \"$target\")\" && pwd)\"\nexec \"$script_dir/Firefox.app/Contents/MacOS/firefox\" \"$@\"\n",
                     executable = True
                 )
                 repository_ctx.delete("firefox.pkg")
