@@ -146,7 +146,7 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                 print(res.stderr)
                 if res.return_code != 0:
                     fail("Failed to expand Firefox pkg: " + res.stderr)
-                res = repository_ctx.execute(["/bin/bash", "-c", "find tmp_pkg -name Firefox.app -type d -exec cp -R {} . \\;"])
+                res = repository_ctx.execute(["find", "tmp_pkg", "-name", "Firefox.app", "-type", "d", "-exec", "cp", "-R", "{}", ".", ";"])
                 print(res.stdout)
                 print(res.stderr)
                 if res.return_code != 0:
@@ -155,8 +155,20 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                     fail("Firefox.app was not found in the expanded package payload")
                 repository_ctx.file(
                     "firefox",
-                    "#!/bin/bash\ntarget=\"$0\"\nwhile [ -L \"$target\" ]; do\n  dir=\"$(dirname \"$target\")\"\n  target=\"$(readlink \"$target\")\"\n  case \"$target\" in\n    /*) ;;\n    *) target=\"$dir/$target\" ;;\n  esac\ndone\nscript_dir=\"$(cd -P \"$(dirname \"$target\")\" && pwd)\"\nexec \"$script_dir/Firefox.app/Contents/MacOS/firefox\" \"$@\"\n",
-                    executable = True
+                    """#!/bin/bash
+target="$0"
+while [ -L "$target" ]; do
+  dir="$(dirname "$target")"
+  target="$(readlink "$target")"
+  case "$target" in
+    /*) ;;
+    *) target="$dir/$target" ;;
+  esac
+done
+script_dir="$(cd -P "$(dirname "$target")" && pwd)"
+exec "$script_dir/Firefox.app/Contents/MacOS/firefox" "$@"
+""",
+                    executable = True,
                 )
                 repository_ctx.delete("firefox.pkg")
                 repository_ctx.delete("tmp_pkg")
