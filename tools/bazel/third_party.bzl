@@ -142,8 +142,14 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                 if res.return_code != 0:
                     fail("Failed to expand Firefox pkg: " + res.stderr)
                 res = repository_ctx.execute(["/bin/bash", "-c", "find tmp_pkg -name Firefox.app -type d -exec cp -R {} . \\;"])
+                if res.stdout:
+                    print(res.stdout)
+                if res.stderr:
+                    print(res.stderr)
                 if res.return_code != 0:
                     fail("Failed to locate and copy Firefox.app from payload: " + res.stderr)
+                if not repository_ctx.path("Firefox.app").exists:
+                    fail("Firefox.app was not found in the expanded package payload")
                 repository_ctx.file(
                     "firefox",
                     "#!/bin/bash\ntarget=\"$0\"\nwhile [ -L \"$target\" ]; do\n  dir=\"$(dirname \"$target\")\"\n  target=\"$(readlink \"$target\")\"\n  case \"$target\" in\n    /*) ;;\n    *) target=\"$dir/$target\" ;;\n  esac\ndone\nscript_dir=\"$(cd -P \"$(dirname \"$target\")\" && pwd)\"\nexec \"$script_dir/Firefox.app/Contents/MacOS/firefox\" \"$@\"\n",
