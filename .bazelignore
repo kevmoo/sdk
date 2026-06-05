@@ -2,3 +2,8 @@
 # generated build artifacts, which causes severe performance degradation
 # and potential package conflicts during analysis.
 out
+third_party/boringssl/src
+third_party/perfetto/src
+third_party/cpu_features/src
+third_party/emsdk/bazel
+third_party/icu/source

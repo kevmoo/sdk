@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 109 — **(jetski) Resolved workspace-wide wildcard target evaluation and package loading errors.**
+- **Fixed Empty Glob Loading Error**: Corrected `tools/bazel/BUILD.bazel` to only export `parse_deps.py` after the deletion of the `out_of_band/` directory, resolving package loading errors during wildcard scans.
+- **Added Upstream Ignores to .bazelignore**: Appended `third_party/boringssl/src`, `third_party/perfetto/src`, `third_party/cpu_features/src`, `third_party/emsdk/bazel`, and `third_party/icu/source` to `.bazelignore` to prevent Bazel from scanning unignored upstream build files.
+- **Converted wrappers to filegroups**: Converted mock/stub/wrapper `cc_library` targets (like `//:dart2js`, `//utils/ddc:ddc_canary_test`, etc.) to `filegroup` targets in `BUILD.bazel` and `utils/ddc/BUILD.bazel` to prevent CcInfo provider validation errors.
+- **Resolved DevTools Staging Path Conflict**: Modified `build_devtools` and `copy_prebuilt_devtools` to write to unique output directories under the `sdk` package. Appended a custom `copy_directory` Starlark rule to `tools/bazel/dart/defs.bzl` and introduced a `//sdk:copy_devtools` target to stage the selected DevTools output dynamically.
+- **Verified Build**: Confirmed `bazel fetch //...` completes successfully, and both `bazel build //sdk:create_sdk` and `bazel build //runtime/bin:dartvm` build 100% green.
+
 Session 108 — **(jetski) Fixed dart2wasm compiler snapshot product compatibility mismatch.**
 - **Identified and Fixed Snapshot Product Mismatch**: Resolved a test failure where executing dart2wasm tests in Bazel would crash because `dartaotruntime` (always product mode) mismatched the compiler snapshot `dart2wasm_product.snapshot` (staged as non-product release mode).
 - **Updated BUILD.bazel**: Modified `copy_dart2wasm_snapshot` in `sdk/BUILD.bazel` to always source the product snapshot (`//utils/dart2wasm:dart2wasm_product_snapshot`).

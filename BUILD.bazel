@@ -3,7 +3,6 @@
 # bits and re-apply fixes from version control.
 
 load("@dart_packages//:defs.bzl", "declare_package_targets")
-load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -160,7 +159,7 @@ filegroup(
     ),
 )
 
-cc_library(
+filegroup(
     name = "analysis_server",
     # //utils/analysis_server:analysis_server is now the real app-jit snapshot
     # genrule (not a cc_library), so it rides via `data`, not `deps`.
@@ -169,53 +168,53 @@ cc_library(
     ],
 )
 
-cc_library(
+filegroup(
     name = "create_platform_sdk",
-    deps = [
+    srcs = [
         "//sdk:create_platform_sdk",
     ],
 )
 
-cc_library(
+filegroup(
     name = "create_sdk",
-    deps = [
+    srcs = [
         "//sdk:create_sdk",
     ],
 )
 
-cc_library(
+filegroup(
     name = "dart2js",
-    deps = [
+    srcs = [
         "//:runtime_precompiled",
         "//utils/compiler:dart2js_sdk_aot",
     ],
 )
 
-cc_library(
+filegroup(
     name = "dart2js_bot",
-    deps = [
+    srcs = [
         "//:create_sdk",
         "//utils/compiler:compile_dart2js_platform",
     ],
 )
 
-cc_library(
+filegroup(
     name = "dart2wasm",
-    deps = [
+    srcs = [
         "//:dart2wasm_platform",
         "//utils/dart2wasm:test_wasm_modules",
     ],
 )
 
-cc_library(
+filegroup(
     name = "dart2wasm_benchmark",
-    deps = [
+    srcs = [
         "//:dart2wasm_platform",
         "//third_party/binaryen:wasm-opt",
     ],
 )
 
-cc_library(
+filegroup(
     name = "dart2wasm_platform",
     data = [
         "//utils/dart2wasm:compile_dart2wasm_js_compatibility_platform",
@@ -224,44 +223,44 @@ cc_library(
         "//utils/dart2wasm:dart2wasm_asserts_snapshot",
         "//utils/dart2wasm:dart2wasm_snapshot",
     ],
-    deps = [
+    srcs = [
         "//:runtime_precompiled",
     ],
 )
 
-cc_library(
+filegroup(
     name = "dartanalyzer",
-    deps = [
+    srcs = [
         "//utils/dartanalyzer",
     ],
 )
 
-cc_library(
+filegroup(
     name = "ddc",
-    deps = [
+    srcs = [
         "//:runtime_precompiled",
         "//utils/bazel:kernel_worker_aot",
         "//utils/ddc:dartdevc_aot",
     ],
 )
 
-cc_library(
+filegroup(
     name = "debian_package",
-    deps = [
+    srcs = [
         "//tools/debian_package",
     ],
 )
 
-cc_library(
+filegroup(
     name = "default",
-    deps = [
+    srcs = [
         "//:runtime",
     ],
 )
 
-cc_library(
+filegroup(
     name = "most",
-    deps = [
+    srcs = [
         "//:analysis_server",
         "//:create_sdk",
         "//:dart2js",
@@ -271,16 +270,16 @@ cc_library(
     ],
 )
 
-cc_library(
+filegroup(
     name = "run_ffi_unit_tests",
-    deps = [
+    srcs = [
         "//runtime/bin/ffi_unit_test:run_ffi_unit_tests",
     ],
 )
 
-cc_library(
+filegroup(
     name = "runtime",
-    deps = [
+    srcs = [
         "//runtime/bin:abstract_socket_test",
         "//runtime/bin:analyze_snapshot",
         "//runtime/bin:dart",
@@ -309,9 +308,9 @@ cc_library(
     ],
 )
 
-cc_library(
+filegroup(
     name = "runtime_precompiled",
-    deps = [
+    srcs = [
         "//runtime/bin:abstract_socket_test",
         "//runtime/bin:dartaotruntime",
         "//runtime/bin:gen_snapshot",
@@ -320,9 +319,9 @@ cc_library(
     ],
 )
 
-cc_library(
+filegroup(
     name = "tools",
-    deps = [
+    srcs = [
         "//utils:compile_platform.exe",
         "//utils:gen_kernel.exe",
     ],

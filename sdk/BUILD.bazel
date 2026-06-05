@@ -3,7 +3,7 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//tools/bazel/dart:defs.bzl", "build_devtools_rule", "copy_internal_with_dills", "copy_sdk_library", "copy_tree")
+load("//tools/bazel/dart:defs.bzl", "build_devtools_rule", "copy_directory", "copy_internal_with_dills", "copy_sdk_library", "copy_tree")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -59,7 +59,7 @@ build_devtools_rule(
     srcs = [
         "//tools:utils.py",
     ],
-    out_dir = "dart-sdk/bin/resources/devtools",
+    out_dir = "dart-sdk/bin/resources/devtools_built",
 )
 
 copy_sdk_library(
@@ -684,8 +684,17 @@ filegroup(
 copy_tree(
     name = "copy_prebuilt_devtools",
     srcs = ["//:prebuilt_devtools_files"],
-    out_dir = "dart-sdk/bin/resources/devtools",
+    out_dir = "dart-sdk/bin/resources/devtools_prebuilt",
     src_dir = "third_party/devtools/web",
+)
+
+copy_directory(
+    name = "copy_devtools",
+    src_dir = select({
+        "//build/config:devtools_from_sources": "//sdk:build_devtools",
+        "//conditions:default": "//sdk:copy_prebuilt_devtools",
+    }),
+    out_dir = "dart-sdk/bin/resources/devtools",
 )
 
 # GN renames README.dart-sdk -> README at the SDK root.
@@ -785,10 +794,8 @@ filegroup(
         "//sdk:write_dartdoc_options",
         "//sdk:write_revision_file",
         "//sdk:write_version_file",
-    ] + select({
-        "//build/config:devtools_from_sources": ["//sdk:build_devtools"],
-        "//conditions:default": ["//sdk:copy_prebuilt_devtools"],
-    }),
+        "//sdk:copy_devtools",
+    ],
 )
 
 filegroup(
