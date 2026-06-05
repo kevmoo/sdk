@@ -13,18 +13,6 @@ load(":gen_targets.bzl", "gen_targets")
 package(default_visibility = ["//visibility:public"])
 
 TEMPLATE_IO_PLATFORM_SRCS = select({
-    "@platforms//os:macos": [
-        "eventhandler_macos.cc",
-        "file_system_watcher_macos.cc",
-        "namespace_macos.cc",
-        "platform_macos.cc",
-        "process_macos.cc",
-        "security_context_macos.cc",
-        "socket_base_macos.cc",
-        "socket_macos.cc",
-        "stdio_macos.cc",
-        "sync_socket_macos.cc",
-    ],
     "@platforms//os:linux": [
         "eventhandler_linux.cc",
         "file_system_watcher_linux.cc",
@@ -36,6 +24,18 @@ TEMPLATE_IO_PLATFORM_SRCS = select({
         "socket_linux.cc",
         "stdio_linux.cc",
         "sync_socket_linux.cc",
+    ],
+    "@platforms//os:macos": [
+        "eventhandler_macos.cc",
+        "file_system_watcher_macos.cc",
+        "namespace_macos.cc",
+        "platform_macos.cc",
+        "process_macos.cc",
+        "security_context_macos.cc",
+        "socket_base_macos.cc",
+        "socket_macos.cc",
+        "stdio_macos.cc",
+        "sync_socket_macos.cc",
     ],
     "//conditions:default": [
         "eventhandler_linux.cc",
@@ -52,14 +52,6 @@ TEMPLATE_IO_PLATFORM_SRCS = select({
 })
 
 TEMPLATE_BUILTIN_PLATFORM_SRCS = select({
-    "@platforms//os:macos": [
-        "crypto_macos.cc",
-        "directory_macos.cc",
-        "fdutils_macos.cc",
-        "file_macos.cc",
-        "thread_macos.cc",
-        "utils_macos.cc",
-    ],
     "@platforms//os:linux": [
         "crypto_linux.cc",
         "directory_linux.cc",
@@ -67,6 +59,14 @@ TEMPLATE_BUILTIN_PLATFORM_SRCS = select({
         "file_linux.cc",
         "thread_linux.cc",
         "utils_linux.cc",
+    ],
+    "@platforms//os:macos": [
+        "crypto_macos.cc",
+        "directory_macos.cc",
+        "fdutils_macos.cc",
+        "file_macos.cc",
+        "thread_macos.cc",
+        "utils_macos.cc",
     ],
     "//conditions:default": [
         "crypto_linux.cc",
@@ -558,6 +558,7 @@ cc_library(
     }),
     implementation_deps = ["//runtime/platform:headers"],
     deps = ["//build/config:dart_mode"],
+    alwayslink = True,
 )
 
 # Real :core_snapshot_data_linkable / :core_snapshot_text_linkable are
@@ -3420,8 +3421,8 @@ genrule(
           "--output $@ " +
           "--symbol_name kIcuData " +
           select({
-              "@platforms//os:macos": "--target_os mac",
               "@platforms//os:linux": "--target_os linux",
+              "@platforms//os:macos": "--target_os mac",
               "//conditions:default": "--target_os linux",
           }) + " " +
           select({
@@ -3446,6 +3447,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 # M5 Path-1.5: real kernel_service.dill embed.
@@ -3512,6 +3514,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 cc_library(
@@ -4493,6 +4496,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 # Real kDartCoreSnapshotData + kDartCoreSnapshotText (M5 Path-1.5 closeout).
@@ -4607,6 +4611,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 cc_library(
@@ -4624,6 +4629,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 cc_library(

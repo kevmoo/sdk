@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 117 — **(jetski) Enabled standard Bazel formatting and linting (Buildifier) repository-wide.**
+- **Resolved warnings in defs.bzl**: Removed unused variables (`_PACKAGE_CONFIG`, `_PACKAGE_CONFIG_FILE`, `_COMPILE_PLATFORM`) and unused parameter `sdk_hash` from macros. Added buildifier disable comments for function docstrings on AOT/JIT macros, and sorted all `attrs` dictionaries.
+- **Resolved warnings in BUILD files**: Added `alwayslink = True` to 6 hand-authored C++ stub/linkable libraries in `runtime/bin/BUILD.bazel` to fix `no-hdrs-no-alwayslink` warning. Sorted `select` dictionary keys in `runtime/platform/BUILD.bazel`, `runtime/bin/BUILD.bazel`, and `build/config/BUILD.bazel`. Moved `tools/gn.py` out of glob in root `BUILD.bazel`. Added disable comments for `alwayslink-with-hdrs` in `runtime/engine/BUILD.bazel` and `platform-specific-binaries` in `build/config/sanitizers/BUILD.bazel`.
+- **Added CI Linter Gate**: Created a separate GitHub Actions workflow `.github/workflows/buildifier.yml` to run formatting/linting check on all tracked Bazel files (excluding `third_party` and `gen_targets.bzl`).
+- **Added Agent Linter Gate**: Updated `.agents/rules/code_quality_gates.md` with the new Bazel formatting and linting gate.
+- **Updated Backlog**: Added `TASK_039` to `BACKLOG.md` and regenerated the dependency graph.
+
 Session 116 — **(jetski) Completed TASK_036 (cc_library stubs cleanup) and resolved review feedback.**
 - **Completed TASK_036 (cc_library stubs cleanup)**: Audited all remaining placeholder `cc_library` targets in the repository that do not contain C++ source code. Converted them to `filegroup` targets across `sdk/BUILD.bazel`, `utils/BUILD.bazel`, `utils/kernel-service/BUILD.bazel`, and `utils/bazel/BUILD.bazel`. Removed unnecessary `rules_cc` load statements.
 - **Resolved Review Feedback**: Rewrote the stale comment in `utils/kernel-service/BUILD.bazel` to correctly describe the `copy_kernel-service_snapshot` target as a `filegroup` using `srcs`, satisfying code review warnings from `@gemini-code-assist`.

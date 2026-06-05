@@ -45,13 +45,6 @@ dart_toolchain = rule(
     },
 )
 
-_PACKAGE_CONFIG = ".dart_tool/package_config.json"
-
-# The package map as a standalone filegroup input. Since `sources` is a per-package
-# dart_library closure (.dart files only), this materializes
-# .dart_tool/package_config.json for the --packages flag.
-_PACKAGE_CONFIG_FILE = "//:package_config_json"
-
 # rules_dart Step 3 (per-package deps): a real per-package dependency graph that
 # feeds each tool its own closure. DartLibraryInfo carries the transitive
 # closure of a package's .dart sources as a depset; DefaultInfo exposes it so a
@@ -79,6 +72,7 @@ def _dart_library_impl(ctx):
 dart_library = rule(
     implementation = _dart_library_impl,
     doc = "A Dart package: its own lib sources plus its transitive dep closure.",
+    # buildifier: disable=unsorted-dict-items
     attrs = {
         "srcs": attr.label_list(allow_files = [".dart"]),
         "deps": attr.label_list(providers = [DartLibraryInfo]),
@@ -112,22 +106,22 @@ copy_tree = rule(
     doc = "Stage src_dir into an output tree, mirroring GN copy_tree " +
           "(tools/copy_tree.py): same shutil.copytree + ignore_patterns(exclude).",
     attrs = {
-        "srcs": attr.label_list(
-            allow_files = True,
-            doc = "Every file under src_dir (a glob); excluded files are " +
-                  "harmless extra inputs, the action filters them out.",
-        ),
-        "src_dir": attr.string(
-            mandatory = True,
-            doc = "Execroot-relative source directory, e.g. sdk/lib/core.",
+        "exclude": attr.string(
+            default = "",
+            doc = "GN-style comma-separated ignore_patterns globs.",
         ),
         "out_dir": attr.string(
             mandatory = True,
             doc = "Output tree path under the package's bin dir, e.g. lib/core.",
         ),
-        "exclude": attr.string(
-            default = "",
-            doc = "GN-style comma-separated ignore_patterns globs.",
+        "src_dir": attr.string(
+            mandatory = True,
+            doc = "Execroot-relative source directory, e.g. sdk/lib/core.",
+        ),
+        "srcs": attr.label_list(
+            allow_files = True,
+            doc = "Every file under src_dir (a glob); excluded files are " +
+                  "harmless extra inputs, the action filters them out.",
         ),
         "_tool": attr.label(
             default = "//tools/bazel/dart:copytree.py",
@@ -194,17 +188,21 @@ def _copy_internal_with_dills_impl(ctx):
 copy_internal_with_dills = rule(
     implementation = _copy_internal_with_dills_impl,
     attrs = {
-        "srcs": attr.label_list(
+        "additional_dills": attr.label_list(
             allow_files = True,
+            default = [],
         ),
-        "src_dir": attr.string(
-            mandatory = True,
+        "exclude": attr.string(
+            default = "",
         ),
         "out_dir": attr.string(
             mandatory = True,
         ),
-        "exclude": attr.string(
-            default = "",
+        "src_dir": attr.string(
+            mandatory = True,
+        ),
+        "srcs": attr.label_list(
+            allow_files = True,
         ),
         "vm_platform": attr.label(
             mandatory = True,
@@ -213,10 +211,6 @@ copy_internal_with_dills = rule(
         "vm_platform_product": attr.label(
             mandatory = True,
             allow_single_file = True,
-        ),
-        "additional_dills": attr.label_list(
-            allow_files = True,
-            default = [],
         ),
         "_tool": attr.label(
             default = "//tools/bazel/dart:copytree.py",
@@ -241,7 +235,7 @@ def copy_sdk_library(name, lib, exclude = _SDK_LIB_EXCLUDE, **kwargs):
         **kwargs
     )
 
-def dart_kernel_snapshot(name, main, sources, sdk_hash = "0000000000", **kwargs):
+def dart_kernel_snapshot(name, main, sources, **kwargs):
     """Compile a Dart script to a *kernel* snapshot with the prebuilt SDK.
 
     Mirrors utils/gen_kernel/BUILD.gn:bootstrap_gen_kernel — i.e.
@@ -256,8 +250,6 @@ def dart_kernel_snapshot(name, main, sources, sdk_hash = "0000000000", **kwargs)
         **kwargs
     )
 
-_COMPILE_PLATFORM = "pkg/front_end/tool/compile_platform.dart"
-
 def dart_compile_platform(
         name,
         sources,
@@ -265,7 +257,6 @@ def dart_compile_platform(
         libraries_spec = "org-dartlang-sdk:///sdk/lib/libraries.json",
         product = False,
         exclude_source = False,
-        sdk_hash = "0000000000",
         outline = None,
         platform_out = None,
         platform_args = None,
@@ -291,6 +282,7 @@ def dart_compile_platform(
         **kwargs
     )
 
+# buildifier: disable=function-docstring-args
 def dart_aot_snapshot(
         name,
         main,
@@ -299,7 +291,6 @@ def dart_aot_snapshot(
         platform_dill,
         gen_snapshot,
         product = True,
-        sdk_hash = "0000000000",
         gen_kernel_args = None,
         gen_snapshot_args = None,
         out = None,
@@ -330,6 +321,7 @@ def dart_aot_snapshot(
         **kwargs
     )
 
+# buildifier: disable=function-docstring-args
 def dart_app_jit_snapshot(
         name,
         main,
@@ -339,7 +331,6 @@ def dart_app_jit_snapshot(
         platform_dill,
         dart_vm,
         product = False,
-        sdk_hash = "0000000000",
         gen_kernel_args = None,
         vm_args = None,
         training_srcs = None,
@@ -385,15 +376,15 @@ def dart_app_jit_snapshot(
 dart_compile_dill = rule(
     implementation = lambda ctx: _dart_compile_dill_impl(ctx),
     attrs = {
-        "main": attr.label(mandatory = True, allow_single_file = [".dart"]),
-        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "gen_kernel_args": attr.string_list(default = []),
         "gen_kernel_dill": attr.label(mandatory = True, allow_single_file = True),
+        "main": attr.label(mandatory = True, allow_single_file = [".dart"]),
+        "mode_flags": attr.string_list(default = []),
+        "out": attr.output(mandatory = True),
+        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
         "platform_dill": attr.label(mandatory = True, allow_single_file = True),
         "product": attr.bool(default = False),
-        "gen_kernel_args": attr.string_list(default = []),
-        "mode_flags": attr.string_list(default = []),
-        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
-        "out": attr.output(mandatory = True),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
     },
     toolchains = ["//tools/bazel/dart:toolchain_type"],
 )
@@ -480,15 +471,15 @@ def _dart_aot_elf_impl(ctx):
 dart_app_jit_training = rule(
     implementation = lambda ctx: _dart_app_jit_training_impl(ctx),
     attrs = {
-        "dill": attr.label(mandatory = True, allow_single_file = True),
         "dart_vm": attr.label(mandatory = True, executable = True, cfg = "exec"),
-        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "dill": attr.label(mandatory = True, allow_single_file = True),
         "main": attr.label(mandatory = True, allow_single_file = True),
+        "out": attr.output(mandatory = True),
         "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "training_args": attr.string_list(default = []),
         "training_srcs": attr.label_list(allow_files = True, default = []),
         "vm_args": attr.string_list(default = []),
-        "training_args": attr.string_list(default = []),
-        "out": attr.output(mandatory = True),
     },
     toolchains = ["//tools/bazel/dart:toolchain_type"],
 )
@@ -542,18 +533,18 @@ def _dart_app_jit_training_impl(ctx):
 dart_compile_platform_rule = rule(
     implementation = lambda ctx: _dart_compile_platform_rule_impl(ctx),
     attrs = {
-        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
-        "sdk_sources": attr.label(mandatory = True),
-        "tool": attr.label(default = "//:pkg/front_end/tool/compile_platform.dart", allow_single_file = True),
-        "libraries_spec": attr.string(default = "org-dartlang-sdk:///sdk/lib/libraries.json"),
-        "product": attr.bool(default = False),
-        "exclude_source": attr.bool(default = False),
-        "platform_args": attr.string_list(default = []),
-        "single_root_base": attr.string(default = ""),
         "deps_outline": attr.label(allow_single_file = True),
-        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
-        "platform_out": attr.output(mandatory = True),
+        "exclude_source": attr.bool(default = False),
+        "libraries_spec": attr.string(default = "org-dartlang-sdk:///sdk/lib/libraries.json"),
         "outline_out": attr.output(mandatory = True),
+        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
+        "platform_args": attr.string_list(default = []),
+        "platform_out": attr.output(mandatory = True),
+        "product": attr.bool(default = False),
+        "sdk_sources": attr.label(mandatory = True),
+        "single_root_base": attr.string(default = ""),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "tool": attr.label(default = "//:pkg/front_end/tool/compile_platform.dart", allow_single_file = True),
     },
     toolchains = ["//tools/bazel/dart:toolchain_type"],
 )
@@ -623,9 +614,9 @@ dart_kernel_snapshot_rule = rule(
     implementation = lambda ctx: _dart_kernel_snapshot_rule_impl(ctx),
     attrs = {
         "main": attr.label(mandatory = True, allow_single_file = [".dart"]),
-        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
-        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
         "out": attr.output(mandatory = True),
+        "package_config": attr.label(default = "//:package_config_json", allow_single_file = True),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
     },
     toolchains = ["//tools/bazel/dart:toolchain_type"],
 )
@@ -677,11 +668,11 @@ build_devtools_rule = rule(
     implementation = _build_devtools_impl,
     doc = "Build DevTools from source using tools/build_devtools.py",
     attrs = {
-        "srcs": attr.label_list(
-            allow_files = True,
-        ),
         "out_dir": attr.string(
             mandatory = True,
+        ),
+        "srcs": attr.label_list(
+            allow_files = True,
         ),
         "_tool": attr.label(
             default = "//tools:build_devtools.py",
@@ -710,8 +701,7 @@ def _copy_directory_impl(ctx):
 copy_directory = rule(
     implementation = _copy_directory_impl,
     attrs = {
-        "src_dir": attr.label(mandatory = True),
         "out_dir": attr.string(mandatory = True),
+        "src_dir": attr.label(mandatory = True),
     },
 )
-
