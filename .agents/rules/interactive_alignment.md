@@ -9,9 +9,9 @@ To prevent communication breakdowns where the agent executes changes silently wi
 
 ## 1. Mode Detection & Initialization
 
-* **Mandatory Mode Check**: Before executing any code edits, running terminal commands (other than safe query commands to research the workspace), or taking state-changing actions at the start of a new conversation or task, the agent MUST explicitly ask the user in the chat:
+* **Mandatory Mode Check**: At the start of a new interactive conversation or task, before executing any code edits, running terminal commands (other than safe query commands to research the workspace), or taking state-changing actions, the agent MUST explicitly ask the user in the chat:
   > *"What mode should I run in for this session: Collaborative (Pair Programming) or Autonomous (Cranking)?"*
-  and wait for the user's response to establish the active mode.
+  and wait for the user's response to establish the active mode. If running in a non-interactive or pre-configured background environment, the agent should bypass this check and proceed in Autonomous Mode.
 * **Interactive Chat Mode (Default)**: Active when the user has selected Collaborative mode, or when communicating in real-time chat (and no explicit mode choice has been made yet).
 * **Autonomous Mode ("Cranking")**: Active ONLY when the user has explicitly selected Autonomous mode, used the `/goal` slash command, or instructed the agent using phrases like *"just crank"*, *"run autonomously"*, or *"work on this in the background"*.
 
