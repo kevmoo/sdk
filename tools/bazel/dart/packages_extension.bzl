@@ -40,8 +40,10 @@ def _packages_repo_impl(ctx):
     clone_script = ctx.path(Label("@//tools/bazel:clone_dependencies.py"))
     res = ctx.execute(["python3", str(clone_script)])
     if res.stdout:
+        # buildifier: disable=print
         print("Clone stdout:\n" + res.stdout)
     if res.stderr:
+        # buildifier: disable=print
         print("Clone stderr:\n" + res.stderr)
     if res.return_code != 0:
         fail("Failed to clone third-party Dart package dependencies: " + res.stderr)
@@ -122,8 +124,8 @@ def _packages_repo_impl(ctx):
         root_uri = "../../../%s/%s" % (pkg.reldir, pkg.lib)
         pkg_entry = {
             "name": name,
-            "rootUri": root_uri,
             "packageUri": "",
+            "rootUri": root_uri,
         }
         if pkg.language_version:
             pkg_entry["languageVersion"] = pkg.language_version

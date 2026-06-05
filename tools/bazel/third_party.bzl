@@ -76,7 +76,7 @@ def _get_cipd_platform(repository_ctx):
 
     return os_str + "-" + arch_str
 
-def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
+def _fetch_remote(repository_ctx, repo_type, prefix):
     deps_file = repository_ctx.path(repository_ctx.attr.deps_file)
     parse_script = repository_ctx.path(repository_ctx.attr.parse_script)
 
@@ -205,7 +205,7 @@ def _overlay_repository_impl(repository_ctx):
     if use_local:
         _symlink_local(repository_ctx, local_path, dest_dir, repository_ctx.attr.prefix)
     else:
-        _fetch_remote(repository_ctx, repository_ctx.attr.repo_type, dest_dir, repository_ctx.attr.prefix)
+        _fetch_remote(repository_ctx, repository_ctx.attr.repo_type, repository_ctx.attr.prefix)
 
     # Dynamic overlays and appends (Option 1 Custom Overlay System)
     if repository_ctx.attr.repo_type == "icu":
@@ -320,14 +320,14 @@ with open(file_path, "w") as f:
 overlay_repository = repository_rule(
     implementation = _overlay_repository_impl,
     attrs = {
-        "repo_type": attr.string(mandatory = True),
+        "build_file": attr.label(mandatory = True, allow_single_file = True),
+        "clean_upstream_build_files": attr.bool(default = False),
+        "deps_file": attr.label(default = "@//:DEPS"),
+        "force_remote": attr.bool(default = False),
+        "parse_script": attr.label(default = "@//tools/bazel:parse_deps.py"),
         "path": attr.string(mandatory = True),
         "prefix": attr.string(default = ""),
-        "build_file": attr.label(mandatory = True, allow_single_file = True),
-        "deps_file": attr.label(default = "@//:DEPS"),
-        "parse_script": attr.label(default = "@//tools/bazel:parse_deps.py"),
-        "force_remote": attr.bool(default = False),
-        "clean_upstream_build_files": attr.bool(default = False),
+        "repo_type": attr.string(mandatory = True),
     },
 )
 
@@ -336,8 +336,10 @@ def _third_party_ext_impl(ctx):
     clone_script = ctx.path(Label("@//tools/bazel:clone_dependencies.py"))
     res = ctx.execute(["python3", str(clone_script)])
     if res.stdout:
+        # buildifier: disable=print
         print("Clone stdout:\n" + res.stdout)
     if res.stderr:
+        # buildifier: disable=print
         print("Clone stderr:\n" + res.stderr)
     if res.return_code != 0:
         fail("Failed to clone third-party Dart package dependencies: " + res.stderr)

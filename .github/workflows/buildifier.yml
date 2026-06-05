@@ -1,0 +1,23 @@
+name: Buildifier
+
+on:
+  push:
+    branches: [ bazel ]
+  pull_request:
+    branches: [ bazel ]
+
+jobs:
+  buildifier-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Buildifier
+        run: |
+          sudo curl -L https://github.com/bazelbuild/buildtools/releases/download/v8.2.1/buildifier-linux-amd64 -o /usr/local/bin/buildifier
+          sudo chmod +x /usr/local/bin/buildifier
+
+      - name: Run Buildifier
+        run: |
+          git ls-files '*BUILD.bazel' '*MODULE.bazel' '*.bzl' | grep -v 'gen_targets.bzl' | grep -v '^third_party/' | xargs buildifier --mode=check --lint=warn --warnings=all

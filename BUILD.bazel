@@ -41,7 +41,6 @@ exports_files(glob(
         "**/*.bin",
         "**/*.dart_fn",
         "tests/**/*",
-        "tools/gn.py",
     ],
     allow_empty = True,
     exclude = [
@@ -216,15 +215,15 @@ filegroup(
 
 filegroup(
     name = "dart2wasm_platform",
+    srcs = [
+        "//:runtime_precompiled",
+    ],
     data = [
         "//utils/dart2wasm:compile_dart2wasm_js_compatibility_platform",
         "//utils/dart2wasm:compile_dart2wasm_platform",
         "//utils/dart2wasm:compile_dart2wasm_standalone_platform",
         "//utils/dart2wasm:dart2wasm_asserts_snapshot",
         "//utils/dart2wasm:dart2wasm_snapshot",
-    ],
-    srcs = [
-        "//:runtime_precompiled",
     ],
 )
 
