@@ -26,11 +26,19 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-Session 114 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
+Session 115 — **(Antigravity) Enabled Firefox browser testing on macOS and verified end-to-end execution.**
 - **Enabled macOS support for Firefox downloader**: Patched the public browser downloader rule in `tools/bazel/third_party.bzl` to support macOS. Rather than failing on non-Linux hosts, it now downloads the Firefox macOS installer package (`.pkg`), expands it using host `pkgutil`, copies `Firefox.app` to the repository root, and generates a relative launcher wrapper script named `firefox`.
 - **Addressed PR review feedback**: Improved the macOS downloader implementation by utilizing `find` to recursively locate `Firefox.app` inside the payload (making the extraction path resilient to naming changes). Patched the launcher wrapper script to recursively resolve symlinks via a portable bash loop, ensuring correctness when run under Bazel's runfiles tree.
 - **Resolved second round of PR feedback**: Added explicit verification of the extracted `Firefox.app` existence (`repository_ctx.path("Firefox.app").exists`) to fail early and avoid silent errors. Unconditionally printed standard output/error of the copy command to preserve terminal log visibility.
 - **Verified Firefox E2E testing**: Successfully executed `python3 tools/test.py --bazel -n dart2wasm-firefox language/covariant/callable_class_field_getter_test` before and after all PR fixes, confirming the test suite runs green.
+
+Session 114 — **(jetski) Completed PR #9 feedback, added Python formatting quality gate, and cleaned up resource limits.**
+- **Fixed PR #9 feedback**: Aligned the `subDirToPkgDir` key population logic in `generate_test_targets.dart` to match `flatName` lookup by stripping the `custom-` prefix, resolving package lookup failures.
+- **Synchronized and Cleaned workspace**: Checked out `bazel` branch and reset to `kevmoo/bazel` to sync all upstream merged PRs. Force-removed the completed `cl508425_wasm_fix` worktree and deleted local branches `r1-task-033`, `r2-r3-task-034`, and `cl-508425-type-opt`.
+- **Enforced Python Formatting**: Added a new Python Formatting Gate to `code_quality_gates.md` requiring `yapf` formatting from `depot_tools`. Formatted all 21 modified/created Python files in-place using `yapf` and committed/pushed style changes.
+- **Reverted Bazel Resource Limits**: Removed `--jobs=4` and memory limits from `.bazelrc` to allow Bazel to scale to all workstation cores.
+- **Verified E2E**: Executed E2E browser test run `tools/test.py --bazel -n dart2wasm-chrome corelib/list_test` which compiled and passed cleanly.
+- **Updated Backlog**: Added `TASK_037` to BACKLOG.md to audit and clean up migration documentation and legacy instructions, and regenerated the Mermaid dependency graph.
 
 Session 113 — **(jetski) Rebased branches and verified compiler covariance fix under Bazel.**
 - **Rebased Task Branches**: Rebased both `r1-task-033` and `r2-r3-task-034` onto the updated remote `bazel` branch (which includes PR #6 and PR #7), resolving all backlog and status merge conflicts cleanly.

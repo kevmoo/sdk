@@ -24,11 +24,16 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--from", dest="copy_from", required=True,
+    parser.add_argument("--from",
+                        dest="copy_from",
+                        required=True,
                         help="Source directory to copy from.")
-    parser.add_argument("--to", dest="copy_to", required=True,
+    parser.add_argument("--to",
+                        dest="copy_to",
+                        required=True,
                         help="Destination directory to copy into.")
-    parser.add_argument("--exclude", default="",
+    parser.add_argument("--exclude",
+                        default="",
                         help="GN-style comma-separated ignore_patterns globs.")
     args = parser.parse_args()
 
@@ -39,7 +44,9 @@ def main():
     if args.exclude:
         ignore = shutil.ignore_patterns(*args.exclude.split(","))
 
-    shutil.copytree(args.copy_from, args.copy_to, ignore=ignore,
+    shutil.copytree(args.copy_from,
+                    args.copy_to,
+                    ignore=ignore,
                     dirs_exist_ok=True)
 
 

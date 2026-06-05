@@ -63,6 +63,7 @@ graph TD
     TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::completed
     TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
     TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::pending
+    TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::pending
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -856,3 +857,24 @@ graph TD
   - [ ] Candidate stub targets are converted to `filegroup` or `alias`.
   - [ ] Dependents are updated to reference them via `srcs` (for `filegroup`) or remain unchanged (for `alias`).
   - [ ] `bazel fetch //...` and standard builds continue to pass cleanly.
+
+---
+
+### 🎯 [TASK_037] Cleanup migration documentation and legacy instructions
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `docs/bazel-migration/README.md`
+- **Description**:
+  Audit and clean up the Bazel migration documentation. Modernize and simplify "getting started" guidelines to ensure they are optimized for both human developers and autonomous agents. Identify and archive legacy instruction files, outdated setup scripts, or superseded guides into an `archive/` subfolder.
+- **Verification Command**:
+  ```bash
+  ls docs/bazel-migration/
+  ```
+- **Success Criteria**:
+  - [ ] Legacy instructions/guides are moved to `docs/bazel-migration/archive/`.
+  - [ ] A concise, agent-optimized "Getting Started" guide exists and specifies prerequisites (like xcode-select for macOS, python, etc.).
+  - [ ] All active docs are clean of obsolete configurations or defunct hooks references.
+

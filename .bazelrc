@@ -5,7 +5,3 @@ common --deleted_packages=third_party/boringssl/src,third_party/perfetto/src,thi
 # Enforce Bazel 10 style source file visibility checks in Bazel 9
 build --incompatible_no_implicit_file_export
 
-# Limit Bazel resource usage globally
-build --jobs=4
-build --local_resources=memory=16384
-

@@ -6,6 +6,7 @@
 import os
 import json
 
+
 def get_language_version(pubspec_path, default="3.13"):
     if not os.path.exists(pubspec_path):
         return default
@@ -19,12 +20,16 @@ def get_language_version(pubspec_path, default="3.13"):
                 if stripped.startswith('environment:'):
                     in_env = True
                     continue
-                elif in_env and not line.startswith(' ') and not line.startswith('-') and ':' in stripped:
+                elif in_env and not line.startswith(
+                        ' ') and not line.startswith('-') and ':' in stripped:
                     in_env = False
-                
+
                 if in_env and stripped.startswith('sdk:'):
-                    val = stripped.split(':', 1)[1].strip().strip("'").strip('"')
-                    val = val.replace('^', '').replace('>=', '').replace('>', '').strip()
+                    val = stripped.split(':',
+                                         1)[1].strip().strip("'").strip('"')
+                    val = val.replace('^', '').replace('>=',
+                                                       '').replace('>',
+                                                                   '').strip()
                     parts = val.split(' ')[0].split('.')
                     if len(parts) >= 2:
                         return f"{parts[0]}.{parts[1]}"
@@ -32,8 +37,10 @@ def get_language_version(pubspec_path, default="3.13"):
         pass
     return default
 
+
 def main():
-    sdk_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+    sdk_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     dart_tool_dir = os.path.join(sdk_root, '.dart_tool')
     os.makedirs(dart_tool_dir, exist_ok=True)
 
@@ -51,25 +58,35 @@ def main():
                 if line.startswith('workspace:'):
                     in_workspace = True
                     continue
-                elif line and not line.startswith(' ') and not line.startswith('-'):
+                elif line and not line.startswith(' ') and not line.startswith(
+                        '-'):
                     in_workspace = False
-                
+
                 if in_workspace:
                     if line.strip().startswith('-'):
                         pkg_path = line.strip().lstrip('-').strip()
                         dir_path = os.path.join(sdk_root, pkg_path)
-                        if os.path.exists(os.path.join(dir_path, 'pubspec.yaml')):
+                        if os.path.exists(os.path.join(dir_path,
+                                                       'pubspec.yaml')):
                             pkg_name = os.path.basename(pkg_path)
-                            with open(os.path.join(dir_path, 'pubspec.yaml'), 'r') as pf:
+                            with open(os.path.join(dir_path, 'pubspec.yaml'),
+                                      'r') as pf:
                                 for pline in pf:
                                     if pline.startswith('name:'):
-                                        pkg_name = pline.split(':', 1)[1].split('#', 1)[0].strip().strip("'").strip('"')
+                                        pkg_name = pline.split(':', 1)[1].split(
+                                            '#',
+                                            1)[0].strip().strip("'").strip('"')
                                         break
                             packages[pkg_name] = {
-                                "name": pkg_name,
-                                "rootUri": f"../{pkg_path}",
-                                "packageUri": "lib/",
-                                "languageVersion": get_language_version(os.path.join(dir_path, 'pubspec.yaml'))
+                                "name":
+                                    pkg_name,
+                                "rootUri":
+                                    f"../{pkg_path}",
+                                "packageUri":
+                                    "lib/",
+                                "languageVersion":
+                                    get_language_version(
+                                        os.path.join(dir_path, 'pubspec.yaml'))
                             }
 
     # 2. Parse root pubspec.yaml for overrides
@@ -87,20 +104,26 @@ def main():
                     continue
                 elif line and not line.startswith(' '):
                     in_overrides = False
-                
+
                 if in_overrides:
                     if line.startswith('  ') and not line.startswith('    '):
                         curr_pkg = line.split(':', 1)[0].strip()
                     elif line.startswith('    ') and curr_pkg:
                         parts = line.strip().split(':', 1)
                         if len(parts) == 2 and parts[0].strip() == 'path':
-                            pkg_path = parts[1].split('#', 1)[0].strip().strip("'").strip('"')
-                            pubspec_path = os.path.join(sdk_root, pkg_path, 'pubspec.yaml')
+                            pkg_path = parts[1].split(
+                                '#', 1)[0].strip().strip("'").strip('"')
+                            pubspec_path = os.path.join(sdk_root, pkg_path,
+                                                        'pubspec.yaml')
                             packages[curr_pkg] = {
-                                "name": curr_pkg,
-                                "rootUri": f"../{pkg_path}",
-                                "packageUri": "lib/",
-                                "languageVersion": get_language_version(pubspec_path)
+                                "name":
+                                    curr_pkg,
+                                "rootUri":
+                                    f"../{pkg_path}",
+                                "packageUri":
+                                    "lib/",
+                                "languageVersion":
+                                    get_language_version(pubspec_path)
                             }
                             curr_pkg = None
 
@@ -114,7 +137,10 @@ def main():
     output_file = os.path.join(dart_tool_dir, 'package_config.json')
     with open(output_file, 'w') as f:
         json.dump(config, f, indent=2)
-    print(f"Generated synthetic package config with {len(packages)} packages at {output_file}")
+    print(
+        f"Generated synthetic package config with {len(packages)} packages at {output_file}"
+    )
+
 
 if __name__ == '__main__':
     main()

@@ -6,19 +6,20 @@ import sys
 import json
 import os
 
+
 def parse_deps(deps_file_path, dep_name):
     with open(deps_file_path, 'r') as f:
         content = f.read()
 
     # Setup the execution context for DEPS
     global_dict = {}
-    
+
     # We define Var to read from global_dict['vars']
     def Var(name):
         return global_dict.get('vars', {}).get(name, '')
-        
+
     global_dict['Var'] = Var
-    
+
     # Run the DEPS file in our context
     try:
         exec(content, global_dict)
@@ -31,12 +32,12 @@ def parse_deps(deps_file_path, dep_name):
 
     # Map the requested dep_name to its DEPS key
     # In DEPS, keys are usually: "sdk/third_party/boringssl/src"
-    # We can check if any key ends with the requested dep_name, 
+    # We can check if any key ends with the requested dep_name,
     # or specifically map them.
-    
+
     # Let's do a suffix match or direct mapping:
     dep_key = None
-    
+
     # Known mappings to be precise:
     mappings = {
         "boringssl": "sdk/third_party/boringssl/src",
@@ -48,7 +49,7 @@ def parse_deps(deps_file_path, dep_name):
         "chromedriver": "sdk/third_party/webdriver/chrome",
         "firefox": "sdk/third_party/browsers/firefox",
     }
-    
+
     if dep_name in mappings:
         dep_key = mappings[dep_name]
     else:
@@ -63,9 +64,9 @@ def parse_deps(deps_file_path, dep_name):
         sys.exit(1)
 
     dep_val = deps_dict[dep_key]
-    
+
     result = {}
-    
+
     if isinstance(dep_val, str):
         # Format is URL@REV
         if '@' in dep_val:
@@ -94,19 +95,22 @@ def parse_deps(deps_file_path, dep_name):
                 else:
                     result['url'] = url_val
                 result['dep_type'] = 'git'
-                
+
     # Normalize Git URLs (strip .git suffix if present, etc.)
     if 'url' in result and result['url'].endswith('.git'):
-         result['url'] = result['url'][:-4]
+        result['url'] = result['url'][:-4]
 
     if 'dep_type' not in result:
-        print(f"Error: Could not resolve dependency details for '{dep_name}'", file=sys.stderr)
+        print(f"Error: Could not resolve dependency details for '{dep_name}'",
+              file=sys.stderr)
         sys.exit(1)
 
     print(json.dumps(result, indent=2))
 
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python3 parse_deps.py <DEPS_PATH> <DEP_NAME>", file=sys.stderr)
+        print("Usage: python3 parse_deps.py <DEPS_PATH> <DEP_NAME>",
+              file=sys.stderr)
         sys.exit(1)
     parse_deps(sys.argv[1], sys.argv[2])

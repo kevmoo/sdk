@@ -32,7 +32,6 @@ except:
 
 SEMANTIC_VERSION_PATTERN = r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
 
-
 # To eliminate clashing with older archived builds on bleeding edge we add
 # a base number bigger the largest svn revision (this also gives us an easy
 # way of seeing if an archive comes from git based or svn based commits).
@@ -298,6 +297,7 @@ def HostArchitectures():
 # Try to guess the host architecture.
 def GuessArchitecture():
     return HostArchitectures()[0]
+
 
 # Try to guess the number of cpus on this machine.
 def GuessCpus():
@@ -862,8 +862,9 @@ class MacOSCoreDumpArchiver(PosixCoreDumpArchiver):
 class WindowsCoreDumpArchiver(BaseCoreDumpArchiver):
 
     def __init__(self, output_directory):
-        super(WindowsCoreDumpArchiver, self).__init__(
-            WindowsCoreDumpEnabler.DUMPS_FOLDER, output_directory)
+        super(WindowsCoreDumpArchiver,
+              self).__init__(WindowsCoreDumpEnabler.DUMPS_FOLDER,
+                             output_directory)
         self._dumps_by_pid = None
 
     # Find CDB.exe in the win_toolchain that we are using.
@@ -958,8 +959,8 @@ class WindowsCoreDumpArchiver(BaseCoreDumpArchiver):
     def _report_missing_crashes(self, missing, throw=False):
         # Let's only print the debugging information and not throw. We'll do more
         # validation for werfault.exe and throw afterwards.
-        super(WindowsCoreDumpArchiver, self)._report_missing_crashes(
-            missing, throw=False)
+        super(WindowsCoreDumpArchiver,
+              self)._report_missing_crashes(missing, throw=False)
 
         if throw:
             missing_as_string = ', '.join([str(c) for c in missing])
