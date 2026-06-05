@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 117 — **(jetski) Completed TASK_039: Implement `bazel run` support for running Dart scripts.**
+- **Implemented `dart_binary` Rule**: Created a custom `dart_binary` executable Bazel rule in `tools/bazel/dart/defs.bzl` that packages the prebuilt Dart VM, transitive package dependencies, and command-line arguments into a runfiles-executable bash script.
+- **Created Runfiles Package Config Staging**: Staged the package map at `tools/bazel/dart/package_config.json` inside the output tree via `runfiles_package_config` target. This mirrors the `../../../` depth required by dynamic package URIs inside the runfiles directory, resolving package imports.
+- **Unblocked macOS Build (Firefox Bypass)**: Bypassed remote Firefox downloads on non-Linux platforms by returning early from the fetch step in `tools/bazel/third_party.bzl`, allowing macOS builds to proceed warning-free.
+- **Verified E2E**: Created a test target `//tools/bazel/dart:test_hello` and verified it compiles, builds, and runs successfully on macOS with parameters (`bazel run //tools/bazel/dart:test_hello -- --verbose`).
+
 Session 116 — **(jetski) Completed TASK_036 (cc_library stubs cleanup) and resolved review feedback.**
 - **Completed TASK_036 (cc_library stubs cleanup)**: Audited all remaining placeholder `cc_library` targets in the repository that do not contain C++ source code. Converted them to `filegroup` targets across `sdk/BUILD.bazel`, `utils/BUILD.bazel`, `utils/kernel-service/BUILD.bazel`, and `utils/bazel/BUILD.bazel`. Removed unnecessary `rules_cc` load statements.
 - **Resolved Review Feedback**: Rewrote the stale comment in `utils/kernel-service/BUILD.bazel` to correctly describe the `copy_kernel-service_snapshot` target as a `filegroup` using `srcs`, satisfying code review warnings from `@gemini-code-assist`.

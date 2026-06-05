@@ -133,7 +133,9 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                 dl_type = "tar.xz"
                 strip_prefix = "firefox"
             else:
-                fail("Firefox download is currently only supported on Linux in this Bazel setup")
+                # Firefox download is only supported on Linux.
+                # Return early on macOS/Windows to skip download and let the overlay BUILD file glob empty.
+                return
         else:
             fail("Unreachable")
 
