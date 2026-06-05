@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 112 — **(jetski) Rebased branches and verified compiler covariance fix under Bazel.**
+- **Rebased Task Branches**: Rebased both `r1-task-033` and `r2-r3-task-034` onto the updated remote `bazel` branch (which includes PR #6 and PR #7), resolving all backlog and status merge conflicts cleanly.
+- **Fixed Dynamic VM Snapshot selection**: Restored the `select()` conditional block for `copy_dart2wasm_snapshot` in `sdk/BUILD.bazel` to dynamically package the product vs non-product compiler snapshot. Verified the SDK compiles successfully in both configurations via `bazel build //sdk:create_sdk` and `bazel build --//build/config:dart_product=true //sdk:create_sdk`.
+- **Restored Corrupted ICU directory**: Fixed a circular symlink cycle inside the main repository's untracked `third_party/icu/source` directory by force-syncing the dependency using `/usr/local/google/home/kevmoo/github/depot_tools/gclient sync -f`.
+- **Verified E2E Browser Testing and Compiler Covariance Fix**: Rebased the user's local compiler covariance fix branch `cl-508425-type-opt` onto `r2-r3-task-034` and ran `python3 tools/test.py --bazel -n dart2wasm-chrome language/covariant/callable_class_field_getter_test` inside the worktree. The test compiled, loaded chromedriver, and executed green.
+
 Session 111 — **(jetski) Added TASK_036 to backlog based on PR #7 review.**
 - **Reviewed PR #7**: Reviewed the changes in PR #7 and identified generalizations for the rest of the migration.
 - **Added TASK_036 to Backlog**: Added a new task to audit and convert remaining `cc_library` stubs to `filegroup` or `alias` across the workspace.
