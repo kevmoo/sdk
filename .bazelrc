@@ -8,6 +8,4 @@ build --incompatible_no_implicit_file_export
 # Limit Bazel resource usage globally
 build --jobs=4
 build --local_resources=memory=16384
-test --jobs=4
-test --local_resources=memory=16384
 
