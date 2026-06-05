@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 115 — **(jetski) Audited backlog, verified JIT VM testing, and polished Mermaid graph visuals.**
+- **Verified Closed Items**: Confirmed 29 completed tasks. Ran `tools/test.py --bazel -n vm-release-x64 corelib/list_test` which compiled and executed 100% successfully under the sandboxed VM runner, verifying completed items are in a healthy state.
+- **Audited Open Items**: Reviewed dependencies and completeness of the 8 remaining open tasks. Verified that CI LUCI recipe migration (`TASK_026`) is blocked by Windows (`TASK_003`), Android/Fuchsia (`TASK_004`), and RBE (`TASK_006`) as expected.
+- **Updated Backlog Metrics**: Corrected the overall progress statistic in `BACKLOG.md` to reflect `29/37 Tasks` (was `28/35`).
+- **Polished Graph Generator**: Upgraded `generate_backlog_graph.dart` to support a `blocked` class in Mermaid and regenerate the dependency graph to style `TASK_004` (Android/Fuchsia target platforms) with a distinct red dashed theme.
+
 Session 114 — **(jetski) Completed PR #9 feedback, added Python formatting quality gate, and cleaned up resource limits.**
 - **Fixed PR #9 feedback**: Aligned the `subDirToPkgDir` key population logic in `generate_test_targets.dart` to match `flatName` lookup by stripping the `custom-` prefix, resolving package lookup failures.
 - **Synchronized and Cleaned workspace**: Checked out `bazel` branch and reset to `kevmoo/bazel` to sync all upstream merged PRs. Force-removed the completed `cl508425_wasm_fix` worktree and deleted local branches `r1-task-033`, `r2-r3-task-034`, and `cl-508425-type-opt`.
