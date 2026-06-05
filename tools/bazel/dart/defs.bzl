@@ -705,3 +705,81 @@ copy_directory = rule(
         "src_dir": attr.label(mandatory = True),
     },
 )
+
+def _runfiles_path(ctx, file):
+    if file.short_path.startswith("../"):
+        return file.short_path[3:]
+    workspace = ctx.workspace_name
+    if not workspace:
+        workspace = "_main"
+    return workspace + "/" + file.short_path
+
+def _dart_binary_impl(ctx):
+    toolchain = ctx.toolchains["//tools/bazel/dart:toolchain_type"].dartinfo
+    runner = ctx.actions.declare_file(ctx.label.name)
+
+    dart_path = _runfiles_path(ctx, toolchain.dart_executable)
+    main_path = _runfiles_path(ctx, ctx.file.main)
+    pkg_config_path = _runfiles_path(ctx, ctx.file._package_config)
+
+    vm_args_list = []
+    for arg in ctx.attr.vm_args:
+        vm_args_list.append("'" + arg.replace("'", "'\\''") + "'")
+    vm_args_str = " ".join(vm_args_list)
+
+    script_content = """#!/bin/bash
+if [ -n "$RUNFILES_DIR" ]; then
+  rdir="$RUNFILES_DIR"
+else
+  rdir="$0.runfiles"
+fi
+
+exec "${rdir}/%s" --packages="${rdir}/%s" %s "${rdir}/%s" "$@"
+""" % (
+        dart_path,
+        pkg_config_path,
+        vm_args_str,
+        main_path,
+    )
+
+    ctx.actions.write(
+        output = runner,
+        content = script_content,
+        is_executable = True,
+    )
+
+    runfiles = ctx.runfiles(
+        files = [
+            toolchain.dart_executable,
+            ctx.file.main,
+            ctx.file._package_config,
+        ],
+        transitive_files = depset(
+            transitive = [
+                toolchain.sdk_files[DefaultInfo].files,
+                ctx.attr.sources[DartLibraryInfo].transitive_srcs,
+            ],
+        ),
+    )
+
+    return [
+        DefaultInfo(
+            executable = runner,
+            runfiles = runfiles,
+        ),
+    ]
+
+dart_binary = rule(
+    implementation = _dart_binary_impl,
+    executable = True,
+    attrs = {
+        "main": attr.label(mandatory = True, allow_single_file = [".dart"]),
+        "sources": attr.label(mandatory = True, providers = [DartLibraryInfo]),
+        "vm_args": attr.string_list(default = []),
+        "_package_config": attr.label(
+            default = "//tools/bazel/dart:runfiles_package_config",
+            allow_single_file = True,
+        ),
+    },
+    toolchains = ["//tools/bazel/dart:toolchain_type"],
+)

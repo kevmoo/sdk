@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 30/38 Tasks
+- **Overall Progress**: 32/40 Tasks
 
 ---
 
@@ -67,6 +67,7 @@ graph TD
     TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::pending
     TASK_038["TASK_038:<br>Investigate migrating Dart package dependency syncing to Bazel"]:::pending
     TASK_039["TASK_039:<br>Enable standard Bazel lint and formatting checks {Buildifier}"]:::completed
+    TASK_040["TASK_040:<br>Implement `bazel run` support for running Dart scripts"]:::completed
 
     TASK_017 --> TASK_006
     TASK_010 --> TASK_012
@@ -900,6 +901,7 @@ graph TD
 
 ---
 
+
 ### 🎯 [TASK_039] Enable standard Bazel lint and formatting checks (Buildifier)
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: None
@@ -927,3 +929,26 @@ graph TD
   - [x] C++ stub libraries marked `alwayslink = True` to fix lints and potential linking issues.
   - [x] GitHub CI workflow checks formatting and linting on PRs using a custom step that downloads buildifier.
   - [x] Agent rules updated with the new Bazel Quality Gate.
+
+---
+
+### 🎯 [TASK_040] Implement `bazel run` support for running Dart scripts
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
+- **Target Files**:
+  - `tools/bazel/dart/defs.bzl`
+  - `tools/bazel/dart/BUILD.bazel`
+  - `tools/bazel/third_party.bzl`
+- **Description**:
+  Implement the `dart_binary` rule to enable running Dart scripts inside the Bazel sandbox using `bazel run`. Generate a bash launcher wrapper that executes the prebuilt Dart VM, passing package configurations (staged at a specific depth in runfiles to resolve relative paths starting with `../../../`) and forwarding user command-line arguments. Add a bypass for Firefox remote downloads on non-Linux platforms to unblock macOS execution.
+- **Verification Command**:
+  ```bash
+  bazel run //tools/bazel/dart:test_hello -- --verbose
+  ```
+- **Success Criteria**:
+  - [x] `dart_binary` rule is implemented in `defs.bzl` and correctly bundles transitive dependencies (from `DartLibraryInfo`), the prebuilt Dart SDK, and the runfiles package config.
+  - [x] Package config helper `runfiles_package_config` is declared in `tools/bazel/dart/BUILD.bazel`.
+  - [x] Remote fetch of Firefox on macOS/Windows is bypassed gracefully by skipping download instead of failing.
+  - [x] Running the `test_hello` target via `bazel run` successfully executes and parses arguments cleanly.

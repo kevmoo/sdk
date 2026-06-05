@@ -1,7 +1,7 @@
 # Package marker so //tools/bazel/dart:defs.bzl is loadable.
 # The Dart-compilation rule macros live in defs.bzl.
 
-load(":defs.bzl", "dart_toolchain")
+load(":defs.bzl", "dart_binary", "dart_toolchain")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -11,6 +11,12 @@ exports_files([
 ])
 
 toolchain_type(name = "toolchain_type")
+
+dart_binary(
+    name = "test_hello",
+    main = "test_hello.dart",
+    sources = "//:dart_pkg_args",
+)
 
 dart_toolchain(
     name = "prebuilt_dart_toolchain_impl",
@@ -23,4 +29,11 @@ toolchain(
     name = "prebuilt_dart_toolchain",
     toolchain = ":prebuilt_dart_toolchain_impl",
     toolchain_type = ":toolchain_type",
+)
+
+genrule(
+    name = "runfiles_package_config",
+    srcs = ["//:package_config_json"],
+    outs = ["package_config.json"],
+    cmd = "cp $< $@",
 )
