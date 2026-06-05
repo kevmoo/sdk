@@ -30,15 +30,6 @@ exports_files(glob(
 # TODO(M3): genrule for kernel_worker (gn type=action)
 cc_library(name = "kernel_worker")
 
-# TODO(M3): copy for kernel_worker_aot (gn type=copy)
-cc_library(name = "kernel_worker_aot")
-
-# TODO(M3): genrule for kernel_worker_aot_dill (gn type=action)
-cc_library(name = "kernel_worker_aot_dill")
-
-# TODO(M3): genrule for kernel_worker_aot_gen_snapshot (gn type=action)
-cc_library(name = "kernel_worker_aot_gen_snapshot")
-
 # rules_dart Step 0: real AOT snapshot of the CFE persistent worker — the
 # external --persistent_worker compatibility contract (DESIGN.md §3.5). Product
 # mode + product gen_snapshot so it loads under dartaotruntime_product.
@@ -50,6 +41,17 @@ dart_aot_snapshot(
     main = ":kernel_worker.dart",
     platform_dill = "//runtime/vm:vm_platform.dill",
     product = True,
+    sources = "//:dart_pkg_frontend_server",
+)
+
+dart_aot_snapshot(
+    name = "kernel_worker_aot",
+    out = "kernel_worker_aot.dart.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = ":kernel_worker.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
     sources = "//:dart_pkg_frontend_server",
 )
 
