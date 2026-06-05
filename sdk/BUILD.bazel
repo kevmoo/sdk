@@ -2,7 +2,6 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "build_devtools_rule", "copy_directory", "copy_internal_with_dills", "copy_sdk_library", "copy_tree")
 
 package(default_visibility = ["//visibility:public"])
@@ -254,10 +253,10 @@ genrule(
 )
 
 # TODO(M3): copy for copy_dart_aotruntime_asan (gn type=copy)
-cc_library(name = "copy_dart_aotruntime_asan")
+filegroup(name = "copy_dart_aotruntime_asan")
 
 # TODO(M3): copy for copy_dart_aotruntime_msan (gn type=copy)
-cc_library(name = "copy_dart_aotruntime_msan")
+filegroup(name = "copy_dart_aotruntime_msan")
 
 genrule(
     name = "copy_dart_aotruntime_sym",
@@ -275,7 +274,7 @@ genrule(
 )
 
 # TODO(M3): copy for copy_dart_aotruntime_tsan (gn type=copy)
-cc_library(name = "copy_dart_aotruntime_tsan")
+filegroup(name = "copy_dart_aotruntime_tsan")
 
 genrule(
     name = "copy_dart_tooling_daemon_aot_product_snapshot",
@@ -476,7 +475,7 @@ filegroup(
     ],
 )
 
-cc_library(
+filegroup(
     name = "copy_full_sdk_scripts",
 )
 
@@ -699,7 +698,7 @@ filegroup(
     ],
 )
 
-cc_library(
+filegroup(
     name = "copy_platform_sdk_scripts",
 )
 

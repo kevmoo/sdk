@@ -2,7 +2,6 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
@@ -30,15 +29,15 @@ exports_files(glob(
 # dart_app_jit_snapshot genrule; the group keeps its cc_library shape (so
 # //:runtime's aggregate dep stays CcInfo-valid) but carries the snapshot via
 # `data`, per the dtd_aot / generate_dtd_snapshot pattern.
-cc_library(
+filegroup(
     name = "copy_kernel-service_snapshot",
-    data = [
+    srcs = [
         "//utils/kernel-service:kernel-service_snapshot",
     ],
 )
 
 # TODO(M3): genrule for ddc_files_stamp (gn type=action)
-cc_library(name = "ddc_files_stamp")
+filegroup(name = "ddc_files_stamp")
 
 # rules_dart Step 4 (app-jit): frontend_server app-jit snapshot. Ports
 # utils/kernel-service/BUILD.gn:application_snapshot("frontend_server").
@@ -99,11 +98,11 @@ dart_aot_snapshot(
 # (its stage-1 kernel compile), so the translator stub is dropped.
 
 # TODO(M3): genrule for frontend_server_files_stamp (gn type=action)
-cc_library(name = "frontend_server_files_stamp")
+filegroup(name = "frontend_server_files_stamp")
 
-cc_library(
+filegroup(
     name = "kernel-service",
-    deps = [
+    srcs = [
         "//utils/kernel-service:copy_kernel-service_snapshot",
     ],
 )
