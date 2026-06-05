@@ -49,6 +49,8 @@ Discovery context, history, related issues.
 
 The presence of a file here means "open." A landed fix should delete the file in the same commit that lands the fix (and reference the issue number in the commit message). No status field, no metadata bookkeeping.
 
+Once a fix is implemented on this branch, the issue file is deleted, and the completed fix should be listed in [UPSTREAM_CANDIDATES.md](../UPSTREAM_CANDIDATES.md) to be tracked for upstreaming to the `main` branch.
+
 ## Augmenting existing issues
 
 Agents working on this branch may freely tighten wording, add code paths that turn out to be affected, or cross-link to related issues. They may NOT change the original "this is a problem because…" framing or invent new claims that the original didn't make. When in doubt, file a sibling issue and link.

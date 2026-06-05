@@ -2,6 +2,8 @@
 
 This document lists candidate changes identified in the `bazel` branch that are bug fixes, performance improvements, or test robustness enhancements. These changes do not depend on Bazel and should be upstreamed to the `main` branch.
 
+For outstanding, unresolved SDK-internal issues and architectural debt surfaced by the migration, see the [todo_issues/](todo_issues/README.md) tracker.
+
 ## Candidates List
 
 ### 1. VM Compiler: Avoid reading obfuscation metadata when obfuscation is disabled
