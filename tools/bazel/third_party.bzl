@@ -139,13 +139,13 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
                     output = "firefox.pkg",
                 )
                 res = repository_ctx.execute(["pkgutil", "--expand-full", "firefox.pkg", "tmp_pkg"])
+                print(res.stdout)
+                print(res.stderr)
                 if res.return_code != 0:
                     fail("Failed to expand Firefox pkg: " + res.stderr)
                 res = repository_ctx.execute(["/bin/bash", "-c", "find tmp_pkg -name Firefox.app -type d -exec cp -R {} . \\;"])
-                if res.stdout:
-                    print(res.stdout)
-                if res.stderr:
-                    print(res.stderr)
+                print(res.stdout)
+                print(res.stderr)
                 if res.return_code != 0:
                     fail("Failed to locate and copy Firefox.app from payload: " + res.stderr)
                 if not repository_ctx.path("Firefox.app").exists:
