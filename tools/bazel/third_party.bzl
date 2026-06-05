@@ -95,7 +95,9 @@ def _fetch_remote(repository_ctx, repo_type, dest_dir, prefix):
     # Intercept public browser dependencies to bypass restricted Google CIPD credentials
     if repo_type in ["chrome", "chromedriver", "firefox"]:
         version = dep_info.get("version")
-        if version and version.startswith("version:"):
+        if not version:
+            fail("Could not resolve version for repository: " + repo_type)
+        if version.startswith("version:"):
             version = version.split(":", 1)[1]
 
         os_name = repository_ctx.os.name
