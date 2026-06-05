@@ -109,6 +109,9 @@ String generateMermaid(List<Task> tasks) {
   sb.writeln(
     '    classDef pending fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,stroke-dasharray: 5 5,color:#6c757d;',
   );
+  sb.writeln(
+    '    classDef blocked fill:#f8d7da,stroke:#dc3545,stroke-width:1px,stroke-dasharray: 5 5,color:#721c24;',
+  );
 
   // Declare nodes with labels and inline classes
   for (final Task task in tasks) {
@@ -128,6 +131,8 @@ String generateMermaid(List<Task> tasks) {
       styleClass = 'completed';
     } else if (task.status == 'IN_PROGRESS') {
       styleClass = 'inProgress';
+    } else if (task.status == 'BLOCKED') {
+      styleClass = 'blocked';
     }
 
     // Inline style binding syntax: NodeID["Label"]:::ClassName

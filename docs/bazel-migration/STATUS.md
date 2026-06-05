@@ -26,6 +26,11 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 116 — **(jetski) Completed TASK_036 (cc_library stubs cleanup) and resolved review feedback.**
+- **Completed TASK_036 (cc_library stubs cleanup)**: Audited all remaining placeholder `cc_library` targets in the repository that do not contain C++ source code. Converted them to `filegroup` targets across `sdk/BUILD.bazel`, `utils/BUILD.bazel`, `utils/kernel-service/BUILD.bazel`, and `utils/bazel/BUILD.bazel`. Removed unnecessary `rules_cc` load statements.
+- **Resolved Review Feedback**: Rewrote the stale comment in `utils/kernel-service/BUILD.bazel` to correctly describe the `copy_kernel-service_snapshot` target as a `filegroup` using `srcs`, satisfying code review warnings from `@gemini-code-assist`.
+- **Verified E2E Build and Queries**: Successfully built `//sdk:create_sdk` in the worktree (completing all 6,008 actions green), verifying that the new filegroup stubs are fully compatible with their filegroup/genrule consumers. Verified that `bazel fetch //...` wildcard query finishes successfully warning-free.
+
 Session 115 — **(jetski) Fixed path duplication bug for test helpers, investigated browser testing, and added package sync investigation task.**
 - **Fixed Path Duplication Bug**: Staged a fix in `generate_test_targets.dart` to correctly strip the suite name from the destination path of auxiliary files, preventing duplicate nesting and resolving compile-time errors in split multitests.
 - **Investigated Browser Testing**: Found that browser testing under Bazel is currently not runnable due to the absence of HTTP server infrastructure in the sandboxed test executor (`run_single_test.dart`) and dummy URLs in target metadata. Reverted experimental execution changes.

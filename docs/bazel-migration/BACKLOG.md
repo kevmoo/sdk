@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 28/35 Tasks
+- **Overall Progress**: 30/38 Tasks
 
 ---
 
@@ -27,10 +27,11 @@ graph TD
     classDef completed fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724;
     classDef inProgress fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404;
     classDef pending fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,stroke-dasharray: 5 5,color:#6c757d;
+    classDef blocked fill:#f8d7da,stroke:#dc3545,stroke-width:1px,stroke-dasharray: 5 5,color:#721c24;
     TASK_001["TASK_001:<br>Dynamic Package Dependency Mapping"]:::completed
     TASK_002["TASK_002:<br>Pre-Computed Package Import Mapping {Fine-Grained Opt-in}"]:::completed
     TASK_003["TASK_003:<br>Windows MSVC Toolchain Port"]:::pending
-    TASK_004["TASK_004:<br>Android & Fuchsia Target Platform Registration"]:::pending
+    TASK_004["TASK_004:<br>Android & Fuchsia Target Platform Registration"]:::blocked
     TASK_005["TASK_005:<br>Dynamic Browser Testing Downloads"]:::completed
     TASK_006["TASK_006:<br>RBE {Remote Build Execution} Verification"]:::pending
     TASK_007["TASK_007:<br>Sanitizer Suite Verification"]:::completed
@@ -62,7 +63,7 @@ graph TD
     TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::completed
     TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::completed
     TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
-    TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::pending
+    TASK_036["TASK_036:<br>Audit and convert remaining cc_library stubs to filegroup or alias"]:::completed
     TASK_037["TASK_037:<br>Cleanup migration documentation and legacy instructions"]:::pending
     TASK_038["TASK_038:<br>Investigate migrating Dart package dependency syncing to Bazel"]:::pending
 
@@ -838,10 +839,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_036] Audit and convert remaining cc_library stubs to filegroup or alias
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[a047d5e924f]`
 - **Target Files**:
   - `sdk/BUILD.bazel`
   - `utils/BUILD.bazel`
@@ -855,9 +856,9 @@ graph TD
   bazel fetch //...
   ```
 - **Success Criteria**:
-  - [ ] Candidate stub targets are converted to `filegroup` or `alias`.
-  - [ ] Dependents are updated to reference them via `srcs` (for `filegroup`) or remain unchanged (for `alias`).
-  - [ ] `bazel fetch //...` and standard builds continue to pass cleanly.
+  - [x] Candidate stub targets are converted to `filegroup` or `alias`.
+  - [x] Dependents are updated to reference them via `srcs` (for `filegroup`) or remain unchanged (for `alias`).
+  - [x] `bazel fetch //...` and standard builds continue to pass cleanly.
 
 ---
 
