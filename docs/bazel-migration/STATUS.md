@@ -26,6 +26,11 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 108 — **(jetski) Fixed dart2wasm compiler snapshot product compatibility mismatch.**
+- **Identified and Fixed Snapshot Product Mismatch**: Resolved a test failure where executing dart2wasm tests in Bazel would crash because `dartaotruntime` (always product mode) mismatched the compiler snapshot `dart2wasm_product.snapshot` (staged as non-product release mode).
+- **Updated BUILD.bazel**: Modified `copy_dart2wasm_snapshot` in `sdk/BUILD.bazel` to always source the product snapshot (`//utils/dart2wasm:dart2wasm_product_snapshot`).
+- **Verified Tests**: Confirmed that `python3 tools/test.py --bazel -n wasm-unittest-asserts-linux tests/web/wasm/simd/simd_smoke_test.dart` compiles and passes successfully.
+
 Session 107 — **(jetski) Partially Completed TASK_004: Target Platform Registration (Blocked on NDK).**
 - **Registered Target Platforms**: Added platform constraint mappings in `build/platforms/BUILD.bazel` for `android_arm64`, `fuchsia_x64`, and `fuchsia_arm64`.
 - **NDK Environment Block**: Identified that cross-compiling for Android targets is blocked because the local host environment lacks `ANDROID_NDK_HOME` and the `third_party/android_tools` SDK/NDK dependency is not checked out (requires `download_android_deps = True` in `DEPS` and `gclient sync`).

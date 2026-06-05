@@ -213,10 +213,7 @@ filegroup(
 # rules_dart Step 5: copy dart2wasm snapshot. Ports GN copy("copy_dart2wasm_snapshot")
 genrule(
     name = "copy_dart2wasm_snapshot",
-    srcs = select({
-        "//build/config:product": ["//utils/dart2wasm:dart2wasm_product_snapshot"],
-        "//conditions:default": ["//utils/dart2wasm:dart2wasm_snapshot"],
-    }),
+    srcs = ["//utils/dart2wasm:dart2wasm_product_snapshot"],
     outs = ["dart-sdk/bin/snapshots/dart2wasm_product.snapshot"],
     cmd = "cp $< $@",
 )
