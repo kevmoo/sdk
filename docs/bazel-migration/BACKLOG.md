@@ -15,7 +15,7 @@ This is the single source of truth for the remaining migration work stream. It i
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 27/35 Tasks
+- **Overall Progress**: 28/35 Tasks
 
 ---
 
@@ -59,7 +59,7 @@ graph TD
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
     TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
     TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
-    TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::pending
+    TASK_033["TASK_033:<br>Fix SDK packaging VM product mode configuration mismatch"]:::completed
     TASK_034["TASK_034:<br>Add Chrome/Firefox test configurations to Bazel target generator"]:::pending
     TASK_035["TASK_035:<br>Fix Bazel wildcard target evaluation and package loading errors"]:::completed
 
@@ -768,10 +768,10 @@ graph TD
 ---
 
 ### 🎯 [TASK_033] Fix SDK packaging VM product mode configuration mismatch
-- **Status**: `[PENDING]`
+- **Status**: `[COMPLETED]`
 - **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
+- **Owner**: `[jetski]`
+- **Commit**: `[local]`
 - **Target Files**:
   - `sdk/BUILD.bazel`
 - **Description**:
@@ -781,8 +781,8 @@ graph TD
   python3 tools/test.py --bazel -n dart2wasm-chrome corelib/list_test
   ```
 - **Success Criteria**:
-  - [ ] `copy_dart_aotruntime` and `copy_gen_snapshot_exe` genrules dynamically select the non-product VM target in default config and the product variant when product mode is true.
-  - [ ] E2E browser test target compilations execute and pass cleanly without snapshot configuration mismatch errors.
+  - [x] `copy_dart_aotruntime` and `copy_gen_snapshot_exe` genrules dynamically select the non-product VM target in default config and the product variant when product mode is true.
+  - [x] E2E browser test target compilations execute and pass cleanly without snapshot configuration mismatch errors.
 
 ---
 

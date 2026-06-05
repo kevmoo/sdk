@@ -107,7 +107,10 @@ copy_sdk_library(
 
 genrule(
     name = "copy_analysis_server_aot_product_snapshot",
-    srcs = ["//utils/analysis_server:analysis_server_aot_product"],
+    srcs = select({
+        "//build/config:product": ["//utils/analysis_server:analysis_server_aot_product"],
+        "//conditions:default": ["//utils/analysis_server:analysis_server_aot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/analysis_server_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -193,7 +196,10 @@ genrule(
 
 genrule(
     name = "copy_dart2js_aot_product_snapshot",
-    srcs = ["//utils/compiler:dart2js_sdk_aot_product"],
+    srcs = select({
+        "//build/config:product": ["//utils/compiler:dart2js_sdk_aot_product"],
+        "//conditions:default": ["//utils/compiler:dart2js_sdk_aot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/dart2js_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -233,7 +239,10 @@ genrule(
 # mixed-PRODUCT ODR).
 genrule(
     name = "copy_dart_aotruntime",
-    srcs = ["//runtime/bin:dartaotruntime_product"],
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:dartaotruntime_product"],
+        "//conditions:default": ["//runtime/bin:dartaotruntime"],
+    }),
     outs = ["dart-sdk/bin/dartaotruntime"],
     cmd = select({
         "//build/config:os_macos": "strip -x -o $@ $<",
@@ -249,8 +258,10 @@ cc_library(name = "copy_dart_aotruntime_msan")
 
 genrule(
     name = "copy_dart_aotruntime_sym",
-    srcs = [
-        "//runtime/bin:dartaotruntime_product",
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:dartaotruntime_product"],
+        "//conditions:default": ["//runtime/bin:dartaotruntime"],
+    }) + [
         "//runtime/tools:dart_profiler_symbols.py",
     ],
     outs = ["dart-sdk/bin/dartaotruntime.sym"],
@@ -265,7 +276,10 @@ cc_library(name = "copy_dart_aotruntime_tsan")
 
 genrule(
     name = "copy_dart_tooling_daemon_aot_product_snapshot",
-    srcs = ["//utils/dtd:dtd_aot_product_snapshot"],
+    srcs = select({
+        "//build/config:product": ["//utils/dtd:dtd_aot_product_snapshot"],
+        "//conditions:default": ["//utils/dtd:dtd_aot_snapshot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/dart_tooling_daemon_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -279,7 +293,10 @@ genrule(
 
 genrule(
     name = "copy_dartdevc_aot_product_snapshot",
-    srcs = ["//utils/ddc:dartdevc_aot_product"],
+    srcs = select({
+        "//build/config:product": ["//utils/ddc:dartdevc_aot_product"],
+        "//conditions:default": ["//utils/ddc:dartdevc_aot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/dartdevc_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -353,7 +370,10 @@ genrule(
 
 genrule(
     name = "copy_dds_aot_product_snapshot",
-    srcs = ["//utils/dds:dds_aot_product_snapshot"],
+    srcs = select({
+        "//build/config:product": ["//utils/dds:dds_aot_product_snapshot"],
+        "//conditions:default": ["//utils/dds:dds_aot_snapshot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/dds_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -410,7 +430,10 @@ copy_sdk_library(
 
 genrule(
     name = "copy_frontend_server_aot_product_snapshot",
-    srcs = ["//utils/kernel-service:frontend_server_aot_product"],
+    srcs = select({
+        "//build/config:product": ["//utils/kernel-service:frontend_server_aot_product"],
+        "//conditions:default": ["//utils/kernel-service:frontend_server_aot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -474,7 +497,10 @@ filegroup(
 
 genrule(
     name = "copy_gen_kernel_snapshot",
-    srcs = ["//utils/gen_kernel:gen_kernel_aot.dart.snapshot"],
+    srcs = select({
+        "//build/config:product": ["//utils/gen_kernel:gen_kernel_product"],
+        "//conditions:default": ["//utils/gen_kernel"],
+    }),
     outs = ["dart-sdk/bin/snapshots/gen_kernel_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )
@@ -490,7 +516,10 @@ filegroup(
 # GN renames gen_snapshot_product -> gen_snapshot under bin/utils/.
 genrule(
     name = "copy_gen_snapshot_exe",
-    srcs = ["//runtime/bin:gen_snapshot_product"],
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:gen_snapshot_product"],
+        "//conditions:default": ["//runtime/bin:gen_snapshot"],
+    }),
     outs = ["dart-sdk/bin/utils/gen_snapshot"],
     cmd = select({
         "//build/config:os_macos": "strip -x -o $@ $<",
@@ -500,8 +529,10 @@ genrule(
 
 genrule(
     name = "copy_gen_snapshot_sym",
-    srcs = [
-        "//runtime/bin:gen_snapshot_product",
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:gen_snapshot_product"],
+        "//conditions:default": ["//runtime/bin:gen_snapshot"],
+    }) + [
         "//runtime/tools:dart_profiler_symbols.py",
     ],
     outs = ["dart-sdk/bin/utils/gen_snapshot.sym"],
@@ -587,7 +618,10 @@ genrule(
 
 genrule(
     name = "copy_kernel_worker_aot_product_snapshot",
-    srcs = ["//utils/bazel:kernel_worker_aot_product"],
+    srcs = select({
+        "//build/config:product": ["//utils/bazel:kernel_worker_aot_product"],
+        "//conditions:default": ["//utils/bazel:kernel_worker_aot"],
+    }),
     outs = ["dart-sdk/bin/snapshots/kernel_worker_aot.dart.snapshot"],
     cmd = "cp $< $@",
 )

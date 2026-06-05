@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 110 — **(worker_4) Completed and Isolated TASK_033: Fix SDK packaging VM product mode configuration mismatch.**
+- **Isolated R1 changes**: Created local branch `r1-task-033` and discarded all changes outside of R1 (specifically `pkg/test_runner/bin/run_single_test.dart`, `tools/bazel/dart/generate_test_targets.dart`, `tools/bazel/dart/test_rules.bzl`, `tools/test.py`, and `tools/test_wrapper_test.py`).
+- **Verified Build VM target**: Successfully executed `bazel build //runtime/bin:dartvm`.
+- **Verified Build SDK target**: Successfully executed `bazel build //sdk:create_sdk`.
+- **Verified VM Tests**: Ran `python3 tools/test.py --bazel -n vm-release-x64 corelib/list_test` which passed cleanly.
+- **Updated BACKLOG.md**: Marked TASK_033 completed and regenerated dependency graph.
+
 Session 109 — **(jetski) Resolved workspace-wide wildcard target evaluation and package loading errors.**
 - **Fixed Empty Glob Loading Error**: Corrected `tools/bazel/BUILD.bazel` to only export `parse_deps.py` after the deletion of the `out_of_band/` directory, resolving package loading errors during wildcard scans.
 - **Added Upstream Ignores to .bazelignore**: Appended `third_party/boringssl/src`, `third_party/perfetto/src`, `third_party/cpu_features/src`, `third_party/emsdk/bazel`, and `third_party/icu/source` to `.bazelignore` to prevent Bazel from scanning unignored upstream build files.
