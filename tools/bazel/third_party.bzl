@@ -132,8 +132,49 @@ def _fetch_remote(repository_ctx, repo_type, prefix):
                 url = "https://archive.mozilla.org/pub/firefox/releases/{}/linux-x86_64/en-US/firefox-{}.tar.xz".format(version, version)
                 dl_type = "tar.xz"
                 strip_prefix = "firefox"
+            elif os_name == "mac os x":
+                url = "https://archive.mozilla.org/pub/firefox/releases/{}/mac/en-US/Firefox%20{}.pkg".format(version, version)
+                repository_ctx.delete("Firefox.app")
+                repository_ctx.delete("firefox.pkg")
+                repository_ctx.delete("tmp_pkg")
+                repository_ctx.download(
+                    url = url,
+                    output = "firefox.pkg",
+                )
+                res = repository_ctx.execute(["pkgutil", "--expand-full", "firefox.pkg", "tmp_pkg"])
+                print(res.stdout)
+                print(res.stderr)
+                if res.return_code != 0:
+                    fail("Failed to expand Firefox pkg: " + res.stderr)
+                res = repository_ctx.execute(["find", "tmp_pkg", "-name", "Firefox.app", "-type", "d", "-exec", "cp", "-R", "{}", ".", ";"])
+                print(res.stdout)
+                print(res.stderr)
+                if res.return_code != 0:
+                    fail("Failed to locate and copy Firefox.app from payload: " + res.stderr)
+                if not repository_ctx.path("Firefox.app").exists:
+                    fail("Firefox.app was not found in the expanded package payload")
+                repository_ctx.file(
+                    "firefox",
+                    """#!/bin/bash
+target="$0"
+while [ -L "$target" ]; do
+  dir="$(dirname "$target")"
+  target="$(readlink "$target")"
+  case "$target" in
+    /*) ;;
+    *) target="$dir/$target" ;;
+  esac
+done
+script_dir="$(cd -P "$(dirname "$target")" && pwd)"
+exec "$script_dir/Firefox.app/Contents/MacOS/firefox" "$@"
+""",
+                    executable = True,
+                )
+                repository_ctx.delete("firefox.pkg")
+                repository_ctx.delete("tmp_pkg")
+                return
             else:
-                fail("Firefox download is currently only supported on Linux in this Bazel setup")
+                fail("Firefox download is currently only supported on Linux and macOS in this Bazel setup")
         else:
             fail("Unreachable")
 
