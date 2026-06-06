@@ -17,7 +17,7 @@ New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstra
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 34/53 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
+- **Overall Progress**: 34/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
 
 ---
 
@@ -71,14 +71,20 @@ graph TD
     TASK_039["TASK_039:<br>Enable standard Bazel lint and formatting checks {Buildifier}"]:::completed
     TASK_040["TASK_040:<br>Implement `bazel run` support for running Dart scripts"]:::completed
     TASK_041["TASK_041:<br>Emit canonical `cc_test` rules for self-contained test binaries"]:::completed
+    sdk_3ld["sdk-3ld:<br>{M3} Wire up Dart MCP Server Snapshots"]:::pending
     sdk_4z8["sdk-4z8:<br>Skill: Create agent skill for automated upstream PR/CL triage in Bazel"]:::pending
+    sdk_90d["sdk-90d:<br>{M3} Wire up Dart Dev Compiler {DDC} Snapshots"]:::pending
     sdk_95q["sdk-95q:<br>Migrate leaf C++ integration tests {abstract_socket_test & process_test} to cc_test"]:::pending
     sdk_9qx["sdk-9qx:<br>Design: Bazel-powered developer workflow bridge for upstream work"]:::pending
     sdk_b34["sdk-b34:<br>GN: Split C-only and C++-only flags in compiler configs"]:::pending
     sdk_cfi["sdk-cfi:<br>ICU: Expose checked-in data headers in build definitions"]:::pending
     sdk_fnn["sdk-fnn:<br>Tooling: Implement script to export Bazel-tested changes back to Main"]:::pending
+    sdk_g2l["sdk-g2l:<br>{M3} Wire up Dart2JS and Dartdoc Snapshots"]:::pending
     sdk_gmk["sdk-gmk:<br>Prune upstream Bazel files from vendored third_party"]:::pending
+    sdk_mv2["sdk-mv2:<br>{M3} Wire up DevTools and Core Utility Binaries"]:::pending
+    sdk_oce["sdk-oce:<br>{M3} Wire up Kernel Worker Snapshot"]:::pending
     sdk_rog["sdk-rog:<br>VM: Define formal GN target for public VM embedding C API"]:::pending
+    sdk_rwz["sdk-rwz:<br>{M3} Wire up Sanitizer SDK AOT Runtimes"]:::pending
     sdk_w7m["sdk-w7m:<br>VM: Eliminate preprocessor symbol toggles in dfe.cc"]:::pending
     sdk_xfm["sdk-xfm:<br>Migrate Dart VM C++ test runner {run_vm_tests} to cc_test"]:::pending
     sdk_zi3["sdk-zi3:<br>Tooling: Implement script to import upstream CL/PR into Bazel workspace"]:::pending
@@ -100,10 +106,13 @@ graph TD
     TASK_006 --> TASK_028
     TASK_003 --> TASK_029
     TASK_033 --> TASK_034
+    sdk_oce --> sdk_3ld
     sdk_fnn --> sdk_4z8
     sdk_zi3 --> sdk_4z8
+    sdk_oce --> sdk_90d
     TASK_038 --> sdk_9qx
     sdk_9qx --> sdk_fnn
+    sdk_oce --> sdk_g2l
     sdk_9qx --> sdk_zi3
 ```
 
@@ -225,6 +234,19 @@ graph TD
 
 ---
 
+### 🎯 [sdk-3ld] [M3] Wire up Dart MCP Server Snapshots
+- **Status**: `[PENDING]`
+- **Prerequisites**: `sdk-oce`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the 6 JIT/AOT snapshots for the dart_mcp_server utility in utils/dart_mcp_server/BUILD.bazel to enable building its executable from source under Bazel.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-4z8] Skill: Create agent skill for automated upstream PR/CL triage in Bazel
 - **Status**: `[PENDING]`
 - **Prerequisites**: `sdk-fnn`, `sdk-zi3`
@@ -234,6 +256,19 @@ graph TD
   - None
 - **Description**:
   Create a custom Agent Skill (in .agents/skills/) that equips AI agents to autonomously execute the bridge workflow (fetch, import, test under Bazel, and report results) using the import/export scripts.
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-90d] [M3] Wire up Dart Dev Compiler (DDC) Snapshots
+- **Status**: `[PENDING]`
+- **Prerequisites**: `sdk-oce`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Replace the 16 DDC filegroup stubs (canary, stable, outline JS snapshots) in utils/ddc/BUILD.bazel with real, functional dart_aot_snapshot and dart_kernel_snapshot targets.
 - **Success Criteria**:
 
 ---
@@ -303,6 +338,19 @@ graph TD
 
 ---
 
+### 🎯 [sdk-g2l] [M3] Wire up Dart2JS and Dartdoc Snapshots
+- **Status**: `[PENDING]`
+- **Prerequisites**: `sdk-oce`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Replace the 6 dart2js_aot and dartdoc stubs in utils/compiler/BUILD.bazel with real Starlark snapshot rules to enable compiling Dart-to-JS under Bazel.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-gmk] Prune upstream Bazel files from vendored third_party
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
@@ -316,6 +364,32 @@ graph TD
 
 ---
 
+### 🎯 [sdk-mv2] [M3] Wire up DevTools and Core Utility Binaries
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the remaining helper stubs (copy_prebuilt_devtools, compile_platform.exe, gen_kernel.exe, git_version) in utils/dartdev/BUILD.bazel and utils/BUILD.bazel to finalize SDK assembly.
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-oce] [M3] Wire up Kernel Worker Snapshot
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the persistent compiler kernel_worker JIT/AOT snapshots (kernel_worker_dill) in utils/bazel/BUILD.bazel to enable fast, persistent-worker compiles.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-rog] VM: Define formal GN target for public VM embedding C API
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
@@ -325,6 +399,19 @@ graph TD
   - None
 - **Description**:
   Create a header-only source_set('public_api_headers') in runtime/include/BUILD.gn containing only the public embedding API headers (dart_api.h, etc.). Update internal VM targets to depend on it, and align the Bazel translation to remove the hand-written shim. Ref: docs/bazel-migration/todo_issues/issue_00007_runtime_include_public_api_target.md
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-rwz] [M3] Wire up Sanitizer SDK AOT Runtimes
+- **Status**: `[PENDING]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the ASAN, MSAN, and TSAN AOT runtime copy actions (copy_dart_aotruntime_asan, etc.) in sdk/BUILD.bazel to enable packaging sanitizer-configured SDKs.
 - **Success Criteria**:
 
 ---
