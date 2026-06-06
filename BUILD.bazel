@@ -358,7 +358,6 @@ filegroup(
     name = "dart2wasm_test_resources",
     srcs = glob(
         [
-            "third_party/flute/benchmarks/lib/complex.dart",
             "pkg/dart2wasm/benchmark/**",
             "pkg/dart2wasm/tool/**",
             "pkg/dart2wasm/test/deferred_loading/**",
@@ -372,4 +371,3 @@ filegroup(
 )
 
 exports_files(["DEPS"])
-
