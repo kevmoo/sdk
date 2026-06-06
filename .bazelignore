@@ -7,3 +7,5 @@ third_party/perfetto/src
 third_party/cpu_features/src
 third_party/emsdk/bazel
 third_party/icu/source
+xcodebuild
+

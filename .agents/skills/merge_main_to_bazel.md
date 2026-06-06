@@ -1,6 +1,11 @@
 # Upstream SDK Merge Flow Skill
 
-This skill documents the highly efficient, safe mechanism an AI agent (or human developer) uses to merge the latest upstream SDK changes from `origin/main` into the local `bazel` branch, resolve any out-of-band working-tree dependencies, and validate the resulting state.
+This skill documents the highly efficient, safe mechanism an AI agent (or human developer) uses to merge the latest upstream SDK changes into the local `bazel` branch, resolve any out-of-band working-tree dependencies, and validate the resulting state.
+
+> [!IMPORTANT]
+> **Preferred Merge Source: `origin/dev`**
+> Always prefer merging from the upstream `dev` branch (e.g., `origin/dev` or specific dev release tags) rather than `origin/main`. 
+> **Why?** The `dev` branch is subjected to much more comprehensive CI validation and integration testing. Merging from `dev` minimizes the chances of introducing weird regressions or build breakages compared to the fast-moving and less-validated commits on `main`.
 
 ## 📋 Merge & Synchronization Sequence
 
@@ -13,8 +18,11 @@ Always perform a fetch and a non-committing merge first to identify potential co
 # Fetch the latest upstream changes
 git fetch origin
 
-# Perform a non-committing merge
-git merge origin/main --no-commit --no-ff
+# Perform a non-committing merge from the dev branch (strongly recommended)
+git merge origin/dev --no-commit --no-ff
+
+# OR, if merging a specific dev release commit/tag (e.g. Version 3.13.0-178.0.dev):
+# git merge <dev-commit-hash-or-tag> --no-commit --no-ff
 ```
 
 ### Step 2: Sync dependencies and hooks
@@ -32,8 +40,8 @@ gclient sync
 Verify that the compiler service and target VM build cleanly under Bazel.
 
 ```bash
-# Use the explicit absolute path to Bazel
-/usr/local/google/home/kevmoo/bin/bazel build //runtime/bin:dartvm
+# Run the Bazel build for the VM target
+bazel build //runtime/bin:dartvm
 ```
 
 ### Step 4: Handle Bazel Output Lock and Orphaned Processes
@@ -75,5 +83,5 @@ The repository contains Git pre-commit hooks (e.g., `dart_format_pre_commit.sh`)
 Because the host environment might not have `dart` in its global `PATH`, you **must** temporarily prepend the prebuilt Dart SDK to the `PATH` when running the commit command:
 
 ```bash
-PATH=$PWD/tools/sdks/dart-sdk/bin:$PATH git commit -m "Merge remote-tracking branch 'origin/main' into bazel"
+PATH=$PWD/tools/sdks/dart-sdk/bin:$PATH git commit -m "Merge remote-tracking branch 'origin/dev' into bazel"
 ```

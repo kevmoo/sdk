@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 121 — **(Antigravity) Merged upstream Version 3.13.0-178.0.dev and updated merge skill to prefer dev branch.**
+- **Merged Upstream Dev Release**: Successfully merged commit `05243f181c214868e0f660d72c089ebbe90437f7` (`Version 3.13.0-178.0.dev`) into our local `bazel` branch. The merge completed cleanly without any conflicts.
+- **Synchronized Dependencies**: Ran `gclient sync` to align sub-repositories and regenerate package configurations.
+- **Updated Merge Documentation**: Updated [.agents/skills/merge_main_to_bazel.md](file:///.agents/skills/merge_main_to_bazel.md) to strongly encourage and default to merging from the `dev` branch (`origin/dev`) rather than `origin/main` to leverage full CI validation and minimize regression risks.
+- **Verified Build & Tests**: Verified that the Dart VM target (`//runtime/bin:dartvm`) builds 100% green under the newly merged dev version, and that all Bazel linter unit tests and headless Wasm integration tests (`corelib/list_test`, `language/abstract_class_test`) pass successfully.
+
 Session 120 — **(jetski) Completed TASK_037: Cleaned up migration documentation and legacy instructions.**
 - **Deleted Legacy Files**: Removed 14 outdated/historical files and the entire `deep_dives/` directory from the working tree (relying on Git history for their preservation), reducing clutter and search noise.
 - **Modernized README.md**: Rewrote the entry-point documentation to serve as a clean, self-contained "Getting Started" and "Developer Guide". Prioritized the most critical info (Prerequisites, Build Commands, and a VM Smoke Test) at the very top.
