@@ -17,7 +17,7 @@ New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstra
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 39/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
+- **Overall Progress**: 40/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
 
 ---
 
@@ -84,7 +84,7 @@ graph TD
     sdk_mv2["sdk-mv2:<br>{M3} Wire up DevTools and Core Utility Binaries"]:::completed
     sdk_oce["sdk-oce:<br>{M3} Wire up Kernel Worker Snapshot"]:::completed
     sdk_rog["sdk-rog:<br>VM: Define formal GN target for public VM embedding C API"]:::pending
-    sdk_rwz["sdk-rwz:<br>{M3} Wire up Sanitizer SDK AOT Runtimes"]:::pending
+    sdk_rwz["sdk-rwz:<br>{M3} Wire up Sanitizer SDK AOT Runtimes"]:::completed
     sdk_w7m["sdk-w7m:<br>VM: Eliminate preprocessor symbol toggles in dfe.cc"]:::pending
     sdk_xfm["sdk-xfm:<br>Migrate Dart VM C++ test runner {run_vm_tests} to cc_test"]:::pending
     sdk_zi3["sdk-zi3:<br>Tooling: Implement script to import upstream CL/PR into Bazel workspace"]:::pending
@@ -334,19 +334,6 @@ graph TD
   - None
 - **Description**:
   Create a header-only source_set('public_api_headers') in runtime/include/BUILD.gn containing only the public embedding API headers (dart_api.h, etc.). Update internal VM targets to depend on it, and align the Bazel translation to remove the hand-written shim. Ref: docs/bazel-migration/todo_issues/issue_00007_runtime_include_public_api_target.md
-- **Success Criteria**:
-
----
-
-### 🎯 [sdk-rwz] [M3] Wire up Sanitizer SDK AOT Runtimes
-- **Status**: `[PENDING]`
-- **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Wire up the ASAN, MSAN, and TSAN AOT runtime copy actions (copy_dart_aotruntime_asan, etc.) in sdk/BUILD.bazel to enable packaging sanitizer-configured SDKs.
 - **Success Criteria**:
 
 ---

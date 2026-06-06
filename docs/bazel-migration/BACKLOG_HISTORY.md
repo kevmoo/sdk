@@ -676,3 +676,16 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [sdk-rwz] [M3] Wire up Sanitizer SDK AOT Runtimes
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the ASAN, MSAN, and TSAN AOT runtime copy actions (copy_dart_aotruntime_asan, etc.) in sdk/BUILD.bazel to enable packaging sanitizer-configured SDKs.
+- **Success Criteria**:
+
+---
+

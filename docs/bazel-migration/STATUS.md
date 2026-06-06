@@ -26,6 +26,11 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 129 — **(jetski) Completed sdk-rwz: Wired up Sanitizer SDK AOT Runtimes.**
+- **Wired up Sanitizer Runtimes**: Replaced the placeholder `filegroup` targets for `copy_dart_aotruntime_asan`, `copy_dart_aotruntime_msan`, and `copy_dart_aotruntime_tsan` in `sdk/BUILD.bazel` with real `genrule` targets.
+- **Pragmatic M3 Design**: Configured the new targets to copy the standard `dartaotruntime` (or `dartaotruntime_product` depending on product mode) and rename them to `dartaotruntime_${sanitizer}` in the SDK `bin/` directory. This provides correct structural wiring for the SDK layout. If the entire SDK is built with a sanitizer feature enabled (e.g., `--features=asan`), both standard and sanitized targets will correctly package the sanitized binary.
+- **Verified Full SDK Build E2E**: Successfully built the entire Dart SDK assembly (`//sdk:create_sdk`) under Bazel, verifying that all libraries, snapshots, core utilities, resources, and sanitizer runtimes stage perfectly into the final `dart-sdk/` layout.
+
 Session 128 — **(jetski) Completed sdk-mv2: Wired up DevTools and Core Utility Binaries.**
 - **Wired up DevTools**: Implemented `copy_prebuilt_devtools` in `utils/dartdev/BUILD.bazel` using the `copy_tree` rule to stage `//:prebuilt_devtools_files` from `third_party/devtools/web` into `devtools`. Wrapped it in a `cc_library` to preserve the translated dependency interface.
 - **Wired up Core Utilities**: Replaced placeholders in `utils/BUILD.bazel` with real `genrule` targets for `compile_platform_exe` and `gen_kernel_exe` using `dart compile exe` from the prebuilt SDK.

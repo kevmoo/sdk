@@ -254,11 +254,31 @@ genrule(
     }),
 )
 
-# TODO(M3): copy for copy_dart_aotruntime_asan (gn type=copy)
-filegroup(name = "copy_dart_aotruntime_asan")
+genrule(
+    name = "copy_dart_aotruntime_asan",
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:dartaotruntime_product"],
+        "//conditions:default": ["//runtime/bin:dartaotruntime"],
+    }),
+    outs = ["dart-sdk/bin/dartaotruntime_asan"],
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
+)
 
-# TODO(M3): copy for copy_dart_aotruntime_msan (gn type=copy)
-filegroup(name = "copy_dart_aotruntime_msan")
+genrule(
+    name = "copy_dart_aotruntime_msan",
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:dartaotruntime_product"],
+        "//conditions:default": ["//runtime/bin:dartaotruntime"],
+    }),
+    outs = ["dart-sdk/bin/dartaotruntime_msan"],
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
+)
 
 genrule(
     name = "copy_dart_aotruntime_sym",
@@ -275,8 +295,18 @@ genrule(
     }),
 )
 
-# TODO(M3): copy for copy_dart_aotruntime_tsan (gn type=copy)
-filegroup(name = "copy_dart_aotruntime_tsan")
+genrule(
+    name = "copy_dart_aotruntime_tsan",
+    srcs = select({
+        "//build/config:product": ["//runtime/bin:dartaotruntime_product"],
+        "//conditions:default": ["//runtime/bin:dartaotruntime"],
+    }),
+    outs = ["dart-sdk/bin/dartaotruntime_tsan"],
+    cmd = select({
+        "//build/config:os_macos": "strip -x -o $@ $<",
+        "//conditions:default": "strip --strip-all -o $@ $<",
+    }),
+)
 
 genrule(
     name = "copy_dart_tooling_daemon_aot_product_snapshot",
