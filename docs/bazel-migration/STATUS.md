@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 127 — **(jetski) Resolved sdk-3ld: Cleaned up obsolete Dart MCP Server stubs.**
+- **Identified Obsolete Utility**: Discovered that the standalone `dart_mcp_server` utility was removed upstream in favor of running it dynamically via `dart run dart_mcp_server@`. It is no longer part of the SDK build.
+- **Identified Merge Mistake**: Determined that `utils/dart_mcp_server/BUILD.bazel` was a "ghost" file accidentally restored during a merge of the FFI tests branch, which had branched before the upstream deletion.
+- **Cleaned up Dead Code**: Deleted the entire dead `utils/dart_mcp_server/` directory from the workspace.
+- **Closed Obsolete Task**: Closed `sdk-3ld` in the Beads database as obsolete.
+- **Regenerated Backlog**: Regenerated the backlog board to reflect the removal.
+
 Session 126 — **(jetski) Completed sdk-90d: Wired up Dart Dev Compiler (DDC) Snapshots.**
 - **Created DDC Starlark Macros**: Defined `package_kernel_outline`, `ddc_compile`, and `ddc_compile_sdk` macros in a new file `utils/ddc/rules.bzl` to encapsulate complex DDC compilation commands.
 - **Solved Sandbox Dependency Issues**: Defined full source lists for `expect`, `js`, and `meta` packages in `rules.bzl` and staged them in the `genrule` sandboxes. This resolved missing relative import errors (like `meta_meta.dart` and `config.dart`) that occurred during sandboxed CFE runs.

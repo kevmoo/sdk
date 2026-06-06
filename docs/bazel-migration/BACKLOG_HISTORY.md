@@ -611,6 +611,19 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [sdk-3ld] [M3] Wire up Dart MCP Server Snapshots
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: `sdk-oce`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the 6 JIT/AOT snapshots for the dart_mcp_server utility in utils/dart_mcp_server/BUILD.bazel to enable building its executable from source under Bazel.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-90d] [M3] Wire up Dart Dev Compiler (DDC) Snapshots
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: `sdk-oce`

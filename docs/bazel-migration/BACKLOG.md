@@ -17,7 +17,7 @@ New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstra
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 37/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
+- **Overall Progress**: 38/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
 
 ---
 
@@ -71,7 +71,7 @@ graph TD
     TASK_039["TASK_039:<br>Enable standard Bazel lint and formatting checks {Buildifier}"]:::completed
     TASK_040["TASK_040:<br>Implement `bazel run` support for running Dart scripts"]:::completed
     TASK_041["TASK_041:<br>Emit canonical `cc_test` rules for self-contained test binaries"]:::completed
-    sdk_3ld["sdk-3ld:<br>{M3} Wire up Dart MCP Server Snapshots"]:::pending
+    sdk_3ld["sdk-3ld:<br>{M3} Wire up Dart MCP Server Snapshots"]:::completed
     sdk_4z8["sdk-4z8:<br>Skill: Create agent skill for automated upstream PR/CL triage in Bazel"]:::pending
     sdk_90d["sdk-90d:<br>{M3} Wire up Dart Dev Compiler {DDC} Snapshots"]:::completed
     sdk_95q["sdk-95q:<br>Migrate leaf C++ integration tests {abstract_socket_test & process_test} to cc_test"]:::pending
@@ -231,19 +231,6 @@ graph TD
   Evaluate the feasibility and trade-offs of migrating Dart package dependency resolution (currently handled by `gclient sync` and host-side `pubspec` resolution) to run hermetically inside Bazel (e.g., using a custom Bzlmod extension to fetch packages and generate the package config). Address developer workflow impact (ability to edit `third_party/pkg` sources), bootstrap loop implications, and alignment with Google3.
 - **Success Criteria**:
   - [ ] Analysis document detailing feasibility, design options, and trade-offs for hermetic package syncing.
-
----
-
-### 🎯 [sdk-3ld] [M3] Wire up Dart MCP Server Snapshots
-- **Status**: `[PENDING]`
-- **Prerequisites**: `sdk-oce`
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Wire up the 6 JIT/AOT snapshots for the dart_mcp_server utility in utils/dart_mcp_server/BUILD.bazel to enable building its executable from source under Bazel.
-- **Success Criteria**:
 
 ---
 
