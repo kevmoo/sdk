@@ -15,6 +15,9 @@ def gen_targets():
     target; targets defined there are excluded from this macro by the translator.
     """
 
+    # Starlark macros do not have global access to native rules; define local alias.
+    filegroup = native.filegroup
+
     cc_library(
         name = "libdart_lib_aotruntime",
         srcs = [

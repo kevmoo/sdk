@@ -528,6 +528,10 @@ def write_gen_targets_bzl(root, pkg, targets, packages):
             '    target; targets defined there are excluded from this macro by the translator.\n'
         )
         f.write('    """\n\n')
+        f.write(
+            "    # Starlark macros do not have global access to native rules; define local alias.\n"
+        )
+        f.write("    filegroup = native.filegroup\n\n")
         f.write(textwrap.indent(body, "    "))
     n_drop = sum(1 for n, _ in targets if n in drop)
     n_hand = len(targets) - len(machine) - n_drop
