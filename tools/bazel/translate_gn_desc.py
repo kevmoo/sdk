@@ -541,9 +541,11 @@ def _propagate_testonly(desc):
     # Force testonly = True for the target we turned into cc_test.
     # Bazel implicitly treats cc_test as testonly, so any target depending on it
     # must also be marked testonly.
+    # Handle potential toolchain suffixes (e.g. target_test + "(...)") robustly.
     target_test = "//runtime/bin/ffi_unit_test:run_ffi_unit_tests_x64_linux"
-    if target_test in desc:
-        desc[target_test]["testonly"] = True
+    for label in desc:
+        if label == target_test or label.startswith(target_test + "("):
+            desc[label]["testonly"] = True
 
     # Build a reverse dependency map (child -> parents)
     rev_deps = {}
@@ -555,9 +557,12 @@ def _propagate_testonly(desc):
     queue = [label for label, t in desc.items() if t.get("testonly", False)]
     visited = set(queue)
 
-    # BFS to propagate testonly transitively to all ancestors
-    while queue:
-        curr = queue.pop(0)
+    # BFS to propagate testonly transitively to all ancestors using an index pointer
+    # to achieve a true linear O(N) complexity (avoiding O(N^2) list.pop(0) shifts).
+    idx = 0
+    while idx < len(queue):
+        curr = queue[idx]
+        idx += 1
         if curr in desc:
             desc[curr]["testonly"] = True
         for parent in rev_deps.get(curr, []):
