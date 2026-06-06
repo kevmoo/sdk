@@ -512,10 +512,12 @@ def _dart_app_jit_training_impl(ctx):
         outputs = [out_snapshot],
         inputs = inputs,
         command = (
+            "mkdir -p {vm_dir} && touch {vm_dir}/dartdev_aot.dart.snapshot && " +
             "{vm} --deterministic --packages={pkg} " +
             "--snapshot={out} --snapshot-kind=app-jit --dfe=NEVER_LOADED " +
             "{vmargs} {dill} {targs}"
         ).format(
+            vm_dir = ctx.executable.dart_vm.dirname,
             vm = ctx.executable.dart_vm.path,
             pkg = ctx.file.package_config.path,
             out = out_snapshot.path,

@@ -22,11 +22,56 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for compile_platform.exe (gn type=action)
-filegroup(name = "compile_platform.exe")
+genrule(
+    name = "compile_platform_exe",
+    srcs = [
+        "//:pkg/front_end/tool/compile_platform.dart",
+        "//:front_end_tool_files",
+        "//:pkg/front_end/test/coverage_helper.dart",
+        "//:pkg/front_end/test/vm_service_helper.dart",
+        "//:dart_pkg_front_end",
+        "//:dart_pkg__fe_analyzer_shared",
+        "//:dart_pkg_kernel",
+        "//:dart_pkg_compiler",
+        "//:dart_pkg_dart2wasm",
+        "//:dart_pkg_dev_compiler",
+        "//:dart_pkg_vm",
+        "//:dart_pkg_vm_service",
+        "//:dart_pkg_build_integration",
+        "//:package_config_json",
+    ],
+    outs = ["compile_platform.exe"],
+    cmd = "$(location @prebuilt_dart_sdk//:bin/dart) compile exe " +
+          "--packages=$(location //:package_config_json) " +
+          "-o $@ $(location //:pkg/front_end/tool/compile_platform.dart)",
+    tools = ["@prebuilt_dart_sdk//:bin/dart"],
+)
 
-# TODO(M3): genrule for gen_kernel.exe (gn type=action)
-filegroup(name = "gen_kernel.exe")
+genrule(
+    name = "gen_kernel_exe",
+    srcs = [
+        "//:pkg/vm/bin/gen_kernel.dart",
+        "//:vm_bin_files",
+        "//:dart_pkg_vm",
+        "//:dart_pkg_kernel",
+        "//:dart_pkg_front_end",
+        "//:dart_pkg__fe_analyzer_shared",
+        "//:package_config_json",
+    ],
+    outs = ["gen_kernel.exe"],
+    cmd = "$(location @prebuilt_dart_sdk//:bin/dart) compile exe " +
+          "--packages=$(location //:package_config_json) " +
+          "-o $@ $(location //:pkg/vm/bin/gen_kernel.dart)",
+    tools = ["@prebuilt_dart_sdk//:bin/dart"],
+)
 
-# TODO(M3): genrule for git_version (gn type=generated_file)
-filegroup(name = "git_version")
+genrule(
+    name = "git_version_target",
+    srcs = [
+        "//tools:make_version.py",
+        "//tools:utils.py",
+        "//tools:VERSION",
+    ],
+    outs = ["git_version"],
+    cmd = "python3 $(location //tools:make_version.py) > $@",
+)

@@ -321,8 +321,8 @@ filegroup(
 filegroup(
     name = "tools",
     srcs = [
-        "//utils:compile_platform.exe",
-        "//utils:gen_kernel.exe",
+        "//utils:compile_platform_exe",
+        "//utils:gen_kernel_exe",
     ],
 )
 
@@ -368,6 +368,15 @@ filegroup(
     ) + [
         "//sdk:sdk_library_sources",
     ],
+)
+
+# Expose pkg/vm/bin/ files to compile gen_kernel.exe.
+filegroup(
+    name = "vm_bin_files",
+    srcs = glob(
+        ["pkg/vm/bin/**/*.dart"],
+        allow_empty = True,
+    ),
 )
 
 exports_files(["DEPS"])

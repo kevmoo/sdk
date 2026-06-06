@@ -26,6 +26,15 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 128 — **(jetski) Completed sdk-mv2: Wired up DevTools and Core Utility Binaries.**
+- **Wired up DevTools**: Implemented `copy_prebuilt_devtools` in `utils/dartdev/BUILD.bazel` using the `copy_tree` rule to stage `//:prebuilt_devtools_files` from `third_party/devtools/web` into `devtools`. Wrapped it in a `cc_library` to preserve the translated dependency interface.
+- **Wired up Core Utilities**: Replaced placeholders in `utils/BUILD.bazel` with real `genrule` targets for `compile_platform_exe` and `gen_kernel_exe` using `dart compile exe` from the prebuilt SDK.
+- **Wired up Git Version**: Replaced `git_version` placeholder in `utils/BUILD.bazel` with a `genrule` invoking `tools/make_version.py` with its required inputs (`VERSION`, `utils.py`).
+- **Resolved Sandbox Dependency Issues**: Exposed `pkg/vm/bin/` files in the root `BUILD.bazel` via a new `vm_bin_files` filegroup. Staged complete transitive package closures (including `compiler`, `dart2wasm`, `dev_compiler`, `vm`, `build_integration`, and Fasta test helpers) in `compile_platform_exe` `srcs` to resolve sandboxed compilation failures.
+- **Solved VM Directory Collision Warnings**: Renamed the Bazel rules in `utils/BUILD.bazel` to use underscores (e.g., `compile_platform_exe`) to avoid warnings about target names colliding with their output files, and updated the `//:tools` target in the root `BUILD.bazel`.
+- **Solved Critical JIT Training Sandbox Crash**: Fixed a crash in the `dartdev` JIT training run (where `dart2native` failed with a null check when trying to locate the SDK in the sandbox) by modifying `tools/bazel/dart/defs.bzl` to dynamically create a dummy sentinel `dartdev_aot.dart.snapshot` file next to the host VM binary using `ctx.executable.dart_vm.dirname`.
+- **Verified Build E2E**: Successfully built all core utilities and verified that the `dartdev` JIT training run now executes 100% cleanly and outputs its help text in the sandbox.
+
 Session 127 — **(jetski) Resolved sdk-3ld: Cleaned up obsolete Dart MCP Server stubs.**
 - **Identified Obsolete Utility**: Discovered that the standalone `dart_mcp_server` utility was removed upstream in favor of running it dynamically via `dart run dart_mcp_server@`. It is no longer part of the SDK build.
 - **Identified Merge Mistake**: Determined that `utils/dart_mcp_server/BUILD.bazel` was a "ghost" file accidentally restored during a merge of the FFI tests branch, which had branched before the upstream deletion.

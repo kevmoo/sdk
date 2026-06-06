@@ -650,6 +650,19 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [sdk-mv2] [M3] Wire up DevTools and Core Utility Binaries
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the remaining helper stubs (copy_prebuilt_devtools, compile_platform.exe, gen_kernel.exe, git_version) in utils/dartdev/BUILD.bazel and utils/BUILD.bazel to finalize SDK assembly.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-oce] [M3] Wire up Kernel Worker Snapshot
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: None

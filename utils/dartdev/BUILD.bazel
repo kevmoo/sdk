@@ -3,7 +3,12 @@
 # bits and re-apply fixes from version control.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
+load(
+    "//tools/bazel/dart:defs.bzl",
+    "copy_tree",
+    "dart_aot_snapshot",
+    "dart_app_jit_snapshot",
+)
 
 package(default_visibility = ["//visibility:public"])
 
@@ -34,8 +39,17 @@ cc_library(
     ],
 )
 
-# TODO(M3): genrule for copy_prebuilt_devtools (gn type=action)
-cc_library(name = "copy_prebuilt_devtools")
+copy_tree(
+    name = "_copy_prebuilt_devtools",
+    srcs = ["//:prebuilt_devtools_files"],
+    out_dir = "devtools",
+    src_dir = "third_party/devtools/web",
+)
+
+cc_library(
+    name = "copy_prebuilt_devtools",
+    data = [":_copy_prebuilt_devtools"],
+)
 
 cc_library(
     name = "dartdev",
