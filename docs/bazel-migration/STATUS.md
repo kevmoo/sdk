@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 124 — **(jetski) Completed sdk-oce: Wired up Kernel Worker JIT/AOT snapshots.**
+- **Wired up `kernel_worker` JIT Snapshot**: Replaced the placeholder `filegroup` for `kernel_worker` in `utils/bazel/BUILD.bazel` with a `dart_app_jit_snapshot` rule, configuring it to use `kernel_worker.dart` and the JIT VM (`//runtime/bin:dartvm`) with `--help` training arguments.
+- **Wired up `kernel_worker_dill`**: Replaced the placeholder `filegroup` for `kernel_worker_dill` as it is now automatically emitted by the `dart_app_jit_snapshot` macro as its stage-1 kernel compile.
+- **Wired up `kernel_worker_files_stamp`**: Replaced the placeholder `filegroup` with a `genrule` that touches a stamp file, matching the GN `create_timestamp_file` behavior.
+- **Verified Build and Training**: Successfully built all three targets using Bazel, confirming that the JIT training run executes cleanly and outputs the expected help text.
+- **Ensured Code Quality**: Formatted and linted `utils/bazel/BUILD.bazel` using `buildifier` to ensure 100% compliance.
+
 Session 123 — **(jetski) Completed sdk-7nj: Migrated and stabilized FFI C++ unit tests under Bazel sandboxed execution.**
 - **Successfully Migrated to `cc_test`**: Converted the host-runnable, self-contained FFI unit test binary `run_ffi_unit_tests_x64_linux` into a native Bazel `cc_test` target, making it fully discoverable and cacheable.
 - **Resolved Sandboxed Header Dependencies**: Modified the translator to automatically inject hand-authored header-only targets (`//runtime/vm:headers`, `//runtime/platform:headers`, `//runtime/include:headers`) into the FFI unit tests, resolving all missing VM and platform header errors in the sandbox.

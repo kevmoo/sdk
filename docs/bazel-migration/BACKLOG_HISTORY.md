@@ -611,3 +611,16 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [sdk-oce] [M3] Wire up Kernel Worker Snapshot
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Wire up the persistent compiler kernel_worker JIT/AOT snapshots (kernel_worker_dill) in utils/bazel/BUILD.bazel to enable fast, persistent-worker compiles.
+- **Success Criteria**:
+
+---
+

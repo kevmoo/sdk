@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot")
+load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -26,8 +26,17 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# TODO(M3): genrule for kernel_worker (gn type=action)
-filegroup(name = "kernel_worker")
+dart_app_jit_snapshot(
+    name = "kernel_worker",
+    out = "kernel_worker.dart.snapshot",
+    dart_vm = "//runtime/bin:dartvm",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    main = ":kernel_worker.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
+    sources = "//:dart_pkg_frontend_server",
+    training_args = ["--help"],
+)
 
 # rules_dart Step 0: real AOT snapshot of the CFE persistent worker — the
 # external --persistent_worker compatibility contract (DESIGN.md §3.5). Product
@@ -57,8 +66,12 @@ dart_aot_snapshot(
 # (kernel_worker_aot_product, _dill, _gen_snapshot stubs superseded by the
 # dart_aot_snapshot macro above, which emits the _dill + _snapshot genrules.)
 
-# TODO(M3): genrule for kernel_worker_dill (gn type=action)
-filegroup(name = "kernel_worker_dill")
+# (kernel_worker_dill is now emitted by the dart_app_jit_snapshot macro above
+# as its stage-1 kernel compile, so the duplicate filegroup is dropped.)
 
-# TODO(M3): genrule for kernel_worker_files_stamp (gn type=action)
-filegroup(name = "kernel_worker_files_stamp")
+genrule(
+    name = "kernel_worker_files_stamp",
+    srcs = ["kernel_worker.dart"],
+    outs = ["kernel_worker.stamp"],
+    cmd = "touch $@",
+)
