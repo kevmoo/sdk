@@ -1,5 +1,8 @@
 # Issue 00005: Vendored third_party BUILD files conflict with sibling builds
 
+> [!NOTE]
+> **Tracked in Beads**: sdk-gmk
+
 ## Problem
 
 Several vendored `third_party/` trees still contain `BUILD.bazel` / `BUILD` /

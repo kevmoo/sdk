@@ -1,5 +1,8 @@
 # Issue 00008: runtime/bin/dfe.cc uses ifdef-toggled symbol definitions
 
+> [!NOTE]
+> **Tracked in Beads**: sdk-w7m
+
 ## Problem
 
 `runtime/bin/dfe.cc:18–30` contains an `extern "C"` block that switches

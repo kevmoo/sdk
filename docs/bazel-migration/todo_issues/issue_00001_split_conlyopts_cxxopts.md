@@ -1,5 +1,8 @@
 # Issue 00001: Split conlyopts/cxxopts for mixed-language third_party targets
 
+> [!NOTE]
+> **Tracked in Beads**: sdk-b34
+
 ## Problem
 
 Several third_party libraries vendored in `third_party/` are pure C (notably

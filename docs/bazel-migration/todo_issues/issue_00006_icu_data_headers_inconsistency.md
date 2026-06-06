@@ -1,5 +1,8 @@
 # Issue 00006: ICU data headers are excluded by upstream :headers but used by Dart
 
+> [!NOTE]
+> **Tracked in Beads**: sdk-cfi
+
 ## Problem
 
 The upstream ICU Bazel file at
