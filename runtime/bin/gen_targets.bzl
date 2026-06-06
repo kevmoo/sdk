@@ -15,6 +15,9 @@ def gen_targets():
     target; targets defined there are excluded from this macro by the translator.
     """
 
+    # Starlark macros do not have global access to native rules; define local alias.
+    filegroup = native.filegroup
+
     cc_binary(
         name = "analyze_snapshot",
         deps = [
@@ -238,7 +241,6 @@ def gen_targets():
         linkopts = [
             "-ldl",
             "-lpthread",
-            "-rdynamic",
         ],
     )
 
@@ -530,7 +532,7 @@ def gen_targets():
     )
 
     # TODO(M3): genrule for ffi_callback_stub_bin (gn type=action)
-    cc_library(name = "ffi_callback_stub_bin")
+    filegroup(name = "ffi_callback_stub_bin")
 
     cc_binary(
         name = "gen_snapshot",
@@ -884,8 +886,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_ARM",
             "PRODUCT",
         ],
         copts = [
@@ -971,8 +971,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_ARM64",
             "PRODUCT",
         ],
         copts = [
@@ -1058,8 +1056,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_RISCV64",
             "PRODUCT",
         ],
         copts = [
@@ -1145,8 +1141,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_X64",
             "PRODUCT",
         ],
         copts = [
@@ -1346,8 +1340,8 @@ def gen_targets():
             "//runtime/bin:crashpad",
             "//runtime/bin:dart_kernel_platform_cc",
             "//runtime/bin:run_vm_tests_set",
-            "//third_party/boringssl",
-            "//third_party/perfetto:libprotozero",
+            "@boringssl//:boringssl",
+            "@perfetto//:libprotozero",
             "@zlib//:zlib",
             "//build/config:dart_mode",
         ],

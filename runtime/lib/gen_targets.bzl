@@ -15,6 +15,9 @@ def gen_targets():
     target; targets defined there are excluded from this macro by the translator.
     """
 
+    # Starlark macros do not have global access to native rules; define local alias.
+    filegroup = native.filegroup
+
     cc_library(
         name = "libdart_lib_aotruntime",
         srcs = [
@@ -59,7 +62,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_aotruntime",
             "//runtime/vm:libdart_vm_aotruntime",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -179,7 +182,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_aotruntime_product",
             "//runtime/vm:libdart_vm_aotruntime_product",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -300,7 +303,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_jit",
             "//runtime/vm:libdart_vm_jit",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -418,7 +421,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_jit_product",
             "//runtime/vm:libdart_vm_jit_product",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -537,7 +540,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_libfuzzer",
             "//runtime/vm:libdart_vm_libfuzzer",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -657,7 +660,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler",
             "//runtime/vm:libdart_vm_precompiler",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -777,7 +780,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_host_targeting_host",
             "//runtime/vm:libdart_vm_precompiler_host_targeting_host",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -897,7 +900,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_product",
             "//runtime/vm:libdart_vm_precompiler_product",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -1018,7 +1021,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_product_host_targeting_host",
             "//runtime/vm:libdart_vm_precompiler_product_host_targeting_host",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [
@@ -1139,13 +1142,11 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm",
             "//runtime/vm:libdart_vm_precompiler_product_linux_arm",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_ARM",
             "DART_PRECOMPILER",
             "PRODUCT",
         ],
@@ -1262,13 +1263,11 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_product_linux_arm64",
             "//runtime/vm:libdart_vm_precompiler_product_linux_arm64",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_ARM64",
             "DART_PRECOMPILER",
             "PRODUCT",
         ],
@@ -1385,13 +1384,11 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_product_linux_riscv64",
             "//runtime/vm:libdart_vm_precompiler_product_linux_riscv64",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_RISCV64",
             "DART_PRECOMPILER",
             "PRODUCT",
         ],
@@ -1508,13 +1505,11 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_product_linux_x64",
             "//runtime/vm:libdart_vm_precompiler_product_linux_x64",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode_no_arch",
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_X64",
             "DART_PRECOMPILER",
             "PRODUCT",
         ],
@@ -1631,7 +1626,7 @@ def gen_targets():
             "//runtime:dart_api",
             "//runtime/platform:libdart_platform_precompiler_testing",
             "//runtime/vm:libdart_vm_precompiler_testing",
-            "//third_party/perfetto:libprotozero",
+            "@perfetto//:libprotozero",
             "//build/config:dart_mode",
         ],
         local_defines = [

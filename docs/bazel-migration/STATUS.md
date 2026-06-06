@@ -26,6 +26,15 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 123 — **(jetski) Completed sdk-7nj: Migrated and stabilized FFI C++ unit tests under Bazel sandboxed execution.**
+- **Successfully Migrated to `cc_test`**: Converted the host-runnable, self-contained FFI unit test binary `run_ffi_unit_tests_x64_linux` into a native Bazel `cc_test` target, making it fully discoverable and cacheable.
+- **Resolved Sandboxed Header Dependencies**: Modified the translator to automatically inject hand-authored header-only targets (`//runtime/vm:headers`, `//runtime/platform:headers`, `//runtime/include:headers`) into the FFI unit tests, resolving all missing VM and platform header errors in the sandbox.
+- **Resolved C++ Include Puzzle (`ffi_cc_includes`)**: Solved the C++ unity-build inclusion pattern (where `unit_test_custom_zone.cc` includes other `.cc` files) by dynamically generating a helper `cc_library` target `ffi_cc_includes` and putting the included `.cc` files in its `hdrs` (preventing double compilation and duplicate linker symbol errors).
+- **Staged Runtime Expectation Files**: Appended a new `ffi_unit_test_expectations` `filegroup` to the hand-authored `runtime/vm/BUILD.bazel` to glob all `.expect` files, and updated the translator to inject it into the `data` attribute of the FFI tests, mounting them in the sandbox at runtime.
+- **Implemented Transitive `testonly` Propagation**: Solved Bazel's strict `testonly` dependency constraints by implementing a generic, fixed-point transitive `testonly` propagation pre-pass in the translator. This automatically marks all grouping and root targets as `testonly = True` if they depend on a test.
+- **Fixed Cross-Compilation Architecture Leakage**: Fixed a quote-stripping bug in the `rules.bzl` wrappers (`cc_library`, `cc_binary`, `cc_test`) that prevented detecting explicit architecture defines. Updated the translator's cross-target detection to treat any target with an explicit `TARGET_ARCH_*` define as a cross target, forcing it to depend on `dart_mode_no_arch` and completely preventing host architecture leakage during multi-architecture builds.
+- **Verified 100% Green E2E**: Verified that `bazel test //runtime/bin/ffi_unit_test:run_ffi_unit_tests_x64_linux` passes 100% green and is cached successfully. Verified that the grouping target `bazel build //runtime/bin/ffi_unit_test:run_ffi_unit_tests` builds all 20 cross-compiled sibling targets cleanly with zero errors.
+
 Session 122 — **(Antigravity) Migrated and stabilized the dart2wasm unit test suite under Bazel sandboxed execution.**
 - **Fully Resolved Wasm Sandboxed Executions**: Solved all remaining sandboxing, CFE package config resolution, and SDK source mapping issues for the entire `dart2wasm` unit test suite, making all 10 unit test cases 100% green.
 - **Fixed Subprocess Package Injections**: Injected `--packages=${Platform.packageConfig}` into the subprocess compiler invocations within both `ir_test.dart` and `partition_test.dart`. This ensures that CFE compilations executed in subprocesses can hermetically resolve `package:expect` under Bazel sandboxed execution.

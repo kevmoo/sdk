@@ -2,7 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("//tools/bazel:rules.bzl", "cc_binary", "cc_library")
+load("//tools/bazel:rules.bzl", "cc_binary", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -26,6 +26,7 @@ exports_files(glob(
 
 cc_library(
     name = "run_ffi_unit_tests",
+    testonly = True,
     deps = [
         "//runtime/bin/ffi_unit_test:run_ffi_unit_tests_arm64_android",
         "//runtime/bin/ffi_unit_test:run_ffi_unit_tests_arm64_fuchsia",
@@ -162,6 +163,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -169,11 +173,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "DART_TARGET_OS_ANDROID",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -290,6 +297,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -297,11 +307,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "DART_TARGET_OS_FUCHSIA",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -418,6 +431,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -428,8 +444,12 @@ cc_binary(
         "DART_TARGET_OS_MACOS_IOS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -546,6 +566,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -555,8 +578,12 @@ cc_binary(
         "FFI_UNIT_TESTS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -673,6 +700,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -682,8 +712,12 @@ cc_binary(
         "FFI_UNIT_TESTS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -800,6 +834,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -807,11 +844,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "DART_TARGET_OS_WINDOWS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -928,6 +968,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -935,12 +978,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_ARM",
-        "DART_TARGET_OS_ANDROID",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1057,6 +1102,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1064,12 +1112,15 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_ARM",
         "DART_TARGET_OS_MACOS_IOS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1186,6 +1237,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1193,11 +1247,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_ARM",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1314,6 +1371,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1321,12 +1381,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_IA32",
-        "DART_TARGET_OS_ANDROID",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1443,6 +1505,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1450,11 +1515,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_IA32",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1571,6 +1639,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1578,12 +1649,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_IA32",
-        "DART_TARGET_OS_WINDOWS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1700,6 +1773,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1707,11 +1783,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_RISCV32",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1828,6 +1907,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1835,11 +1917,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "TARGET_ARCH_RISCV64",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -1956,6 +2041,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -1963,11 +2051,14 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "DART_TARGET_OS_FUCHSIA",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -2084,6 +2175,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -2094,13 +2188,18 @@ cc_binary(
         "DART_TARGET_OS_MACOS_IOS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
-cc_binary(
+cc_test(
     name = "run_ffi_unit_tests_x64_linux",
+    testonly = True,
     srcs = [
         "run_ffi_unit_tests.cc",
         "//runtime/platform:address_sanitizer.h",
@@ -2164,6 +2263,9 @@ cc_binary(
         "//runtime/vm:constants_x64.cc",
         "//runtime/vm:constants_x64.h",
     ],
+    args = [
+        "--all",
+    ],
     conlyopts = [
         "-std=c17",
     ],
@@ -2212,6 +2314,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -2221,8 +2326,12 @@ cc_binary(
         "FFI_UNIT_TESTS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -2339,6 +2448,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -2348,8 +2460,12 @@ cc_binary(
         "FFI_UNIT_TESTS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
     ],
 )
 
@@ -2466,6 +2582,9 @@ cc_binary(
         ],
         "//conditions:default": [],
     }),
+    data = [
+        "//runtime/vm:ffi_unit_test_expectations",
+    ],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -2473,10 +2592,25 @@ cc_binary(
     local_defines = [
         "TESTING",
         "FFI_UNIT_TESTS",
-        "DART_TARGET_OS_WINDOWS",
     ],
     deps = [
+        ":ffi_cc_includes",
         "//build/config:dart_mode",
         "//build/config/sanitizers:deps",
+        "//runtime/include:headers",
+        "//runtime/platform:headers",
+        "//runtime/vm:headers",
+    ],
+)
+
+# Helper library to expose .cc files as headers for inclusion in unit_test_custom_zone.cc
+# without compiling them as separate translation units (which would cause duplicate symbols).
+cc_library(
+    name = "ffi_cc_includes",
+    hdrs = [
+        "//runtime/vm:compiler/ffi/native_calling_convention.cc",
+        "//runtime/vm:compiler/ffi/native_location.cc",
+        "//runtime/vm:compiler/ffi/native_type.cc",
+        "//runtime/vm:zone_text_buffer.cc",
     ],
 )
