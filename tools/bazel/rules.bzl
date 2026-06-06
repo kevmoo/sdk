@@ -88,27 +88,32 @@ def cc_library(name, defines = [], local_defines = [], copts = [], linkopts = []
     # Automatically inject platform-specific compiler options
     if type(copts) == "list":
         custom_copts = select({
-            "@platforms//os:linux": _filter_copts(copts, "linux") + [
-                "-m64",
-                "-march=x86-64",
-                "-msse2",
-                "--target=x86_64-linux-gnu",
-            ],
+            "@platforms//os:linux": _filter_copts(copts, "linux"),
             "@platforms//os:macos": _filter_copts(copts, "macos") + [
                 "-mmacosx-version-min=14.0",
             ],
             "//conditions:default": copts,
-        })
-    else:
-        custom_copts = copts + select({
-            "@platforms//os:linux": [
+        }) + select({
+            "@//build/config:linux_x64": [
                 "-m64",
                 "-march=x86-64",
                 "-msse2",
                 "--target=x86_64-linux-gnu",
             ],
+            "//conditions:default": [],
+        })
+    else:
+        custom_copts = copts + select({
             "@platforms//os:macos": [
                 "-mmacosx-version-min=14.0",
+            ],
+            "//conditions:default": [],
+        }) + select({
+            "@//build/config:linux_x64": [
+                "-m64",
+                "-march=x86-64",
+                "-msse2",
+                "--target=x86_64-linux-gnu",
             ],
             "//conditions:default": [],
         })
@@ -177,27 +182,32 @@ def cc_binary(name, defines = [], local_defines = [], copts = [], linkopts = [],
     # Automatically inject platform-specific compiler options
     if type(copts) == "list":
         custom_copts = select({
-            "@platforms//os:linux": _filter_copts(copts, "linux") + [
-                "-m64",
-                "-march=x86-64",
-                "-msse2",
-                "--target=x86_64-linux-gnu",
-            ],
+            "@platforms//os:linux": _filter_copts(copts, "linux"),
             "@platforms//os:macos": _filter_copts(copts, "macos") + [
                 "-mmacosx-version-min=14.0",
             ],
             "//conditions:default": copts,
-        })
-    else:
-        custom_copts = copts + select({
-            "@platforms//os:linux": [
+        }) + select({
+            "@//build/config:linux_x64": [
                 "-m64",
                 "-march=x86-64",
                 "-msse2",
                 "--target=x86_64-linux-gnu",
             ],
+            "//conditions:default": [],
+        })
+    else:
+        custom_copts = copts + select({
             "@platforms//os:macos": [
                 "-mmacosx-version-min=14.0",
+            ],
+            "//conditions:default": [],
+        }) + select({
+            "@//build/config:linux_x64": [
+                "-m64",
+                "-march=x86-64",
+                "-msse2",
+                "--target=x86_64-linux-gnu",
             ],
             "//conditions:default": [],
         })
@@ -273,27 +283,32 @@ def cc_test(name, defines = [], local_defines = [], copts = [], linkopts = [], *
     # Automatically inject platform-specific compiler options
     if type(copts) == "list":
         custom_copts = select({
-            "@platforms//os:linux": _filter_copts(copts, "linux") + [
-                "-m64",
-                "-march=x86-64",
-                "-msse2",
-                "--target=x86_64-linux-gnu",
-            ],
+            "@platforms//os:linux": _filter_copts(copts, "linux"),
             "@platforms//os:macos": _filter_copts(copts, "macos") + [
                 "-mmacosx-version-min=14.0",
             ],
             "//conditions:default": copts,
-        })
-    else:
-        custom_copts = copts + select({
-            "@platforms//os:linux": [
+        }) + select({
+            "@//build/config:linux_x64": [
                 "-m64",
                 "-march=x86-64",
                 "-msse2",
                 "--target=x86_64-linux-gnu",
             ],
+            "//conditions:default": [],
+        })
+    else:
+        custom_copts = copts + select({
             "@platforms//os:macos": [
                 "-mmacosx-version-min=14.0",
+            ],
+            "//conditions:default": [],
+        }) + select({
+            "@//build/config:linux_x64": [
+                "-m64",
+                "-march=x86-64",
+                "-msse2",
+                "--target=x86_64-linux-gnu",
             ],
             "//conditions:default": [],
         })

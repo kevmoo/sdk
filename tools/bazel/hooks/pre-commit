@@ -32,7 +32,7 @@ if [ -n "$files_to_audit" ]; then
     if echo "$files_to_audit" | xargs grep -F "$pattern" >/dev/null 2>&1; then
       echo "🚨 ERROR: Staged Bazel file contains hardcoded host architecture flag/define: $pattern"
       # Find the exact files and line numbers that failed
-      echo "$files_to_audit" | xargs grep -F -n "$pattern" || true
+      echo "$files_to_audit" | xargs grep -H -F -n "$pattern" || true
       failed=1
     fi
   done

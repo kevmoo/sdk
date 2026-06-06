@@ -545,18 +545,25 @@ def _propagate_testonly(desc):
     if target_test in desc:
         desc[target_test]["testonly"] = True
 
-    # Transitive propagation: if B is testonly and A depends on B, then A is testonly.
-    changed = True
-    while changed:
-        changed = False
-        for label, t in desc.items():
-            if t.get("testonly", False):
-                continue
-            for dep in t.get("deps", []):
-                if dep in desc and desc[dep].get("testonly", False):
-                    t["testonly"] = True
-                    changed = True
-                    break
+    # Build a reverse dependency map (child -> parents)
+    rev_deps = {}
+    for label, t in desc.items():
+        for dep in t.get("deps", []):
+            rev_deps.setdefault(dep, []).append(label)
+
+    # Initialize queue with all targets currently marked testonly
+    queue = [label for label, t in desc.items() if t.get("testonly", False)]
+    visited = set(queue)
+
+    # BFS to propagate testonly transitively to all ancestors
+    while queue:
+        curr = queue.pop(0)
+        if curr in desc:
+            desc[curr]["testonly"] = True
+        for parent in rev_deps.get(curr, []):
+            if parent not in visited:
+                visited.add(parent)
+                queue.append(parent)
 
 
 def main():
