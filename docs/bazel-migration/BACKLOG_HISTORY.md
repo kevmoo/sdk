@@ -611,6 +611,19 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [sdk-g2l] [M3] Wire up Dart2JS and Dartdoc Snapshots
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: `sdk-oce`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Replace the 6 dart2js_aot and dartdoc stubs in utils/compiler/BUILD.bazel with real Starlark snapshot rules to enable compiling Dart-to-JS under Bazel.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-oce] [M3] Wire up Kernel Worker Snapshot
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: None

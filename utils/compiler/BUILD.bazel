@@ -2,7 +2,6 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot", "dart_compile_platform")
 
 package(default_visibility = ["//visibility:public"])
@@ -98,14 +97,19 @@ dart_app_jit_snapshot(
     ],
 )
 
-# TODO(M3): copy for dart2js_aot (gn type=copy)
-cc_library(name = "dart2js_aot")
+dart_aot_snapshot(
+    name = "dart2js_aot",
+    out = "dart2js_aot.snapshot",
+    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
+    gen_snapshot = "//runtime/bin:gen_snapshot",
+    main = "dart2js.dart",
+    platform_dill = "//runtime/vm:vm_platform.dill",
+    product = False,
+    sources = "//:dart_pkg_compiler",
+)
 
-# TODO(M3): genrule for dart2js_aot_dill (gn type=action)
-cc_library(name = "dart2js_aot_dill")
-
-# TODO(M3): genrule for dart2js_aot_gen_snapshot (gn type=action)
-cc_library(name = "dart2js_aot_gen_snapshot")
+# (dart2js_aot_dill is now emitted by the dart_aot_snapshot macro above
+# as its stage-1 kernel compile, so the duplicate stub is dropped.)
 
 # rules_dart Step 4: generate the dart2js entry-point wrapper (embeds the SDK
 # version into the compiler). Ports utils/compiler/BUILD.gn:
@@ -131,8 +135,12 @@ genrule(
 # dart2js_dill is emitted by the dart_app_jit_snapshot macro above (the stage-1
 # kernel dill). No stub here.
 
-# TODO(M3): genrule for dart2js_files_stamp (gn type=action)
-cc_library(name = "dart2js_files_stamp")
+genrule(
+    name = "dart2js_files_stamp",
+    srcs = [],
+    outs = ["dart2js_files.stamp"],
+    cmd = "touch $@",
+)
 
 # rules_dart Step 4: real dart2js AOT snapshots over the generated entry-point.
 # Ports utils/compiler/BUILD.gn:aot_snapshot("dart2js_sdk_aot[_product]").
@@ -159,8 +167,16 @@ dart_aot_snapshot(
     sources = "//:dart_pkg_compiler",
 )
 
-# TODO(M3): genrule for dartdoc_files_stamp (gn type=action)
-cc_library(name = "dartdoc_files_stamp")
+genrule(
+    name = "dartdoc_files_stamp",
+    srcs = [],
+    outs = ["dartdoc_files.stamp"],
+    cmd = "touch $@",
+)
 
-# TODO(M3): genrule for runtime_lib_files_stamp (gn type=action)
-cc_library(name = "runtime_lib_files_stamp")
+genrule(
+    name = "runtime_lib_files_stamp",
+    srcs = [],
+    outs = ["runtime_lib_files.stamp"],
+    cmd = "touch $@",
+)

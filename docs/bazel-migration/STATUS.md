@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 125 — **(jetski) Completed sdk-g2l: Wired up Dart2JS and Dartdoc Snapshots.**
+- **Wired up `dart2js_aot` AOT Snapshot**: Replaced the placeholder `cc_library` for `dart2js_aot` in `utils/compiler/BUILD.bazel` with a real `dart_aot_snapshot` target, compiling the generated `dart2js.dart` entry-point wrapper.
+- **Removed Redundant Stubs**: Dropped the `dart2js_aot_dill` and `dart2js_aot_gen_snapshot` placeholders as they are now fully handled by the `dart_aot_snapshot` macro.
+- **Wired up Stamp Files**: Replaced the `dart2js_files_stamp`, `dartdoc_files_stamp`, and `runtime_lib_files_stamp` placeholders with `genrule` targets that touch stamp files, satisfying GN-parity dependencies.
+- **Verified Build**: Successfully built `dart2js_aot` and all stamp targets using Bazel.
+- **Ensured Code Quality**: Formatted `utils/compiler/BUILD.bazel` using `buildifier`.
+
 Session 124 — **(jetski) Completed sdk-oce: Wired up Kernel Worker JIT/AOT snapshots.**
 - **Wired up `kernel_worker` JIT Snapshot**: Replaced the placeholder `filegroup` for `kernel_worker` in `utils/bazel/BUILD.bazel` with a `dart_app_jit_snapshot` rule, configuring it to use `kernel_worker.dart` and the JIT VM (`//runtime/bin:dartvm`) with `--help` training arguments.
 - **Wired up `kernel_worker_dill`**: Replaced the placeholder `filegroup` for `kernel_worker_dill` as it is now automatically emitted by the `dart_app_jit_snapshot` macro as its stage-1 kernel compile.
