@@ -157,7 +157,7 @@ def get_rules_used(targets, pkg):
                     rules.add("cc_test")
                 else:
                     rules.add("cc_binary")
-            else:
+            elif t_type in ("source_set", "static_library", "group"):
                 rules.add("cc_library")
     return rules
 
@@ -416,12 +416,12 @@ def emit_group(name, t, pkg, packages):
 
 
 def emit_stub(rule_kind):
-    """Empty cc_library stub keeps the label resolvable at analysis time."""
+    """Empty filegroup stub keeps the label resolvable at analysis time."""
 
     def _emit(name, t, pkg, packages):
         return (
             f'# TODO(M3): {rule_kind} for {name} (gn type={t.get("type")})\n'
-            f'cc_library(name = "{name}")\n')
+            f'filegroup(name = "{name}")\n')
 
     return _emit
 

@@ -33,19 +33,19 @@ cc_library(
 )
 
 # TODO(M3): copy for dart_mcp_server_aot_product_snapshot (gn type=copy)
-cc_library(name = "dart_mcp_server_aot_product_snapshot")
+filegroup(name = "dart_mcp_server_aot_product_snapshot")
 
 # TODO(M3): genrule for dart_mcp_server_aot_product_snapshot_dill (gn type=action)
-cc_library(name = "dart_mcp_server_aot_product_snapshot_dill")
+filegroup(name = "dart_mcp_server_aot_product_snapshot_dill")
 
 # TODO(M3): genrule for dart_mcp_server_aot_product_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart_mcp_server_aot_product_snapshot_gen_snapshot")
+filegroup(name = "dart_mcp_server_aot_product_snapshot_gen_snapshot")
 
 # TODO(M3): copy for dart_mcp_server_aot_snapshot (gn type=copy)
-cc_library(name = "dart_mcp_server_aot_snapshot")
+filegroup(name = "dart_mcp_server_aot_snapshot")
 
 # TODO(M3): genrule for dart_mcp_server_aot_snapshot_dill (gn type=action)
-cc_library(name = "dart_mcp_server_aot_snapshot_dill")
+filegroup(name = "dart_mcp_server_aot_snapshot_dill")
 
 # TODO(M3): genrule for dart_mcp_server_aot_snapshot_gen_snapshot (gn type=action)
-cc_library(name = "dart_mcp_server_aot_snapshot_gen_snapshot")
+filegroup(name = "dart_mcp_server_aot_snapshot_gen_snapshot")

@@ -529,7 +529,7 @@ def gen_targets():
     )
 
     # TODO(M3): genrule for ffi_callback_stub_bin (gn type=action)
-    cc_library(name = "ffi_callback_stub_bin")
+    filegroup(name = "ffi_callback_stub_bin")
 
     cc_binary(
         name = "gen_snapshot",
