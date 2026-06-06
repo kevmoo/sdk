@@ -84,6 +84,20 @@ touches the HAND-AUTHORED BUILD.bazel that load()s + calls gen_targets() and
 owns the hand-fixed targets. Mirrors tools/bazel/dart/packages.bzl. DO NOT EDIT.
 """'''
 
+FFI_CC_INCLUDES_TARGET = """
+# Helper library to expose .cc files as headers for inclusion in unit_test_custom_zone.cc
+# without compiling them as separate translation units (which would cause duplicate symbols).
+cc_library(
+    name = "ffi_cc_includes",
+    hdrs = [
+        "//runtime/vm:compiler/ffi/native_calling_convention.cc",
+        "//runtime/vm:compiler/ffi/native_location.cc",
+        "//runtime/vm:compiler/ffi/native_type.cc",
+        "//runtime/vm:zone_text_buffer.cc",
+    ],
+)
+"""
+
 
 def split_label(label):
     """`//foo/bar:baz` -> (`foo/bar`, `baz`).  `//foo/bar` -> (`foo/bar`, `bar`)."""
@@ -133,13 +147,16 @@ def make_load_statement(rules_used):
     return f'load("//tools/bazel:rules.bzl", {rules_str})\n\n'
 
 
-def get_rules_used(targets):
+def get_rules_used(targets, pkg):
     rules = set()
     for name, t in targets:
         t_type = t.get("type")
         if t_type in EMITTERS:
             if t_type == "executable":
-                rules.add("cc_binary")
+                if pkg == "runtime/bin/ffi_unit_test" and name == "run_ffi_unit_tests_x64_linux":
+                    rules.add("cc_test")
+                else:
+                    rules.add("cc_binary")
             else:
                 rules.add("cc_library")
     return rules
@@ -188,14 +205,14 @@ def _attr_list(name, items, indent=4):
 _HDR_EXTS = (".h", ".hpp", ".hh", ".inc")
 
 
-def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
+def emit_cc_library(name, t, pkg, packages, rule="cc_library", args=None):
     """source_set / static_library -> cc_library; executable -> cc_binary.
 
     cc_binary has no `hdrs` attribute, so for binaries the header inputs are
     folded into `srcs` (header files in srcs are made available to the
     binary's own compiles but not compiled as translation units).
     """
-    hdrs, srcs = [], []
+    hdrs, srcs, data = [], [], []
     public_val = t.get("public", "*")
     public_headers = None
     if isinstance(public_val, list):
@@ -219,12 +236,19 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
                 hdrs.append(lbl)
         else:
             srcs.append(lbl)
-    if rule == "cc_binary":
+    if rule in ("cc_binary", "cc_test"):
         srcs += hdrs
         hdrs = []
     deps = [
         f'"{canonical_label(d)}"' for d in t.get("deps", []) if "(" not in d
     ]
+    if pkg == "runtime/bin/ffi_unit_test" and name.startswith(
+            "run_ffi_unit_tests_"):
+        deps.append('"//runtime/vm:headers"')
+        deps.append('"//runtime/platform:headers"')
+        deps.append('"//runtime/include:headers"')
+        deps.append('":ffi_cc_includes"')
+        data.append('"//runtime/vm:ffi_unit_test_expectations"')
     # Drop TOOLCHAIN_VERSION=/SYSROOT_VERSION= — GN cache-buster defines carrying
     # the clang/sysroot CIPD instance_id (build/config/compiler/BUILD.gn). No
     # source reads them (verified), Bazel invalidates on toolchain change on its
@@ -234,12 +258,28 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
     is_cross_target = any(suffix in name
                           for suffix in ("_linux_arm", "_linux_arm64",
                                          "_linux_riscv64", "_linux_x64"))
+
+    # Unconditionally strip all architecture and OS defines.
+    # Bazel injects them dynamically via //build/config:dart_mode (arch) and
+    # rules.bzl wrappers (OS). Hardcoding them in local_defines violates
+    # Bazel best practices and is blocked by the pre-commit hook.
+    _FORBIDDEN_DEFINES = (
+        "TARGET_ARCH_X64",
+        "TARGET_ARCH_ARM",
+        "TARGET_ARCH_ARM64",
+        "TARGET_ARCH_IA32",
+        "TARGET_ARCH_RISCV32",
+        "TARGET_ARCH_RISCV64",
+        "DART_TARGET_OS_LINUX",
+        "DART_TARGET_OS_ANDROID",
+        "DART_TARGET_OS_MACOS",
+        "DART_TARGET_OS_WINDOWS",
+        "DART_TARGET_OS_FUCHSIA",
+    )
     defines = [
         f'"{d}"' for d in t.get("defines", [])
         if not d.startswith(("TOOLCHAIN_VERSION=", "SYSROOT_VERSION=")) and
-        (is_cross_target or d not in ("DART_TARGET_OS_LINUX",
-                                      "DART_TARGET_OS_MACOS", "TARGET_ARCH_X64",
-                                      "TARGET_ARCH_ARM64"))
+        d not in ("NDEBUG", "DEBUG") and d not in _FORBIDDEN_DEFINES
     ]
     include_copts = []
     for inc in t.get("include_dirs", []):
@@ -289,6 +329,8 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
         copts = [c for c in copts if c != '"-fno-ident"']
 
     out = [f'{rule}(\n    name = "{name}",\n']
+    if t.get("testonly", False):
+        out.append("    testonly = True,\n")
     out.append(_attr_list("srcs", srcs))
     out.append(_attr_list("hdrs", hdrs))
     out.append(_attr_list("deps", deps))
@@ -337,11 +379,22 @@ def emit_cc_library(name, t, pkg, packages, rule="cc_library"):
         out.append(_attr_list("cxxopts", cxxopts))
 
     out.append(_attr_list("linkopts", linkopts))
+    if data:
+        out.append(_attr_list("data", data))
+    if args:
+        out.append(_attr_list("args", args))
     out.append(")\n")
     return "".join(out)
 
 
 def emit_cc_binary(name, t, pkg, packages):
+    if pkg == "runtime/bin/ffi_unit_test" and name == "run_ffi_unit_tests_x64_linux":
+        return emit_cc_library(name,
+                               t,
+                               pkg,
+                               packages,
+                               rule="cc_test",
+                               args=['"--all"'])
     return emit_cc_library(name, t, pkg, packages, rule="cc_binary")
 
 
@@ -355,6 +408,8 @@ def emit_group(name, t, pkg, packages):
         f'"{canonical_label(d)}"' for d in t.get("deps", []) if "(" not in d
     ]
     out = [f'cc_library(\n    name = "{name}",\n']
+    if t.get("testonly", False):
+        out.append("    testonly = True,\n")
     out.append(_attr_list("deps", deps))
     out.append(")\n")
     return "".join(out)
@@ -455,7 +510,7 @@ def write_gen_targets_bzl(root, pkg, targets, packages):
     body = (_emit_targets_body(machine, pkg, packages) or
             "pass\n").rstrip() + "\n"
     out_path = os.path.join(root, pkg, "gen_targets.bzl")
-    rules_used = get_rules_used(machine)
+    rules_used = get_rules_used(machine, pkg)
     load_stmt = make_load_statement(rules_used)
     with open(out_path, "w") as f:
         f.write(GEN_TARGETS_DOCSTRING)
@@ -482,6 +537,28 @@ def write_gen_targets_bzl(root, pkg, targets, packages):
         file=sys.stderr)
 
 
+def _propagate_testonly(desc):
+    # Force testonly = True for the target we turned into cc_test.
+    # Bazel implicitly treats cc_test as testonly, so any target depending on it
+    # must also be marked testonly.
+    target_test = "//runtime/bin/ffi_unit_test:run_ffi_unit_tests_x64_linux"
+    if target_test in desc:
+        desc[target_test]["testonly"] = True
+
+    # Transitive propagation: if B is testonly and A depends on B, then A is testonly.
+    changed = True
+    while changed:
+        changed = False
+        for label, t in desc.items():
+            if t.get("testonly", False):
+                continue
+            for dep in t.get("deps", []):
+                if dep in desc and desc[dep].get("testonly", False):
+                    t["testonly"] = True
+                    changed = True
+                    break
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("desc_json", help="gn desc //* --format=json output")
@@ -495,6 +572,8 @@ def main():
 
     with open(args.desc_json) as f:
         desc = json.load(f)
+
+    _propagate_testonly(desc)
 
     # Skip non-default-toolchain entries — gn desc represents them as
     # //path:name(//toolchain:tc), which is illegal in Bazel target names.
@@ -572,7 +651,7 @@ def main():
                   file=sys.stderr)
             continue
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        rules_used = get_rules_used(targets)
+        rules_used = get_rules_used(targets, pkg)
         load_stmt = make_load_statement(rules_used)
         with open(out_path, "w") as f:
             f.write(HEADER_PREFIX)
@@ -580,6 +659,8 @@ def main():
                 f.write(load_stmt)
             f.write(HEADER_SUFFIX)
             f.write(_emit_targets_body(targets, pkg, packages).rstrip() + "\n")
+            if pkg == "runtime/bin/ffi_unit_test":
+                f.write(FFI_CC_INCLUDES_TARGET)
         print(f"wrote {out_path} ({len(targets)} targets)", file=sys.stderr)
 
 

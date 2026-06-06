@@ -238,7 +238,6 @@ def gen_targets():
         linkopts = [
             "-ldl",
             "-lpthread",
-            "-rdynamic",
         ],
     )
 
@@ -884,8 +883,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_ARM",
             "PRODUCT",
         ],
         copts = [
@@ -971,8 +968,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_ARM64",
             "PRODUCT",
         ],
         copts = [
@@ -1058,8 +1053,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_RISCV64",
             "PRODUCT",
         ],
         copts = [
@@ -1145,8 +1138,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
-            "DART_TARGET_OS_LINUX",
-            "TARGET_ARCH_X64",
             "PRODUCT",
         ],
         copts = [
@@ -1346,8 +1337,8 @@ def gen_targets():
             "//runtime/bin:crashpad",
             "//runtime/bin:dart_kernel_platform_cc",
             "//runtime/bin:run_vm_tests_set",
-            "//third_party/boringssl",
-            "//third_party/perfetto:libprotozero",
+            "@boringssl//:boringssl",
+            "@perfetto//:libprotozero",
             "@zlib//:zlib",
             "//build/config:dart_mode",
         ],

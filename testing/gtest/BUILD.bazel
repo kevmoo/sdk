@@ -26,8 +26,10 @@ exports_files(glob(
 
 cc_library(
     name = "gtest",
+    testonly = True,
 )
 
 cc_library(
     name = "gtest_main",
+    testonly = True,
 )

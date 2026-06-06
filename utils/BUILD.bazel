@@ -2,6 +2,8 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
+load("//tools/bazel:rules.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
 
 # GN lets one target's sources reach into other BUILD.gn dirs; Bazel
@@ -23,10 +25,10 @@ exports_files(glob(
 ))
 
 # TODO(M3): genrule for compile_platform.exe (gn type=action)
-filegroup(name = "compile_platform.exe")
+cc_library(name = "compile_platform.exe")
 
 # TODO(M3): genrule for gen_kernel.exe (gn type=action)
-filegroup(name = "gen_kernel.exe")
+cc_library(name = "gen_kernel.exe")
 
 # TODO(M3): genrule for git_version (gn type=generated_file)
-filegroup(name = "git_version")
+cc_library(name = "git_version")

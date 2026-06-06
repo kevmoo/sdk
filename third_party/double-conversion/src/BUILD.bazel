@@ -109,7 +109,6 @@ cc_library(
         "-lpthread",
     ],
     local_defines = [
-        "NDEBUG",
         "SUPPORT_PERFETTO",
     ],
 )

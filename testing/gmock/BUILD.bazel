@@ -26,4 +26,5 @@ exports_files(glob(
 
 cc_library(
     name = "gmock",
+    testonly = True,
 )
