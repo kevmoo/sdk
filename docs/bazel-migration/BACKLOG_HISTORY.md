@@ -611,6 +611,19 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [sdk-90d] [M3] Wire up Dart Dev Compiler (DDC) Snapshots
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: `sdk-oce`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Replace the 16 DDC filegroup stubs (canary, stable, outline JS snapshots) in utils/ddc/BUILD.bazel with real, functional dart_aot_snapshot and dart_kernel_snapshot targets.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-g2l] [M3] Wire up Dart2JS and Dartdoc Snapshots
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: `sdk-oce`

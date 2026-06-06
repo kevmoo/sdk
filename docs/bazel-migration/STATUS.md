@@ -26,6 +26,14 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 126 — **(jetski) Completed sdk-90d: Wired up Dart Dev Compiler (DDC) Snapshots.**
+- **Created DDC Starlark Macros**: Defined `package_kernel_outline`, `ddc_compile`, and `ddc_compile_sdk` macros in a new file `utils/ddc/rules.bzl` to encapsulate complex DDC compilation commands.
+- **Solved Sandbox Dependency Issues**: Defined full source lists for `expect`, `js`, and `meta` packages in `rules.bzl` and staged them in the `genrule` sandboxes. This resolved missing relative import errors (like `meta_meta.dart` and `config.dart`) that occurred during sandboxed CFE runs.
+- **Solved VM version Mismatch**: Configured all macros to execute JIT snapshots using the newly built JIT VM (`//runtime/bin:dartvm`) instead of the prebuilt VM, aligning SDK version hashes and resolving snapshot loading failures.
+- **Wired up all 17 Targets**: Replaced all 17 placeholders in `utils/ddc/BUILD.bazel` with real macro calls or `genrule` stamp targets.
+- **Verified Build E2E**: Successfully built the entire `utils/ddc` package (`//utils/ddc/...`) under Bazel, confirming all package outlines, package JS compilations, and SDK JS modules build cleanly.
+- **Ensured Code Quality**: Formatted `utils/ddc/BUILD.bazel` and `utils/ddc/rules.bzl` using `buildifier`.
+
 Session 125 — **(jetski) Completed sdk-g2l: Wired up Dart2JS and Dartdoc Snapshots.**
 - **Wired up `dart2js_aot` AOT Snapshot**: Replaced the placeholder `cc_library` for `dart2js_aot` in `utils/compiler/BUILD.bazel` with a real `dart_aot_snapshot` target, compiling the generated `dart2js.dart` entry-point wrapper.
 - **Removed Redundant Stubs**: Dropped the `dart2js_aot_dill` and `dart2js_aot_gen_snapshot` placeholders as they are now fully handled by the `dart_aot_snapshot` macro.

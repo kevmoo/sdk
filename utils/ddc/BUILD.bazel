@@ -4,6 +4,12 @@
 
 # Empty build file to designate utils/ddc as a valid Bazel package.
 load("//tools/bazel/dart:defs.bzl", "dart_aot_snapshot", "dart_app_jit_snapshot", "dart_compile_platform")
+load(
+    ":rules.bzl",
+    "ddc_compile",
+    "ddc_compile_sdk",
+    "package_kernel_outline",
+)
 
 package(default_visibility = ["//visibility:public"])
 
@@ -82,11 +88,21 @@ dart_aot_snapshot(
 # dartdevc_dill is emitted by the dart_app_jit_snapshot macro above (the stage-1
 # kernel dill). No stub here.
 
-# TODO(M3): genrule for ddc_canary_sdk (gn type=action)
-filegroup(name = "ddc_canary_sdk")
+ddc_compile_sdk(
+    name = "ddc_canary_sdk",
+    canary = True,
+    modules = [
+        "amd",
+        "common",
+        "es6",
+    ],
+)
 
-# TODO(M3): genrule for ddc_canary_sdk_ddc_module (gn type=action)
-filegroup(name = "ddc_canary_sdk_ddc_module")
+ddc_compile_sdk(
+    name = "ddc_canary_sdk_ddc_module",
+    canary = True,
+    modules = ["ddc"],
+)
 
 filegroup(
     name = "ddc_canary_test",
@@ -120,8 +136,12 @@ filegroup(
     ],
 )
 
-# TODO(M3): genrule for ddc_files_stamp (gn type=action)
-filegroup(name = "ddc_files_stamp")
+genrule(
+    name = "ddc_files_stamp",
+    srcs = [],
+    outs = ["ddc_files.stamp"],
+    cmd = "touch $@",
+)
 
 # rules_dart Step 2a (first compile_platform WEB variant). Ports
 # utils/ddc/BUILD.gn:compile_platform("ddc_platform") — the DDC SDK platform dill
@@ -145,11 +165,23 @@ dart_compile_platform(
     sources = "//:compile_platform_tool",
 )
 
-# TODO(M3): genrule for ddc_sdk_patch_stamp (gn type=action)
-filegroup(name = "ddc_sdk_patch_stamp")
+genrule(
+    name = "ddc_sdk_patch_stamp",
+    srcs = [],
+    outs = ["ddc_sdk_patch_stamp.stamp"],
+    cmd = "touch $@",
+)
 
-# TODO(M3): genrule for ddc_stable_sdk (gn type=action)
-filegroup(name = "ddc_stable_sdk")
+ddc_compile_sdk(
+    name = "ddc_stable_sdk",
+    canary = False,
+    modules = [
+        "amd",
+        "common",
+        "es6",
+        "ddc",
+    ],
+)
 
 filegroup(
     name = "ddc_stable_test",
@@ -188,41 +220,116 @@ filegroup(
     ],
 )
 
-# TODO(M3): genrule for expect_canary_ddc_js (gn type=action)
-filegroup(name = "expect_canary_ddc_js")
+ddc_compile(
+    name = "expect_canary_ddc_js",
+    canary = True,
+    extra_libraries = [
+        "async_helper",
+        "legacy/minitest",
+        "legacy/async_minitest",
+    ],
+    modules = ["ddc"],
+    package = "expect",
+)
 
-# TODO(M3): genrule for expect_canary_js (gn type=action)
-filegroup(name = "expect_canary_js")
+ddc_compile(
+    name = "expect_canary_js",
+    canary = True,
+    extra_libraries = [
+        "async_helper",
+        "legacy/minitest",
+        "legacy/async_minitest",
+    ],
+    modules = ["amd"],
+    package = "expect",
+)
 
-# TODO(M3): genrule for expect_outline (gn type=action)
-filegroup(name = "expect_outline")
+package_kernel_outline(
+    name = "expect_outline",
+    extra_libraries = [
+        "async_helper",
+        "legacy/minitest",
+        "legacy/async_minitest",
+    ],
+    package = "expect",
+)
 
-# TODO(M3): genrule for expect_stable_js (gn type=action)
-filegroup(name = "expect_stable_js")
+ddc_compile(
+    name = "expect_stable_js",
+    canary = False,
+    extra_libraries = [
+        "async_helper",
+        "legacy/minitest",
+        "legacy/async_minitest",
+    ],
+    modules = [
+        "amd",
+        "ddc",
+    ],
+    package = "expect",
+)
 
-# TODO(M3): genrule for js_canary_ddc_js (gn type=action)
-filegroup(name = "js_canary_ddc_js")
+ddc_compile(
+    name = "js_canary_ddc_js",
+    canary = True,
+    extra_libraries = ["js_util"],
+    modules = ["ddc"],
+    package = "js",
+)
 
-# TODO(M3): genrule for js_canary_js (gn type=action)
-filegroup(name = "js_canary_js")
+ddc_compile(
+    name = "js_canary_js",
+    canary = True,
+    extra_libraries = ["js_util"],
+    modules = ["amd"],
+    package = "js",
+)
 
-# TODO(M3): genrule for js_outline (gn type=action)
-filegroup(name = "js_outline")
+package_kernel_outline(
+    name = "js_outline",
+    extra_libraries = ["js_util"],
+    package = "js",
+)
 
-# TODO(M3): genrule for js_stable_js (gn type=action)
-filegroup(name = "js_stable_js")
+ddc_compile(
+    name = "js_stable_js",
+    canary = False,
+    extra_libraries = ["js_util"],
+    modules = [
+        "amd",
+        "ddc",
+    ],
+    package = "js",
+)
 
-# TODO(M3): genrule for meta_canary_ddc_js (gn type=action)
-filegroup(name = "meta_canary_ddc_js")
+ddc_compile(
+    name = "meta_canary_ddc_js",
+    canary = True,
+    modules = ["ddc"],
+    package = "meta",
+)
 
-# TODO(M3): genrule for meta_canary_js (gn type=action)
-filegroup(name = "meta_canary_js")
+ddc_compile(
+    name = "meta_canary_js",
+    canary = True,
+    modules = ["amd"],
+    package = "meta",
+)
 
-# TODO(M3): genrule for meta_outline (gn type=action)
-filegroup(name = "meta_outline")
+package_kernel_outline(
+    name = "meta_outline",
+    package = "meta",
+)
 
-# TODO(M3): genrule for meta_stable_js (gn type=action)
-filegroup(name = "meta_stable_js")
+ddc_compile(
+    name = "meta_stable_js",
+    canary = False,
+    modules = [
+        "amd",
+        "ddc",
+    ],
+    package = "meta",
+)
 
 # rules_dart: compile stack_trace_mapper JS utility using prebuilt dart compile js.
 # Ports utils/ddc/BUILD.gn:dart2js_compile("stack_trace_mapper").

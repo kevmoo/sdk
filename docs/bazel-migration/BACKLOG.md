@@ -17,7 +17,7 @@ New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstra
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 36/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
+- **Overall Progress**: 37/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
 
 ---
 
@@ -73,7 +73,7 @@ graph TD
     TASK_041["TASK_041:<br>Emit canonical `cc_test` rules for self-contained test binaries"]:::completed
     sdk_3ld["sdk-3ld:<br>{M3} Wire up Dart MCP Server Snapshots"]:::pending
     sdk_4z8["sdk-4z8:<br>Skill: Create agent skill for automated upstream PR/CL triage in Bazel"]:::pending
-    sdk_90d["sdk-90d:<br>{M3} Wire up Dart Dev Compiler {DDC} Snapshots"]:::pending
+    sdk_90d["sdk-90d:<br>{M3} Wire up Dart Dev Compiler {DDC} Snapshots"]:::completed
     sdk_95q["sdk-95q:<br>Migrate leaf C++ integration tests {abstract_socket_test & process_test} to cc_test"]:::pending
     sdk_9qx["sdk-9qx:<br>Design: Bazel-powered developer workflow bridge for upstream work"]:::pending
     sdk_b34["sdk-b34:<br>GN: Split C-only and C++-only flags in compiler configs"]:::pending
@@ -256,19 +256,6 @@ graph TD
   - None
 - **Description**:
   Create a custom Agent Skill (in .agents/skills/) that equips AI agents to autonomously execute the bridge workflow (fetch, import, test under Bazel, and report results) using the import/export scripts.
-- **Success Criteria**:
-
----
-
-### 🎯 [sdk-90d] [M3] Wire up Dart Dev Compiler (DDC) Snapshots
-- **Status**: `[PENDING]`
-- **Prerequisites**: `sdk-oce`
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Replace the 16 DDC filegroup stubs (canary, stable, outline JS snapshots) in utils/ddc/BUILD.bazel with real, functional dart_aot_snapshot and dart_kernel_snapshot targets.
 - **Success Criteria**:
 
 ---
