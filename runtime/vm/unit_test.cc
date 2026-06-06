@@ -37,7 +37,8 @@ namespace dart {
 DECLARE_FLAG(bool, gc_during_reload);
 DECLARE_FLAG(bool, force_evacuation);
 
-const uint8_t* platform_dill = kPlatformDill;
+const uint8_t* platform_dill =
+    kPlatformDillSize > 0 ? kPlatformDill : nullptr;
 const intptr_t platform_dill_size = kPlatformDillSize;
 
 Dart_IsolateGroupCreateCallback TesterState::create_callback = nullptr;

@@ -2,13 +2,7 @@
 # Hand-fixes belong in this file (M3); rerun the translator to refresh structural
 # bits and re-apply fixes from version control.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
-load(
-    "//tools/bazel/dart:defs.bzl",
-    "copy_tree",
-    "dart_aot_snapshot",
-    "dart_app_jit_snapshot",
-)
+load("//tools/bazel:rules.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -30,26 +24,11 @@ exports_files(glob(
     allow_empty = True,
 ))
 
-# GN copy("copy_dartdev_snapshot") restages the app-jit snapshot into
-# $root_out_dir. Now a real dart_app_jit_snapshot genrule, carried via `data`.
-cc_library(
-    name = "copy_dartdev_snapshot",
-    data = [
-        "//utils/dartdev:generate_dartdev_snapshot",
-    ],
-)
+# TODO(M3): copy for copy_dartdev_snapshot (gn type=copy)
+filegroup(name = "copy_dartdev_snapshot")
 
-copy_tree(
-    name = "_copy_prebuilt_devtools",
-    srcs = ["//:prebuilt_devtools_files"],
-    out_dir = "devtools",
-    src_dir = "third_party/devtools/web",
-)
-
-cc_library(
-    name = "copy_prebuilt_devtools",
-    data = [":_copy_prebuilt_devtools"],
-)
+# TODO(M3): genrule for copy_prebuilt_devtools (gn type=action)
+filegroup(name = "copy_prebuilt_devtools")
 
 cc_library(
     name = "dartdev",
@@ -59,61 +38,34 @@ cc_library(
     ],
 )
 
-# Group stays a cc_library (//:runtime deps on it): the prebuilt-devtools copy
-# stays a deps stub (copy_tree, deferred); the snapshot rides via `data`.
 cc_library(
     name = "dartdev_aot",
-    data = [
-        "//utils/dartdev:dartdev_aot_snapshot",
-    ],
     deps = [
         "//utils/dartdev:copy_prebuilt_devtools",
+        "//utils/dartdev:dartdev_aot_snapshot",
     ],
 )
 
-# rules_dart Step 4: real dartdev AOT snapshots. Unblocked by the session-13
-# refresh (pkg/tools roll fixed the package:unified_analytics API that
-# pkg/dartdev/lib/dartdev.dart imports). Ports the two aot_snapshot() targets in
-# utils/dartdev/BUILD.gn over pkg/dartdev/bin/dartdev.dart.
+# TODO(M3): copy for dartdev_aot_profile_snapshot (gn type=copy)
+filegroup(name = "dartdev_aot_profile_snapshot")
 
-# aot_snapshot("dartdev_aot_snapshot") has force_product_mode = !dart_debug, so
-# in this (non-debug) config product = true -> //runtime/bin:gen_snapshot_product.
-dart_aot_snapshot(
-    name = "dartdev_aot_snapshot",
-    out = "dartdev_aot.dart.snapshot",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    gen_snapshot = "//runtime/bin:gen_snapshot_product",
-    main = "//:pkg/dartdev/bin/dartdev.dart",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    product = True,
-    sources = "//:dart_pkg_dartdev",
-)
+# TODO(M3): genrule for dartdev_aot_profile_snapshot_dill (gn type=action)
+filegroup(name = "dartdev_aot_profile_snapshot_dill")
 
-# aot_snapshot("dartdev_aot_profile_snapshot") has no force_product_mode ->
-# product = false -> //runtime/bin:gen_snapshot.
-dart_aot_snapshot(
-    name = "dartdev_aot_profile_snapshot",
-    out = "dartdev_aot_profile.dart.snapshot",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    gen_snapshot = "//runtime/bin:gen_snapshot",
-    main = "//:pkg/dartdev/bin/dartdev.dart",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    product = False,
-    sources = "//:dart_pkg_dartdev",
-)
+# TODO(M3): genrule for dartdev_aot_profile_snapshot_gen_snapshot (gn type=action)
+filegroup(name = "dartdev_aot_profile_snapshot_gen_snapshot")
 
-# rules_dart Step 4 (app-jit variant). Ports
-# utils/dartdev/BUILD.gn:application_snapshot("generate_dartdev_snapshot"). No
-# force_product_mode → non-product training run via //runtime/bin:dartvm. The
-# macro emits both this target and generate_dartdev_snapshot_dill.
-dart_app_jit_snapshot(
-    name = "generate_dartdev_snapshot",
-    out = "dartdev.dart.snapshot",
-    dart_vm = "//runtime/bin:dartvm",
-    gen_kernel_dill = "//utils/gen_kernel:bootstrap_gen_kernel",
-    main = "//:pkg/dartdev/bin/dartdev.dart",
-    platform_dill = "//runtime/vm:vm_platform.dill",
-    product = False,
-    sources = "//:dart_pkg_dartdev",
-    training_args = ["--help"],
-)
+# TODO(M3): copy for dartdev_aot_snapshot (gn type=copy)
+filegroup(name = "dartdev_aot_snapshot")
+
+# TODO(M3): genrule for dartdev_aot_snapshot_dill (gn type=action)
+filegroup(name = "dartdev_aot_snapshot_dill")
+
+# TODO(M3): genrule for dartdev_aot_snapshot_gen_snapshot (gn type=action)
+filegroup(name = "dartdev_aot_snapshot_gen_snapshot")
+
+# TODO(M3): genrule for generate_dartdev_snapshot (gn type=action)
+filegroup(name = "generate_dartdev_snapshot")
+
+# TODO(M3): genrule for generate_dartdev_snapshot_dill (gn type=action)
+filegroup(name = "generate_dartdev_snapshot_dill")

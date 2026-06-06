@@ -68,7 +68,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+            "PERFETTO_DISABLE_LOG",
         ],
         copts = [
             "-Iruntime",
@@ -188,7 +188,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -308,6 +308,7 @@ def gen_targets():
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
+            "PERFETTO_DISABLE_LOG",
         ],
         copts = [
             "-Iruntime",
@@ -426,6 +427,7 @@ def gen_targets():
         ],
         local_defines = [
             "SUPPORT_PERFETTO",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -546,6 +548,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION",
+            "PERFETTO_DISABLE_LOG",
         ],
         copts = [
             "-Iruntime",
@@ -666,6 +669,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
         ],
         copts = [
             "-Iruntime",
@@ -786,6 +790,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
         ],
         copts = [
             "-Iruntime",
@@ -906,6 +911,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -1027,6 +1033,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -1148,6 +1155,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -1269,6 +1277,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -1390,6 +1399,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -1511,6 +1521,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],
         copts = [
@@ -1633,6 +1644,7 @@ def gen_targets():
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
             "TESTING",
+            "PERFETTO_DISABLE_LOG",
         ],
         copts = [
             "-Iruntime",

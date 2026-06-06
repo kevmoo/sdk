@@ -268,11 +268,10 @@ template("build_gen_snapshot") {
       deps += [ "$fuchsia_sdk/pkg/fdio" ]
     }
 
-    defines = [ "EXCLUDE_CFE_AND_KERNEL_PLATFORM" ]
-
     sources = [
       "builtin.cc",
       "builtin.h",
+      "dfe_empty_kernel_stubs.cc",
       "error_exit.cc",
       "error_exit.h",
       "gzip.cc",
@@ -869,9 +868,6 @@ template("dart_executable") {
       deps += [ "$fuchsia_sdk/pkg/fdio" ]
     }
     defines = [ "DART_EMBED_ICU_DATA" ] + extra_defines
-    if (exclude_kernel_service) {
-      defines += [ "EXCLUDE_CFE_AND_KERNEL_PLATFORM" ]
-    }
     if (dart_disable_secure_socket) {
       defines += [ "DART_IO_SECURE_SOCKET_DISABLED" ]
     }
@@ -962,6 +958,8 @@ dart_executable("dartvm") {
   ]
   if (!exclude_kernel_service) {
     extra_deps += [ ":dart_kernel_platform_cc" ]
+  } else {
+    extra_sources += [ "dfe_empty_kernel_stubs.cc" ]
   }
   if (dart_runtime_mode == "release") {
     extra_deps += [ ":native_assets_api_product" ]
@@ -1271,6 +1269,8 @@ if (defined(is_linux) && is_linux && defined(is_asan) && is_asan &&
     ]
     if (!exclude_kernel_service) {
       extra_deps += [ ":dart_kernel_platform_cc" ]
+    } else {
+      extra_sources += [ "dfe_empty_kernel_stubs.cc" ]
     }
   }
 }
