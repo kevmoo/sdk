@@ -62,8 +62,8 @@ bazel run //tools/bazel/dart:test_hello -- --verbose
 
 To prevent communication breakdowns and avoid merge collisions (especially when multiple AI agents are working concurrently):
 
-1.  **Scan the Backlog:** Always read [BACKLOG.md](BACKLOG.md) first. Look for `[PENDING]` tasks.
-2.  **Claim a Task:** Before editing any code, post a "Soft Claim" by changing the task status to `[IN_PROGRESS]`, adding your Owner ID, and committing [BACKLOG.md](BACKLOG.md) first to lock the task.
+1.  **Scan the Backlog:** Run `bd ready` for actionable tasks (or read [BACKLOG.md](BACKLOG.md), which is generated from beads). Look for `[PENDING]` tasks.
+2.  **Claim a Task:** Before editing any code, claim it in beads: `bd update <id> --status in_progress --assignee <you>`. Tasks live in the beads DB (`bd`), not a hand-edited file.
 3.  **Log Your Session:** Document your progress session-by-session in [STATUS.md](STATUS.md). Update the **"Cross-agent notes"** at the top of [STATUS.md](STATUS.md) for live claims and handoffs.
 4.  **Report SDK Defects:** If you discover a non-hermetic script or packaging defect in the upstream SDK, document it as a numbered issue in [todo_issues/](todo_issues/) following the protocol in [todo_issues/README.md](todo_issues/README.md) *before* implementing a workaround.
 
@@ -113,5 +113,5 @@ Only the following active files and directories are maintained in `docs/bazel-mi
 *   [BACKLOG.md](BACKLOG.md) — The active backlog and coordination board.
 *   [STATUS.md](STATUS.md) — The living session-by-session progress tracker.
 *   [UPSTREAM_CANDIDATES.md](UPSTREAM_CANDIDATES.md) — List of non-Bazel fixes to be upstreamed to `main`.
-*   [generate_backlog_graph.dart](generate_backlog_graph.dart) — Script to regenerate the dependency graph in `BACKLOG.md`.
+*   [gen_board_from_beads.dart](gen_board_from_beads.dart) — Regenerates [BACKLOG.md](BACKLOG.md) + [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md) from the beads issue DB (the task source of truth).
 *   [todo_issues/](todo_issues/) — Directory containing open, unresolved SDK-internal issues.

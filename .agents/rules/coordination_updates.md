@@ -7,12 +7,12 @@ description: Require updating BACKLOG.md and STATUS.md when committing work
 
 To ensure seamless coordination between multiple autonomous agents and human developers working concurrently on the Bazel migration, you MUST strictly adhere to the following rules when preparing and committing work:
 
-1. **Maintain Backlog Integrity (`docs/bazel-migration/BACKLOG.md`):**
-   - Before committing a completed task, ensure its status is set to `COMPLETED` and any active lock in the coordination board is released.
-   - If new tasks or follow-ups are discovered, they must be appended to the backlog.
-   - **Regenerate Dependency Graph**: Whenever you modify `BACKLOG.md` (e.g. adding tasks, changing status, or marking them completed), you MUST regenerate the Mermaid dependency graph by running:
-     `tools/sdks/dart-sdk/bin/dart docs/bazel-migration/generate_backlog_graph.dart`
-     and commit the updated `BACKLOG.md` with the new graph.
+1. **Maintain Backlog Integrity (beads issue DB):**
+   - Tasks live in the **beads** DB (`bd`), which is the source of truth — `docs/bazel-migration/BACKLOG.md` is generated from it (do not hand-edit the board).
+   - Before committing a completed task, close it in beads: `bd close <id>` (and `bd create` any discovered follow-ups).
+   - **Regenerate the board**: After any task change in beads, regenerate the board and push the beads change:
+     `tools/sdks/dart-sdk/bin/dart docs/bazel-migration/gen_board_from_beads.dart && bd dolt push`
+     then commit the updated `BACKLOG.md` / `BACKLOG_HISTORY.md`.
 
 2. **Log Every Session (`docs/bazel-migration/STATUS.md`):**
    - Every commit or logical block of work MUST have a corresponding entry in `STATUS.md` summarizing:

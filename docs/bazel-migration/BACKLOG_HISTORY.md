@@ -1,6 +1,6 @@
 # Dart SDK Bazel Migration: Completed Tasks History
 
-This file lists all successfully completed tasks in the Bazel migration. It is generated automatically from `backlog.json`.
+This file lists all completed tasks in the Bazel migration. It is generated from the beads issue DB by `docs/bazel-migration/gen_board_from_beads.dart`.
 
 ---
 
