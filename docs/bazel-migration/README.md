@@ -110,7 +110,8 @@ buildozer 'add deps //some:lib' //runtime/bin:dartvm
 Only the following active files and directories are maintained in `docs/bazel-migration/`. All historical scoping and design documents have been pruned and are preserved in the **Git history**.
 
 *   [README.md](README.md) — This file. Entry point and developer guide.
-*   [BACKLOG.md](BACKLOG.md) — The active backlog and coordination board.
+*   [BACKLOG.md](BACKLOG.md) — The active backlog and coordination board (generated from beads).
+*   [BEADS.md](BEADS.md) — Task tracking setup + workflow: how to install `bd` and bootstrap the task DB on a new machine.
 *   [STATUS.md](STATUS.md) — The living session-by-session progress tracker.
 *   [UPSTREAM_CANDIDATES.md](UPSTREAM_CANDIDATES.md) — List of non-Bazel fixes to be upstreamed to `main`.
 *   [gen_board_from_beads.dart](gen_board_from_beads.dart) — Regenerates [BACKLOG.md](BACKLOG.md) + [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md) from the beads issue DB (the task source of truth).

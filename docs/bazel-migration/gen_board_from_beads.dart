@@ -185,6 +185,8 @@ String generateBacklog(List<Task> tasks) {
       'tasks, use `bd` and then:');
   sb.writeln('`tools/sdks/dart-sdk/bin/dart docs/bazel-migration/gen_board_from_beads.dart && bd dolt push`');
   sb.writeln();
+  sb.writeln('New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstrap.');
+  sb.writeln();
   sb.writeln('> 🚨 **AGENT PROTOCOL (Mandatory)**:');
   sb.writeln('> 1. **Scan**: `bd ready` for actionable tasks; `bd blocked` for what is waiting.');
   sb.writeln('> 2. **Claim**: `bd update <id> --status in_progress --assignee <you>`.');
