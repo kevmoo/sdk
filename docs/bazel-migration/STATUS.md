@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 130 — **(jetski) Completed sdk-rog: VM: Define formal GN target for public VM embedding C API.**
+- **Defined Public API Headers Target**: Created a header-only `source_set("public_api_headers")` in `runtime/include/BUILD.gn` containing all public embedding C API headers (including `bin/dart_io_api.h` and `bin/native_assets_api.h`).
+- **Exported Include Paths**: Configured `public_api_config` in `runtime/include/BUILD.gn` to export `.` and `..` include paths, allowing consumers to cleanly `#include "dart_api.h"` or `#include "include/dart_api.h"`.
+- **Refactored VM and Bin Targets**: Refactored `source_set("dart_api")` in `runtime/BUILD.gn` to remove the headers from `sources` and instead depend on `include:public_api_headers` via `public_deps`, keeping it strictly for compiling `dart_api_dl.c`.
+- **Aligned Bazel Build**: Manually defined `cc_library(name = "public_api_headers")` in `runtime/include/BUILD.bazel` with the same headers and `includes = [".", ".."]`. Refactored `runtime:dart_api` in `runtime/BUILD.bazel` to depend on it, removing the hand-written headers list.
+- **Verified Build E2E**: Successfully ran GN and Bazel builds. Verified `//runtime:dart_api` compiles and links perfectly under Bazel with the new transitive header dependency. Formatted all Bazel files using `buildifier`.
+
 Session 129 — **(jetski) Completed sdk-rwz: Wired up Sanitizer SDK AOT Runtimes.**
 - **Wired up Sanitizer Runtimes**: Replaced the placeholder `filegroup` targets for `copy_dart_aotruntime_asan`, `copy_dart_aotruntime_msan`, and `copy_dart_aotruntime_tsan` in `sdk/BUILD.bazel` with real `genrule` targets.
 - **Pragmatic M3 Design**: Configured the new targets to copy the standard `dartaotruntime` (or `dartaotruntime_product` depending on product mode) and rename them to `dartaotruntime_${sanitizer}` in the SDK `bin/` directory. This provides correct structural wiring for the SDK layout. If the entire SDK is built with a sanitizer feature enabled (e.g., `--features=asan`), both standard and sanitized targets will correctly package the sanitized binary.

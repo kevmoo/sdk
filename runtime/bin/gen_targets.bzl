@@ -1348,6 +1348,7 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILER",
+            "PERFETTO_DISABLE_LOG",
         ],
         copts = [
             "-Iruntime/include",
