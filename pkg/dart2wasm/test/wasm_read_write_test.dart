@@ -15,9 +15,9 @@ Future main() async {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
   await withTempDir((String tempDir) async {
-    final dartFilename = 'third_party/flute/benchmarks/lib/complex.dart';
+    final dartFilename = 'pkg/dart2wasm/benchmark/self_compile_benchmark.dart';
 
-    final wasmFilename = path.join(tempDir, 'flute.wasm');
+    final wasmFilename = path.join(tempDir, 'self_compile_benchmark.wasm');
     final wasmFile = File(wasmFilename);
 
     await run([

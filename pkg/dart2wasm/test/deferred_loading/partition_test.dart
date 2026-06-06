@@ -113,9 +113,11 @@ Future testPartitionExpectation(
   await withTempDir((tempDir) async {
     final outDill = '$tempDir/out.dill';
 
-    final result = await Process.run('/usr/bin/env', [
+    final args = [
       'bash',
       'pkg/dart2wasm/tool/compile_benchmark',
+      if (Platform.packageConfig != null)
+        '--packages=${Platform.packageConfig}',
       '--enable-asserts',
       '--compiler-asserts',
       '--phases=cfe,tfa',
@@ -123,7 +125,14 @@ Future testPartitionExpectation(
       '-o',
       outDill,
       mainFile,
-    ]);
+    ];
+
+    print('Running: /usr/bin/env ${args.join(' ')}');
+    final result = await Process.run(
+      '/usr/bin/env',
+      args,
+      environment: compileBenchmarkEnvironment,
+    );
 
     if (result.exitCode != 0) {
       io.exitCode = 42;

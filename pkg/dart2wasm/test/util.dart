@@ -16,13 +16,48 @@ final wasmOptExecutable = Uri.parse(
 final platformDill = Uri.parse(
   Platform.resolvedExecutable,
 ).resolve('../lib/_internal/dart2wasm_platform.dill').toFilePath();
+final standalonePlatformDill = Uri.parse(
+  Platform.resolvedExecutable,
+).resolve('../lib/_internal/dart2wasm_standalone_platform.dill').toFilePath();
+final jsCompatibilityPlatformDill = Uri.parse(Platform.resolvedExecutable)
+    .resolve('../lib/_internal/dart2wasm_js_compatibility_platform.dill')
+    .toFilePath();
+
+/// Environment variables to force compile_benchmark to use the Bazel-built SDK.
+Map<String, String> get compileBenchmarkEnvironment {
+  return {
+    'DART_VM': Platform.resolvedExecutable,
+    'DART_AOT_RUNTIME': dartAotExecutable,
+    'DART2WASM_AOT_SNAPSHOT': dart2wasmSnapshot,
+    'DART2WASM_PLATFORM': platformDill,
+    'DART2WASM_STANDALONE_PLATFORM': standalonePlatformDill,
+    'DART2WASM_JS_COMPATIBILITY_PLATFORM': jsCompatibilityPlatformDill,
+    'BINARYEN': wasmOptExecutable,
+  };
+}
 
 Future<void> run(
   List<String> command, {
   bool throwOutputOnFailure = false,
 }) async {
-  print('Running: ${command.join(' ')}');
-  final result = await Process.run(command.first, command.skip(1).toList());
+  final args = command.skip(1).toList();
+  if (command.first == Platform.executable && Platform.packageConfig != null) {
+    final packageConfigPath = Uri.parse(Platform.packageConfig!).toFilePath();
+    final packagesFlag = '--packages=$packageConfigPath';
+    if (!args.any((arg) => arg.startsWith('--packages='))) {
+      if (args.length >= 2 &&
+          args[0] == 'compile' &&
+          (args[1] == 'wasm' || args[1] == 'js')) {
+        args.insert(2, packagesFlag);
+      } else if (args.isNotEmpty && (args[0] == 'run' || args[0] == 'test')) {
+        args.insert(1, packagesFlag);
+      } else {
+        args.insert(0, packagesFlag);
+      }
+    }
+  }
+  print('Running: ${command.first} ${args.join(' ')}');
+  final result = await Process.run(command.first, args);
   if (result.exitCode != 0) {
     if (throwOutputOnFailure) {
       throw '${result.stdout}\n${result.stderr}';

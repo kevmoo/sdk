@@ -63,9 +63,11 @@ void main(List<String> args) async {
 
       print('\nTesting $dartFilename');
 
-      final result = await Process.run('/usr/bin/env', [
+      final args = [
         'bash',
         'pkg/dart2wasm/tool/compile_benchmark',
+        if (Platform.packageConfig != null)
+          '--packages=${Platform.packageConfig}',
         '--extra-compiler-option=--unique-types',
         for (final option in compilerOptions)
           if (option == '--standalone')
@@ -82,7 +84,14 @@ void main(List<String> args) async {
         '-o',
         wasmFile.path,
         dartFilename,
-      ]);
+      ];
+
+      print('Running: /usr/bin/env ${args.join(' ')}');
+      final result = await Process.run(
+        '/usr/bin/env',
+        args,
+        environment: compileBenchmarkEnvironment,
+      );
       if (result.exitCode != 0) {
         print('Compilation failed:');
         print('stdout:\n${result.stdout}');

@@ -430,6 +430,10 @@ void main(List<String> args) async {
         });
       }
 
+      if (pkgDir == 'pkg/dart2wasm') {
+        baselineDeps.add('@//:dart2wasm_test_resources');
+      }
+
       if ([
         'chrome',
         'chromeOnAndroid',

@@ -26,6 +26,12 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 122 — **(Antigravity) Migrated and stabilized the dart2wasm unit test suite under Bazel sandboxed execution.**
+- **Fully Resolved Wasm Sandboxed Executions**: Solved all remaining sandboxing, CFE package config resolution, and SDK source mapping issues for the entire `dart2wasm` unit test suite, making all 10 unit test cases 100% green.
+- **Fixed Subprocess Package Injections**: Injected `--packages=${Platform.packageConfig}` into the subprocess compiler invocations within both `ir_test.dart` and `partition_test.dart`. This ensures that CFE compilations executed in subprocesses can hermetically resolve `package:expect` under Bazel sandboxed execution.
+- **Updated WAT Expectations**: Regenerated and updated all WebAssembly text representation (`.wat`) expectation files across the entire `ir_tests/` suite using `dart pkg/dart2wasm/test/ir_test.dart -w` on the host, fully aligning them with the newly merged `dev` branch compiler output.
+- **Cleaned and Verified 100% Green**: Verified that the entire `tests_vm_release` test target (`bazel test @dart_tests//pkg/dart2wasm:tests_vm_release`) runs and passes **100% successfully** (all 10 test cases green). Satisfied all code quality gates by removing diagnostic prints, and ensuring perfect `dart format` and `dart analyze` compliance across all modified files.
+
 Session 121 — **(Antigravity) Merged upstream Version 3.13.0-178.0.dev and updated merge skill to prefer dev branch.**
 - **Merged Upstream Dev Release**: Successfully merged commit `05243f181c214868e0f660d72c089ebbe90437f7` (`Version 3.13.0-178.0.dev`) into our local `bazel` branch. The merge completed cleanly without any conflicts.
 - **Synchronized Dependencies**: Ran `gclient sync` to align sub-repositories and regenerate package configurations.

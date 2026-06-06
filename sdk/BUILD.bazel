@@ -79,6 +79,8 @@ copy_internal_with_dills(
         "//utils/dart2wasm:dart2wasm_platform.dill",
         "//utils/dart2wasm:dart2wasm_js_compatibility_outline.dill",
         "//utils/dart2wasm:dart2wasm_js_compatibility_platform.dill",
+        "//utils/dart2wasm:dart2wasm_standalone_outline.dill",
+        "//utils/dart2wasm:dart2wasm_standalone_platform.dill",
         "//utils/ddc:ddc_platform.dill",
         "//utils/ddc:ddc_outline.dill",
     ],

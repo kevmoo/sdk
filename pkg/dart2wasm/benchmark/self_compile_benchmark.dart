@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:_fe_analyzer_shared/src/util/colors.dart' as colors;
@@ -49,6 +50,23 @@ Future main(List<String> args) async {
   options.librariesSpecPath = Uri.file(
     '${fileSystem.sdkRoot}/sdk/lib/libraries.json',
   );
+
+  final bazelConfigUri = Uri.parse(
+    'file:///FakeSdkRoot/tools/bazel/dart/package_config.json',
+  );
+  if (await fileSystem.entityForUri(bazelConfigUri).exists()) {
+    options.packagesPath = bazelConfigUri;
+  } else {
+    String? packageConfig;
+    try {
+      packageConfig = Platform.packageConfig;
+    } catch (_) {
+      // Platform.packageConfig is unsupported on some platforms (e.g. WASM).
+    }
+    if (packageConfig != null) {
+      options.packagesPath = Uri.parse(packageConfig);
+    }
+  }
 
   await compileBenchmark(options, ioManager);
   print('Dart2WasmSelfCompile(RunTimeRaw): ${sw.elapsed.inMilliseconds} ms.');

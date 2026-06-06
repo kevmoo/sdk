@@ -34,6 +34,13 @@ if [ -z "$DART_BIN" ] || [ -z "$RUNNER_DART" ]; then
   exit 2
 fi
 
+PKG_CONFIG=$(find -L "$TEST_SRCDIR" -name package_config.json -type f | head -n 1)
+if [ -n "$PKG_CONFIG" ]; then
+  STAGING_DIR=$(dirname "$PKG_CONFIG")
+  mkdir -p "$STAGING_DIR/tools/bazel/dart"
+  cp "$PKG_CONFIG" "$STAGING_DIR/tools/bazel/dart/package_config.json"
+fi
+
 CHROMEDRIVER_BIN=""
 for path in \
   "$TEST_SRCDIR/chromedriver/chromedriver" \
@@ -96,4 +103,4 @@ def _test_ext_impl(ctx):
     return ctx.extension_metadata(reproducible = True)
 
 dart_tests_extension = module_extension(implementation = _test_ext_impl)
-# Force refetch trigger: 13
+# Force refetch trigger: 21

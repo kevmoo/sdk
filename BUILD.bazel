@@ -353,4 +353,23 @@ filegroup(
     ),
 )
 
+# Expose pkg/dart2wasm test resources and benchmarks to sandboxed testing.
+filegroup(
+    name = "dart2wasm_test_resources",
+    srcs = glob(
+        [
+            "third_party/flute/benchmarks/lib/complex.dart",
+            "pkg/dart2wasm/benchmark/**",
+            "pkg/dart2wasm/tool/**",
+            "pkg/dart2wasm/test/deferred_loading/**",
+            "pkg/dart2wasm/test/ir_tests/**",
+            "pkg/compiler/test/custom_split/data/**",
+        ],
+        allow_empty = True,
+    ) + [
+        "//sdk:sdk_library_sources",
+    ],
+)
+
 exports_files(["DEPS"])
+
