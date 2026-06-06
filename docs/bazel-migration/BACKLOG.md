@@ -17,7 +17,7 @@ New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstra
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 34/49 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
+- **Overall Progress**: 34/53 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
 
 ---
 
@@ -71,13 +71,17 @@ graph TD
     TASK_039["TASK_039:<br>Enable standard Bazel lint and formatting checks {Buildifier}"]:::completed
     TASK_040["TASK_040:<br>Implement `bazel run` support for running Dart scripts"]:::completed
     TASK_041["TASK_041:<br>Emit canonical `cc_test` rules for self-contained test binaries"]:::completed
+    sdk_4z8["sdk-4z8:<br>Skill: Create agent skill for automated upstream PR/CL triage in Bazel"]:::pending
     sdk_95q["sdk-95q:<br>Migrate leaf C++ integration tests {abstract_socket_test & process_test} to cc_test"]:::pending
+    sdk_9qx["sdk-9qx:<br>Design: Bazel-powered developer workflow bridge for upstream work"]:::pending
     sdk_b34["sdk-b34:<br>GN: Split C-only and C++-only flags in compiler configs"]:::pending
     sdk_cfi["sdk-cfi:<br>ICU: Expose checked-in data headers in build definitions"]:::pending
+    sdk_fnn["sdk-fnn:<br>Tooling: Implement script to export Bazel-tested changes back to Main"]:::pending
     sdk_gmk["sdk-gmk:<br>Prune upstream Bazel files from vendored third_party"]:::pending
     sdk_rog["sdk-rog:<br>VM: Define formal GN target for public VM embedding C API"]:::pending
     sdk_w7m["sdk-w7m:<br>VM: Eliminate preprocessor symbol toggles in dfe.cc"]:::pending
     sdk_xfm["sdk-xfm:<br>Migrate Dart VM C++ test runner {run_vm_tests} to cc_test"]:::pending
+    sdk_zi3["sdk-zi3:<br>Tooling: Implement script to import upstream CL/PR into Bazel workspace"]:::pending
     sdk_znx["sdk-znx:<br>Clean up and generalize cross-target detection in translator"]:::pending
 
     TASK_017 --> TASK_006
@@ -96,6 +100,11 @@ graph TD
     TASK_006 --> TASK_028
     TASK_003 --> TASK_029
     TASK_033 --> TASK_034
+    sdk_fnn --> sdk_4z8
+    sdk_zi3 --> sdk_4z8
+    TASK_038 --> sdk_9qx
+    sdk_9qx --> sdk_fnn
+    sdk_9qx --> sdk_zi3
 ```
 
 <!-- END_DEP_GRAPH -->
@@ -216,6 +225,19 @@ graph TD
 
 ---
 
+### 🎯 [sdk-4z8] Skill: Create agent skill for automated upstream PR/CL triage in Bazel
+- **Status**: `[PENDING]`
+- **Prerequisites**: `sdk-fnn`, `sdk-zi3`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Create a custom Agent Skill (in .agents/skills/) that equips AI agents to autonomously execute the bridge workflow (fetch, import, test under Bazel, and report results) using the import/export scripts.
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-95q] Migrate leaf C++ integration tests (abstract_socket_test & process_test) to cc_test
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
@@ -225,6 +247,19 @@ graph TD
   - None
 - **Description**:
   Convert the remaining leaf C++ integration tests in runtime/bin (abstract_socket_test and process_test) into canonical Bazel cc_test targets. Package create_process_test_helper into the data attribute of process_test so it is available in the sandbox at runtime.
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-9qx] Design: Bazel-powered developer workflow bridge for upstream work
+- **Status**: `[PENDING]`
+- **Prerequisites**: `TASK_038`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Draft a design document detailing the workflow for importing upstream Gerrit CLs/PRs into a bazel-based branch, iterating/testing using Bazel, and exporting verified changes back to a main-based branch. Define CLI specs for bridge scripts.
 - **Success Criteria**:
 
 ---
@@ -251,6 +286,19 @@ graph TD
   - None
 - **Description**:
   Resolve the silent reliance on implicit include paths for ICU data headers (norm2_nfc_data.h, etc.). Either implement the regeneration step in GN/Bazel to match upstream, or explicitly expose the checked-in data tables in third_party/icu/BUILD.gn and document the divergence. Ref: docs/bazel-migration/todo_issues/issue_00006_icu_data_headers_inconsistency.md
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-fnn] Tooling: Implement script to export Bazel-tested changes back to Main
+- **Status**: `[PENDING]`
+- **Prerequisites**: `sdk-9qx`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Create a developer script (e.g., tools/bazel/bridge/export.dart) to extract the core SDK changes from a Bazel branch and apply them cleanly to a main-based branch, filtering out Bazel-specific migration files.
 - **Success Criteria**:
 
 ---
@@ -303,6 +351,19 @@ graph TD
   - None
 - **Description**:
   Convert the monolithic Dart VM C++ test runner run_vm_tests into a canonical Bazel cc_test target. Audit and package all necessary runtime data dependencies (snapshots, test scripts, etc.) into its data attribute so they are available in the sandbox.
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-zi3] Tooling: Implement script to import upstream CL/PR into Bazel workspace
+- **Status**: `[PENDING]`
+- **Prerequisites**: `sdk-9qx`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Create a developer script (e.g., tools/bazel/bridge/import.dart) to fetch a Gerrit CL or GitHub PR patch, create a local branch off bazel, and apply the patch cleanly.
 - **Success Criteria**:
 
 ---
