@@ -745,7 +745,7 @@ AppSnapshot* Snapshot::TryReadAppSnapshot(const char* script_uri,
   return nullptr;
 }
 
-#if !defined(TESTING)
+#if !defined(DART_PRECOMPILED_RUNTIME) && !defined(TESTING)
 static void WriteSnapshotFile(const char* filename,
                               const uint8_t* buffer,
                               const intptr_t size) {
