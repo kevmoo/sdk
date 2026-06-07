@@ -290,10 +290,11 @@ String generateHistory(List<Task> tasks) {
 }
 
 String formatExternalRef(String ref) {
-  if (ref.startsWith('https://github.com/')) {
-    final parts = ref.split('/');
-    if (parts.length >= 7 && parts[parts.length - 2] == 'pull') {
-      return 'PR #${parts.last}';
+  final uri = Uri.tryParse(ref);
+  if (uri != null && uri.host == 'github.com') {
+    final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    if (segments.length >= 4 && segments[segments.length - 2] == 'pull') {
+      return 'PR #${segments.last}';
     }
   }
   return 'Link';
