@@ -26,7 +26,7 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-Session 131 — **(jetski) Completed sdk-rog: VM: Define formal GN target for public VM embedding C API.**
+Session 131 — **(jetski) Implemented sdk-rog: VM: Define formal GN target for public VM embedding C API.**
 - **Defined Public API Headers Target**: Created a header-only `source_set("public_api_headers")` in `runtime/include/BUILD.gn` containing all public embedding C API headers (including `bin/dart_io_api.h` and `bin/native_assets_api.h`).
 - **Exported Include Paths**: Configured `public_api_config` in `runtime/include/BUILD.gn` to export `.` and `..` include paths, allowing consumers to cleanly `#include "dart_api.h"` or `#include "include/dart_api.h"`.
 - **Refactored VM and Bin Targets**: Refactored `source_set("dart_api")` in `runtime/BUILD.gn` to remove the headers from `sources` and instead depend on `include:public_api_headers` via `public_deps`, keeping it strictly for compiling `dart_api_dl.c`.

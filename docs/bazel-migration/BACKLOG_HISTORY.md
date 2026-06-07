@@ -718,19 +718,6 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
-### 🎯 [sdk-rog] VM: Define formal GN target for public VM embedding C API
-- **Status**: `[COMPLETED]`
-- **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Create a header-only source_set('public_api_headers') in runtime/include/BUILD.gn containing only the public embedding API headers (dart_api.h, etc.). Update internal VM targets to depend on it, and align the Bazel translation to remove the hand-written shim. Ref: docs/bazel-migration/todo_issues/issue_00007_runtime_include_public_api_target.md
-- **Success Criteria**:
-
----
-
 ### 🎯 [sdk-rwz] [M3] Wire up Sanitizer SDK AOT Runtimes
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: None

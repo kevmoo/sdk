@@ -25,7 +25,6 @@ copy("copy_headers") {
 config("public_api_config") {
   include_dirs = [
     ".",
-    "..",
   ]
 }
 

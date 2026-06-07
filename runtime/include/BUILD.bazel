@@ -67,7 +67,6 @@ cc_library(
     ],
     includes = [
         ".",
-        "..",
     ],
     visibility = ["//visibility:public"],
 )
