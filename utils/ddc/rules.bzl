@@ -37,7 +37,7 @@ def package_kernel_outline(name, package, extra_libraries = []):
 
     Args:
       name: The name of the genrule target.
-      package: The package name to compile (e.g., \"expect\", \"js\", \"meta\").
+      package: The package name to compile (e.g., "expect", "js", "meta").
       extra_libraries: Optional list of additional library entrypoints in the package.
     """
     srcs = _SOURCES_MAP[package]
@@ -68,9 +68,9 @@ def ddc_compile(name, package, canary, modules, extra_libraries = []):
 
     Args:
       name: The name of the genrule target.
-      package: The package name to compile (e.g., \"expect\", \"js\", \"meta\").
+      package: The package name to compile (e.g., "expect", "js", "meta").
       canary: Whether to compile with canary features and output to canary directory.
-      modules: List of module formats to output (e.g., \"amd\", \"common\", \"es6\").
+      modules: List of module formats to output (e.g., "amd", "common", "es6").
       extra_libraries: Optional list of additional library entrypoints in the package.
     """
     srcs = _SOURCES_MAP[package]
@@ -118,7 +118,7 @@ def ddc_compile_sdk(name, canary, modules):
     Args:
       name: The name of the genrule target.
       canary: Whether to compile with canary features and output to canary directory.
-      modules: List of module formats to output (e.g., \"amd\", \"common\", \"es6\").
+      modules: List of module formats to output (e.g., "amd", "common", "es6").
     """
     js_dir = "canary/sdk" if canary else "stable/sdk"
     outputs = []
