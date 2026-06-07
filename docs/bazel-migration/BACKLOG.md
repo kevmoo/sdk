@@ -17,7 +17,7 @@ New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstra
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 40/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
+- **Overall Progress**: 40/60 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
 
 ---
 
@@ -58,7 +58,7 @@ graph TD
     TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
     TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::completed
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
-    TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
+    TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::inProgress
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
     TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
     TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
@@ -73,19 +73,20 @@ graph TD
     TASK_041["TASK_041:<br>Emit canonical `cc_test` rules for self-contained test binaries"]:::completed
     sdk_3ld["sdk-3ld:<br>{M3} Wire up Dart MCP Server Snapshots"]:::completed
     sdk_4z8["sdk-4z8:<br>Skill: Create agent skill for automated upstream PR/CL triage in Bazel"]:::pending
+    sdk_84z["sdk-84z:<br>VM: Fix pre-existing buildifier lint warnings in utils/ddc/rules.bzl"]:::inProgress
     sdk_90d["sdk-90d:<br>{M3} Wire up Dart Dev Compiler {DDC} Snapshots"]:::completed
     sdk_95q["sdk-95q:<br>Migrate leaf C++ integration tests {abstract_socket_test & process_test} to cc_test"]:::pending
     sdk_9qx["sdk-9qx:<br>Design: Bazel-powered developer workflow bridge for upstream work"]:::pending
     sdk_b34["sdk-b34:<br>GN: Split C-only and C++-only flags in compiler configs"]:::pending
-    sdk_cfi["sdk-cfi:<br>ICU: Expose checked-in data headers in build definitions"]:::pending
+    sdk_cfi["sdk-cfi:<br>ICU: Expose checked-in data headers in build definitions"]:::inProgress
     sdk_fnn["sdk-fnn:<br>Tooling: Implement script to export Bazel-tested changes back to Main"]:::pending
     sdk_g2l["sdk-g2l:<br>{M3} Wire up Dart2JS and Dartdoc Snapshots"]:::completed
-    sdk_gmk["sdk-gmk:<br>Prune upstream Bazel files from vendored third_party"]:::pending
+    sdk_gmk["sdk-gmk:<br>Prune upstream Bazel files from vendored third_party"]:::inProgress
     sdk_mv2["sdk-mv2:<br>{M3} Wire up DevTools and Core Utility Binaries"]:::completed
     sdk_oce["sdk-oce:<br>{M3} Wire up Kernel Worker Snapshot"]:::completed
-    sdk_rog["sdk-rog:<br>VM: Define formal GN target for public VM embedding C API"]:::pending
+    sdk_rog["sdk-rog:<br>VM: Define formal GN target for public VM embedding C API"]:::inProgress
     sdk_rwz["sdk-rwz:<br>{M3} Wire up Sanitizer SDK AOT Runtimes"]:::completed
-    sdk_w7m["sdk-w7m:<br>VM: Eliminate preprocessor symbol toggles in dfe.cc"]:::pending
+    sdk_w7m["sdk-w7m:<br>VM: Eliminate preprocessor symbol toggles in dfe.cc"]:::inProgress
     sdk_xfm["sdk-xfm:<br>Migrate Dart VM C++ test runner {run_vm_tests} to cc_test"]:::pending
     sdk_zi3["sdk-zi3:<br>Tooling: Implement script to import upstream CL/PR into Bazel workspace"]:::pending
     sdk_znx["sdk-znx:<br>Clean up and generalize cross-target detection in translator"]:::pending
@@ -204,7 +205,7 @@ graph TD
 ---
 
 ### 🎯 [TASK_029] Streamline and Optimize Bazel Build Definitions
-- **Status**: `[PENDING]`
+- **Status**: `[IN_PROGRESS]`
 - **Prerequisites**: `TASK_003`
 - **Owner**: `[none]`
 - **Commit**: `[none]`
@@ -243,6 +244,20 @@ graph TD
   - None
 - **Description**:
   Create a custom Agent Skill (in .agents/skills/) that equips AI agents to autonomously execute the bridge workflow (fetch, import, test under Bazel, and report results) using the import/export scripts.
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-84z] VM: Fix pre-existing buildifier lint warnings in utils/ddc/rules.bzl
+- **Status**: `[IN_PROGRESS]`
+- **PR/External Ref**: [PR #20](https://github.com/kevmoo/sdk/pull/20)
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Fix pre-existing Buildifier lint warnings in utils/ddc/rules.bzl to unblock CI runs.
 - **Success Criteria**:
 
 ---
@@ -287,7 +302,7 @@ graph TD
 ---
 
 ### 🎯 [sdk-cfi] ICU: Expose checked-in data headers in build definitions
-- **Status**: `[PENDING]`
+- **Status**: `[IN_PROGRESS]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
 - **Commit**: `[none]`
@@ -313,7 +328,7 @@ graph TD
 ---
 
 ### 🎯 [sdk-gmk] Prune upstream Bazel files from vendored third_party
-- **Status**: `[PENDING]`
+- **Status**: `[IN_PROGRESS]`
 - **Prerequisites**: None
 - **Owner**: `[none]`
 - **Commit**: `[none]`
@@ -326,7 +341,8 @@ graph TD
 ---
 
 ### 🎯 [sdk-rog] VM: Define formal GN target for public VM embedding C API
-- **Status**: `[PENDING]`
+- **Status**: `[IN_PROGRESS]`
+- **PR/External Ref**: [PR #19](https://github.com/kevmoo/sdk/pull/19)
 - **Prerequisites**: None
 - **Owner**: `[none]`
 - **Commit**: `[none]`
@@ -339,7 +355,8 @@ graph TD
 ---
 
 ### 🎯 [sdk-w7m] VM: Eliminate preprocessor symbol toggles in dfe.cc
-- **Status**: `[PENDING]`
+- **Status**: `[IN_PROGRESS]`
+- **PR/External Ref**: [PR #18](https://github.com/kevmoo/sdk/pull/18)
 - **Prerequisites**: None
 - **Owner**: `[none]`
 - **Commit**: `[none]`
