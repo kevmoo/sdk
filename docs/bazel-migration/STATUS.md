@@ -26,7 +26,7 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
-Session 133 — **(jetski) Completed sdk-w7m: VM: Eliminate CFE preprocessor symbol toggles.**
+Session 133 — **(jetski) Implemented sdk-w7m: VM: Eliminate CFE preprocessor symbol toggles.**
 - **Audited CFE/Kernel stubs**: Investigated the usage of `EXCLUDE_CFE_AND_KERNEL_PLATFORM` preprocessor toggle. Identified a latent type-mismatch hazard where `kDartCoreSnapshotData` was declared as an array but defined as a pointer-to-null in stubs (masked only because JIT core snapshots are not accessed in AOT).
 - **Implemented Safe C++ Stubs**: Created `runtime/bin/dfe_empty_kernel_stubs.cc` defining the Dill symbols as real arrays of size 1 containing `0` (matching the `extern` declarations exactly) and size `0`.
 - **Refactored VM and Bin sources**: Modified `dfe.cc` and `unit_test.cc` to use safe ternary initializations (e.g. `kPlatformDillSize > 0 ? kPlatformDill : nullptr`), preserving `nullptr` semantics cleanly. Refactored `snapshot_utils.cc` and `main_impl.cc` to use dynamic runtime checks (`dfe.CanUseDartFrontend()`) instead of compile-time `#ifdef` blocks, and guarded them for AOT-safety (`DART_PRECOMPILED_RUNTIME`).
