@@ -33,6 +33,12 @@ Session 133 — **(jetski) Completed sdk-w7m: VM: Eliminate CFE preprocessor sym
 - **Updated GN and Bazel builds**: Removed `EXCLUDE_CFE_AND_KERNEL_PLATFORM` from all GN/Bazel configs. Updated `BUILD.gn` and `BUILD.bazel` to conditionally compile/link `dfe_empty_kernel_stubs.cc` for all 8 `gen_snapshot` targets, `dartvm`, and `dart_libfuzzer` when CFE is excluded.
 - **Verified Build & Run E2E**: Successfully ran GN, regenerated all `gen_targets.bzl` files via the translator, and ran `buildifier` to format all Bazel files. Verified by compiling and linking `gen_snapshot` 100% green, and verified it starts up and prints its usage cleanly without crashing.
 
+Session 130 — **(jetski) Completed sdk-84z: VM: Fix pre-existing buildifier lint warnings in utils/ddc/rules.bzl.**
+- **Identified Lint Blocker**: Discovered that the newly enabled `Buildifier` CI workflow was failing globally on all PRs due to a pre-existing lint warning in `utils/ddc/rules.bzl` (which was written before strict Starlark linting was enforced).
+- **Surgically Fixed Starlark Lints**: Added the missing module-level docstring and fully documented all arguments in the docstrings for `package_kernel_outline`, `ddc_compile`, and `ddc_compile_sdk` in `utils/ddc/rules.bzl`.
+- **Verified Globally**: Ran the strict global buildifier check locally and verified it now passes with zero errors and zero warnings across the entire repository. This guarantees the CI will go green once merged.
+- **Closed sdk-84z**: Closed the task in Beads and regenerated the backlog board.
+
 Session 129 — **(jetski) Completed sdk-rwz: Wired up Sanitizer SDK AOT Runtimes.**
 - **Wired up Sanitizer Runtimes**: Replaced the placeholder `filegroup` targets for `copy_dart_aotruntime_asan`, `copy_dart_aotruntime_msan`, and `copy_dart_aotruntime_tsan` in `sdk/BUILD.bazel` with real `genrule` targets.
 - **Pragmatic M3 Design**: Configured the new targets to copy the standard `dartaotruntime` (or `dartaotruntime_product` depending on product mode) and rename them to `dartaotruntime_${sanitizer}` in the SDK `bin/` directory. This provides correct structural wiring for the SDK layout. If the entire SDK is built with a sanitizer feature enabled (e.g., `--features=asan`), both standard and sanitized targets will correctly package the sanitized binary.
