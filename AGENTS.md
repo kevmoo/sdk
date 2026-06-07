@@ -66,7 +66,9 @@ bd close <id>         # Complete work
 - Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-- **No Premature Completion**: Do NOT mark issues as `closed` (completed) in the Beads database if their code changes have not yet been merged into the base integration branch (e.g. `kevmoo/bazel`). Keep them in `in_progress` status while the Pull Request is open, and only close them once the PR is officially merged.
+- **No Premature Completion & Closeout Protocol**: Do NOT mark issues as `closed` (completed) in the Beads database if their code changes have not yet been merged into the base integration branch (`kevmoo/bazel`).
+  1. **During PR**: Keep the Bead in `in_progress` status while the Pull Request is open. This prevents backlog history drift and eliminates merge conflicts on feature branches.
+  2. **After Merge (Batch Closeout)**: Once one or more PRs are officially merged into `kevmoo/bazel`, switch to the local `bazel` branch, pull the latest changes, run `bd close <id...>` for the merged tasks, run the board generator to regenerate the backlog, and commit/push this "Backlog Sync" commit directly to `kevmoo/bazel`.
 - **Document Pull Requests**: When a Pull Request is created for a task, immediately update the Bead in the database with the PR URL as an external reference:
   ```bash
   bd update <id> --external-ref <pr-url>
