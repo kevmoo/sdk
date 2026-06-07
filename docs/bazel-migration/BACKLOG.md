@@ -17,7 +17,7 @@ New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstra
 
 - **Active Agent**: `[none]`
 - **Global Lock**: `[unlocked]`
-- **Overall Progress**: 40/59 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
+- **Overall Progress**: 46/60 Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))
 
 ---
 
@@ -58,7 +58,7 @@ graph TD
     TASK_026["TASK_026:<br>CI LUCI Recipe Migration"]:::pending
     TASK_027["TASK_027:<br>Investigate Upstreaming Non-Bazel Fixes to Main"]:::completed
     TASK_028["TASK_028:<br>Investigate Google3 Alignment"]:::pending
-    TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::pending
+    TASK_029["TASK_029:<br>Streamline and Optimize Bazel Build Definitions"]:::completed
     TASK_030["TASK_030:<br>Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads"]:::completed
     TASK_031["TASK_031:<br>Audit and Apply Code Review Learnings across Bazel codebase"]:::completed
     TASK_032["TASK_032:<br>Fix package config generator for workspace packages and dynamic language versions"]:::completed
@@ -73,19 +73,20 @@ graph TD
     TASK_041["TASK_041:<br>Emit canonical `cc_test` rules for self-contained test binaries"]:::completed
     sdk_3ld["sdk-3ld:<br>{M3} Wire up Dart MCP Server Snapshots"]:::completed
     sdk_4z8["sdk-4z8:<br>Skill: Create agent skill for automated upstream PR/CL triage in Bazel"]:::pending
+    sdk_84z["sdk-84z:<br>VM: Fix pre-existing buildifier lint warnings in utils/ddc/rules.bzl"]:::completed
     sdk_90d["sdk-90d:<br>{M3} Wire up Dart Dev Compiler {DDC} Snapshots"]:::completed
     sdk_95q["sdk-95q:<br>Migrate leaf C++ integration tests {abstract_socket_test & process_test} to cc_test"]:::pending
     sdk_9qx["sdk-9qx:<br>Design: Bazel-powered developer workflow bridge for upstream work"]:::pending
     sdk_b34["sdk-b34:<br>GN: Split C-only and C++-only flags in compiler configs"]:::pending
-    sdk_cfi["sdk-cfi:<br>ICU: Expose checked-in data headers in build definitions"]:::pending
+    sdk_cfi["sdk-cfi:<br>ICU: Expose checked-in data headers in build definitions"]:::completed
     sdk_fnn["sdk-fnn:<br>Tooling: Implement script to export Bazel-tested changes back to Main"]:::pending
     sdk_g2l["sdk-g2l:<br>{M3} Wire up Dart2JS and Dartdoc Snapshots"]:::completed
-    sdk_gmk["sdk-gmk:<br>Prune upstream Bazel files from vendored third_party"]:::pending
+    sdk_gmk["sdk-gmk:<br>Prune upstream Bazel files from vendored third_party"]:::completed
     sdk_mv2["sdk-mv2:<br>{M3} Wire up DevTools and Core Utility Binaries"]:::completed
     sdk_oce["sdk-oce:<br>{M3} Wire up Kernel Worker Snapshot"]:::completed
-    sdk_rog["sdk-rog:<br>VM: Define formal GN target for public VM embedding C API"]:::pending
+    sdk_rog["sdk-rog:<br>VM: Define formal GN target for public VM embedding C API"]:::completed
     sdk_rwz["sdk-rwz:<br>{M3} Wire up Sanitizer SDK AOT Runtimes"]:::completed
-    sdk_w7m["sdk-w7m:<br>VM: Eliminate preprocessor symbol toggles in dfe.cc"]:::pending
+    sdk_w7m["sdk-w7m:<br>VM: Eliminate preprocessor symbol toggles in dfe.cc"]:::completed
     sdk_xfm["sdk-xfm:<br>Migrate Dart VM C++ test runner {run_vm_tests} to cc_test"]:::pending
     sdk_zi3["sdk-zi3:<br>Tooling: Implement script to import upstream CL/PR into Bazel workspace"]:::pending
     sdk_znx["sdk-znx:<br>Clean up and generalize cross-target detection in translator"]:::pending
@@ -203,22 +204,6 @@ graph TD
 
 ---
 
-### 🎯 [TASK_029] Streamline and Optimize Bazel Build Definitions
-- **Status**: `[PENDING]`
-- **Prerequisites**: `TASK_003`
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - `tools/bazel/dart/defs.bzl`
-  - `tools/bazel/rules.bzl`
-- **Description**:
-  Audit current Bazel build files and custom Starlark rules (`tools/bazel/dart/defs.bzl`, `tools/bazel/rules.bzl`) to simplify flag propagation, reduce macro complexity, and optimize build graph analysis times.
-- **Success Criteria**:
-  - [ ] macOS flag filtering moved from macro wrappers to toolchain definitions where possible.
-  - [ ] Starlark macro complexity reduced (audited by a senior engineer review).
-
----
-
 ### 🎯 [TASK_038] Investigate migrating Dart package dependency syncing to Bazel
 - **Status**: `[PENDING]`
 - **Prerequisites**: None
@@ -286,19 +271,6 @@ graph TD
 
 ---
 
-### 🎯 [sdk-cfi] ICU: Expose checked-in data headers in build definitions
-- **Status**: `[PENDING]`
-- **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Resolve the silent reliance on implicit include paths for ICU data headers (norm2_nfc_data.h, etc.). Either implement the regeneration step in GN/Bazel to match upstream, or explicitly expose the checked-in data tables in third_party/icu/BUILD.gn and document the divergence. Ref: docs/bazel-migration/todo_issues/issue_00006_icu_data_headers_inconsistency.md
-- **Success Criteria**:
-
----
-
 ### 🎯 [sdk-fnn] Tooling: Implement script to export Bazel-tested changes back to Main
 - **Status**: `[PENDING]`
 - **Prerequisites**: `sdk-9qx`
@@ -308,45 +280,6 @@ graph TD
   - None
 - **Description**:
   Create a developer script (e.g., tools/bazel/bridge/export.dart) to extract the core SDK changes from a Bazel branch and apply them cleanly to a main-based branch, filtering out Bazel-specific migration files.
-- **Success Criteria**:
-
----
-
-### 🎯 [sdk-gmk] Prune upstream Bazel files from vendored third_party
-- **Status**: `[PENDING]`
-- **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Update SDK roll/import scripts to exclude BUILD, BUILD.bazel, WORKSPACE, and MODULE.bazel files. Prune the existing renamed *.disabled-for-dart-bazel-migration files from the tree. Ref: docs/bazel-migration/todo_issues/issue_00005_vendored_third_party_build_files.md
-- **Success Criteria**:
-
----
-
-### 🎯 [sdk-rog] VM: Define formal GN target for public VM embedding C API
-- **Status**: `[PENDING]`
-- **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Create a header-only source_set('public_api_headers') in runtime/include/BUILD.gn containing only the public embedding API headers (dart_api.h, etc.). Update internal VM targets to depend on it, and align the Bazel translation to remove the hand-written shim. Ref: docs/bazel-migration/todo_issues/issue_00007_runtime_include_public_api_target.md
-- **Success Criteria**:
-
----
-
-### 🎯 [sdk-w7m] VM: Eliminate preprocessor symbol toggles in dfe.cc
-- **Status**: `[PENDING]`
-- **Prerequisites**: None
-- **Owner**: `[none]`
-- **Commit**: `[none]`
-- **Target Files**:
-  - None
-- **Description**:
-  Refactor runtime/bin/dfe.cc to split the CFE/Kernel stubs into separate files (dfe_empty_kernel_stubs.cc and dfe_real_kernel_stubs.cc) and select them via GN/Bazel build files, eliminating the EXCLUDE_CFE_AND_KERNEL_PLATFORM preprocessor toggles. Ref: docs/bazel-migration/todo_issues/issue_00008_dfe_ifdef_toggled_symbol_definition.md
 - **Success Criteria**:
 
 ---

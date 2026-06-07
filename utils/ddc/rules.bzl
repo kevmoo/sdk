@@ -2,6 +2,8 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+"""Rules for compiling packages and the SDK with DDC (Dart Development Compiler) under Bazel."""
+
 EXPECT_SOURCES = [
     "//:pkg/expect/lib/async_helper.dart",
     "//:pkg/expect/lib/config.dart",
@@ -31,7 +33,13 @@ _SOURCES_MAP = {
 }
 
 def package_kernel_outline(name, package, extra_libraries = []):
-    """Compiles a package to an outline .dill file with the ddc target option."""
+    """Compiles a package to an outline .dill file with the ddc target option.
+
+    Args:
+      name: The name of the genrule target.
+      package: The package name to compile (e.g., \"expect\", \"js\", \"meta\").
+      extra_libraries: Optional list of additional library entrypoints in the package.
+    """
     srcs = _SOURCES_MAP[package]
     output = name + ".dill"
 
@@ -56,7 +64,15 @@ def package_kernel_outline(name, package, extra_libraries = []):
     )
 
 def ddc_compile(name, package, canary, modules, extra_libraries = []):
-    """Compiles a package to JavaScript using dartdevc."""
+    """Compiles a package to JavaScript using dartdevc.
+
+    Args:
+      name: The name of the genrule target.
+      package: The package name to compile (e.g., \"expect\", \"js\", \"meta\").
+      canary: Whether to compile with canary features and output to canary directory.
+      modules: List of module formats to output (e.g., \"amd\", \"common\", \"es6\").
+      extra_libraries: Optional list of additional library entrypoints in the package.
+    """
     srcs = _SOURCES_MAP[package]
 
     js_dir = "canary/pkg" if canary else "stable/pkg"
@@ -97,7 +113,13 @@ def ddc_compile(name, package, canary, modules, extra_libraries = []):
     )
 
 def ddc_compile_sdk(name, canary, modules):
-    """Compiles the DDC SDK JavaScript modules from the platform .dill file."""
+    """Compiles the DDC SDK JavaScript modules from the platform .dill file.
+
+    Args:
+      name: The name of the genrule target.
+      canary: Whether to compile with canary features and output to canary directory.
+      modules: List of module formats to output (e.g., \"amd\", \"common\", \"es6\").
+    """
     js_dir = "canary/sdk" if canary else "stable/sdk"
     outputs = []
     for module in modules:
