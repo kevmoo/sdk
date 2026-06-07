@@ -16,17 +16,10 @@
 #include "platform/utils.h"
 
 extern "C" {
-#if !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
 extern const uint8_t kKernelServiceDill[];
 extern intptr_t kKernelServiceDillSize;
 extern const uint8_t kPlatformDill[];
 extern intptr_t kPlatformDillSize;
-#else
-const uint8_t* kKernelServiceDill = nullptr;
-intptr_t kKernelServiceDillSize = 0;
-const uint8_t* kPlatformDill = nullptr;
-intptr_t kPlatformDillSize = 0;
-#endif  // !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
 }
 
 namespace dart {
@@ -37,22 +30,18 @@ namespace bin {
 //
 // Only on X64 do we have kernel-service.dart.snapshot available otherwise we
 // need to fall back to the built-in one (if we have it).
-#if defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM) ||                                \
-    (defined(DART_PRECOMPILER) && defined(TARGET_ARCH_X64))
+#if defined(DART_PRECOMPILER) && defined(TARGET_ARCH_X64)
 const uint8_t* kernel_service_dill = nullptr;
 const intptr_t kernel_service_dill_size = 0;
 #else
-const uint8_t* kernel_service_dill = kKernelServiceDill;
+const uint8_t* kernel_service_dill =
+    kKernelServiceDillSize > 0 ? kKernelServiceDill : nullptr;
 const intptr_t kernel_service_dill_size = kKernelServiceDillSize;
 #endif
 
-#if defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
-const uint8_t* platform_dill = nullptr;
-const intptr_t platform_dill_size = 0;
-#else
-const uint8_t* platform_dill = kPlatformDill;
+const uint8_t* platform_dill =
+    kPlatformDillSize > 0 ? kPlatformDill : nullptr;
 const intptr_t platform_dill_size = kPlatformDillSize;
-#endif
 
 #if !defined(DART_PRECOMPILED_RUNTIME)
 DFE dfe;

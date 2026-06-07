@@ -745,7 +745,7 @@ AppSnapshot* Snapshot::TryReadAppSnapshot(const char* script_uri,
   return nullptr;
 }
 
-#if !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM) && !defined(TESTING)
+#if !defined(DART_PRECOMPILED_RUNTIME) && !defined(TESTING)
 static void WriteSnapshotFile(const char* filename,
                               const uint8_t* buffer,
                               const intptr_t size) {
@@ -871,7 +871,12 @@ void Snapshot::WriteAppSnapshot(const char* filename,
 void Snapshot::GenerateKernel(const char* snapshot_filename,
                               const char* script_name,
                               const char* package_config) {
-#if !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM) && !defined(TESTING)
+#if defined(TESTING) || defined(DART_PRECOMPILED_RUNTIME)
+  UNREACHABLE();
+#else
+  if (!dfe.CanUseDartFrontend()) {
+    FATAL("Compiler Frontend (CFE) is not available in this build.");
+  }
   ASSERT(Dart_CurrentIsolate() == nullptr);
 
   uint8_t* kernel_buffer = nullptr;
@@ -891,9 +896,7 @@ void Snapshot::GenerateKernel(const char* snapshot_filename,
     WriteSnapshotFile(snapshot_filename, result.kernel, result.kernel_size);
     free(result.kernel);
   }
-#else
-  UNREACHABLE();
-#endif  // !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM) && !defined(TESTING)
+#endif  // defined(TESTING) || defined(DART_PRECOMPILED_RUNTIME)
 }
 
 void Snapshot::GenerateAppJIT(const char* snapshot_filename) {

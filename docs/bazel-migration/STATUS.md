@@ -26,6 +26,13 @@
 **Active claims (who is editing what right now):**
 - `[none]`
 
+Session 133 — **(jetski) Implemented sdk-w7m: VM: Eliminate CFE preprocessor symbol toggles.**
+- **Audited CFE/Kernel stubs**: Investigated the usage of `EXCLUDE_CFE_AND_KERNEL_PLATFORM` preprocessor toggle. Identified a latent type-mismatch hazard where `kDartCoreSnapshotData` was declared as an array but defined as a pointer-to-null in stubs (masked only because JIT core snapshots are not accessed in AOT).
+- **Implemented Safe C++ Stubs**: Created `runtime/bin/dfe_empty_kernel_stubs.cc` defining the Dill symbols as real arrays of size 1 containing `0` (matching the `extern` declarations exactly) and size `0`.
+- **Refactored VM and Bin sources**: Modified `dfe.cc` and `unit_test.cc` to use safe ternary initializations (e.g. `kPlatformDillSize > 0 ? kPlatformDill : nullptr`), preserving `nullptr` semantics cleanly. Refactored `snapshot_utils.cc` and `main_impl.cc` to use dynamic runtime checks (`dfe.CanUseDartFrontend()`) instead of compile-time `#ifdef` blocks, and guarded them for AOT-safety (`DART_PRECOMPILED_RUNTIME`).
+- **Updated GN and Bazel builds**: Removed `EXCLUDE_CFE_AND_KERNEL_PLATFORM` from all GN/Bazel configs. Updated `BUILD.gn` and `BUILD.bazel` to conditionally compile/link `dfe_empty_kernel_stubs.cc` for all 8 `gen_snapshot` targets, `dartvm`, and `dart_libfuzzer` when CFE is excluded.
+- **Verified Build & Run E2E**: Successfully ran GN, regenerated all `gen_targets.bzl` files via the translator, and ran `buildifier` to format all Bazel files. Verified by compiling and linking `gen_snapshot` 100% green, and verified it starts up and prints its usage cleanly without crashing.
+
 Session 130 — **(jetski) Completed sdk-84z: VM: Fix pre-existing buildifier lint warnings in utils/ddc/rules.bzl.**
 - **Identified Lint Blocker**: Discovered that the newly enabled `Buildifier` CI workflow was failing globally on all PRs due to a pre-existing lint warning in `utils/ddc/rules.bzl` (which was written before strict Starlark linting was enforced).
 - **Surgically Fixed Starlark Lints**: Added the missing module-level docstring and fully documented all arguments in the docstrings for `package_kernel_outline`, `ddc_compile`, and `ddc_compile_sdk` in `utils/ddc/rules.bzl`.

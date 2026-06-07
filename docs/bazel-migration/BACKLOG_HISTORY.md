@@ -396,6 +396,22 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [TASK_029] Streamline and Optimize Bazel Build Definitions
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: `TASK_003`
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - `tools/bazel/dart/defs.bzl`
+  - `tools/bazel/rules.bzl`
+- **Description**:
+  Audit current Bazel build files and custom Starlark rules (`tools/bazel/dart/defs.bzl`, `tools/bazel/rules.bzl`) to simplify flag propagation, reduce macro complexity, and optimize build graph analysis times.
+- **Success Criteria**:
+  - [ ] macOS flag filtering moved from macro wrappers to toolchain definitions where possible.
+  - [ ] Starlark macro complexity reduced (audited by a senior engineer review).
+
+---
+
 ### 🎯 [TASK_030] Live-Parse DEPS in Bzlmod Extension for Dynamic Dependency Downloads
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: None
@@ -637,6 +653,19 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ---
 
+### 🎯 [sdk-cfi] ICU: Expose checked-in data headers in build definitions
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Resolve the silent reliance on implicit include paths for ICU data headers (norm2_nfc_data.h, etc.). Either implement the regeneration step in GN/Bazel to match upstream, or explicitly expose the checked-in data tables in third_party/icu/BUILD.gn and document the divergence. Ref: docs/bazel-migration/todo_issues/issue_00006_icu_data_headers_inconsistency.md
+- **Success Criteria**:
+
+---
+
 ### 🎯 [sdk-g2l] [M3] Wire up Dart2JS and Dartdoc Snapshots
 - **Status**: `[COMPLETED]`
 - **Prerequisites**: `sdk-oce`
@@ -646,6 +675,19 @@ This file lists all completed tasks in the Bazel migration. It is generated from
   - None
 - **Description**:
   Replace the 6 dart2js_aot and dartdoc stubs in utils/compiler/BUILD.bazel with real Starlark snapshot rules to enable compiling Dart-to-JS under Bazel.
+- **Success Criteria**:
+
+---
+
+### 🎯 [sdk-gmk] Prune upstream Bazel files from vendored third_party
+- **Status**: `[COMPLETED]`
+- **Prerequisites**: None
+- **Owner**: `[none]`
+- **Commit**: `[none]`
+- **Target Files**:
+  - None
+- **Description**:
+  Update SDK roll/import scripts to exclude BUILD, BUILD.bazel, WORKSPACE, and MODULE.bazel files. Prune the existing renamed *.disabled-for-dart-bazel-migration files from the tree. Ref: docs/bazel-migration/todo_issues/issue_00005_vendored_third_party_build_files.md
 - **Success Criteria**:
 
 ---

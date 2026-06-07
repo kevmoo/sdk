@@ -263,7 +263,6 @@ cc_library(
     ],
     local_defines = [
         "DART_PRECOMPILED_RUNTIME",
-        "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         "SUPPORT_PERFETTO",
         "DART_SHARED_LIB",
     ],
