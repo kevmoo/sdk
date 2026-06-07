@@ -35,9 +35,9 @@ Session 133 — **(jetski) Implemented sdk-w7m: VM: Eliminate CFE preprocessor s
 
 Session 131 — **(jetski) Implemented sdk-rog: VM: Define formal GN target for public VM embedding C API.**
 - **Defined Public API Headers Target**: Created a header-only `source_set("public_api_headers")` in `runtime/include/BUILD.gn` containing all public embedding C API headers (including `bin/dart_io_api.h` and `bin/native_assets_api.h`).
-- **Exported Include Paths**: Configured `public_api_config` in `runtime/include/BUILD.gn` to export `.` and `..` include paths, allowing consumers to cleanly `#include "dart_api.h"` or `#include "include/dart_api.h"`.
+- **Exported Include Paths**: Configured `public_api_config` in `runtime/include/BUILD.gn` to export the `.` include path, allowing consumers to cleanly `#include "dart_api.h"` while preventing transitive header search path pollution.
 - **Refactored VM and Bin Targets**: Refactored `source_set("dart_api")` in `runtime/BUILD.gn` to remove the headers from `sources` and instead depend on `include:public_api_headers` via `public_deps`, keeping it strictly for compiling `dart_api_dl.c`.
-- **Aligned Bazel Build**: Manually defined `cc_library(name = "public_api_headers")` in `runtime/include/BUILD.bazel` with the same headers and `includes = [".", ".."]`. Refactored `runtime:dart_api` in `runtime/BUILD.bazel` to depend on it, removing the hand-written headers list.
+- **Aligned Bazel Build**: Manually defined `cc_library(name = "public_api_headers")` in `runtime/include/BUILD.bazel` with the same headers and `includes = ["."]`. Refactored `runtime:dart_api` in `runtime/BUILD.bazel` to depend on it, removing the hand-written headers list.
 - **Verified Build E2E**: Successfully ran GN and Bazel builds. Verified `//runtime:dart_api` compiles and links perfectly under Bazel with the new transitive header dependency. Formatted all Bazel files using `buildifier`.
 
 Session 130 — **(jetski) Completed sdk-84z: VM: Fix pre-existing buildifier lint warnings in utils/ddc/rules.bzl.**
