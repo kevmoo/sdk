@@ -44,7 +44,7 @@ filegroup(name = "copy_worker_loader")
 
 cc_library(
     name = "dartpad",
-    deps = [
+    data = [
         "//utils/dartpad:build_sdk_tar",
         "//utils/dartpad:copy_dart_sdk_js",
         "//utils/dartpad:copy_dart_sdk_js_map",
