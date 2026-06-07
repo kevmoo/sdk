@@ -68,7 +68,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
             "PERFETTO_DISABLE_LOG",
         ],
         copts = [
@@ -189,7 +188,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
             "PERFETTO_DISABLE_LOG",
             "PRODUCT",
         ],

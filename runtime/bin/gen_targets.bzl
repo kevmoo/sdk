@@ -32,7 +32,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         ],
         copts = [
             "-Iruntime/include",
@@ -174,7 +173,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         ],
         copts = [
             "-Iruntime/include",
@@ -375,7 +373,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
         ],
         copts = [
             "-Iruntime/include",
@@ -460,7 +457,6 @@ def gen_targets():
         local_defines = [
             "SUPPORT_PERFETTO",
             "DART_PRECOMPILED_RUNTIME",
-            "EXCLUDE_CFE_AND_KERNEL_PLATFORM",
             "PRODUCT",
         ],
         copts = [

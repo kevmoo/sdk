@@ -428,7 +428,7 @@ static Dart_Isolate IsolateSetupHelper(Dart_Isolate isolate,
   return isolate;
 }
 
-#if !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
+#if !defined(DART_PRECOMPILED_RUNTIME)
 // Returns newly created Kernel Isolate on success, nullptr on failure.
 // For now we only support the kernel isolate coming up from an
 // application snapshot or from a .dill file.
@@ -437,6 +437,9 @@ static Dart_Isolate CreateAndSetupKernelIsolate(const char* script_uri,
                                                 Dart_IsolateFlags* flags,
                                                 char** error,
                                                 int* exit_code) {
+  if (!dfe.CanUseDartFrontend()) {
+    return nullptr;
+  }
   // Do not start a kernel isolate if we are doing a training run
   // to create an app JIT snapshot and a kernel file is specified
   // as the application to run.
@@ -515,7 +518,7 @@ static Dart_Isolate CreateAndSetupKernelIsolate(const char* script_uri,
   return IsolateSetupHelper(isolate, false, uri, packages_config,
                             isolate_run_app_snapshot, flags, error, exit_code);
 }
-#endif  // !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
+#endif  // !defined(DART_PRECOMPILED_RUNTIME)
 
 // Returns newly created Service Isolate on success, nullptr on failure.
 static Dart_Isolate CreateAndSetupServiceIsolate(const char* script_uri,
@@ -711,13 +714,13 @@ static Dart_Isolate CreateIsolateGroupAndSetupHelper(
       platform_kernel_buffer_size = kernel_buffer_size;
     }
     if (platform_kernel_buffer == nullptr) {
-#if defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
-      FATAL(
-          "Binary built with --exclude-kernel-service. Cannot run"
-          " from source.");
-#else
-      FATAL("platform_program cannot be nullptr.");
-#endif  // defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
+      if (!dfe.CanUseDartFrontend()) {
+        FATAL(
+            "Binary built with --exclude-kernel-service. Cannot run"
+            " from source.");
+      } else {
+        FATAL("platform_program cannot be nullptr.");
+      }
     }
     // TODO(sivachandra): When the platform program is unavailable, check if
     // application kernel binary is self contained or an incremental binary.
@@ -856,12 +859,12 @@ static Dart_Isolate CreateIsolateGroupAndSetup(const char* script_uri,
   flags->snapshot_is_dontneed_safe = dontneed_safe;
 
   int exit_code = 0;
-#if !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
+#if !defined(DART_PRECOMPILED_RUNTIME)
   if (strcmp(script_uri, DART_KERNEL_ISOLATE_NAME) == 0) {
     return CreateAndSetupKernelIsolate(script_uri, package_config, flags, error,
                                        &exit_code);
   }
-#endif  // !defined(EXCLUDE_CFE_AND_KERNEL_PLATFORM)
+#endif  // !defined(DART_PRECOMPILED_RUNTIME)
 
   if (strcmp(script_uri, DART_VM_SERVICE_ISOLATE_NAME) == 0) {
     return CreateAndSetupServiceIsolate(script_uri, package_config, flags,
