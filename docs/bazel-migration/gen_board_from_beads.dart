@@ -45,6 +45,7 @@ class Task {
   final String verificationCommand;
   final List<SuccessCriterion> successCriteria;
   final String description;
+  final String externalRef;
 
   Task({
     required this.id,
@@ -57,13 +58,12 @@ class Task {
     required this.verificationCommand,
     required this.successCriteria,
     required this.description,
+    required this.externalRef,
   });
 }
 
 void main() {
-  final Directory scriptDir = File(
-    Platform.script.toFilePath(),
-  ).parent;
+  final Directory scriptDir = File(Platform.script.toFilePath()).parent;
 
   final ProcessResult res = Process.runSync('bd', ['export']);
   if (res.exitCode != 0) {
@@ -86,39 +86,47 @@ void main() {
   String dispId(Map<String, dynamic> r) =>
       (r['_md'] as Map)['task_id'] as String? ?? r['id'] as String;
 
-  String orNone(dynamic v) =>
-      (v is String && v.isNotEmpty) ? v : 'none';
+  String orNone(dynamic v) => (v is String && v.isNotEmpty) ? v : 'none';
 
   final List<Task> tasks = [];
   for (final r in records) {
     final Map md = r['_md'] as Map;
     final List deps = (r['dependencies'] as List?) ?? [];
-    final List<String> prereqs = deps
-        .map((d) => d['depends_on_id'])
-        .where((id) => byBead.containsKey(id))
-        .map((id) => dispId(byBead[id]!))
-        .toList()
-      ..sort();
+    final List<String> prereqs =
+        deps
+            .map((d) => d['depends_on_id'])
+            .where((id) => byBead.containsKey(id))
+            .map((id) => dispId(byBead[id]!))
+            .toList()
+          ..sort();
     final List criteria =
         jsonDecode(md['success_criteria'] as String? ?? '[]') as List;
-    tasks.add(Task(
-      id: dispId(r),
-      title: r['title'] as String,
-      status: kStatus[r['status']] ?? 'PENDING',
-      prerequisites: prereqs,
-      owner: orNone(md['owner']),
-      commit: orNone(md['commit']),
-      targetFiles: (jsonDecode(md['target_files'] as String? ?? '[]') as List)
-          .cast<String>(),
-      verificationCommand: md['verification_command'] as String? ?? '',
-      successCriteria: criteria
-          .map((c) => SuccessCriterion(
-              c['description'] as String, c['verified'] == true))
-          .toList(),
-      description: md['description_raw'] as String? ??
-          r['description'] as String? ??
-          '',
-    ));
+    tasks.add(
+      Task(
+        id: dispId(r),
+        title: r['title'] as String,
+        status: kStatus[r['status']] ?? 'PENDING',
+        prerequisites: prereqs,
+        owner: orNone(md['owner']),
+        commit: orNone(md['commit']),
+        targetFiles: (jsonDecode(md['target_files'] as String? ?? '[]') as List)
+            .cast<String>(),
+        verificationCommand: md['verification_command'] as String? ?? '',
+        successCriteria: criteria
+            .map(
+              (c) => SuccessCriterion(
+                c['description'] as String,
+                c['verified'] == true,
+              ),
+            )
+            .toList(),
+        description:
+            md['description_raw'] as String? ??
+            r['description'] as String? ??
+            '',
+        externalRef: r['external_ref'] as String? ?? '',
+      ),
+    );
   }
 
   int sortKey(String id) =>
@@ -128,13 +136,18 @@ void main() {
     return ka != kb ? ka.compareTo(kb) : a.id.compareTo(b.id);
   });
 
-  File('${scriptDir.path}/BACKLOG.md').writeAsStringSync(generateBacklog(tasks));
-  File('${scriptDir.path}/BACKLOG_HISTORY.md')
-      .writeAsStringSync(generateHistory(tasks));
+  File(
+    '${scriptDir.path}/BACKLOG.md',
+  ).writeAsStringSync(generateBacklog(tasks));
+  File(
+    '${scriptDir.path}/BACKLOG_HISTORY.md',
+  ).writeAsStringSync(generateHistory(tasks));
 
   final int done = tasks.where((t) => t.status == 'COMPLETED').length;
-  print('Wrote BACKLOG.md + BACKLOG_HISTORY.md from beads '
-      '(${tasks.length} tasks, $done completed, ${tasks.length - done} active)');
+  print(
+    'Wrote BACKLOG.md + BACKLOG_HISTORY.md from beads '
+    '(${tasks.length} tasks, $done completed, ${tasks.length - done} active)',
+  );
 }
 
 String generateMermaid(List<Task> tasks) {
@@ -142,13 +155,17 @@ String generateMermaid(List<Task> tasks) {
   sb.writeln('```mermaid');
   sb.writeln('graph TD');
   sb.writeln(
-      '    classDef completed fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724;');
+    '    classDef completed fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724;',
+  );
   sb.writeln(
-      '    classDef inProgress fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404;');
+    '    classDef inProgress fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404;',
+  );
   sb.writeln(
-      '    classDef pending fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,stroke-dasharray: 5 5,color:#6c757d;');
+    '    classDef pending fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,stroke-dasharray: 5 5,color:#6c757d;',
+  );
   sb.writeln(
-      '    classDef blocked fill:#f8d7da,stroke:#dc3545,stroke-width:1px,stroke-dasharray: 5 5,color:#721c24;');
+    '    classDef blocked fill:#f8d7da,stroke:#dc3545,stroke-width:1px,stroke-dasharray: 5 5,color:#721c24;',
+  );
 
   for (final Task task in tasks) {
     final String cleanTitle = task.title
@@ -159,13 +176,16 @@ String generateMermaid(List<Task> tasks) {
         .replaceAll(')', '}');
     final String node = task.id.replaceAll('-', '_');
     sb.writeln(
-        '    $node["${task.id}:<br>$cleanTitle"]:::${kMermaidClass[task.status]}');
+      '    $node["${task.id}:<br>$cleanTitle"]:::${kMermaidClass[task.status]}',
+    );
   }
 
   sb.writeln();
   for (final Task task in tasks) {
     for (final String prereq in task.prerequisites) {
-      sb.writeln('    ${prereq.replaceAll('-', '_')} --> ${task.id.replaceAll('-', '_')}');
+      sb.writeln(
+        '    ${prereq.replaceAll('-', '_')} --> ${task.id.replaceAll('-', '_')}',
+      );
     }
   }
   sb.writeln('```');
@@ -174,24 +194,37 @@ String generateMermaid(List<Task> tasks) {
 
 String generateBacklog(List<Task> tasks) {
   final int done = tasks.where((t) => t.status == 'COMPLETED').length;
-  final List<Task> active =
-      tasks.where((t) => t.status != 'COMPLETED').toList();
+  final List<Task> active = tasks
+      .where((t) => t.status != 'COMPLETED')
+      .toList();
 
   final StringBuffer sb = StringBuffer();
   sb.writeln('# Dart SDK Bazel Migration: Active Backlog & Coordination Board');
   sb.writeln();
-  sb.writeln('This board is generated from the **beads** issue DB (`bd`), which '
-      'is the source of truth. **Do not edit this file directly.** To change '
-      'tasks, use `bd` and then:');
-  sb.writeln('`tools/sdks/dart-sdk/bin/dart docs/bazel-migration/gen_board_from_beads.dart && bd dolt push`');
+  sb.writeln(
+    'This board is generated from the **beads** issue DB (`bd`), which '
+    'is the source of truth. **Do not edit this file directly.** To change '
+    'tasks, use `bd` and then:',
+  );
+  sb.writeln(
+    '`tools/sdks/dart-sdk/bin/dart docs/bazel-migration/gen_board_from_beads.dart && bd dolt push`',
+  );
   sb.writeln();
-  sb.writeln('New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstrap.');
+  sb.writeln(
+    'New machine, or `bd` not set up? See [BEADS.md](BEADS.md) for install + bootstrap.',
+  );
   sb.writeln();
   sb.writeln('> 🚨 **AGENT PROTOCOL (Mandatory)**:');
-  sb.writeln('> 1. **Scan**: `bd ready` for actionable tasks; `bd blocked` for what is waiting.');
-  sb.writeln('> 2. **Claim**: `bd update <id> --status in_progress --assignee <you>`.');
+  sb.writeln(
+    '> 1. **Scan**: `bd ready` for actionable tasks; `bd blocked` for what is waiting.',
+  );
+  sb.writeln(
+    '> 2. **Claim**: `bd update <id> --status in_progress --assignee <you>`.',
+  );
   sb.writeln('> 3. **Verify**: run the task\'s Verification Command.');
-  sb.writeln('> 4. **Update**: `bd close <id>` when green, then regenerate this board and `bd dolt push`.');
+  sb.writeln(
+    '> 4. **Update**: `bd close <id>` when green, then regenerate this board and `bd dolt push`.',
+  );
   sb.writeln();
   sb.writeln('---');
   sb.writeln();
@@ -200,7 +233,8 @@ String generateBacklog(List<Task> tasks) {
   sb.writeln('- **Active Agent**: `[none]`');
   sb.writeln('- **Global Lock**: `[unlocked]`');
   sb.writeln(
-      '- **Overall Progress**: $done/${tasks.length} Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))');
+    '- **Overall Progress**: $done/${tasks.length} Tasks (Completed details in [BACKLOG_HISTORY.md](BACKLOG_HISTORY.md))',
+  );
   sb.writeln();
   sb.writeln('---');
   sb.writeln();
@@ -227,14 +261,17 @@ String generateBacklog(List<Task> tasks) {
 }
 
 String generateHistory(List<Task> tasks) {
-  final List<Task> completed =
-      tasks.where((t) => t.status == 'COMPLETED').toList();
+  final List<Task> completed = tasks
+      .where((t) => t.status == 'COMPLETED')
+      .toList();
   final StringBuffer sb = StringBuffer();
   sb.writeln('# Dart SDK Bazel Migration: Completed Tasks History');
   sb.writeln();
-  sb.writeln('This file lists all completed tasks in the Bazel migration. It is '
-      'generated from the beads issue DB by '
-      '`docs/bazel-migration/gen_board_from_beads.dart`.');
+  sb.writeln(
+    'This file lists all completed tasks in the Bazel migration. It is '
+    'generated from the beads issue DB by '
+    '`docs/bazel-migration/gen_board_from_beads.dart`.',
+  );
   sb.writeln();
   sb.writeln('---');
   sb.writeln();
@@ -252,10 +289,24 @@ String generateHistory(List<Task> tasks) {
   return sb.toString();
 }
 
+String formatExternalRef(String ref) {
+  if (ref.startsWith('https://github.com/')) {
+    final parts = ref.split('/');
+    if (parts.length >= 7 && parts[parts.length - 2] == 'pull') {
+      return 'PR #${parts.last}';
+    }
+  }
+  return 'Link';
+}
+
 String generateTaskMarkdown(Task task) {
   final StringBuffer sb = StringBuffer();
   sb.writeln('### 🎯 [${task.id}] ${task.title}');
   sb.writeln('- **Status**: `[${task.status}]`');
+  if (task.externalRef.isNotEmpty) {
+    final label = formatExternalRef(task.externalRef);
+    sb.writeln('- **PR/External Ref**: [$label](${task.externalRef})');
+  }
   final String prereqs = task.prerequisites.isEmpty
       ? 'None'
       : task.prerequisites.map((p) => '`$p`').join(', ');
@@ -275,7 +326,9 @@ String generateTaskMarkdown(Task task) {
   if (task.verificationCommand.trim().isNotEmpty) {
     sb.writeln('- **Verification Command**:');
     sb.writeln('  ```bash');
-    sb.writeln(task.verificationCommand.split('\n').map((l) => '  $l').join('\n'));
+    sb.writeln(
+      task.verificationCommand.split('\n').map((l) => '  $l').join('\n'),
+    );
     sb.writeln('  ```');
   }
   sb.writeln('- **Success Criteria**:');

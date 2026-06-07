@@ -626,6 +626,7 @@ This file lists all completed tasks in the Bazel migration. It is generated from
 
 ### 🎯 [sdk-84z] VM: Fix pre-existing buildifier lint warnings in utils/ddc/rules.bzl
 - **Status**: `[COMPLETED]`
+- **PR/External Ref**: [PR #20](https://github.com/kevmoo/sdk/pull/20)
 - **Prerequisites**: None
 - **Owner**: `[none]`
 - **Commit**: `[none]`

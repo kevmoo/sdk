@@ -67,6 +67,11 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 - **No Premature Completion**: Do NOT mark issues as `closed` (completed) in the Beads database if their code changes have not yet been merged into the base integration branch (e.g. `kevmoo/bazel`). Keep them in `in_progress` status while the Pull Request is open, and only close them once the PR is officially merged.
+- **Document Pull Requests**: When a Pull Request is created for a task, immediately update the Bead in the database with the PR URL as an external reference:
+  ```bash
+  bd update <id> --external-ref <pr-url>
+  ```
+  This allows the board generator to automatically link the task to its active PR on the backlog board.
 
 **Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
 

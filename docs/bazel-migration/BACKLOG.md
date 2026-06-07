@@ -328,6 +328,7 @@ graph TD
 
 ### 🎯 [sdk-rog] VM: Define formal GN target for public VM embedding C API
 - **Status**: `[IN_PROGRESS]`
+- **PR/External Ref**: [PR #19](https://github.com/kevmoo/sdk/pull/19)
 - **Prerequisites**: None
 - **Owner**: `[none]`
 - **Commit**: `[none]`
@@ -341,6 +342,7 @@ graph TD
 
 ### 🎯 [sdk-w7m] VM: Eliminate preprocessor symbol toggles in dfe.cc
 - **Status**: `[IN_PROGRESS]`
+- **PR/External Ref**: [PR #18](https://github.com/kevmoo/sdk/pull/18)
 - **Prerequisites**: None
 - **Owner**: `[none]`
 - **Commit**: `[none]`
