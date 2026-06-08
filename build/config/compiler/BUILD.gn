@@ -638,11 +638,13 @@ if (is_win) {
       "-Wno-deprecated-declarations",  # crashpad
       "-Wno-ignored-pragma-optimize",  # icu, double-conversion
       "-Wno-macro-redefined",
-      "-Wno-microsoft-cast",
-      "-Wno-microsoft-unqualified-friend",
       "-Wno-unknown-argument",  # icu
       "-Wno-unused-value",  # crashpad
       "-Wno-deprecated-non-prototype",  # zlib
+    ]
+    default_warning_flags_cc += [
+      "-Wno-microsoft-cast",
+      "-Wno-microsoft-unqualified-friend",
     ]
   } else {
     default_warning_flags += [
@@ -682,7 +684,7 @@ if (is_win) {
       "-Wno-stringop-overflow",  # ICU in gcc 16
     ]
     if (is_tsan && current_cpu == "riscv64") {
-      default_warning_flags += [
+      default_warning_flags_cc += [
         "-Wno-tsan",  # Use of std::atomic_thread_fence in the STL.
       ]
     }
