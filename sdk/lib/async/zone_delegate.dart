@@ -71,91 +71,165 @@ abstract final class ZoneDelegate {
 base class _ZoneDelegate implements ZoneDelegate {
   final _Zone _delegationTarget;
 
-  _ZoneDelegate(this._delegationTarget);
+  const _ZoneDelegate(this._delegationTarget);
 
   void handleUncaughtError(Zone zone, Object error, StackTrace stackTrace) {
     _delegationTarget._processUncaughtError(zone, error, stackTrace);
   }
 
   R run<R>(Zone zone, R f()) {
-    var implementation = _delegationTarget._run;
-    _Zone implZone = implementation.zone;
-    var handler = implementation.function as RunHandler;
-    return handler(implZone, implZone._parentDelegate, zone, f);
+    var implZone = _delegationTarget._runZone;
+    if (identical(implZone, _rootZone)) {
+      if (identical(Zone._current, zone)) return f();
+      return _rootRun(null, null, zone, f);
+    }
+    return _delegationTarget._runHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      f,
+    );
   }
 
   R runUnary<R, T>(Zone zone, R f(T arg), T arg) {
-    var implementation = _delegationTarget._runUnary;
-    _Zone implZone = implementation.zone;
-    var handler = implementation.function as RunUnaryHandler;
-    return handler(implZone, implZone._parentDelegate, zone, f, arg);
+    var implZone = _delegationTarget._runUnaryZone;
+    if (identical(implZone, _rootZone)) {
+      if (identical(Zone._current, zone)) return f(arg);
+      return _rootRunUnary(null, null, zone, f, arg);
+    }
+    return _delegationTarget._runUnaryHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      f,
+      arg,
+    );
   }
 
   R runBinary<R, T1, T2>(Zone zone, R f(T1 arg1, T2 arg2), T1 arg1, T2 arg2) {
-    var implementation = _delegationTarget._runBinary;
-    _Zone implZone = implementation.zone;
-    var handler = implementation.function as RunBinaryHandler;
-    return handler(implZone, implZone._parentDelegate, zone, f, arg1, arg2);
+    var implZone = _delegationTarget._runBinaryZone;
+    if (identical(implZone, _rootZone)) {
+      if (identical(Zone._current, zone)) return f(arg1, arg2);
+      return _rootRunBinary(null, null, zone, f, arg1, arg2);
+    }
+    return _delegationTarget._runBinaryHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      f,
+      arg1,
+      arg2,
+    );
   }
 
   ZoneCallback<R> registerCallback<R>(Zone zone, R f()) {
-    var implementation = _delegationTarget._registerCallback;
-    _Zone implZone = implementation.zone;
-    var handler = implementation.function as RegisterCallbackHandler;
-    return handler(implZone, implZone._parentDelegate, zone, f);
+    var implZone = _delegationTarget._registerCallbackZone;
+    if (identical(implZone, _rootZone)) return f;
+    return _delegationTarget._registerCallbackHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      f,
+    );
   }
 
   ZoneUnaryCallback<R, T> registerUnaryCallback<R, T>(Zone zone, R f(T arg)) {
-    var implementation = _delegationTarget._registerUnaryCallback;
-    _Zone implZone = implementation.zone;
-    var handler = implementation.function as RegisterUnaryCallbackHandler;
-    return handler(implZone, implZone._parentDelegate, zone, f);
+    var implZone = _delegationTarget._registerUnaryCallbackZone;
+    if (identical(implZone, _rootZone)) return f;
+    return _delegationTarget._registerUnaryCallbackHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      f,
+    );
   }
 
   ZoneBinaryCallback<R, T1, T2> registerBinaryCallback<R, T1, T2>(
     Zone zone,
     R f(T1 arg1, T2 arg2),
   ) {
-    var implementation = _delegationTarget._registerBinaryCallback;
-    _Zone implZone = implementation.zone;
-    var handler = implementation.function as RegisterBinaryCallbackHandler;
-    return handler(implZone, implZone._parentDelegate, zone, f);
+    var implZone = _delegationTarget._registerBinaryCallbackZone;
+    if (identical(implZone, _rootZone)) return f;
+    return _delegationTarget._registerBinaryCallbackHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      f,
+    );
   }
 
   AsyncError? errorCallback(Zone zone, Object error, StackTrace? stackTrace) {
-    var implementation = _delegationTarget._errorCallback;
-    _Zone implZone = implementation.zone;
+    var implZone = _delegationTarget._errorCallbackZone;
     if (identical(implZone, _rootZone)) return null;
-    ErrorCallbackHandler handler = implementation.function;
-    return handler(implZone, implZone._parentDelegate, zone, error, stackTrace);
+    return _delegationTarget._errorCallbackHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      error,
+      stackTrace,
+    );
   }
 
   void scheduleMicrotask(Zone zone, f()) {
-    var implementation = _delegationTarget._scheduleMicrotask;
-    _Zone implZone = implementation.zone;
-    ScheduleMicrotaskHandler handler = implementation.function;
-    handler(implZone, implZone._parentDelegate, zone, f);
+    var implZone = _delegationTarget._scheduleMicrotaskZone;
+    if (identical(implZone, _rootZone)) {
+      _rootScheduleMicrotask(null, null, zone, f);
+      return;
+    }
+    _delegationTarget._scheduleMicrotaskHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      f,
+    );
   }
 
   Timer createTimer(Zone zone, Duration duration, void f()) {
-    var implementation = _delegationTarget._createTimer;
-    _Zone implZone = implementation.zone;
-    CreateTimerHandler handler = implementation.function;
-    return handler(implZone, implZone._parentDelegate, zone, duration, f);
+    var implZone = _delegationTarget._createTimerZone;
+    if (identical(implZone, _rootZone)) {
+      if (!identical(_rootZone, zone)) {
+        f = zone.bindCallback(f);
+      }
+      return Timer._createTimer(duration, f);
+    }
+    return _delegationTarget._createTimerHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      duration,
+      f,
+    );
   }
 
   Timer createPeriodicTimer(Zone zone, Duration period, void f(Timer timer)) {
-    var implementation = _delegationTarget._createPeriodicTimer;
-    _Zone implZone = implementation.zone;
-    CreatePeriodicTimerHandler handler = implementation.function;
-    return handler(implZone, implZone._parentDelegate, zone, period, f);
+    var implZone = _delegationTarget._createPeriodicTimerZone;
+    if (identical(implZone, _rootZone)) {
+      if (!identical(_rootZone, zone)) {
+        f = zone.bindUnaryCallback<void, Timer>(f);
+      }
+      return Timer._createPeriodicTimer(period, f);
+    }
+    return _delegationTarget._createPeriodicTimerHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      period,
+      f,
+    );
   }
 
   void print(Zone zone, String line) {
-    var implementation = _delegationTarget._print;
-    _Zone implZone = implementation.zone;
-    PrintHandler handler = implementation.function;
-    handler(implZone, implZone._parentDelegate, zone, line);
+    var implZone = _delegationTarget._printZone;
+    if (identical(implZone, _rootZone)) {
+      printToConsole(line);
+      return;
+    }
+    _delegationTarget._printHandler(
+      implZone,
+      implZone._parentDelegate,
+      zone,
+      line,
+    );
   }
 
   Zone fork(
@@ -163,10 +237,11 @@ base class _ZoneDelegate implements ZoneDelegate {
     ZoneSpecification? specification,
     Map<Object?, Object?>? zoneValues,
   ) {
-    var implementation = _delegationTarget._fork;
-    _Zone implZone = implementation.zone;
-    ForkHandler handler = implementation.function;
-    return handler(
+    var implZone = _delegationTarget._forkZone;
+    if (identical(implZone, _rootZone)) {
+      return _rootFork(null, null, zone, specification, zoneValues);
+    }
+    return _delegationTarget._forkHandler(
       implZone,
       implZone._parentDelegate,
       zone,

@@ -150,8 +150,8 @@ void scheduleMicrotask(void Function() callback) {
     _rootScheduleMicrotask(null, null, _rootZone, callback);
     return;
   }
-  _ZoneFunction implementation = currentZone._scheduleMicrotask;
-  if (identical(_rootZone, implementation.zone) &&
+  _Zone implZone = currentZone._scheduleMicrotaskZone;
+  if (identical(_rootZone, implZone) &&
       _rootZone.inSameErrorZone(currentZone)) {
     _rootScheduleMicrotask(
       null,
@@ -161,7 +161,7 @@ void scheduleMicrotask(void Function() callback) {
     );
     return;
   }
-  Zone.current.scheduleMicrotask(Zone.current.bindCallbackGuarded(callback));
+  currentZone.scheduleMicrotask(currentZone.bindCallbackGuarded(callback));
 }
 
 abstract interface class _AsyncRun {
