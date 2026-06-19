@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as path;
 import 'package:unified_analytics/unified_analytics.dart';
+import 'package:yaml/yaml.dart';
 
 import 'sdk.dart';
 
@@ -150,4 +151,126 @@ bool _isRunningOnBot() {
       // Property when running on borg.
       ||
       env.containsKey('BORG_ALLOC_DIR');
+}
+
+typedef PubspecTelemetry = ({
+  Set<String> publicDependencies,
+  bool hasFlutterSdk,
+  String? environmentSdk,
+});
+
+/// Safely collects pubspec telemetry by walking up from the current directory
+/// to find a `pubspec.yaml` and parsing its direct public dependencies and SDK constraint.
+///
+/// Returns `null` if no pubspec is found, if it is malformed, or if any error occurs,
+/// guaranteeing that this telemetry collection never crashes the CLI.
+PubspecTelemetry? collectPubspecTelemetry() {
+  try {
+    final pubspecFile = _findPubspec(Directory.current);
+    if (pubspecFile == null) return null;
+
+    final doc = loadYaml(pubspecFile.readAsStringSync());
+    if (doc is! YamlMap) return null;
+
+    String? environmentSdk;
+    final environment = doc['environment'];
+    if (environment is YamlMap && environment['sdk'] != null) {
+      final rawSdk = environment['sdk'].toString().trim();
+      if (rawSdk.isNotEmpty) {
+        environmentSdk = rawSdk.length > 100
+            ? rawSdk.substring(0, 100)
+            : rawSdk;
+      }
+    }
+
+    final dependencies = doc['dependencies'];
+    if (dependencies is! YamlMap) {
+      return (
+        publicDependencies: const <String>{},
+        hasFlutterSdk: false,
+        environmentSdk: environmentSdk,
+      );
+    }
+
+    final publicDeps = <String>[];
+    bool hasFlutterSdk = false;
+
+    for (final entry in dependencies.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      if (key is! String) continue;
+
+      // Check for Flutter SDK
+      if (key == 'flutter' && value is YamlMap && value['sdk'] == 'flutter') {
+        hasFlutterSdk = true;
+        continue; // Exclude 'flutter' from public deps if it's the SDK
+      }
+
+      // Filter public dependencies
+      if (_isPublicDependency(value)) {
+        publicDeps.add(key);
+      }
+    }
+
+    return (
+      publicDependencies: publicDeps.toSet(),
+      hasFlutterSdk: hasFlutterSdk,
+      environmentSdk: environmentSdk,
+    );
+  } catch (_) {
+    // Fail silently to ensure we never crash a user command
+    return null;
+  }
+}
+
+File? _findPubspec(Directory dir, {int depth = 0}) {
+  if (depth > 5) return null;
+  final file = File(path.join(dir.path, 'pubspec.yaml'));
+  if (file.existsSync()) return file;
+  final parent = dir.parent;
+  if (parent.path == dir.path) return null; // Root reached
+  return _findPubspec(parent, depth: depth + 1);
+}
+
+bool _isPublicDependency(dynamic value) {
+  // If it's a simple string version constraint (e.g., '^1.0.0'), it's public (hosted on pub.dev)
+  if (value is String) return true;
+
+  if (value is YamlMap) {
+    // If it has 'sdk', 'path', or 'git', it's not public (hosted on pub.dev)
+    if (value.containsKey('sdk')) return false;
+    if (value.containsKey('path')) return false;
+    if (value.containsKey('git')) return false;
+
+    // If it has 'hosted', check if it points to a public registry
+    if (value.containsKey('hosted')) {
+      final hosted = value['hosted'];
+      if (hosted is String) {
+        return _isPublicHostedUrl(hosted);
+      }
+      if (hosted is YamlMap) {
+        final url = hosted['url'];
+        if (url is String) {
+          return _isPublicHostedUrl(url);
+        }
+      }
+      return false;
+    }
+
+    // If it's a map but doesn't have the above keys, it defaults to public
+    return true;
+  }
+
+  // Null value (e.g., `dependency_name: ` with no version) defaults to public
+  if (value == null) return true;
+
+  return false;
+}
+
+bool _isPublicHostedUrl(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+  // Support both modern pub.dev and legacy pub.dartlang.org
+  return uri.host == 'pub.dev' || uri.host == 'pub.dartlang.org';
 }
