@@ -816,19 +816,39 @@ class InstructionsBuilder with Builder<ir.Instructions> {
     _add(ir.CatchLegacy(tag));
   }
 
-  /// Emit a `throw` instruction.
-  void throw_(ir.Tag tag) {
-    assert(_verifyTypes(tag.type.inputs, const [], trace: ['throw', tag]));
-    assert(tag.enclosingModule == module);
-    _add(ir.Throw(tag));
-    _reachable = false;
-  }
-
   /// Emit a `rethrow` instruction.
   void rethrow_(Label label) {
     assert(label is Try && label.hasCatch);
     assert(_verifyTypes(const [], const [], trace: ['rethrow', label]));
     _add(ir.Rethrow(_labelIndex(label)));
+    _reachable = false;
+  }
+
+  /// Emit a legacy `catch_all` instruction.
+  void catch_all_legacy() {
+    assert(
+      _topOfLabelStack is Try ||
+          _reportError("Unexpected 'catch_all' (not in 'try' block)"),
+    );
+    final Try try_ = _topOfLabelStack as Try;
+    assert(
+      _verifyEndOfBlock(
+        const [],
+        trace: const ['catch_all'],
+        reachableAfter: try_.reachable,
+        reindent: true,
+      ),
+    );
+    try_.hasCatch = true;
+    _reachable = try_.reachable;
+    _add(const ir.CatchAllLegacy());
+  }
+
+  /// Emit a `throw` instruction.
+  void throw_(ir.Tag tag) {
+    assert(_verifyTypes(tag.type.inputs, const [], trace: ['throw', tag]));
+    assert(tag.enclosingModule == module);
+    _add(ir.Throw(tag));
     _reachable = false;
   }
 

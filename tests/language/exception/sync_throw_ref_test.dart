@@ -1,11 +1,14 @@
-// Copyright (c) 2025, the Dart project authors.  Please see the AUTHORS file
+// Copyright (c) 2026, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:expect/expect.dart';
 
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
 @pragma('wasm:never-inline')
 void _customFunctionNameToCheckMinification() {
+  // Add a unique instruction structure to prevent body-merging or folding
   if (identical(1, 2)) return;
   throw 'sentinel_minification_check';
 }
@@ -19,19 +22,26 @@ bool _hasSymbolicStackTrace() {
   return false;
 }
 
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
 @pragma('wasm:never-inline')
 void exception1(String e) {
   if (e == "FORCE_DIFFERENT_BODY_1") return;
   throw e;
 }
 
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
 @pragma('wasm:never-inline')
 void exception2(String e) {
   if (e == "FORCE_DIFFERENT_BODY_2") return;
   throw e;
 }
 
-Future<void> doThrow1() async {
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
+@pragma('wasm:never-inline')
+void doSyncThrow1() {
   try {
     exception1('outer');
   } on Object {
@@ -44,7 +54,10 @@ Future<void> doThrow1() async {
   }
 }
 
-Future<void> doThrow2() async {
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
+@pragma('wasm:never-inline')
+void doSyncThrow2() {
   try {
     exception2('outer');
   } on Object {
@@ -61,7 +74,10 @@ Future<void> doThrow2() async {
   }
 }
 
-Future<void> doThrow3() async {
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
+@pragma('wasm:never-inline')
+void doSyncThrow3() {
   try {
     exception1('outer');
   } on Object {
@@ -78,7 +94,10 @@ Future<void> doThrow3() async {
   }
 }
 
-Future<void> doThrow4() async {
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
+@pragma('wasm:never-inline')
+void doSyncThrow4() {
   try {
     exception1('outer');
   } on Object {
@@ -89,73 +108,99 @@ Future<void> doThrow4() async {
   }
 }
 
-Future<void> doThrow5(int v) async {
-  await Future.delayed(Duration(milliseconds: 10));
-  throw StateError('error $v');
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
+@pragma('wasm:never-inline')
+void doSyncThrowFinally() {
+  try {
+    exception1('outer');
+  } finally {
+    // empty finalizer
+  }
 }
 
-Stream<int> _readLoop() async* {
+@pragma('vm:never-inline')
+@pragma('dart2js:noInline')
+@pragma('wasm:never-inline')
+void doSyncThrowNestedFinally() {
   try {
-    while (true) {
-      yield 1;
-      await doThrow5(0);
-    }
-  } catch (e) {
-    throw StateError('converted');
+    exception1('outer');
   } finally {
     try {
-      await doThrow5(1);
-    } catch (e) {
-      Expect.isTrue('$e'.contains('error 1'));
+      exception2('inner');
+    } on Object {
+      // ignore
     }
   }
 }
 
-void main() async {
+void main() {
   final bool hasSymbolic = _hasSymbolicStackTrace();
+
   try {
-    await doThrow1();
+    doSyncThrow1();
     Expect.fail('should throw');
   } catch (e, s) {
     Expect.equals(e, 'outer');
     if (hasSymbolic) {
+      // Verify stack trace integrity of the rethrow when symbols are preserved
       Expect.isTrue('$s'.contains('exception1'));
+      Expect.isTrue('$s'.contains('doSyncThrow1'));
     }
   }
 
   try {
-    await doThrow2();
+    doSyncThrow2();
     Expect.fail('should throw');
   } catch (e, s) {
     Expect.equals(e, 'outer');
     if (hasSymbolic) {
       Expect.isTrue('$s'.contains('exception2'));
+      Expect.isTrue('$s'.contains('doSyncThrow2'));
     }
   }
 
   try {
-    await doThrow3();
+    doSyncThrow3();
     Expect.fail('should throw');
   } catch (e, s) {
     Expect.equals(e, 'outer');
     if (hasSymbolic) {
       Expect.isTrue('$s'.contains('exception1'));
+      Expect.isTrue('$s'.contains('doSyncThrow3'));
     }
   }
 
   try {
-    await doThrow4();
+    doSyncThrow4();
     Expect.fail('should throw');
   } catch (e, s) {
     Expect.equals(e, 'inner');
     if (hasSymbolic) {
       Expect.isTrue('$s'.contains('exception2'));
+      Expect.isTrue('$s'.contains('doSyncThrow4'));
     }
   }
 
   try {
-    await for (var _ in _readLoop()) {}
-  } catch (e) {
-    Expect.isTrue('$e'.contains('converted'));
+    doSyncThrowFinally();
+    Expect.fail('should throw');
+  } catch (e, s) {
+    Expect.equals(e, 'outer');
+    if (hasSymbolic) {
+      Expect.isTrue('$s'.contains('exception1'));
+      Expect.isTrue('$s'.contains('doSyncThrowFinally'));
+    }
+  }
+
+  try {
+    doSyncThrowNestedFinally();
+    Expect.fail('should throw');
+  } catch (e, s) {
+    Expect.equals(e, 'outer');
+    if (hasSymbolic) {
+      Expect.isTrue('$s'.contains('exception1'));
+      Expect.isTrue('$s'.contains('doSyncThrowNestedFinally'));
+    }
   }
 }

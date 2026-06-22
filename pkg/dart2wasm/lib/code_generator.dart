@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'dart:collection' show LinkedHashMap;
-
 import 'package:collection/collection.dart';
 import 'package:front_end/src/api_prototype/external_effect.dart'
     show ExternalEffect;
@@ -95,10 +93,11 @@ abstract class AstCodeGenerator
   /// Finalizers to run on a `break`. `breakFinalizers[L].last` (which should
   /// always be present) is the `br` target for the label `L` that will run the
   /// finalizers, or break out of the loop.
-  final LinkedHashMap<LabeledStatement, List<w.Label>> breakFinalizers =
-      LinkedHashMap();
+  final Map<LabeledStatement, List<w.Label>> breakFinalizers = {};
 
-  final List<({w.Local exceptionLocal, w.Local stackTraceLocal})>
+  final List<
+    ({w.Local exceptionLocal, w.Local stackTraceLocal, w.Local? exnRefLocal})
+  >
   tryBlockLocals = [];
 
   final Map<SwitchCase, w.Label> switchLabels = {};
@@ -907,42 +906,93 @@ abstract class AstCodeGenerator
 
   @override
   void visitTryCatch(TryCatch node) {
+    if (options.useTryTable) {
+      _visitTryCatchNew(node);
+    } else {
+      _visitTryCatchLegacy(node);
+    }
+  }
+
+  void _visitTryCatchNew(TryCatch node) {
     // It is not valid Dart to have a try without a catch.
     assert(node.catches.isNotEmpty);
 
     final w.RefType exceptionType = translator.topTypeNonNullable;
     final w.RefType stackTraceType = translator.stackTraceType;
 
+    // Stash the original exception in a local so we can push it back onto the
+    // stack after each type test. Also, store the stack trace in a local.
+    w.Local thrownExceptionLocal = addLocal(exceptionType);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, exceptionType);
+    b.local_set(thrownExceptionLocal);
+
+    w.Local thrownStackTraceLocal = addLocal(stackTraceType);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, stackTraceType);
+    b.local_set(thrownStackTraceLocal);
+
+    final w.Local exnRefLocal = addLocal(w.RefType.exn(nullable: true));
+
+    tryBlockLocals.add((
+      exceptionLocal: thrownExceptionLocal,
+      stackTraceLocal: thrownStackTraceLocal,
+      exnRefLocal: exnRefLocal,
+    ));
+
+    // Jump target when `try` block exits without exceptions.
     final w.Label wrapperBlock = b.block();
 
     // Create a block target for each Dart `catch` block, to be able to share
     // code when generating a `catch` and `catch_all` for the same Dart `catch`
     // block, when the block can catch both Dart and JS exceptions.
-    // The `end` for the Wasm `try` block works as the first exception handler
-    // target.
     List<w.Label> catchBlockLabels = List.generate(
-      node.catches.length - 1,
-      (i) => b.block([], [exceptionType, stackTraceType]),
+      node.catches.length,
+      (i) => b.block(),
       growable: true,
     );
-
-    w.Label try_ = b.try_legacy([], [exceptionType, stackTraceType]);
-    catchBlockLabels.add(try_);
-
     catchBlockLabels = catchBlockLabels.reversed.toList();
 
+    final bool canCatchJSException =
+        !translator.options.standalone &&
+        node.catches.any((c) => guardCanMatchJSException(translator, c.guard));
+
+    final w.Label? catchJsRefJumpLabel = canCatchJSException
+        ? b.block([], [
+            w.RefType.extern(nullable: true),
+            w.RefType.exn(nullable: false),
+          ])
+        : null;
+
+    final w.Label catchRefJumpLabel = b.block([], [
+      exceptionType,
+      stackTraceType,
+      w.RefType.exn(nullable: false),
+    ]);
+
+    final List<w.TryTableCatch> tryTableCatchBlocks = [];
+    tryTableCatchBlocks.add(
+      w.CatchRef(
+        translator.getDartExceptionTag(b.moduleBuilder),
+        catchRefJumpLabel,
+      ),
+    );
+    if (catchJsRefJumpLabel != null) {
+      tryTableCatchBlocks.add(
+        w.CatchRef(
+          translator.getJsExceptionTag(b.moduleBuilder),
+          catchJsRefJumpLabel,
+        ),
+      );
+    }
+
+    b.try_table(tryTableCatchBlocks);
     translateStatement(node.body);
     b.br(wrapperBlock);
-
-    // Stash the original exception in a local so we can push it back onto the
-    // stack after each type test. Also, store the stack trace in a local.
-    w.Local thrownException = addLocal(exceptionType);
-    w.Local thrownStackTrace = addLocal(stackTraceType);
-
-    tryBlockLocals.add((
-      exceptionLocal: thrownException,
-      stackTraceLocal: thrownStackTrace,
-    ));
+    b.end(); // end tryTable
+    b.unreachable();
 
     void emitCatchBlock(
       w.Label catchBlockTarget,
@@ -960,7 +1010,7 @@ abstract class AstCodeGenerator
 
       // Only emit the type test if the guard is not [Object].
       if (emitGuard) {
-        b.local_get(thrownException);
+        b.local_get(thrownExceptionLocal);
         types.emitIsTest(
           this,
           guard,
@@ -971,10 +1021,197 @@ abstract class AstCodeGenerator
         b.br_if(catchBlock);
       }
 
-      b.local_get(thrownException);
-      b.local_get(thrownStackTrace);
       b.br(catchBlockTarget);
+      b.end(); // end catchBlock.
+    }
 
+    // catchRefLabel
+    b.end();
+    b.local_set(exnRefLocal);
+    b.local_set(thrownStackTraceLocal);
+    b.local_set(thrownExceptionLocal);
+
+    for (
+      int catchBlockIndex = 0;
+      catchBlockIndex < node.catches.length;
+      catchBlockIndex += 1
+    ) {
+      final catch_ = node.catches[catchBlockIndex];
+      // Only insert type checks if the guard is not `Object`
+      final bool shouldEmitGuard =
+          catch_.guard != translator.coreTypes.objectNonNullableRawType;
+      emitCatchBlock(
+        catchBlockLabels[catchBlockIndex],
+        catch_,
+        shouldEmitGuard,
+      );
+      if (!shouldEmitGuard) {
+        // If we didn't emit a guard, we won't ever fall through to the
+        // following catch blocks.
+        break;
+      }
+    }
+
+    // Rethrow if all the catch blocks fall through.
+    b.local_get(exnRefLocal);
+    b.ref_as_non_null();
+    b.throw_ref();
+
+    if (catchJsRefJumpLabel != null) {
+      b.end(); // catchJsRefJumpLabel
+      b.local_set(exnRefLocal);
+      final jsExceptionLocal = addLocal(w.RefType.extern(nullable: true));
+      b.local_set(jsExceptionLocal);
+
+      b.local_get(jsExceptionLocal);
+      call(translator.boxJsException.reference);
+      b.local_set(thrownExceptionLocal);
+
+      b.local_get(jsExceptionLocal);
+      call(translator.jsExceptionStackTrace.reference);
+      b.local_set(thrownStackTraceLocal);
+
+      for (
+        int catchBlockIndex = 0;
+        catchBlockIndex < node.catches.length;
+        catchBlockIndex += 1
+      ) {
+        final catch_ = node.catches[catchBlockIndex];
+        if (!guardCanMatchJSException(translator, catch_.guard)) {
+          continue;
+        }
+        // Type guards based on a type parameter are special, in that we cannot
+        // statically determine whether a JavaScript error will always satisfy
+        // the guard, so we should emit the type checking code for it. All
+        // other guards will always match a JavaScript error, however, so no
+        // need to emit type checks for those.
+        final bool shouldEmitGuard = catch_.guard is TypeParameterType;
+        emitCatchBlock(
+          catchBlockLabels[catchBlockIndex],
+          catch_,
+          shouldEmitGuard,
+        );
+        if (!shouldEmitGuard) {
+          // If we didn't emit a guard, we won't ever fall through to the
+          // following catch blocks.
+          break;
+        }
+      }
+
+      // Rethrow if the catch block falls through
+      b.local_get(exnRefLocal);
+      b.ref_as_non_null();
+      b.throw_ref();
+    }
+
+    for (
+      int catchBlockIndex = 0;
+      catchBlockIndex < node.catches.length;
+      catchBlockIndex += 1
+    ) {
+      b.end(); // catchBlockLabels[catchBlockIndex]
+      final catch_ = node.catches[catchBlockIndex];
+
+      final Variable? exceptionDeclaration = catch_.exception;
+      if (exceptionDeclaration != null) {
+        initializeVariable(exceptionDeclaration, () {
+          b.local_get(thrownExceptionLocal);
+          // Type test passed, downcast the exception to the expected type.
+          translator.convertType(
+            b,
+            thrownExceptionLocal.type,
+            translator.translateType(exceptionDeclaration.type),
+          );
+        });
+      }
+
+      final Variable? stackTraceDeclaration = catch_.stackTrace;
+      if (stackTraceDeclaration != null) {
+        initializeVariable(
+          stackTraceDeclaration,
+          () => b.local_get(thrownStackTraceLocal),
+        );
+      }
+
+      translateStatement(catch_.body);
+      b.br(wrapperBlock);
+    }
+    tryBlockLocals.removeLast();
+    b.end(); // end wrapperBlock
+  }
+
+  void _visitTryCatchLegacy(TryCatch node) {
+    // It is not valid Dart to have a try without a catch.
+    assert(node.catches.isNotEmpty);
+
+    final w.RefType exceptionType = translator.topTypeNonNullable;
+    final w.RefType stackTraceType = translator.stackTraceType;
+
+    // Stash the original exception in a local so we can push it back onto the
+    // stack after each type test. Also, store the stack trace in a local.
+    w.Local thrownExceptionLocal = addLocal(exceptionType);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, exceptionType);
+    b.local_set(thrownExceptionLocal);
+
+    w.Local thrownStackTraceLocal = addLocal(stackTraceType);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, stackTraceType);
+    b.local_set(thrownStackTraceLocal);
+
+    tryBlockLocals.add((
+      exceptionLocal: thrownExceptionLocal,
+      stackTraceLocal: thrownStackTraceLocal,
+      exnRefLocal: null,
+    ));
+
+    // Jump target when `try` block exits without exceptions.
+    final w.Label wrapperBlock = b.block();
+
+    // Create a block target for each Dart `catch` block, to be able to share
+    // code when generating a `catch` and `catch_all` for the same Dart `catch`
+    // block, when the block can catch both Dart and JS exceptions.
+    List<w.Label> catchBlockLabels = List.generate(
+      node.catches.length,
+      (i) => b.block(),
+      growable: true,
+    );
+    catchBlockLabels = catchBlockLabels.reversed.toList();
+
+    w.Label try_ = b.try_legacy();
+    translateStatement(node.body);
+    b.br(wrapperBlock);
+
+    void emitCatchBlock(
+      w.Label catchBlockTarget,
+      Catch catch_,
+      bool emitGuard,
+    ) {
+      // For each catch node:
+      //   1) Create a block for the catch.
+      //   2) Push the caught exception onto the stack.
+      //   3) Add a type test based on the guard of the catch.
+      //   4) If the test fails, we jump to the next catch. Otherwise, we
+      //      jump to the block for the body of the catch.
+      w.Label catchBlock = b.block();
+      DartType guard = catch_.guard;
+
+      // Only emit the type test if the guard is not [Object].
+      if (emitGuard) {
+        b.local_get(thrownExceptionLocal);
+        types.emitIsTest(
+          this,
+          guard,
+          translator.coreTypes.objectNonNullableRawType,
+          catch_.location,
+        );
+        b.i32_eqz();
+        b.br_if(catchBlock);
+      }
+
+      b.br(catchBlockTarget);
       b.end(); // end catchBlock.
     }
 
@@ -982,8 +1219,8 @@ abstract class AstCodeGenerator
     // exceptions.
     b.catch_legacy(translator.getDartExceptionTag(b.moduleBuilder));
 
-    b.local_set(thrownStackTrace);
-    b.local_set(thrownException);
+    b.local_set(thrownStackTraceLocal);
+    b.local_set(thrownExceptionLocal);
     for (
       int catchBlockIndex = 0;
       catchBlockIndex < node.catches.length;
@@ -1008,20 +1245,21 @@ abstract class AstCodeGenerator
     // Rethrow if all the catch blocks fall through
     b.rethrow_(try_);
 
-    if (node.catches.any(
-      (c) => guardCanMatchJSException(translator, c.guard),
-    )) {
+    if (!translator.options.standalone &&
+        node.catches.any(
+          (c) => guardCanMatchJSException(translator, c.guard),
+        )) {
       b.catch_legacy(translator.getJsExceptionTag(b.moduleBuilder));
 
       final jsExceptionLocal = addLocal(w.RefType.extern(nullable: true));
       b.local_tee(jsExceptionLocal);
 
       call(translator.boxJsException.reference);
-      b.local_tee(thrownException); // ref null #Top
+      b.local_set(thrownExceptionLocal);
 
       b.local_get(jsExceptionLocal);
       call(translator.jsExceptionStackTrace.reference);
-      b.local_set(thrownStackTrace);
+      b.local_set(thrownStackTraceLocal);
 
       for (
         int catchBlockIndex = 0;
@@ -1054,19 +1292,24 @@ abstract class AstCodeGenerator
       b.rethrow_(try_);
     }
 
-    for (Catch catch_ in node.catches) {
-      b.end();
-      b.local_set(thrownStackTrace);
-      b.local_set(thrownException);
+    b.end(); // end try
+
+    for (
+      int catchBlockIndex = 0;
+      catchBlockIndex < node.catches.length;
+      catchBlockIndex += 1
+    ) {
+      b.end(); // catchBlockLabels[catchBlockIndex]
+      final catch_ = node.catches[catchBlockIndex];
 
       final Variable? exceptionDeclaration = catch_.exception;
       if (exceptionDeclaration != null) {
         initializeVariable(exceptionDeclaration, () {
-          b.local_get(thrownException);
+          b.local_get(thrownExceptionLocal);
           // Type test passed, downcast the exception to the expected type.
           translator.convertType(
             b,
-            thrownException.type,
+            thrownExceptionLocal.type,
             translator.translateType(exceptionDeclaration.type),
           );
         });
@@ -1076,35 +1319,158 @@ abstract class AstCodeGenerator
       if (stackTraceDeclaration != null) {
         initializeVariable(
           stackTraceDeclaration,
-          () => b.local_get(thrownStackTrace),
+          () => b.local_get(thrownStackTraceLocal),
         );
       }
 
       translateStatement(catch_.body);
       b.br(wrapperBlock);
     }
-
     tryBlockLocals.removeLast();
-    b.end(); // end tryWrapper
+    b.end(); // end wrapperBlock
   }
 
   @override
   void visitTryFinally(TryFinally node) {
-    // We lower a [TryFinally] to a number of nested blocks, depending on how
-    // many different code paths we have that run the finally block.
-    //
-    // We emit the finalizer once in a catch, to handle the case where the try
-    // throws. Once outside of the catch, to handle the case where the try does
-    // not throw. If there is a return within the try block, then we emit the
-    // finalizer one more time along with logic to continue walking up the
-    // stack.
-    //
-    // A `break L` can run more than one finalizer, and each of those
-    // finalizers will need to be run in a different `try` block. So for each
-    // wrapping label we generate a block to run the finalizer on `break` and
-    // then branch to the right Wasm block to either run the next finalizer or
-    // break.
+    if (options.useTryTable) {
+      _visitTryFinallyNew(node);
+    } else {
+      _visitTryFinallyLegacy(node);
+    }
+  }
 
+  void _visitTryFinallyNew(TryFinally node) {
+    // The block for the try-finally statement. Used as `br` target in normal
+    // execution after the finalizer (no throws, returns, or breaks).
+    w.Label tryFinallyBlock = b.block();
+
+    // Create one block for each wrapping label.
+    for (final labelBlocks in breakFinalizers.values.toList().reversed) {
+      labelBlocks.add(b.block());
+    }
+
+    // Continuation of this block runs the finalizer and returns (or jumps to
+    // the next finalizer block). Used as `br` target on `return`.
+    w.Label returnFinalizerBlock = b.block();
+    returnFinalizers.add(TryBlockFinalizer(returnFinalizerBlock));
+
+    w.Label normalExecutionBlock = b.block();
+
+    final w.Local exnRefLocal = addLocal(w.RefType.exn(nullable: true));
+
+    final w.Label catchRefJumpLabel = b.block([], [
+      translator.topTypeNonNullable,
+      translator.stackTraceType,
+      w.RefType.exn(nullable: false),
+    ]);
+
+    final bool canCatchJSException = !translator.options.standalone;
+    w.Label? catchJsRefJumpLabel;
+    if (canCatchJSException) {
+      catchJsRefJumpLabel = b.block([], [
+        w.RefType.extern(nullable: true),
+        w.RefType.exn(nullable: false),
+      ]);
+    }
+
+    b.try_table([
+      w.CatchRef(
+        translator.getDartExceptionTag(b.moduleBuilder),
+        catchRefJumpLabel,
+      ),
+      if (catchJsRefJumpLabel != null)
+        w.CatchRef(
+          translator.getJsExceptionTag(b.moduleBuilder),
+          catchJsRefJumpLabel,
+        ),
+    ]);
+
+    translateStatement(node.body);
+
+    final bool mustHandleReturn = returnFinalizers
+        .removeLast()
+        .mustHandleReturn;
+
+    // `break` statements in the current finalizer and the rest will not run
+    // the current finalizer, update the `break` targets.
+    final removedBreakTargets = <LabeledStatement, w.Label>{};
+    for (final breakFinalizerEntry in breakFinalizers.entries) {
+      removedBreakTargets[breakFinalizerEntry.key] = breakFinalizerEntry.value
+          .removeLast();
+    }
+
+    b.br(normalExecutionBlock);
+    b.end(); // try_table
+    b.unreachable();
+
+    if (catchJsRefJumpLabel != null) {
+      b.end(); // catchJsRefJumpLabel
+      b.local_set(exnRefLocal);
+      final jsExceptionLocal = addLocal(w.RefType.extern(nullable: true));
+      b.local_set(jsExceptionLocal);
+
+      b.local_get(jsExceptionLocal);
+      call(translator.boxJsException.reference);
+      final thrownExceptionLocal = addLocal(translator.topTypeNonNullable);
+      b.local_set(thrownExceptionLocal);
+
+      b.local_get(jsExceptionLocal);
+      call(translator.jsExceptionStackTrace.reference);
+      final thrownStackTraceLocal = addLocal(translator.stackTraceType);
+      b.local_set(thrownStackTraceLocal);
+
+      translateStatement(node.finalizer);
+
+      b.local_get(exnRefLocal);
+      b.ref_as_non_null();
+      b.throw_ref();
+    }
+
+    b.end(); // catchRefJumpLabel
+    b.local_set(exnRefLocal);
+    final thrownStackTraceLocal = addLocal(translator.stackTraceType);
+    b.local_set(thrownStackTraceLocal);
+    final thrownExceptionLocal = addLocal(translator.topTypeNonNullable);
+    b.local_set(thrownExceptionLocal);
+
+    translateStatement(node.finalizer);
+
+    b.local_get(exnRefLocal);
+    b.ref_as_non_null();
+    b.throw_ref();
+
+    b.end(); // normalExecutionBlock
+
+    // Run finalizer on normal execution (no breaks, throws, or returns).
+    translateStatement(node.finalizer);
+    b.br(tryFinallyBlock);
+    b.end(); // returnFinalizerBlock
+
+    // Run the finalizer on `return`.
+    if (mustHandleReturn) {
+      translateStatement(node.finalizer);
+      if (returnFinalizers.isNotEmpty) {
+        b.br(returnFinalizers.last.label);
+      } else {
+        if (returnValueLocal != null) {
+          b.local_get(returnValueLocal!);
+          translator.convertType(b, returnValueLocal!.type, returnType);
+        }
+        _returnFromFunction();
+      }
+    }
+
+    // Generate finalizers for `break`s in the `try` block.
+    for (final removedBreakTargetEntry in removedBreakTargets.entries) {
+      b.end();
+      translateStatement(node.finalizer);
+      b.br(breakFinalizers[removedBreakTargetEntry.key]!.last);
+    }
+
+    b.end(); // tryFinallyBlock
+  }
+
+  void _visitTryFinallyLegacy(TryFinally node) {
     // The block for the try-finally statement. Used as `br` target in normal
     // execution after the finalizer (no throws, returns, or breaks).
     w.Label tryFinallyBlock = b.block();
@@ -2949,9 +3315,16 @@ abstract class AstCodeGenerator
   @override
   w.ValueType visitRethrow(Rethrow node, w.ValueType expectedType) {
     final exceptionLocals = tryBlockLocals.last;
-    b.local_get(exceptionLocals.exceptionLocal);
-    b.local_get(exceptionLocals.stackTraceLocal);
-    b.throw_(translator.getDartExceptionTag(b.moduleBuilder));
+    final exnRefLocal = exceptionLocals.exnRefLocal;
+    if (exnRefLocal != null) {
+      b.local_get(exnRefLocal);
+      b.ref_as_non_null();
+      b.throw_ref();
+    } else {
+      b.local_get(exceptionLocals.exceptionLocal);
+      b.local_get(exceptionLocals.stackTraceLocal);
+      b.throw_(translator.getDartExceptionTag(b.moduleBuilder));
+    }
     return expectedType;
   }
 
@@ -5895,7 +6268,7 @@ extension MacroAssembler on w.InstructionsBuilder {
     ref_cast(translator.topTypeNonNullable);
   }
 
-  /// `[ref _Closure] -> [ref Any]
+  /// `[ref _Closure] -> [ref Any]`
   ///
   /// Given a closure returns the vtable of the closure.
   void emitGetClosureVtable(Translator translator) {

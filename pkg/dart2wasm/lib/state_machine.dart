@@ -236,6 +236,10 @@ class ExceptionHandlerStack {
   /// cover for.
   final List<int> _tryBlockNumHandlers = [];
 
+  /// Jump labels for the catch blocks associated with the generated `try_table`
+  /// instructions.
+  final List<(w.Label, w.Label, w.Label?)> _tryBlockLabels = [];
+
   final StateMachineCodeGenerator codeGen;
 
   /// Holds exceptions and stacktraces from nested catch blocks so that the
@@ -307,6 +311,63 @@ class ExceptionHandlerStack {
   ///
   /// Call this when generating a new CFG block.
   void _generateTryBlocks(w.InstructionsBuilder b) {
+    if (codeGen.translator.options.useTryTable) {
+      _generateTryBlocksNew(b);
+    } else {
+      _generateTryBlocksLegacy(b);
+    }
+  }
+
+  void _generateTryBlocksNew(w.InstructionsBuilder b) {
+    final handlersToCover = _handlers.length - coveredHandlers;
+
+    if (handlersToCover == 0) {
+      return;
+    }
+
+    final w.Label wrapperBlock = b.block();
+
+    final catchRefJumpLabel = b.block([], [
+      codeGen.translator.topTypeNonNullable,
+      codeGen.translator.stackTraceType,
+    ]);
+
+    // Generate a `catch_all` to catch JS exceptions if any of the covered
+    // handlers can catch JS exceptions.
+    bool canHandleJSExceptions = false;
+    for (int i = 0; i < handlersToCover; i++) {
+      if (_handlers[_handlers.length - 1 - i].canHandleJSExceptions) {
+        canHandleJSExceptions = true;
+        break;
+      }
+    }
+
+    w.Label? catchJsRefJumpLabel;
+    if (canHandleJSExceptions && !codeGen.translator.options.standalone) {
+      catchJsRefJumpLabel = b.block([], [w.RefType.extern(nullable: true)]);
+    }
+
+    b.try_table(
+      [
+        w.Catch(
+          codeGen.translator.getDartExceptionTag(b.moduleBuilder),
+          catchRefJumpLabel,
+        ),
+        if (catchJsRefJumpLabel != null)
+          w.Catch(
+            codeGen.translator.getJsExceptionTag(b.moduleBuilder),
+            catchJsRefJumpLabel,
+          ),
+      ],
+      [],
+      [],
+    );
+
+    _tryBlockNumHandlers.add(handlersToCover);
+    _tryBlockLabels.add((wrapperBlock, catchRefJumpLabel, catchJsRefJumpLabel));
+  }
+
+  void _generateTryBlocksLegacy(w.InstructionsBuilder b) {
     final handlersToCover = _handlers.length - coveredHandlers;
 
     if (handlersToCover == 0) {
@@ -321,6 +382,103 @@ class ExceptionHandlerStack {
   ///
   /// Call this right before terminating a CFG block.
   void _terminateTryBlocks() {
+    if (codeGen.translator.options.useTryTable) {
+      _terminateTryBlocksNew();
+    } else {
+      _terminateTryBlocksLegacy();
+    }
+  }
+
+  void _terminateTryBlocksNew() {
+    int nextHandlerIdx = _handlers.length - 1;
+    final b = codeGen.b;
+    for (final int nCoveredHandlers in _tryBlockNumHandlers.reversed) {
+      final stackTraceLocal = b.addLocal(codeGen.translator.stackTraceType);
+
+      final exceptionLocal = b.addLocal(codeGen.translator.topTypeNonNullable);
+
+      final previousException = b.addLocal(codeGen.translator.topType);
+
+      final previousStackTrace = b.addLocal(
+        codeGen.translator.stackTraceTypeNullable,
+      );
+
+      _previousCatchLocals.add((previousException, previousStackTrace));
+
+      void generateCatchBody() {
+        // Set continuations of finalizers that can be reached by this `catch`
+        // as "rethrow".
+        for (int i = 0; i < nCoveredHandlers; i += 1) {
+          final handler = _handlers[nextHandlerIdx - i];
+          if (handler is Finalizer) {
+            handler.setContinuationRethrow(
+              () => b.local_get(exceptionLocal),
+              () => b.local_get(stackTraceLocal),
+            );
+          }
+        }
+
+        // Store the current exception in case we enter a nested catch block.
+        codeGen.getSuspendStateCurrentException();
+        b.local_set(previousException);
+        codeGen.getSuspendStateCurrentStackTrace();
+        b.local_set(previousStackTrace);
+
+        // Set the untyped "current exception" variable. Catch blocks will do the
+        // type tests as necessary using this variable and set their exception
+        // and stack trace locals.
+        codeGen.setSuspendStateCurrentException(
+          () => b.local_get(exceptionLocal),
+        );
+        codeGen.setSuspendStateCurrentStackTrace(
+          () => b.local_get(stackTraceLocal),
+        );
+
+        codeGen._jumpToTarget(_handlers[nextHandlerIdx].target);
+      }
+
+      final (wrapperBlock, catchRefJumpLabel, catchJsRefJumpLabel) =
+          _tryBlockLabels.removeLast();
+
+      // Normal path: if we reach the end of the try block, we jump over
+      // the catch handlers.
+      b.br(wrapperBlock);
+      b.end(); // end try_table
+      b.unreachable();
+
+      if (catchJsRefJumpLabel != null) {
+        b.end(); // end catchJsRefJumpLabel
+        final jsExceptionLocal = codeGen.addLocal(
+          w.RefType.extern(nullable: true),
+        );
+        b.local_set(jsExceptionLocal);
+
+        b.local_get(jsExceptionLocal);
+        codeGen.call(codeGen.translator.boxJsException.reference);
+        b.local_set(exceptionLocal);
+
+        b.local_get(jsExceptionLocal);
+        codeGen.call(codeGen.translator.jsExceptionStackTrace.reference);
+        b.local_set(stackTraceLocal);
+
+        generateCatchBody();
+      }
+
+      b.end(); // end catchRefJumpLabel
+      b.local_set(stackTraceLocal);
+      b.local_set(exceptionLocal);
+
+      generateCatchBody();
+
+      b.end(); // end wrapperBlock
+
+      nextHandlerIdx -= nCoveredHandlers;
+    }
+
+    _tryBlockNumHandlers.clear();
+  }
+
+  void _terminateTryBlocksLegacy() {
     int nextHandlerIdx = _handlers.length - 1;
     final b = codeGen.b;
     for (final int nCoveredHandlers in _tryBlockNumHandlers.reversed) {
@@ -377,13 +535,11 @@ class ExceptionHandlerStack {
       // Generate a `catch_all` to catch JS exceptions if any of the covered
       // handlers can catch JS exceptions.
       bool canHandleJSExceptions = false;
-      for (
-        int handlerIdx = nextHandlerIdx;
-        handlerIdx > nextHandlerIdx - nCoveredHandlers;
-        handlerIdx -= 1
-      ) {
-        final handler = _handlers[handlerIdx];
-        canHandleJSExceptions |= handler.canHandleJSExceptions;
+      for (int i = 0; i < nCoveredHandlers; i++) {
+        if (_handlers[nextHandlerIdx - i].canHandleJSExceptions) {
+          canHandleJSExceptions = true;
+          break;
+        }
       }
 
       if (canHandleJSExceptions && !codeGen.translator.options.standalone) {
@@ -395,7 +551,7 @@ class ExceptionHandlerStack {
         b.local_tee(jsExceptionLocal);
 
         codeGen.call(codeGen.translator.boxJsException.reference);
-        b.local_tee(exceptionLocal); // ref null #Top
+        b.local_set(exceptionLocal);
 
         b.local_get(jsExceptionLocal);
         codeGen.call(codeGen.translator.jsExceptionStackTrace.reference);

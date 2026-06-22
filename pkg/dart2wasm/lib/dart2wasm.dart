@@ -194,19 +194,21 @@ final List<Option> options = [
     (o, value) => o.translatorOptions.enableMultiModuleStressTestMode = value,
     defaultsTo: _d.translatorOptions.enableMultiModuleStressTestMode,
   ),
-
   Flag(
     "require-js-string-builtin",
     (o, value) => o.translatorOptions.requireJsStringBuiltin = value,
     defaultsTo: _d.translatorOptions.requireJsStringBuiltin,
   ),
-
   Flag(
     "strip-toolchain-annotations",
     (o, value) => o.stripToolchainAnnotations = value,
     defaultsTo: _d.stripToolchainAnnotations,
   ),
-
+  Flag(
+    "use-try-table",
+    (o, value) => o.translatorOptions.useTryTable = value,
+    defaultsTo: _d.translatorOptions.useTryTable,
+  ),
   UriOption("wasm-opt", (o, value) => o.wasmOptPath = value),
   // The maximum number of concurrent wasm-opt processes to run. Defaults to the
   // number of processors on the machine. Use -1 to run with no limit.

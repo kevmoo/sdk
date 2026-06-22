@@ -878,9 +878,13 @@ String _generateSupportJs(TranslatorOptions options) {
   const String supportsJsStringBuiltins =
       '!WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,2,23,1,14,119,97,115,109,58,106,115,45,115,116,114,105,110,103,4,99,97,115,116,0,0]),{"builtins":["js-string"]})';
 
+  const String supportsTryTable =
+      'WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,3,2,1,0,10,13,1,11,0,2,64,31,64,1,2,0,11,11,11]))';
+
   final requiredFeatures = [
     supportsWasmGC,
     if (options.requireJsStringBuiltin) supportsJsStringBuiltins,
+    if (options.useTryTable) supportsTryTable,
   ];
   return '(${requiredFeatures.join('&&')})';
 }

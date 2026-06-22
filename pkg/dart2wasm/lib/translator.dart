@@ -74,6 +74,7 @@ class TranslatorOptions {
   int inliningLimit = 0;
   int? sharedMemoryMaxPages;
   bool requireJsStringBuiltin = false;
+  bool useTryTable = true;
   List<int> watchPoints = [];
 
   bool get inlining => inliningOverride ?? optimizationLevel >= 1;

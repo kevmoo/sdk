@@ -224,22 +224,19 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
 
     // Set up locals for contexts and `this`.
     thisLocal = null;
-    Context? localContext = context;
-    while (localContext != null) {
-      if (!localContext.isEmpty) {
-        localContext.currentLocal = b.addLocal(
-          w.RefType.def(localContext.struct, nullable: true),
+    Context? c = context;
+    while (c != null) {
+      if (!c.isEmpty) {
+        c.currentLocal = b.addLocal(
+          w.RefType.def(c.struct, nullable: true),
           name: "context",
         );
-        if (localContext.containsThis) {
+        if (c.containsThis) {
           assert(thisLocal == null);
           thisLocal = b.addLocal(
-            localContext
-                .struct
-                .fields[localContext.thisFieldIndex]
-                .type
-                .unpacked
-                .withNullability(false),
+            c.struct.fields[c.thisFieldIndex].type.unpacked.withNullability(
+              false,
+            ),
             name: "this",
           );
           translator
@@ -250,7 +247,7 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
           preciseThisLocal = thisLocal;
         }
       }
-      localContext = localContext.parent;
+      c = c.parent;
     }
 
     // Read target index from the suspend state.
@@ -262,6 +259,150 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
     );
     b.local_set(targetIndexLocal);
 
+    if (translator.options.useTryTable) {
+      _generateInnerNew(targets, functionBody, targetIndexLocal, context);
+    } else {
+      _generateInnerLegacy(targets, functionBody, targetIndexLocal, context);
+    }
+
+    b.unreachable();
+    b.end(); // inner function
+  }
+
+  void _generateInnerNew(
+    List<StateTarget> targets,
+    Statement functionBody,
+    w.Local targetIndexLocal,
+    Context? localContext,
+  ) {
+    final w.Label wrapperBlock = b.block();
+
+    // The outer `try` block calls `completeOnError` on exceptions.
+    final catchRefJumpLabel = b.block([], [
+      translator.topTypeNonNullable,
+      translator.stackTraceType,
+    ]);
+
+    final bool canCatchJSException = !translator.options.standalone;
+    w.Label? catchJsRefJumpLabel;
+    if (canCatchJSException) {
+      catchJsRefJumpLabel = b.block([], [w.RefType.extern(nullable: true)]);
+    }
+
+    b.try_table(
+      [
+        w.Catch(
+          translator.getDartExceptionTag(b.moduleBuilder),
+          catchRefJumpLabel,
+        ),
+        if (catchJsRefJumpLabel != null)
+          w.Catch(
+            translator.getJsExceptionTag(b.moduleBuilder),
+            catchJsRefJumpLabel,
+          ),
+      ],
+      [],
+      [],
+    );
+
+    // Switch on the target index.
+    masterLoop = b.loop(const [], const []);
+    labels = List.generate(targets.length, (_) => b.block()).reversed.toList();
+
+    // There should be at least two states: inner and after targets for the
+    // [FunctionNode].
+    assert(labels.length >= 2);
+
+    // Use the last target label as the default `br_table` target.
+    final brTableLabels = labels.sublist(0, labels.length - 1);
+    final brTableDefaultLabel = labels.last;
+    b.local_get(targetIndexLocal);
+    b.br_table(brTableLabels, brTableDefaultLabel);
+
+    // Initial state
+    final StateTarget initialTarget = targets.first;
+    emitTargetLabel(initialTarget);
+
+    b.restoreSuspendStateContext(
+      _suspendStateLocal,
+      asyncSuspendStateInfo.struct,
+      FieldIndex.asyncSuspendStateContext,
+      closures,
+      localContext,
+      thisLocal,
+    );
+
+    translateStatement(functionBody);
+
+    // Final state: return.
+    emitTargetLabel(targets.last);
+    b.local_get(_suspendStateLocal);
+    b.ref_null(translator.topType.heapType);
+    call(
+      translator.getFunctionEntry(
+        translator.asyncSuspendStateComplete.reference,
+        uncheckedEntry: true,
+      ),
+    );
+    b.ref_null(translator.topType.heapType);
+    b.return_();
+    b.end(); // masterLoop
+
+    b.br(wrapperBlock);
+    b.end(); // end tryTable
+    b.unreachable();
+
+    final stackTraceLocal = addLocal(translator.stackTraceType);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, translator.stackTraceType);
+    b.local_set(stackTraceLocal);
+
+    final exceptionLocal = addLocal(translator.topTypeNonNullable);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, translator.topTypeNonNullable);
+    b.local_set(exceptionLocal);
+
+    void callCompleteError() {
+      b.local_get(_suspendStateLocal);
+      b.local_get(exceptionLocal);
+      b.local_get(stackTraceLocal);
+      call(translator.asyncSuspendStateCompleteError.reference);
+      b.ref_null(translator.topType.heapType);
+      b.return_();
+    }
+
+    if (catchJsRefJumpLabel != null) {
+      b.end(); // end catchJsRefJumpLabel
+      final jsExceptionLocal = addLocal(w.RefType.extern(nullable: true));
+      b.local_set(jsExceptionLocal);
+
+      b.local_get(jsExceptionLocal);
+      call(translator.boxJsException.reference);
+      b.local_set(exceptionLocal);
+
+      b.local_get(jsExceptionLocal);
+      call(translator.jsExceptionStackTrace.reference);
+      b.local_set(stackTraceLocal);
+
+      callCompleteError();
+    }
+
+    b.end(); // end catchRefJumpLabel
+    b.local_set(stackTraceLocal);
+    b.local_set(exceptionLocal);
+    callCompleteError();
+
+    b.end(); // end wrapperBlock
+  }
+
+  void _generateInnerLegacy(
+    List<StateTarget> targets,
+    Statement functionBody,
+    w.Local targetIndexLocal,
+    Context? localContext,
+  ) {
     // The outer `try` block calls `completeOnError` on exceptions.
     b.try_legacy();
 
@@ -288,7 +429,7 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
       asyncSuspendStateInfo.struct,
       FieldIndex.asyncSuspendStateContext,
       closures,
-      context,
+      localContext,
       thisLocal,
     );
 
@@ -308,7 +449,16 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
     b.end(); // masterLoop
 
     final stackTraceLocal = addLocal(translator.stackTraceType);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, translator.stackTraceType);
+    b.local_set(stackTraceLocal);
+
     final exceptionLocal = addLocal(translator.topTypeNonNullable);
+    translator
+        .getDummyValuesCollectorForModule(b.moduleBuilder)
+        .instantiateLocalDummyValue(b, translator.topTypeNonNullable);
+    b.local_set(exceptionLocal);
 
     void callCompleteError() {
       b.local_get(_suspendStateLocal);
@@ -330,9 +480,8 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
 
       final jsExceptionLocal = addLocal(w.RefType.extern(nullable: true));
       b.local_tee(jsExceptionLocal);
-
       call(translator.boxJsException.reference);
-      b.local_tee(exceptionLocal); // ref null #Top
+      b.local_set(exceptionLocal);
 
       b.local_get(jsExceptionLocal);
       call(translator.jsExceptionStackTrace.reference);
@@ -342,9 +491,6 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
     }
 
     b.end(); // try
-
-    b.unreachable();
-    b.end(); // inner function
   }
 
   // Handle awaits
@@ -366,19 +512,19 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
 
   void _generateAwait(AwaitExpression node, Variable awaitValueVar) {
     // Find the current context.
-    Context? context;
+    Context? localContext;
     TreeNode contextOwner = node;
     do {
       contextOwner = contextOwner.parent!;
-      context = closures.contexts[contextOwner];
+      localContext = closures.contexts[contextOwner];
     } while (contextOwner.parent != null &&
-        (context == null || context.isEmpty));
+        (localContext == null || localContext.isEmpty));
 
     // Store context.
-    if (context != null) {
-      assert(!context.isEmpty);
+    if (localContext != null) {
+      assert(!localContext.isEmpty);
       b.local_get(_suspendStateLocal);
-      b.local_get(context.currentLocal);
+      b.local_get(localContext.currentLocal);
       b.struct_set(
         asyncSuspendStateInfo.struct,
         FieldIndex.asyncSuspendStateContext,
@@ -428,7 +574,7 @@ class AsyncStateMachineCodeGenerator extends StateMachineCodeGenerator {
       asyncSuspendStateInfo.struct,
       FieldIndex.asyncSuspendStateContext,
       closures,
-      context,
+      localContext,
       thisLocal,
     );
 
