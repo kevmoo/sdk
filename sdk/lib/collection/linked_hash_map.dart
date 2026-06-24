@@ -176,6 +176,8 @@ abstract final class LinkedHashMap<K, V> implements Map<K, V> {
   ///                     hashCode: identityHashCode)
   /// ```
   external factory LinkedHashMap.identity();
+  external factory LinkedHashMap.swiss();
+  external factory LinkedHashMap.swar();
 
   /// Creates a [LinkedHashMap] that contains all key value pairs of [other].
   ///

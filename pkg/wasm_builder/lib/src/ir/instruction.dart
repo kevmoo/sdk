@@ -4469,6 +4469,7 @@ enum V128Instruction with Instruction {
   v128AnyTrue(0x53, 'v128.any_true'),
   i8x16Neg(0x61, 'i8x16.neg'),
   i8x16AllTrue(0x63, 'i8x16.all_true'),
+  i8x16Bitmask(0x64, 'i8x16.bitmask'),
   f32x4Ceil(0x67, 'f32x4.ceil'),
   f32x4Floor(0x68, 'f32x4.floor'),
   f32x4Trunc(0x69, 'f32x4.trunc'),

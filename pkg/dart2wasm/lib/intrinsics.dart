@@ -251,6 +251,7 @@ enum StaticIntrinsic {
   wasmI64x2Mul('dart:_wasm', null, 'WasmI64x2|*'),
   wasmI64x2Neg('dart:_wasm', null, 'WasmI64x2|unary-'),
   wasmI8x16Eq('dart:_wasm', null, 'WasmI8x16|eq'),
+  wasmI8x16Bitmask('dart:_wasm', null, 'WasmI8x16|bitmask'),
   wasmI16x8Eq('dart:_wasm', null, 'WasmI16x8|eq'),
   wasmI32x4Eq('dart:_wasm', null, 'WasmI32x4|eq'),
   wasmI64x2Eq('dart:_wasm', null, 'WasmI64x2|eq'),
@@ -726,6 +727,9 @@ class Intrinsifier {
               b.i32_const(0);
               b.i32_ne();
               return w.NumType.i32;
+            case "ctz":
+              b.i32_ctz();
+              return w.NumType.i32;
           }
           codeGen.translateExpression(
             node.arguments.positional[0],
@@ -785,6 +789,10 @@ class Intrinsifier {
           switch (name) {
             case "toInt":
               codeGen.translateExpression(receiver, w.NumType.i64);
+              return w.NumType.i64;
+            case "ctz":
+              codeGen.translateExpression(receiver, w.NumType.i64);
+              b.i64_ctz();
               return w.NumType.i64;
             case "leU":
               codeGen.translateExpression(receiver, w.NumType.i64);
@@ -1750,6 +1758,13 @@ class Intrinsifier {
           w.NumType.v128,
         );
         b.i64x2_all_true();
+        return w.NumType.i32;
+      case StaticIntrinsic.wasmI8x16Bitmask:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.v128,
+        );
+        b.i8x16_bitmask();
         return w.NumType.i32;
       case StaticIntrinsic.wasmF64x2PMin:
         codeGen.translateExpression(

@@ -179,6 +179,7 @@ class WasmI32 extends _WasmBase {
   external int toIntSigned();
   external int toIntUnsigned();
   external bool toBool();
+  external WasmI32 ctz();
   external WasmI32 operator -();
   external bool operator <(WasmI32 other);
   external bool operator <=(WasmI32 other);
@@ -216,6 +217,7 @@ class WasmI64 extends _WasmBase {
   external factory WasmI64.fromInt(int value);
 
   external int toInt();
+  external WasmI64 ctz();
 
   /// Wasm `i64.le_u` instruction.
   external bool leU(WasmI64 other);
@@ -490,6 +492,8 @@ extension type const WasmI8x16(WasmV128 value) implements WasmV128 {
 
   @pragma("wasm:intrinsic")
   external WasmI8x16 eq(WasmI8x16 other);
+  @pragma("wasm:intrinsic")
+  external WasmI32 bitmask();
 }
 
 extension type const WasmI16x8(WasmV128 value) implements WasmV128 {

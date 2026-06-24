@@ -4894,6 +4894,17 @@ class InstructionsBuilder with Builder<ir.Instructions> {
     _add(ir.V128Instruction.i8x16AllTrue);
   }
 
+  void i8x16_bitmask() {
+    assert(
+      _verifyTypes(
+        const [ir.NumType.v128],
+        const [ir.NumType.i32],
+        trace: const ['i8x16.bitmask'],
+      ),
+    );
+    _add(ir.V128Instruction.i8x16Bitmask);
+  }
+
   void i16x8_all_true() {
     assert(
       _verifyTypes(

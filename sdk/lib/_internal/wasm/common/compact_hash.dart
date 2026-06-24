@@ -297,6 +297,507 @@ base class DefaultMap<K, V> extends _HashFieldBase
   }
 }
 
+@pragma("wasm:entry-point")
+base class SwissMap<K, V> extends _HashFieldBase
+    with MapMixin<K, V>, _HashBase, _OperatorEqualsAndHashCode
+    implements LinkedHashMap<K, V> {
+  WasmArray<WasmV128> _control = WasmArray<WasmV128>.filled(
+    1,
+    WasmI8x16.splat(WasmI32.fromInt(-1)),
+  );
+
+  SwissMap() {
+    _data = WasmArray<Object?>.filled(32, _deletedDataMarker);
+    _usedData = 0;
+    _deletedKeys = 0;
+  }
+
+  @override
+  int get length => _usedData;
+  @override
+  bool get isEmpty => _usedData == 0;
+  @override
+  bool get isNotEmpty => _usedData != 0;
+
+  @override
+  Iterable<K> get keys =>
+      _CompactIterableImmutable<K>(this, _data, _data.length, -2, 2);
+  @override
+  Iterable<V> get values =>
+      _CompactIterableImmutable<V>(this, _data, _data.length, -1, 2);
+
+  @override
+  V? operator [](Object? key) {
+    var v = _getValueOrData(key);
+    return identical(_deletedDataMarker, v) ? null : unsafeCast<V>(v);
+  }
+
+  @override
+  bool containsKey(Object? key) =>
+      !identical(_deletedDataMarker, _getValueOrData(key));
+
+  Object? _getValueOrData(Object? key) {
+    if (_usedData == 0) return _deletedDataMarker;
+    final int fullHash = _hashCode(key);
+    final int h2 = (fullHash >>> 25) & 0x7F;
+    final int numGroups = _control.length;
+    int g = (fullHash >>> 4) & (numGroups - 1);
+    final target = WasmI8x16.splat(WasmI32.fromInt(h2));
+    final emptyTarget = WasmI8x16.splat(WasmI32.fromInt(-1));
+    while (true) {
+      final WasmI8x16 group = WasmI8x16(_control[g]);
+      int matchMask = group.eq(target).bitmask().toIntUnsigned();
+      while (matchMask != 0) {
+        int lane = WasmI32.fromInt(matchMask).ctz().toIntSigned();
+        int slot = (g << 4) + lane;
+        int d = slot << 1;
+        if (_equals(key, _data[d])) {
+          return _data[d + 1];
+        }
+        matchMask &= matchMask - 1;
+      }
+      int emptyMask = group.eq(emptyTarget).bitmask().toIntUnsigned();
+      if (emptyMask != 0) {
+        return _deletedDataMarker;
+      }
+      g = (g + 1) & (numGroups - 1);
+    }
+  }
+
+  @override
+  void operator []=(K key, V value) {
+    final int fullHash = _hashCode(key);
+    _set(key, value, fullHash);
+  }
+
+  void _set(K key, V value, int fullHash) {
+    if ((_usedData + _deletedKeys) * 8 >= _control.length * 16 * 7) {
+      _rehash();
+    }
+    final int h2 = (fullHash >>> 25) & 0x7F;
+    final int numGroups = _control.length;
+    int g = (fullHash >>> 4) & (numGroups - 1);
+    final target = WasmI8x16.splat(WasmI32.fromInt(h2));
+    final emptyOrDeletedTarget = WasmI8x16.splat(WasmI32.fromInt(-1));
+    while (true) {
+      final WasmI8x16 group = WasmI8x16(_control[g]);
+      int matchMask = group.eq(target).bitmask().toIntUnsigned();
+      while (matchMask != 0) {
+        int lane = WasmI32.fromInt(matchMask).ctz().toIntSigned();
+        int slot = (g << 4) + lane;
+        int d = slot << 1;
+        if (_equals(key, _data[d])) {
+          _data[d + 1] = value;
+          return;
+        }
+        matchMask &= matchMask - 1;
+      }
+      int emptyMask = group.eq(emptyOrDeletedTarget).bitmask().toIntUnsigned();
+      if (emptyMask != 0) {
+        int lane = WasmI32.fromInt(emptyMask).ctz().toIntSigned();
+        int slot = (g << 4) + lane;
+        _setControl(g, lane, h2);
+        int d = slot << 1;
+        _data[d] = key;
+        _data[d + 1] = value;
+        _usedData++;
+        return;
+      }
+      g = (g + 1) & (numGroups - 1);
+    }
+  }
+
+  void _setControl(int g, int lane, int value) {
+    var group = WasmI8x16(_control[g]);
+    final val = WasmI32.fromInt(value);
+    switch (lane) {
+      case 0:
+        group = group.replaceLane(0, val);
+        break;
+      case 1:
+        group = group.replaceLane(1, val);
+        break;
+      case 2:
+        group = group.replaceLane(2, val);
+        break;
+      case 3:
+        group = group.replaceLane(3, val);
+        break;
+      case 4:
+        group = group.replaceLane(4, val);
+        break;
+      case 5:
+        group = group.replaceLane(5, val);
+        break;
+      case 6:
+        group = group.replaceLane(6, val);
+        break;
+      case 7:
+        group = group.replaceLane(7, val);
+        break;
+      case 8:
+        group = group.replaceLane(8, val);
+        break;
+      case 9:
+        group = group.replaceLane(9, val);
+        break;
+      case 10:
+        group = group.replaceLane(10, val);
+        break;
+      case 11:
+        group = group.replaceLane(11, val);
+        break;
+      case 12:
+        group = group.replaceLane(12, val);
+        break;
+      case 13:
+        group = group.replaceLane(13, val);
+        break;
+      case 14:
+        group = group.replaceLane(14, val);
+        break;
+      case 15:
+        group = group.replaceLane(15, val);
+        break;
+    }
+    _control[g] = group;
+  }
+
+  @override
+  V putIfAbsent(K key, V ifAbsent()) {
+    var v = _getValueOrData(key);
+    if (!identical(_deletedDataMarker, v)) {
+      return unsafeCast<V>(v);
+    }
+    V val = ifAbsent();
+    this[key] = val;
+    return val;
+  }
+
+  @override
+  V? remove(Object? key) {
+    if (_usedData == 0) return null;
+    final int fullHash = _hashCode(key);
+    final int h2 = (fullHash >>> 25) & 0x7F;
+    final int numGroups = _control.length;
+    int g = (fullHash >>> 4) & (numGroups - 1);
+    final target = WasmI8x16.splat(WasmI32.fromInt(h2));
+    final emptyTarget = WasmI8x16.splat(WasmI32.fromInt(-1));
+    while (true) {
+      final WasmI8x16 group = WasmI8x16(_control[g]);
+      int matchMask = group.eq(target).bitmask().toIntUnsigned();
+      while (matchMask != 0) {
+        int lane = WasmI32.fromInt(matchMask).ctz().toIntSigned();
+        int slot = (g << 4) + lane;
+        int d = slot << 1;
+        if (_equals(key, _data[d])) {
+          _setControl(g, lane, -128);
+          V val = _data[d + 1] as V;
+          _data[d] = _deletedDataMarker;
+          _data[d + 1] = _deletedDataMarker;
+          _usedData--;
+          _deletedKeys++;
+          return val;
+        }
+        matchMask &= matchMask - 1;
+      }
+      int emptyMask = group.eq(emptyTarget).bitmask().toIntUnsigned();
+      if (emptyMask != 0) {
+        return null;
+      }
+      g = (g + 1) & (numGroups - 1);
+    }
+  }
+
+  @override
+  void clear() {
+    if (_usedData != 0 || _deletedKeys != 0) {
+      _control = WasmArray<WasmV128>.filled(
+        1,
+        WasmI8x16.splat(WasmI32.fromInt(-1)),
+      );
+      _data = WasmArray<Object?>.filled(32, _deletedDataMarker);
+      _usedData = 0;
+      _deletedKeys = 0;
+    }
+  }
+
+  void _rehash() {
+    int numSlots = _control.length * 16;
+    int newSlots = (_usedData * 8 >= numSlots * 7) ? numSlots * 2 : numSlots;
+    if (newSlots < 16) newSlots = 16;
+    final oldData = _data;
+    final oldLength = oldData.length;
+    _control = WasmArray<WasmV128>.filled(
+      newSlots >> 4,
+      WasmI8x16.splat(WasmI32.fromInt(-1)),
+    );
+    _data = WasmArray<Object?>.filled(newSlots * 2, _deletedDataMarker);
+    _usedData = 0;
+    _deletedKeys = 0;
+    for (int i = 0; i < oldLength; i += 2) {
+      final k = oldData[i];
+      if (!identical(k, _deletedDataMarker)) {
+        this[unsafeCast<K>(k)] = unsafeCast<V>(oldData[i + 1]);
+      }
+    }
+  }
+
+  @override
+  void forEach(void action(K key, V value)) {
+    final data = _data;
+    final len = data.length;
+    for (int i = 0; i < len; i += 2) {
+      final k = data[i];
+      if (!identical(k, _deletedDataMarker)) {
+        action(unsafeCast<K>(k), unsafeCast<V>(data[i + 1]));
+      }
+    }
+  }
+}
+
+@pragma("wasm:entry-point")
+base class SwarMap<K, V> extends _HashFieldBase
+    with MapMixin<K, V>, _HashBase, _OperatorEqualsAndHashCode
+    implements LinkedHashMap<K, V> {
+  WasmArray<WasmI64> _control = WasmArray<WasmI64>.filled(
+    1,
+    const WasmI64(-9187201950435737472),
+  );
+  WasmArray<Object?> _keys = WasmArray<Object?>.filled(8, _deletedDataMarker);
+  WasmArray<Object?> _values = WasmArray<Object?>.filled(8, _deletedDataMarker);
+
+  SwarMap() {
+    _keys = WasmArray<Object?>.filled(8, _deletedDataMarker);
+    _values = WasmArray<Object?>.filled(8, _deletedDataMarker);
+    _usedData = 0;
+    _deletedKeys = 0;
+  }
+
+  @override
+  int get length => _usedData;
+  @override
+  bool get isEmpty => _usedData == 0;
+  @override
+  bool get isNotEmpty => _usedData != 0;
+
+  @override
+  Iterable<K> get keys => _SwarIterable<K>(this, _keys);
+  @override
+  Iterable<V> get values => _SwarIterable<V>(this, _values);
+
+  @override
+  V? operator [](Object? key) {
+    var v = _getValueOrData(key);
+    return identical(_deletedDataMarker, v) ? null : unsafeCast<V>(v);
+  }
+
+  @override
+  bool containsKey(Object? key) =>
+      !identical(_deletedDataMarker, _getValueOrData(key));
+
+  static int _matchH2(int control, int h2) {
+    final int target = 72340172838076673 * h2; // 0x0101010101010101 * h2
+    final int xor = control ^ target;
+    return (xor - 72340172838076673) &
+        ~xor &
+        -9187201950435737472; // 0x8080808080808080
+  }
+
+  Object? _getValueOrData(Object? key) {
+    if (_usedData == 0) return _deletedDataMarker;
+    final int fullHash = _hashCode(key);
+    final int h2 = (fullHash >>> 25) & 0x7F;
+    final int numGroups = _control.length;
+    int g = (fullHash >>> 3) & (numGroups - 1);
+    while (true) {
+      final int control = _control.read(g);
+      int matchMask = _matchH2(control, h2);
+      while (matchMask != 0) {
+        int lane = WasmI64.fromInt(matchMask).ctz().toInt() >>> 3;
+        int slot = (g << 3) + lane;
+        if (_equals(key, _keys[slot])) {
+          return _values[slot];
+        }
+        matchMask &= matchMask - 1;
+      }
+      if (_matchH2(control, 128) != 0) {
+        return _deletedDataMarker;
+      }
+      g = (g + 1) & (numGroups - 1);
+    }
+  }
+
+  @override
+  void operator []=(K key, V value) {
+    final int fullHash = _hashCode(key);
+    _set(key, value, fullHash);
+  }
+
+  void _set(K key, V value, int fullHash) {
+    if ((_usedData + _deletedKeys) * 8 >= _control.length * 8 * 5) {
+      _rehash();
+    }
+    final int h2 = (fullHash >>> 25) & 0x7F;
+    final int numGroups = _control.length;
+    int g = (fullHash >>> 3) & (numGroups - 1);
+    while (true) {
+      final int control = _control.read(g);
+      int matchMask = _matchH2(control, h2);
+      while (matchMask != 0) {
+        int lane = WasmI64.fromInt(matchMask).ctz().toInt() >>> 3;
+        int slot = (g << 3) + lane;
+        if (_equals(key, _keys[slot])) {
+          _values[slot] = value;
+          return;
+        }
+        matchMask &= matchMask - 1;
+      }
+      int emptyOrDeletedMask = _matchH2(control, 128);
+      if (emptyOrDeletedMask == 0) emptyOrDeletedMask = _matchH2(control, 254);
+      if (emptyOrDeletedMask != 0) {
+        int lane = WasmI64.fromInt(emptyOrDeletedMask).ctz().toInt() >>> 3;
+        int slot = (g << 3) + lane;
+        _setControl(g, lane, h2);
+        _keys[slot] = key;
+        _values[slot] = value;
+        _usedData++;
+        return;
+      }
+      g = (g + 1) & (numGroups - 1);
+    }
+  }
+
+  void _setControl(int g, int lane, int value) {
+    int control = _control.read(g);
+    final int shift = lane << 3;
+    final int mask = ~(255 << shift);
+    _control.write(g, (control & mask) | (value << shift));
+  }
+
+  @override
+  V putIfAbsent(K key, V ifAbsent()) {
+    var v = _getValueOrData(key);
+    if (!identical(_deletedDataMarker, v)) {
+      return unsafeCast<V>(v);
+    }
+    V val = ifAbsent();
+    this[key] = val;
+    return val;
+  }
+
+  @override
+  V? remove(Object? key) {
+    if (_usedData == 0) return null;
+    final int fullHash = _hashCode(key);
+    final int h2 = (fullHash >>> 25) & 0x7F;
+    final int numGroups = _control.length;
+    int g = (fullHash >>> 3) & (numGroups - 1);
+    while (true) {
+      final int control = _control.read(g);
+      int matchMask = _matchH2(control, h2);
+      while (matchMask != 0) {
+        int lane = WasmI64.fromInt(matchMask).ctz().toInt() >>> 3;
+        int slot = (g << 3) + lane;
+        if (_equals(key, _keys[slot])) {
+          _setControl(g, lane, 254);
+          V val = _values[slot] as V;
+          _keys[slot] = _deletedDataMarker;
+          _values[slot] = _deletedDataMarker;
+          _usedData--;
+          _deletedKeys++;
+          return val;
+        }
+        matchMask &= matchMask - 1;
+      }
+      if (_matchH2(control, 128) != 0) {
+        return null;
+      }
+      g = (g + 1) & (numGroups - 1);
+    }
+  }
+
+  void _rehash() {
+    final oldControl = _control;
+    final oldKeys = _keys;
+    final oldValues = _values;
+    final int oldGroups = oldControl.length;
+    int newSlots = (_usedData + 1) * 2;
+    if (newSlots < 8) newSlots = 8;
+    int size = 8;
+    while (size < newSlots) size <<= 1;
+    final int newGroups = max(size >> 3, 1);
+    _control = WasmArray<WasmI64>.filled(
+      newGroups,
+      const WasmI64(-9187201950435737472),
+    );
+    _keys = WasmArray<Object?>.filled(size, _deletedDataMarker);
+    _values = WasmArray<Object?>.filled(size, _deletedDataMarker);
+    final oldUsedData = _usedData;
+    _usedData = 0;
+    _deletedKeys = 0;
+    for (int g = 0; g < oldGroups; g++) {
+      int control = oldControl.read(g);
+      for (int lane = 0; lane < 8; lane++) {
+        int byteVal = (control >>> (lane << 3)) & 0xFF;
+        if ((byteVal & 0x80) == 0) {
+          int slot = (g << 3) + lane;
+          K k = oldKeys[slot] as K;
+          V v = oldValues[slot] as V;
+          _set(k, v, _hashCode(k));
+        }
+      }
+    }
+    assert(_usedData == oldUsedData);
+  }
+
+  @override
+  void clear() {
+    if (_usedData == 0 && _deletedKeys == 0) return;
+    _control = WasmArray<WasmI64>.filled(
+      1,
+      const WasmI64(-9187201950435737472),
+    );
+    _keys = WasmArray<Object?>.filled(8, _deletedDataMarker);
+    _values = WasmArray<Object?>.filled(8, _deletedDataMarker);
+    _usedData = 0;
+    _deletedKeys = 0;
+  }
+}
+
+class _SwarIterable<E> extends Iterable<E> {
+  final SwarMap _table;
+  final WasmArray<Object?> _data;
+  _SwarIterable(this._table, this._data);
+  @override
+  Iterator<E> get iterator => _SwarIterator<E>(_data);
+  @override
+  int get length => _table.length;
+}
+
+class _SwarIterator<E> implements Iterator<E> {
+  final WasmArray<Object?> _data;
+  final int _len;
+  int _offset = -1;
+  E? _current;
+  _SwarIterator(this._data) : _len = _data.length;
+  @override
+  bool moveNext() {
+    while (++_offset < _len) {
+      var item = _data[_offset];
+      if (!identical(item, _deletedDataMarker)) {
+        _current = unsafeCast<E>(item);
+        return true;
+      }
+    }
+    _current = null;
+    return false;
+  }
+
+  @override
+  E get current => _current as E;
+}
+
 // This is essentially the same class as DefaultMap, but it does
 // not permit any modification of map entries from Dart code. We use
 // this class for maps constructed from Dart constant maps.
