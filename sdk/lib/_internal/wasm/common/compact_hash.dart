@@ -765,8 +765,185 @@ base class SwarMap<K, V> extends _HashFieldBase
   }
 }
 
+@pragma("wasm:entry-point")
+base class DecoupledLinearMap<K, V> extends _HashFieldBase
+    with MapMixin<K, V>, _HashBase, _OperatorEqualsAndHashCode
+    implements LinkedHashMap<K, V> {
+  WasmArray<Object?> _keys = WasmArray<Object?>.filled(8, _deletedDataMarker);
+  WasmArray<Object?> _values = WasmArray<Object?>.filled(8, _deletedDataMarker);
+
+  DecoupledLinearMap() {
+    _index = WasmArray<WasmI32>.filled(8, const WasmI32(0));
+    _hashMask = _HashBase._indexSizeToHashMask(8);
+    _keys = WasmArray<Object?>.filled(4, _deletedDataMarker);
+    _values = WasmArray<Object?>.filled(4, _deletedDataMarker);
+    _usedData = 0;
+    _deletedKeys = 0;
+  }
+
+  @override
+  int get length => _usedData - _deletedKeys;
+  @override
+  bool get isEmpty => length == 0;
+  @override
+  bool get isNotEmpty => length != 0;
+
+  @override
+  Iterable<K> get keys => _SwarIterable<K>(this, _keys);
+  @override
+  Iterable<V> get values => _SwarIterable<V>(this, _values);
+
+  @override
+  bool containsKey(Object? key) =>
+      !identical(_deletedDataMarker, _getValueOrData(key));
+
+  @override
+  V? operator [](Object? key) {
+    var v = _getValueOrData(key);
+    return identical(_deletedDataMarker, v) ? null : unsafeCast<V>(v);
+  }
+
+  Object? _getValueOrData(Object? key) {
+    final int size = _index.length;
+    final int sizeMask = size - 1;
+    final int maxEntries = _keys.length;
+    final int fullHash = _hashCode(key);
+    final int hashPattern = _HashBase._hashPattern(fullHash, _hashMask, size);
+    int i = fullHash & sizeMask;
+    int pair = _index.readUnsigned(i);
+    while (pair != 0) {
+      if (pair != 1) {
+        final int entry = hashPattern ^ pair;
+        if (entry < maxEntries) {
+          if (_equals(key, _keys[entry])) {
+            return _values[entry];
+          }
+        }
+      }
+      i = (i + 1) & sizeMask;
+      pair = _index.readUnsigned(i);
+    }
+    return _deletedDataMarker;
+  }
+
+  @override
+  void operator []=(K key, V value) {
+    final int fullHash = _hashCode(key);
+    _set(key, value, fullHash);
+  }
+
+  void _set(K key, V value, int fullHash) {
+    final int size = _index.length;
+    final int sizeMask = size - 1;
+    final int maxEntries = _keys.length;
+    final int hashPattern = _HashBase._hashPattern(fullHash, _hashMask, size);
+    int i = fullHash & sizeMask;
+    int pair = _index.readUnsigned(i);
+    int firstDeleted = -1;
+    while (pair != 0) {
+      if (pair == 1) {
+        if (firstDeleted < 0) firstDeleted = i;
+      } else {
+        final int entry = hashPattern ^ pair;
+        if (entry < maxEntries) {
+          if (_equals(key, _keys[entry])) {
+            _values[entry] = value;
+            return;
+          }
+        }
+      }
+      i = (i + 1) & sizeMask;
+      pair = _index.readUnsigned(i);
+    }
+    if (_usedData >= maxEntries || ((_usedData - _deletedKeys) << 1) >= size) {
+      _rehash();
+      _set(key, value, fullHash);
+      return;
+    }
+    int insertIndex = (firstDeleted >= 0) ? firstDeleted : i;
+    int entry = _usedData;
+    _index[insertIndex] = WasmI32.fromInt(hashPattern ^ entry);
+    _keys[entry] = key;
+    _values[entry] = value;
+    _usedData++;
+    if (firstDeleted >= 0) _deletedKeys--;
+  }
+
+  @override
+  V putIfAbsent(K key, V ifAbsent()) {
+    var v = _getValueOrData(key);
+    if (!identical(_deletedDataMarker, v)) return unsafeCast<V>(v);
+    V val = ifAbsent();
+    this[key] = val;
+    return val;
+  }
+
+  @override
+  V? remove(Object? key) {
+    final int size = _index.length;
+    final int sizeMask = size - 1;
+    final int maxEntries = _keys.length;
+    final int fullHash = _hashCode(key);
+    final int hashPattern = _HashBase._hashPattern(fullHash, _hashMask, size);
+    int i = fullHash & sizeMask;
+    int pair = _index.readUnsigned(i);
+    while (pair != 0) {
+      if (pair != 1) {
+        final int entry = hashPattern ^ pair;
+        if (entry < maxEntries) {
+          if (_equals(key, _keys[entry])) {
+            _index[i] = const WasmI32(1);
+            V val = _values[entry] as V;
+            _keys[entry] = _deletedDataMarker;
+            _values[entry] = _deletedDataMarker;
+            _deletedKeys++;
+            return val;
+          }
+        }
+      }
+      i = (i + 1) & sizeMask;
+      pair = _index.readUnsigned(i);
+    }
+    return null;
+  }
+
+  void _rehash() {
+    final oldIndex = _index;
+    final oldKeys = _keys;
+    final oldValues = _values;
+    final int oldUsed = _usedData;
+    int newSlots = (_usedData - _deletedKeys + 1) * 2;
+    if (newSlots < 4) newSlots = 4;
+    int size = 8;
+    while ((size >> 1) < newSlots) size <<= 1;
+    _index = WasmArray<WasmI32>.filled(size, const WasmI32(0));
+    _hashMask = _HashBase._indexSizeToHashMask(size);
+    _keys = WasmArray<Object?>.filled(size >> 1, _deletedDataMarker);
+    _values = WasmArray<Object?>.filled(size >> 1, _deletedDataMarker);
+    _usedData = 0;
+    _deletedKeys = 0;
+    for (int j = 0; j < oldUsed; j++) {
+      var k = oldKeys[j];
+      if (!identical(k, _deletedDataMarker)) {
+        _set(k as K, oldValues[j] as V, _hashCode(k));
+      }
+    }
+  }
+
+  @override
+  void clear() {
+    if (isEmpty) return;
+    _index = WasmArray<WasmI32>.filled(8, const WasmI32(0));
+    _hashMask = _HashBase._indexSizeToHashMask(8);
+    _keys = WasmArray<Object?>.filled(4, _deletedDataMarker);
+    _values = WasmArray<Object?>.filled(4, _deletedDataMarker);
+    _usedData = 0;
+    _deletedKeys = 0;
+  }
+}
+
 class _SwarIterable<E> extends Iterable<E> {
-  final SwarMap _table;
+  final Map _table;
   final WasmArray<Object?> _data;
   _SwarIterable(this._table, this._data);
   @override

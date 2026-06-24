@@ -7,6 +7,7 @@ import "dart:_compact_hash"
         DefaultMap,
         SwissMap,
         SwarMap,
+        DecoupledLinearMap,
         DefaultSet,
         CompactLinkedIdentityHashSet,
         CompactLinkedCustomHashSet,
@@ -52,6 +53,9 @@ class LinkedHashMap<K, V> {
 
   @patch
   factory LinkedHashMap.swar() => SwarMap<K, V>();
+
+  @patch
+  factory LinkedHashMap.decoupled() => DecoupledLinearMap<K, V>();
 }
 
 @patch

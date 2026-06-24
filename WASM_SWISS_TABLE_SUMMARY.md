@@ -110,3 +110,29 @@ Empirical lookup latency measured via [SwissMapLookup.dart](file:///Users/kevmoo
 
 ### Benchmarking
 * [SwissMapLookup.dart](file:///Users/kevmoo/github/dart-sdk/core/agent-wasm-swiss-table/sdk/benchmarks/MapLookup/dart/SwissMapLookup.dart): Standalone multi-size comparative benchmark suite.
+
+---
+
+## 6. Bonus Investigation: Decoupled Storage Applied to `DefaultMap`
+
+To evaluate whether the microarchitectural tricks uncovered during SIMD/SWAR probing could improve Dart's existing open-addressing linear probing Map (`DefaultMap`), we built and benchmarked [DecoupledLinearMap](file:///Users/kevmoo/github/dart-sdk/core/agent-wasm-swiss-table/sdk/sdk/lib/_internal/wasm/common/compact_hash.dart#L768).
+
+### Hypothesis & Tradeoffs
+In `DefaultMap`, entries are stored interleaved in `WasmArray<Object?> _data` (`[key0, val0, key1, val1...]`). To inspect candidate slots during probing, the loop computes `d = entry << 1` (index scaling bit-shift) and checks `_data[d]`.
+Decoupling `_data` into parallel `_keys` and `_values` arrays eliminates index bit-shifts (`entry << 1`) and doubles key density in L1 cache lines during collisions. However, on map hits (95%+ of lookups), fetching `_values[entry]` forces loading a second cache line from a separate memory object.
+
+### Empirical Benchmark Comparison (`ns` per lookup)
+
+| Map Capacity | Key Type | [DefaultMap](file:///Users/kevmoo/github/dart-sdk/core/agent-wasm-swiss-table/sdk/sdk/lib/_internal/wasm/common/compact_hash.dart#L266) (Interleaved `_data`) | [DecoupledMap](file:///Users/kevmoo/github/dart-sdk/core/agent-wasm-swiss-table/sdk/sdk/lib/_internal/wasm/common/compact_hash.dart#L768) (Parallel `_keys` / `_values`) | Delta (`ns`) | Result |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **100 elements** | `String` | 7.30 ns | **7.03 ns** | **-0.27 ns (-4%)** | ⚡ Decoupled is faster |
+| **100 elements** | `int` | 9.03 ns | **8.14 ns** | **-0.89 ns (-10%)** | ⚡ Decoupled is faster |
+| **1,000 elements** | `String` | **7.52 ns** | 7.55 ns | +0.03 ns | Tie |
+| **1,000 elements** | `int` | 8.86 ns | **8.12 ns** | **-0.74 ns (-8%)** | ⚡ Decoupled is faster |
+| **10,000 elements** | `String` | **11.67 ns** | 12.12 ns | +0.45 ns | 🧠 Default is faster |
+| **10,000 elements** | `int` | 13.55 ns | **12.73 ns** | **-0.82 ns (-6%)** | ⚡ Decoupled is faster |
+| **50,000 elements** | `String` | **16.67 ns** | 17.70 ns | +1.03 ns | 🧠 Default is faster |
+| **50,000 elements** | `int` | 14.87 ns | **14.63 ns** | **-0.24 ns (-2%)** | ⚡ Decoupled is faster |
+
+### Conclusion
+While decoupled arrays provide a consistent speedup (**-2% to -10%**) on integer keys, they introduce a regression (**+4% to +6%**) on large String maps due to secondary cache line loads on successful hit paths. Because String maps dominate real-world Dart/Flutter workloads (JSON parsing, HTTP headers, object dictionaries), modifying `DefaultMap`'s interleaved storage structure is not recommended.

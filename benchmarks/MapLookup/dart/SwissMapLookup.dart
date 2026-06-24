@@ -56,9 +56,11 @@ void reportIntBenchmark(String name, Map<int, int> map) {
 
 void testSize(int count) {
   final defaultStringMap = LinkedHashMap<String, String>();
+  final decoupledStringMap = LinkedHashMap<String, String>.decoupled();
   final swissStringMap = LinkedHashMap<String, String>.swiss();
   final swarStringMap = LinkedHashMap<String, String>.swar();
   final defaultIntMap = LinkedHashMap<int, int>();
+  final decoupledIntMap = LinkedHashMap<int, int>.decoupled();
   final swissIntMap = LinkedHashMap<int, int>.swiss();
   final swarIntMap = LinkedHashMap<int, int>.swar();
 
@@ -68,11 +70,13 @@ void testSize(int count) {
     final vInt = (i == count - 1) ? null : i + 1;
     if (vStr != null) {
       defaultStringMap[kStr] = vStr;
+      decoupledStringMap[kStr] = vStr;
       swissStringMap[kStr] = vStr;
       swarStringMap[kStr] = vStr;
     }
     if (vInt != null) {
       defaultIntMap[i] = vInt;
+      decoupledIntMap[i] = vInt;
       swissIntMap[i] = vInt;
       swarIntMap[i] = vInt;
     }
@@ -81,10 +85,12 @@ void testSize(int count) {
   print('=== Map Size: $count elements ===');
   print('[String Keys]');
   reportStringBenchmark('  DefaultMap      ', defaultStringMap);
+  reportStringBenchmark('  DecoupledMap    ', decoupledStringMap);
   reportStringBenchmark('  SwissMap (v128) ', swissStringMap);
   reportStringBenchmark('  SwarMap  (i64)  ', swarStringMap);
   print('[Int Keys]');
   reportIntBenchmark('  DefaultMap      ', defaultIntMap);
+  reportIntBenchmark('  DecoupledMap    ', decoupledIntMap);
   reportIntBenchmark('  SwissMap (v128) ', swissIntMap);
   reportIntBenchmark('  SwarMap  (i64)  ', swarIntMap);
   print('');

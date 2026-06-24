@@ -178,6 +178,7 @@ abstract final class LinkedHashMap<K, V> implements Map<K, V> {
   external factory LinkedHashMap.identity();
   external factory LinkedHashMap.swiss();
   external factory LinkedHashMap.swar();
+  external factory LinkedHashMap.decoupled();
 
   /// Creates a [LinkedHashMap] that contains all key value pairs of [other].
   ///
