@@ -351,6 +351,14 @@ class _CopyingBytesBuilder implements BytesBuilder {
     return buffer;
   }
 
+  // Takes the full backing buffer, which may have spare capacity beyond
+  // [length], so the receiver can append more data without reallocating.
+  Uint8List takeBuffer() {
+    var buffer = _buffer;
+    clear();
+    return buffer;
+  }
+
   Uint8List toBytes() {
     if (_length == 0) return _emptyList;
     return Uint8List.fromList(
@@ -1228,6 +1236,22 @@ abstract class _HttpOutboundMessage<T> extends _IOSinkImpl {
     super.write(obj);
   }
 
+  Future flush() {
+    return super.flush().then((v) {
+      // Also send data held in the output buffer, so an explicit flush
+      // delivers buffered data instead of holding it until the buffer fills
+      // or the message is closed. Skip the drain when a new data cycle has
+      // started in the meantime (an un-awaited flush() followed by a
+      // synchronous write() or addStream() - the socket sink is bound then,
+      // and the new cycle delivers the buffered data itself).
+      if (_controllerInstance == null && !_isBound) {
+        _outgoing.drainBuffer();
+        return _outgoing.socket.flush().then((_) => v);
+      }
+      return v;
+    });
+  }
+
   void _writeHeader();
 
   bool get _isConnectionClosed => false;
@@ -1321,7 +1345,7 @@ class _HttpResponse extends _HttpOutboundMessage<HttpResponse>
   }
 
   void _writeHeader() {
-    BytesBuilder buffer = _CopyingBytesBuilder(_OUTGOING_BUFFER_SIZE);
+    var buffer = _CopyingBytesBuilder(_OUTGOING_BUFFER_SIZE);
 
     // Write status line.
     if (headers.protocolVersion == "1.1") {
@@ -1371,8 +1395,10 @@ class _HttpResponse extends _HttpOutboundMessage<HttpResponse>
     headers._build(buffer);
     buffer.addByte(_CharCode.CR);
     buffer.addByte(_CharCode.LF);
-    Uint8List headerBytes = buffer.takeBytes();
-    _outgoing.setHeader(headerBytes, headerBytes.length);
+    // Hand over the full backing buffer so body chunks can be coalesced into
+    // its spare capacity, making a small response a single socket write.
+    int headerLength = buffer.length;
+    _outgoing.setHeader(buffer.takeBuffer(), headerLength);
   }
 
   String _findReasonPhrase(int statusCode) {
@@ -1656,7 +1682,7 @@ class _HttpClientRequest extends _HttpOutboundMessage<HttpClientResponse>
       _outgoing.setHeader(Uint8List(0), 0);
       return;
     }
-    BytesBuilder buffer = _CopyingBytesBuilder(_OUTGOING_BUFFER_SIZE);
+    var buffer = _CopyingBytesBuilder(_OUTGOING_BUFFER_SIZE);
 
     // Write the request method.
     buffer.add(method.codeUnits);
@@ -1695,6 +1721,12 @@ class _HttpClientRequest extends _HttpOutboundMessage<HttpClientResponse>
     );
     buffer.addByte(_CharCode.CR);
     buffer.addByte(_CharCode.LF);
+    // Unlike the server side, hand over a zero-capacity buffer so the headers
+    // are sent as soon as the first body chunk arrives. Request bytes must
+    // become visible to the server promptly, not held until close/flush:
+    // abort() is specified to send messages added before it, and a request
+    // failing mid-body must still have put its headers on the wire (see
+    // http_client_connect_test and http_close_test).
     Uint8List headerBytes = buffer.takeBytes();
     _outgoing.setHeader(headerBytes, headerBytes.length);
   }
@@ -2036,6 +2068,17 @@ class _HttpOutgoing implements StreamConsumer<List<int>> {
     _length = length;
   }
 
+  // Sends any data buffered by _addChunk to the socket. The buffer is handed
+  // off (the socket may not have written it yet), so a new one is allocated
+  // on the next _addChunk.
+  void drainBuffer() {
+    var buffer = _buffer;
+    if (_socketError || buffer == null || _length == 0) return;
+    socket.add(Uint8List.view(buffer.buffer, buffer.offsetInBytes, _length));
+    _buffer = null;
+    _length = 0;
+  }
+
   void set gzip(bool value) {
     _gzip = value;
     if (value) {
@@ -2098,17 +2141,26 @@ class _HttpOutgoing implements StreamConsumer<List<int>> {
       add(chunk);
       return;
     }
-    if (chunk.length > _buffer!.length - _length) {
-      add(Uint8List.view(_buffer!.buffer, _buffer!.offsetInBytes, _length));
-      _buffer = Uint8List(_OUTGOING_BUFFER_SIZE);
-      _length = 0;
+    var buffer = _buffer;
+    if (buffer == null || chunk.length > buffer.length - _length) {
+      // Flush buffered data first to preserve write ordering. The buffer may
+      // be null after drainBuffer handed it off to the socket.
+      if (buffer != null && _length > 0) {
+        add(Uint8List.view(buffer.buffer, buffer.offsetInBytes, _length));
+        _buffer = null;
+        _length = 0;
+      }
+      if (chunk.length > _OUTGOING_BUFFER_SIZE) {
+        add(chunk);
+        return;
+      }
+      if (_buffer == null || _buffer!.length < _OUTGOING_BUFFER_SIZE) {
+        buffer = _buffer = Uint8List(_OUTGOING_BUFFER_SIZE);
+        _length = 0;
+      }
     }
-    if (chunk.length > _OUTGOING_BUFFER_SIZE) {
-      add(chunk);
-    } else {
-      _buffer!.setRange(_length, _length + chunk.length, chunk);
-      _length += chunk.length;
-    }
+    buffer!.setRange(_length, _length + chunk.length, chunk);
+    _length += chunk.length;
   }
 
   List<int> _chunkHeader(int length) {
