@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 // Copyright (c) 2023, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
@@ -27,6 +28,235 @@ class int {
       );
     }
     return _parse(source, radix, _kNull);
+  }
+
+  static bool _isUtf8Whitespace(int codeUnit) {
+    return codeUnit <= 32 &&
+        (codeUnit == 32 || (codeUnit <= 13 && codeUnit >= 9));
+  }
+
+  @patch
+  static int parseUtf8(
+    Uint8List source, {
+    int start = 0,
+    int? end,
+    int? radix,
+  }) {
+    if (source.isEmpty) {
+      throw FormatException("Invalid number");
+    }
+    int? result = tryParseUtf8(source, start: start, end: end, radix: radix);
+    if (result != null) return result;
+    throw FormatException("Invalid number");
+  }
+
+  @patch
+  static int? tryParseUtf8(
+    Uint8List source, {
+    int start = 0,
+    int? end,
+    int? radix,
+  }) {
+    int actualEnd = end ?? source.length;
+    if (start < 0 || start > actualEnd) {
+      throw RangeError.range(start, 0, actualEnd, "start");
+    }
+    if (actualEnd > source.length) {
+      throw RangeError.range(actualEnd, start, source.length, "end");
+    }
+    if (start == actualEnd) return null;
+
+    // Trim ASCII whitespace
+    while (start < actualEnd && _isUtf8Whitespace(source[start])) {
+      start++;
+    }
+    while (start < actualEnd && _isUtf8Whitespace(source[actualEnd - 1])) {
+      actualEnd--;
+    }
+    if (start == actualEnd) return null;
+
+    if (radix == null || radix == 10) {
+      int? result = _tryParseUtf8Radix10(source, start, actualEnd);
+      if (result != null) return result;
+    } else {
+      RangeErrorUtils.checkValueBetweenZeroAndPositiveMax(
+        radix - 2,
+        34,
+        "Radix $radix not in range 2..36",
+      );
+    }
+
+    return _parseUtf8Radix(source, radix, start, actualEnd, null);
+  }
+
+  static int? _parseUtf8Radix(
+    Uint8List source,
+    int? radix,
+    int start,
+    int end,
+    int? Function(String)? onError,
+  ) {
+    int first = source[start];
+    int sign = 1;
+    if (first == 0x2b /* + */ || first == 0x2d /* - */ ) {
+      sign = 0x2c - first; // -1 if '-', +1 if '+'.
+      start++;
+      if (start == end) {
+        return null; // FormatError
+      }
+      first = source[start];
+    }
+    if (radix == null) {
+      if (first == 0x30 /* 0 */ ) {
+        int index = start + 1;
+        if (index == end) return 0;
+        first = source[index];
+        if ((first | 0x20) == 0x78 /* x */ ) {
+          index++;
+          if (index == end) return null; // Format exception
+          radix = 16;
+          start = index;
+        } else {
+          radix = 10;
+        }
+      } else {
+        radix = 10;
+      }
+    }
+    return _parseUtf8RadixGeneral(
+      source,
+      radix,
+      start,
+      end,
+      sign,
+      radix == 16 && sign > 0,
+      onError,
+    );
+  }
+
+  static int? _parseUtf8RadixGeneral(
+    Uint8List source,
+    int radix,
+    int start,
+    int end,
+    int sign,
+    bool allowOverflow,
+    int? Function(String)? onError,
+  ) {
+    // Skip leading zeroes.
+    while (start < end && source[start] == 0x30 /* 0 */ ) {
+      start += 1;
+    }
+
+    final blockSize = _PARSE_LIMITS[radix].toInt();
+    final length = end - start;
+
+    // Parse at most `blockSize` characters without overflows.
+    final parseBlockLength = length < blockSize ? length : blockSize;
+    int? blockResult = _parseBlockUtf8(
+      source,
+      radix,
+      start,
+      start + parseBlockLength,
+    );
+    if (blockResult == null) {
+      return null;
+    }
+
+    int result = sign * blockResult;
+
+    if (parseBlockLength < blockSize) {
+      // Overflow is not possible.
+      return result;
+    }
+
+    // Check overflows on the next digits. We can scan at most two digits before an overflow.
+    start += parseBlockLength;
+
+    for (int i = start; i < end; i++) {
+      int char = source[i];
+      int digit = char ^ 0x30;
+      if (digit > 9) {
+        digit = (char | 0x20) - (0x61 - 10);
+        if (digit < 10 || digit >= radix) {
+          return null;
+        }
+      }
+
+      if (sign > 0) {
+        const max = 9223372036854775807;
+        if (!allowOverflow && (result > (max - digit) ~/ radix)) {
+          return null;
+        }
+        result = (radix * result) + digit;
+      } else {
+        const min = -9223372036854775808;
+        if (result < (min + digit) ~/ radix) {
+          return null;
+        }
+        result = (radix * result) - digit;
+      }
+    }
+
+    return result;
+  }
+
+  static int? _parseBlockUtf8(Uint8List source, int radix, int start, int end) {
+    int result = 0;
+    if (radix <= 10) {
+      for (int i = start; i < end; i++) {
+        int digit = source[i] ^ 0x30;
+        if (digit >= radix) return null;
+        result = (radix * result) + digit;
+      }
+    } else {
+      for (int i = start; i < end; i++) {
+        int char = source[i];
+        int digit = char ^ 0x30;
+        if (digit > 9) {
+          digit = (char | 0x20) - (0x61 - 10);
+          if (digit < 10 || digit >= radix) return null;
+        }
+        result = (radix * result) + digit;
+      }
+    }
+    return result;
+  }
+
+  static int? _tryParseUtf8Radix10(Uint8List str, int start, int end) {
+    int ix = start;
+    int sign = 1;
+    int c = str[ix];
+    if ((c == 0x2b) || (c == 0x2d)) {
+      ix++;
+      sign = 0x2c - c;
+      if (ix == end) {
+        return null;
+      }
+    }
+    if (end - ix > 19) {
+      return null;
+    }
+    int result = 0;
+    int limit = end - ix == 19 ? end - 1 : end;
+    for (int i = ix; i < limit; i++) {
+      int c = 0x30 ^ str[i];
+      if (9 < c) {
+        return null;
+      }
+      result = (10 * result) + c;
+    }
+    if (limit != end) {
+      int c = 0x30 ^ str[limit];
+      if (9 < c) return null;
+      if (sign > 0) {
+        if (result > (9223372036854775807 - c) ~/ 10) return null;
+      } else {
+        if (sign * result < (-9223372036854775808 + c) ~/ 10) return null;
+      }
+      result = (10 * result) + c;
+    }
+    return sign * result;
   }
 
   @patch
@@ -234,14 +464,25 @@ class int {
         return null; // Empty.
       }
     }
-    if (end - ix > 18) {
-      return null; // May not fit into an `int`.
+    if (end - ix > 19) {
+      return null;
     }
     int result = 0;
-    for (int i = ix; i < end; i++) {
+    int limit = end - ix == 19 ? end - 1 : end;
+    for (int i = ix; i < limit; i++) {
       int c = 0x30 ^ str.codeUnitAtUnchecked(i);
       if (9 < c) {
         return null;
+      }
+      result = (10 * result) + c;
+    }
+    if (limit != end) {
+      int c = 0x30 ^ str.codeUnitAtUnchecked(limit);
+      if (9 < c) return null;
+      if (sign > 0) {
+        if (result > (9223372036854775807 - c) ~/ 10) return null;
+      } else {
+        if (sign * result < (-9223372036854775808 + c) ~/ 10) return null;
       }
       result = (10 * result) + c;
     }

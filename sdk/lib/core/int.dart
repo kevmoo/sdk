@@ -489,4 +489,47 @@ abstract final class int extends num {
   /// print(int.tryParse('z1', radix: 36)); // 1261 == 35 * 36 + 1
   /// ```
   external static int? tryParse(String source, {int? radix});
+
+  /// Parse [source] as a, possibly signed, integer literal and return its value.
+  ///
+  /// Like [parse], but parses the UTF-8 bytes from [source] directly without
+  /// allocating a `String`.
+  ///
+  /// The [start] and [end] indices can be provided to parse a substring.
+  static int parseUtf8(
+    Uint8List source, {
+    int start = 0,
+    int? end,
+    int? radix,
+  }) {
+    int? value = tryParseUtf8(source, start: start, end: end, radix: radix);
+    if (value != null) return value;
+    throw FormatException("Invalid number");
+  }
+
+  /// Parse [source] as a, possibly signed, integer literal and return its value.
+  ///
+  /// Like [tryParse], but parses the UTF-8 bytes from [source] directly without
+  /// allocating a `String`.
+  ///
+  /// The [start] and [end] indices can be provided to parse a substring.
+  static int? tryParseUtf8(
+    Uint8List source, {
+    int start = 0,
+    int? end,
+    int? radix,
+  }) {
+    int actualEnd = end ?? source.length;
+    if (start < 0 || start > actualEnd) {
+      throw RangeError.range(start, 0, actualEnd, "start");
+    }
+    if (actualEnd > source.length) {
+      throw RangeError.range(actualEnd, start, source.length, "end");
+    }
+    if (start == actualEnd) return null;
+    return tryParse(
+      utf8.decode(source.sublist(start, actualEnd)),
+      radix: radix,
+    );
+  }
 }
