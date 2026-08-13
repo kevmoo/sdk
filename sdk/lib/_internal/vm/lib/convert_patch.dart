@@ -2144,7 +2144,34 @@ class _Utf8Decoder {
 }
 
 @patch
+class JsonUtf8Decoder {
+  @patch
+  static double parseDouble(Uint8List bytes, int start, int end) {
+    final res = tryParseDouble(bytes, start, end);
+    if (res == null) {
+      throw FormatException(
+        'Invalid double in byte span [$start, $end)',
+        bytes,
+        start,
+      );
+    }
+    return res;
+  }
+
+  @patch
+  static double? tryParseDouble(Uint8List bytes, int start, int end) {
+    return _parseDoubleNative(bytes, start, end) ??
+        _tryParseDoubleUtf8(bytes, start, end);
+  }
+}
+
+@patch
 class JsonUtf8Encoder {
+  @patch
+  static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
+    return _writeDoubleToBufferNative(value, buffer, offset);
+  }
+
   @patch
   static int writeStringToBuffer(String value, Uint8List buffer, int offset) {
     final len = value.length;
@@ -2176,6 +2203,13 @@ class JsonUtf8Encoder {
 
 @pragma("vm:external-name", "JsonUtf8Decoder_parseDouble")
 external double? _parseDoubleNative(Uint8List bytes, int start, int end);
+
+@pragma("vm:external-name", "JsonUtf8Encoder_writeDoubleToBuffer")
+external int _writeDoubleToBufferNative(
+  double value,
+  Uint8List buffer,
+  int offset,
+);
 
 @pragma("vm:external-name", "JsonUtf8Encoder_writeStringToBuffer")
 external int _writeStringToBufferNative(

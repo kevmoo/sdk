@@ -72,6 +72,22 @@ class JsonUtf8Decoder {
       _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
 }
 
+@patch
+class JsonUtf8Encoder {
+  @patch
+  static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
+    if (!value.isFinite) {
+      throw ArgumentError.value(value, 'value', 'Must be finite');
+    }
+    return _writeDoubleToBufferUtf8(value, buffer, offset);
+  }
+
+  @patch
+  static int writeStringToBuffer(String value, Uint8List buffer, int offset) {
+    return _writeStringToBufferUtf8(value, buffer, offset);
+  }
+}
+
 //// Implementation ///////////////////////////////////////////////////////////
 
 // Simple API for JSON parsing.

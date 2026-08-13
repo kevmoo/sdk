@@ -336,9 +336,10 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     final b = bytes[i];
     if (b == 123 || b == 91) {
       // object or array
-      final stack = <int>[b];
+      var depth = 1;
+      var mask = (b == 123) ? 1 : 0;
       i++;
-      while (i < bytes.length && stack.isNotEmpty) {
+      while (i < bytes.length && depth > 0) {
         final c = bytes[i++];
         if (c == 34) {
           while (i < bytes.length) {
@@ -350,26 +351,40 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
             }
           }
         } else if (c == 123 || c == 91) {
-          stack.add(c);
+          if (depth >= 64) {
+            throw FormatException(
+              'Nesting depth exceeds limit of 64 at offset ${i - 1}',
+              bytes,
+              i - 1,
+            );
+          }
+          if (c == 123) {
+            mask |= (1 << depth);
+          } else {
+            mask &= ~(1 << depth);
+          }
+          depth++;
         } else if (c == 125) {
-          if (stack.isEmpty || stack.removeLast() != 123) {
+          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 1) {
             throw FormatException(
               'Mismatched "}" at offset ${i - 1}',
               bytes,
               i - 1,
             );
           }
+          depth--;
         } else if (c == 93) {
-          if (stack.isEmpty || stack.removeLast() != 91) {
+          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 0) {
             throw FormatException(
               'Mismatched "]" at offset ${i - 1}',
               bytes,
               i - 1,
             );
           }
+          depth--;
         }
       }
-      if (stack.isNotEmpty) {
+      if (depth > 0) {
         throw FormatException(
           'Unclosed container at offset $offset',
           bytes,
@@ -732,12 +747,30 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     Uint8List asciiKey, {
     required bool isFirst,
   }) {
+    final isQuoted =
+        asciiKey.length >= 2 && asciiKey.first == 0x22 && asciiKey.last == 0x22;
+    final requiredLen =
+        (isFirst ? 0 : 1) + asciiKey.length + (isQuoted ? 0 : 2) + 1;
+    if (offset < 0 || offset + requiredLen > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= requiredLen ? buffer.length - requiredLen : 0,
+        'offset',
+      );
+    }
     var cursor = offset;
     if (!isFirst) {
       buffer[cursor++] = 44; // ','
     }
+    if (!isQuoted) {
+      buffer[cursor++] = 0x22; // '"'
+    }
     for (var i = 0; i < asciiKey.length; i++) {
       buffer[cursor++] = asciiKey[i];
+    }
+    if (!isQuoted) {
+      buffer[cursor++] = 0x22; // '"'
     }
     buffer[cursor++] = 58; // ':'
     return cursor - offset;
@@ -1144,11 +1177,16 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
     if (i >= _bytes.length) return JsonTokenType.endOfDocument;
     if (_stack.isNotEmpty && _stack.last.state == _ReaderItemState.afterValue) {
+      final closingByte = _stack.last.type == _ContainerType.object ? 125 : 93;
       if (i < _bytes.length && _bytes[i] == 44) {
         i++;
         while (i < _bytes.length && _isWs(_bytes[i])) {
           i++;
         }
+      } else if (i < _bytes.length && _bytes[i] == closingByte) {
+        // Closing delimiter is valid
+      } else {
+        return JsonTokenType.none;
       }
     }
     if (i >= _bytes.length) return JsonTokenType.endOfDocument;
@@ -1430,9 +1468,10 @@ final class _JsonTokenReader implements JsonTokenReader {
     if (_offset >= _bytes.length) return;
     final b = _bytes[_offset];
     if (b == 123 || b == 91) {
-      final stack = <int>[b];
+      var depth = 1;
+      var mask = (b == 123) ? 1 : 0;
       _offset++;
-      while (_offset < _bytes.length && stack.isNotEmpty) {
+      while (_offset < _bytes.length && depth > 0) {
         final c = _bytes[_offset++];
         if (c == 34) {
           while (_offset < _bytes.length) {
@@ -1444,26 +1483,40 @@ final class _JsonTokenReader implements JsonTokenReader {
             }
           }
         } else if (c == 123 || c == 91) {
-          stack.add(c);
+          if (depth >= _maxDepth) {
+            throw FormatException(
+              'Nesting depth exceeds limit of $_maxDepth at offset ${_offset - 1}',
+              _bytes,
+              _offset - 1,
+            );
+          }
+          if (c == 123) {
+            mask |= (1 << depth);
+          } else {
+            mask &= ~(1 << depth);
+          }
+          depth++;
         } else if (c == 125) {
-          if (stack.isEmpty || stack.removeLast() != 123) {
+          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 1) {
             throw FormatException(
               'Mismatched "}" at offset ${_offset - 1}',
               _bytes,
               _offset - 1,
             );
           }
+          depth--;
         } else if (c == 93) {
-          if (stack.isEmpty || stack.removeLast() != 91) {
+          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 0) {
             throw FormatException(
               'Mismatched "]" at offset ${_offset - 1}',
               _bytes,
               _offset - 1,
             );
           }
+          depth--;
         }
       }
-      if (stack.isNotEmpty) {
+      if (depth > 0) {
         throw FormatException(
           'Unclosed container at end of document',
           _bytes,
@@ -1503,21 +1556,25 @@ final class _JsonTokenReader implements JsonTokenReader {
     if (i >= _bytes.length) {
       throw FormatException('Unexpected end of document');
     }
-    if (_bytes[i] == 34) {
+    final b = _bytes[i];
+    if (b == 123 || b == 125 || b == 91 || b == 93 || b == 58 || b == 44) {
+      return (i, i + 1);
+    }
+    if (b == 34) {
       final start = i + 1;
       var j = start;
       while (j < _bytes.length) {
-        final b = _bytes[j];
-        if (b < 0x20) {
+        final c = _bytes[j];
+        if (c < 0x20) {
           throw FormatException(
             'Unescaped control character in string literal at offset $j',
             _bytes,
             j,
           );
         }
-        if (b == 92) {
+        if (c == 92) {
           j += 2;
-        } else if (b == 34) {
+        } else if (c == 34) {
           return (start, j);
         } else {
           j++;
@@ -1528,8 +1585,8 @@ final class _JsonTokenReader implements JsonTokenReader {
       final start = i;
       var j = start;
       while (j < _bytes.length) {
-        final b = _bytes[j];
-        if (b == 44 || b == 125 || b == 93 || _isWs(b)) {
+        final c = _bytes[j];
+        if (c == 44 || c == 125 || c == 93 || c == 58 || _isWs(c)) {
           break;
         }
         j++;
@@ -1683,9 +1740,15 @@ final class _JsonTokenWriter implements JsonTokenWriter {
       _sink.addByte(44); // ','
     }
     _objectStateStack.last = _ObjectState.key;
-    _sink.addByte(34); // '"'
+    final isQuoted =
+        asciiKey.length >= 2 && asciiKey.first == 0x22 && asciiKey.last == 0x22;
+    if (!isQuoted) {
+      _sink.addByte(34); // '"'
+    }
     _sink.add(asciiKey);
-    _sink.addByte(34); // '"'
+    if (!isQuoted) {
+      _sink.addByte(34); // '"'
+    }
     _sink.addByte(58); // ':'
   }
 
@@ -1946,6 +2009,9 @@ int _writeStringToBufferUtf8(String value, Uint8List buffer, int offset) {
 }
 
 int _writeDoubleToBufferUtf8(double value, Uint8List buffer, int offset) {
+  if (!value.isFinite) {
+    throw ArgumentError.value(value, 'value', 'Must be finite');
+  }
   if (offset < 0 || offset > buffer.length) {
     throw RangeError.range(offset, 0, buffer.length, 'offset');
   }
@@ -2574,8 +2640,9 @@ bool _isVerbatimUtf8(Uint8List source, int start, int end) {
   if (start < 0 || end > source.length || start > end) return false;
   for (var i = start; i < end; i++) {
     final b = source[i];
-    if (b == 92 || b < 0x20)
-      return false; // '\\' or unescaped control character
+    if (b < 0x20 || b > 0x7E || b == 0x22 || b == 0x5C) {
+      return false; // Non-ASCII, control char, quote, or backslash
+    }
   }
   return true;
 }

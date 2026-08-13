@@ -27,6 +27,10 @@ void main() {
   testTokenReaderNonDestructivePeek();
   testTokenReaderControlCharacters();
   testTokenReaderComplexNestingSkipValue();
+  testContainerDelimiterSpans();
+  testPeekMissingCommaError();
+  testWriteNameBytesPreQuoted();
+  testSkipValueMaxDepthLimit();
 }
 
 void testTokenReaderPrimitives() {
@@ -588,4 +592,133 @@ void testTokenReaderComplexNestingSkipValue() {
   Expect.isTrue(rArr.hasNext());
   Expect.equals(42, rArr.readInt());
   rArr.endArray();
+}
+
+void testContainerDelimiterSpans() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Single-byte delimiter spans for unspaced and spaced containers
+  final unspacedObj = b('{"a":1}');
+  final r1 = JsonTokenReader.fromBytes(unspacedObj);
+  final (s1, e1) = r1.getTokenSpan();
+  Expect.equals(0, s1);
+  Expect.equals(1, e1);
+  Expect.equals('{', utf8.decode(unspacedObj.sublist(s1, e1)));
+
+  r1.beginObject();
+  Expect.equals('a', r1.nextName());
+  Expect.equals(1, r1.readInt());
+  final (s1Close, e1Close) = r1.getTokenSpan();
+  Expect.equals(6, s1Close);
+  Expect.equals(7, e1Close);
+  Expect.equals('}', utf8.decode(unspacedObj.sublist(s1Close, e1Close)));
+  r1.endObject();
+
+  final spacedObj = b('  {  "a"  :  1  }  ');
+  final r2 = JsonTokenReader.fromBytes(spacedObj);
+  final (s2, e2) = r2.getTokenSpan();
+  Expect.equals(2, s2);
+  Expect.equals(3, e2);
+  Expect.equals('{', utf8.decode(spacedObj.sublist(s2, e2)));
+
+  final unspacedArr = b('[1,2]');
+  final r3 = JsonTokenReader.fromBytes(unspacedArr);
+  final (s3, e3) = r3.getTokenSpan();
+  Expect.equals(0, s3);
+  Expect.equals(1, e3);
+  Expect.equals('[', utf8.decode(unspacedArr.sublist(s3, e3)));
+
+  r3.beginArray();
+  Expect.equals(1, r3.readInt());
+  Expect.equals(2, r3.readInt());
+  final (s3Close, e3Close) = r3.getTokenSpan();
+  Expect.equals(4, s3Close);
+  Expect.equals(5, e3Close);
+  Expect.equals(']', utf8.decode(unspacedArr.sublist(s3Close, e3Close)));
+  r3.endArray();
+}
+
+void testPeekMissingCommaError() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // In an object, after reading a value, next must be comma or '}'.
+  // If followed directly by another key without comma, peek() must return none.
+  final rObj = JsonTokenReader.fromBytes(b('{"a": 1 "b": 2}'));
+  rObj.beginObject();
+  Expect.equals('a', rObj.nextName());
+  Expect.equals(1, rObj.readInt());
+  Expect.equals(JsonTokenType.none, rObj.peek());
+
+  // In an array, after reading a value, next must be comma or ']'.
+  // If followed directly by another element without comma, peek() must return none.
+  final rArr = JsonTokenReader.fromBytes(b('[1 2]'));
+  rArr.beginArray();
+  Expect.equals(1, rArr.readInt());
+  Expect.equals(JsonTokenType.none, rArr.peek());
+}
+
+void testWriteNameBytesPreQuoted() {
+  // Pre-quoted key constant (Pattern B: utf8.encode('"x"'))
+  final sink1 = BytesBuilder();
+  final w1 = JsonTokenWriter.toSink(sink1);
+  w1.beginObject();
+  w1.writeNameBytes(Uint8List.fromList(utf8.encode('"key"')));
+  w1.writeInt(42);
+  w1.endObject();
+  final out1 = utf8.decode(sink1.takeBytes());
+  Expect.equals('{"key":42}', out1);
+
+  // Raw unquoted key constant
+  final sink2 = BytesBuilder();
+  final w2 = JsonTokenWriter.toSink(sink2);
+  w2.beginObject();
+  w2.writeNameBytes(Uint8List.fromList(utf8.encode('key')));
+  w2.writeInt(42);
+  w2.endObject();
+  final out2 = utf8.decode(sink2.takeBytes());
+  Expect.equals('{"key":42}', out2);
+}
+
+void testSkipValueMaxDepthLimit() {
+  // 65 levels of nested array
+  final open = '[' * 65;
+  final close = ']' * 65;
+  final deepArray = Uint8List.fromList(utf8.encode('$open$close'));
+  final r = JsonTokenReader.fromBytes(deepArray);
+  Expect.throwsFormatException(() => r.skipValue());
+
+  // 64 levels of nested array should succeed
+  final okOpen = '[' * 64;
+  final okClose = ']' * 64;
+  final okArray = Uint8List.fromList(utf8.encode('$okOpen$okClose'));
+  final rOk = JsonTokenReader.fromBytes(okArray);
+  rOk.skipValue();
+
+  // Mixed containers at depth 64: 32 objects containing arrays
+  var mixed64 = '';
+  for (var i = 0; i < 32; i++) {
+    mixed64 += '{"k":[';
+  }
+  mixed64 += '42';
+  for (var i = 0; i < 32; i++) {
+    mixed64 += ']}';
+  }
+  final rMixed = JsonTokenReader.fromBytes(
+    Uint8List.fromList(utf8.encode(mixed64)),
+  );
+  rMixed.skipValue();
+
+  // Mixed containers at depth 65: exceeds limit
+  var mixed65 = '';
+  for (var i = 0; i < 32; i++) {
+    mixed65 += '{"k":[';
+  }
+  mixed65 += '{"k": 42}';
+  for (var i = 0; i < 32; i++) {
+    mixed65 += ']}';
+  }
+  final rMixed65 = JsonTokenReader.fromBytes(
+    Uint8List.fromList(utf8.encode(mixed65)),
+  );
+  Expect.throwsFormatException(() => rMixed65.skipValue());
 }

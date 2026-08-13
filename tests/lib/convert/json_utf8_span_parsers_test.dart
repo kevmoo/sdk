@@ -30,6 +30,7 @@ void main() {
   testBufferOverflowAndBounds();
   testUnescapedControlCharsInStrings();
   testContainerSkippingNesting();
+  testSkipValueMaxDepth();
 }
 
 void testParseInt() {
@@ -199,6 +200,20 @@ void testIsVerbatim() {
 
   Expect.isTrue(JsonUtf8Decoder.isVerbatim(b('hello world'), 0, 11));
   Expect.isFalse(JsonUtf8Decoder.isVerbatim(b(r'hello \"world\"'), 0, 15));
+
+  // Must reject multi-byte UTF-8 sequences (€, emojis)
+  final euroBytes = Uint8List.fromList([0xE2, 0x82, 0xAC]); // €
+  Expect.isFalse(JsonUtf8Decoder.isVerbatim(euroBytes, 0, 3));
+  final emojiBytes = Uint8List.fromList([0xF0, 0x9F, 0x98, 0x80]); // 😀
+  Expect.isFalse(JsonUtf8Decoder.isVerbatim(emojiBytes, 0, 4));
+
+  // Must reject raw unescaped quotes
+  Expect.isFalse(JsonUtf8Decoder.isVerbatim(b('hello"world'), 0, 11));
+
+  // Must reject control characters and DEL
+  Expect.isFalse(JsonUtf8Decoder.isVerbatim(Uint8List.fromList([0x00]), 0, 1));
+  Expect.isFalse(JsonUtf8Decoder.isVerbatim(Uint8List.fromList([0x1F]), 0, 1));
+  Expect.isFalse(JsonUtf8Decoder.isVerbatim(Uint8List.fromList([0x7F]), 0, 1));
 }
 
 void testSkipMethods() {
@@ -259,6 +274,36 @@ void testEncoderBufferWriters() {
     isFirst: false,
   );
   Expect.equals(',"id":', utf8.decode(buffer.sublist(0, len)));
+
+  // Raw unquoted key: utf8.encode('name')
+  final rawKey = Uint8List.fromList(utf8.encode('name'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    rawKey,
+    isFirst: true,
+  );
+  Expect.equals('"name":', utf8.decode(buffer.sublist(0, len)));
+
+  // Multibyte UTF-8 key: utf8.encode('clé')
+  final utf8Key = Uint8List.fromList(utf8.encode('clé'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    utf8Key,
+    isFirst: true,
+  );
+  Expect.equals('"clé":', utf8.decode(buffer.sublist(0, len)));
+
+  // Pre-quoted multibyte UTF-8 key: utf8.encode('"clé"')
+  final quotedUtf8Key = Uint8List.fromList(utf8.encode('"clé"'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    quotedUtf8Key,
+    isFirst: false,
+  );
+  Expect.equals(',"clé":', utf8.decode(buffer.sublist(0, len)));
 }
 
 void testSurrogateEncoding() {
@@ -570,6 +615,16 @@ void testJsonKeyOptionsCollisionsAndDuplicates() {
   }
   final missing = b('key_schema_field_999');
   Expect.equals(-1, manyOptions.selectKey(missing, 0, missing.length));
+
+  // Multibyte UTF-8 keys in JsonKeyOptions
+  final utf8Options = JsonKeyOptions.of(['id', 'clé', '😀', 'active']);
+  Expect.equals(4, utf8Options.length);
+  final cleBytes = b('clé');
+  Expect.equals(1, utf8Options.selectKey(cleBytes, 0, cleBytes.length));
+  final emojiBytes = b('😀');
+  Expect.equals(2, utf8Options.selectKey(emojiBytes, 0, emojiBytes.length));
+  final activeBytes = b('active');
+  Expect.equals(3, utf8Options.selectKey(activeBytes, 0, activeBytes.length));
 }
 
 void testBufferOverflowAndBounds() {
@@ -719,4 +774,45 @@ void testContainerSkippingNesting() {
   final b8 = b('"hello\\');
   final skipOffset = JsonUtf8Decoder.skipString(b8, 0);
   Expect.isTrue(skipOffset <= b8.length);
+}
+
+void testSkipValueMaxDepth() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 65 levels of nested array must throw FormatException
+  final open = '[' * 65;
+  final close = ']' * 65;
+  final deepArray = b('$open$close');
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(deepArray, 0));
+
+  // 64 levels of nested array should succeed
+  final okOpen = '[' * 64;
+  final okClose = ']' * 64;
+  final okArray = b('$okOpen$okClose');
+  final okOffset = JsonUtf8Decoder.skipValue(okArray, 0);
+  Expect.equals(128, okOffset);
+
+  // Mixed container nesting at depth 64
+  var mixed64 = '';
+  for (var i = 0; i < 32; i++) {
+    mixed64 += '{"k":[';
+  }
+  mixed64 += '42';
+  for (var i = 0; i < 32; i++) {
+    mixed64 += ']}';
+  }
+  final mixedBytes = b(mixed64);
+  final mixedOffset = JsonUtf8Decoder.skipValue(mixedBytes, 0);
+  Expect.equals(mixedBytes.length, mixedOffset);
+
+  // Mixed container nesting at depth 65 must throw
+  var mixed65 = '';
+  for (var i = 0; i < 32; i++) {
+    mixed65 += '{"k":[';
+  }
+  mixed65 += '{"k": 42}';
+  for (var i = 0; i < 32; i++) {
+    mixed65 += ']}';
+  }
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b(mixed65), 0));
 }
