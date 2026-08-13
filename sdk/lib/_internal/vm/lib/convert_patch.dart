@@ -2146,8 +2146,12 @@ class _Utf8Decoder {
 @patch
 class JsonUtf8Encoder {
   @patch
-  static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) =>
-      _writeDoubleToBufferNative(value, buffer, offset);
+  static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
+    if (!value.isFinite) {
+      throw ArgumentError.value(value, 'value', 'Must be finite');
+    }
+    return _writeDoubleToBufferNative(value, buffer, offset);
+  }
 
   @patch
   static int writeStringToBuffer(String value, Uint8List buffer, int offset) =>

@@ -179,8 +179,8 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
 
   /// Parses a 64-bit signed integer directly from a base-10 UTF-8 byte span
   /// `[start..end]` without allocating an intermediate [String].
-  static int parseInt(Uint8List bytes, int start, int end, {int? radix}) {
-    final res = tryParseInt(bytes, start, end, radix: radix);
+  static int parseInt(Uint8List bytes, int start, int end) {
+    final res = tryParseInt(bytes, start, end);
     if (res == null) {
       throw FormatException(
         'Invalid integer in byte span [$start, $end)',
@@ -193,8 +193,8 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
 
   /// Parses a 64-bit signed integer directly from a base-10 UTF-8 byte span
   /// `[start..end]`. Returns `null` if the byte slice is not a valid integer.
-  static int? tryParseInt(Uint8List bytes, int start, int end, {int? radix}) {
-    return _tryParseIntUtf8(bytes, start, end, radix: radix);
+  static int? tryParseInt(Uint8List bytes, int start, int end) {
+    return _tryParseIntUtf8(bytes, start, end);
   }
 
   /// Parses a boolean literal (`true` or `false`) from byte span `[start..end]`.
@@ -263,7 +263,11 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   /// complete JSON value (skipping nested objects, arrays, and strings).
   static int skipValue(Uint8List bytes, int offset) {
     var i = offset;
-    while (i < bytes.length && bytes[i] <= 32) {
+    while (i < bytes.length &&
+        (bytes[i] == 0x20 ||
+            bytes[i] == 0x09 ||
+            bytes[i] == 0x0A ||
+            bytes[i] == 0x0D)) {
       i++;
     }
     if (i >= bytes.length) return i;
@@ -309,18 +313,26 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
         bytes[i] != 44 &&
         bytes[i] != 125 &&
         bytes[i] != 93 &&
-        bytes[i] > 32) {
+        bytes[i] != 0x20 &&
+        bytes[i] != 0x09 &&
+        bytes[i] != 0x0A &&
+        bytes[i] != 0x0D) {
       i++;
     }
     return i;
   }
 
-  /// Fast-skips ASCII whitespace (0x20, 0x09, 0x0A, 0x0D) starting at [offset]
+  /// Fast-skips JSON whitespace (0x20, 0x09, 0x0A, 0x0D) starting at [offset]
   /// and returns the offset of the next non-whitespace byte.
   static int skipWhitespace(Uint8List bytes, int offset) {
     var i = offset;
-    while (i < bytes.length && bytes[i] <= 32) {
-      i++;
+    while (i < bytes.length) {
+      final b = bytes[i];
+      if (b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D) {
+        i++;
+      } else {
+        break;
+      }
     }
     return i;
   }
@@ -448,12 +460,18 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   /// Formats [value] as a valid JSON floating-point literal directly into [sink].
   static void writeDouble(double value, BytesBuilder sink) {
+    if (!value.isFinite) {
+      throw ArgumentError.value(value, 'value', 'Must be finite');
+    }
     sink.add(utf8.encode(value.toString()));
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
   /// Returns the number of bytes written.
   static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
+    if (!value.isFinite) {
+      throw ArgumentError.value(value, 'value', 'Must be finite');
+    }
     final encoded = utf8.encode(value.toString());
     buffer.setRange(offset, offset + encoded.length, encoded);
     return encoded.length;
@@ -813,15 +831,97 @@ abstract interface class JsonTokenReader {
   (int start, int end) getTokenSpan();
 }
 
+enum _ContainerType { object, array }
+
+enum _ReaderItemState { start, afterName, afterValue, afterComma }
+
+final class _ContainerFrame {
+  final _ContainerType type;
+  _ReaderItemState state;
+
+  _ContainerFrame(this.type, this.state);
+}
+
 final class _JsonTokenReader implements JsonTokenReader {
+  static const int _maxDepth = 64;
   final Uint8List _bytes;
   int _offset = 0;
+  final List<_ContainerFrame> _stack = [];
 
   _JsonTokenReader(this._bytes);
 
+  bool _isWs(int b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D;
+
   void _skipWs() {
-    while (_offset < _bytes.length && _bytes[_offset] <= 32) {
+    while (_offset < _bytes.length && _isWs(_bytes[_offset])) {
       _offset++;
+    }
+  }
+
+  void _consumeColon() {
+    _skipWs();
+    if (_offset < _bytes.length && _bytes[_offset] == 58) {
+      _offset++;
+    } else {
+      throw FormatException('Expected ":" at offset $_offset');
+    }
+  }
+
+  void _beforeReadingName() {
+    _skipWs();
+    if (_stack.isEmpty || _stack.last.type != _ContainerType.object) {
+      throw FormatException(
+        'Cannot read property name outside of an object at offset $_offset',
+      );
+    }
+    final top = _stack.last;
+    if (top.state == _ReaderItemState.afterName) {
+      throw FormatException(
+        'Expected property value before next property name at offset $_offset',
+      );
+    }
+    if (top.state == _ReaderItemState.afterValue) {
+      if (_offset < _bytes.length && _bytes[_offset] == 44) {
+        _offset++;
+        top.state = _ReaderItemState.afterComma;
+        _skipWs();
+      } else {
+        throw FormatException(
+          'Expected "," before property name at offset $_offset',
+        );
+      }
+    }
+  }
+
+  void _beforeReadingValue() {
+    _skipWs();
+    if (_stack.isNotEmpty) {
+      final top = _stack.last;
+      if (top.type == _ContainerType.object) {
+        if (top.state != _ReaderItemState.afterName) {
+          throw FormatException(
+            'Expected property name before value at offset $_offset',
+          );
+        }
+      } else {
+        if (top.state == _ReaderItemState.afterValue) {
+          if (_offset < _bytes.length && _bytes[_offset] == 44) {
+            _offset++;
+            top.state = _ReaderItemState.afterComma;
+            _skipWs();
+          } else {
+            throw FormatException(
+              'Expected "," before array element at offset $_offset',
+            );
+          }
+        }
+      }
+    }
+  }
+
+  void _afterReadingValue() {
+    if (_stack.isNotEmpty) {
+      _stack.last.state = _ReaderItemState.afterValue;
     }
   }
 
@@ -829,7 +929,17 @@ final class _JsonTokenReader implements JsonTokenReader {
   JsonTokenType peek() {
     _skipWs();
     if (_offset >= _bytes.length) return JsonTokenType.endOfDocument;
-    final b = _bytes[_offset];
+    var i = _offset;
+    if (_stack.isNotEmpty && _stack.last.state == _ReaderItemState.afterValue) {
+      if (i < _bytes.length && _bytes[i] == 44) {
+        i++;
+        while (i < _bytes.length && _isWs(_bytes[i])) {
+          i++;
+        }
+      }
+    }
+    if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+    final b = _bytes[i];
     switch (b) {
       case 123: // '{'
         return JsonTokenType.beginObject;
@@ -840,6 +950,11 @@ final class _JsonTokenReader implements JsonTokenReader {
       case 93: // ']'
         return JsonTokenType.endArray;
       case 34: // '"'
+        if (_stack.isNotEmpty &&
+            _stack.last.type == _ContainerType.object &&
+            _stack.last.state != _ReaderItemState.afterName) {
+          return JsonTokenType.propertyName;
+        }
         return JsonTokenType.string;
       case 116: // 't'
       case 102: // 'f'
@@ -865,9 +980,17 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   void beginObject() {
-    _skipWs();
+    _beforeReadingValue();
     if (_offset < _bytes.length && _bytes[_offset] == 123) {
       _offset++;
+      if (_stack.length >= _maxDepth) {
+        throw FormatException(
+          'Nesting depth exceeds limit of $_maxDepth at offset $_offset',
+        );
+      }
+      _stack.add(
+        _ContainerFrame(_ContainerType.object, _ReaderItemState.start),
+      );
     } else {
       throw FormatException('Expected "{" at offset $_offset');
     }
@@ -876,9 +999,21 @@ final class _JsonTokenReader implements JsonTokenReader {
   @override
   void endObject() {
     _skipWs();
+    if (_stack.isEmpty || _stack.last.type != _ContainerType.object) {
+      throw FormatException('Expected "}" at offset $_offset');
+    }
+    if (_stack.last.state == _ReaderItemState.afterComma) {
+      throw FormatException('Trailing comma before "}" at offset $_offset');
+    }
+    if (_stack.last.state == _ReaderItemState.afterName) {
+      throw FormatException(
+        'Expected value after property name before "}" at offset $_offset',
+      );
+    }
     if (_offset < _bytes.length && _bytes[_offset] == 125) {
       _offset++;
-      _consumeTrailingComma();
+      _stack.removeLast();
+      _afterReadingValue();
     } else {
       throw FormatException('Expected "}" at offset $_offset');
     }
@@ -886,9 +1021,15 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   void beginArray() {
-    _skipWs();
+    _beforeReadingValue();
     if (_offset < _bytes.length && _bytes[_offset] == 91) {
       _offset++;
+      if (_stack.length >= _maxDepth) {
+        throw FormatException(
+          'Nesting depth exceeds limit of $_maxDepth at offset $_offset',
+        );
+      }
+      _stack.add(_ContainerFrame(_ContainerType.array, _ReaderItemState.start));
     } else {
       throw FormatException('Expected "[" at offset $_offset');
     }
@@ -897,9 +1038,16 @@ final class _JsonTokenReader implements JsonTokenReader {
   @override
   void endArray() {
     _skipWs();
+    if (_stack.isEmpty || _stack.last.type != _ContainerType.array) {
+      throw FormatException('Expected "]" at offset $_offset');
+    }
+    if (_stack.last.state == _ReaderItemState.afterComma) {
+      throw FormatException('Trailing comma before "]" at offset $_offset');
+    }
     if (_offset < _bytes.length && _bytes[_offset] == 93) {
       _offset++;
-      _consumeTrailingComma();
+      _stack.removeLast();
+      _afterReadingValue();
     } else {
       throw FormatException('Expected "]" at offset $_offset');
     }
@@ -909,24 +1057,45 @@ final class _JsonTokenReader implements JsonTokenReader {
   bool hasNext() {
     _skipWs();
     if (_offset >= _bytes.length) return false;
+    if (_stack.isNotEmpty) {
+      final top = _stack.last;
+      final closeChar = top.type == _ContainerType.object ? 125 : 93;
+      final closeStr = top.type == _ContainerType.object ? '"}"' : '"]"';
+
+      if (top.state == _ReaderItemState.start) {
+        if (_bytes[_offset] == closeChar) {
+          return false;
+        }
+        return true;
+      } else if (top.state == _ReaderItemState.afterValue) {
+        if (_bytes[_offset] == closeChar) {
+          return false;
+        }
+        if (_bytes[_offset] == 44) {
+          _offset++;
+          top.state = _ReaderItemState.afterComma;
+          _skipWs();
+          if (_offset < _bytes.length && _bytes[_offset] == closeChar) {
+            throw FormatException(
+              'Trailing comma before $closeStr at offset $_offset',
+            );
+          }
+          return true;
+        }
+        throw FormatException('Expected "," or $closeStr at offset $_offset');
+      } else if (top.state == _ReaderItemState.afterComma) {
+        if (_bytes[_offset] == closeChar) {
+          throw FormatException(
+            'Trailing comma before $closeStr at offset $_offset',
+          );
+        }
+        return true;
+      } else if (top.state == _ReaderItemState.afterName) {
+        return true;
+      }
+    }
     final b = _bytes[_offset];
-    return b != 125 && b != 93; // not '}' and not ']'
-  }
-
-  void _consumeColon() {
-    _skipWs();
-    if (_offset < _bytes.length && _bytes[_offset] == 58) {
-      _offset++;
-    } else {
-      throw FormatException('Expected ":" at offset $_offset');
-    }
-  }
-
-  void _consumeTrailingComma() {
-    _skipWs();
-    if (_offset < _bytes.length && _bytes[_offset] == 44) {
-      _offset++;
-    }
+    return b != 125 && b != 93;
   }
 
   (int, int) _scanStringSpan() {
@@ -953,45 +1122,51 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   String nextName() {
+    _beforeReadingName();
     final (start, end) = _scanStringSpan();
     _consumeColon();
+    _stack.last.state = _ReaderItemState.afterName;
     return _decodeStringUtf8(_bytes, start, end);
   }
 
   @override
   int selectName(JsonKeyOptions options) {
+    _beforeReadingName();
     final (start, end) = _scanStringSpan();
     _consumeColon();
+    _stack.last.state = _ReaderItemState.afterName;
     return options.selectKey(_bytes, start, end);
   }
 
   @override
   int selectString(JsonKeyOptions options) {
+    _beforeReadingValue();
     final (start, end) = _scanStringSpan();
-    _consumeTrailingComma();
+    _afterReadingValue();
     return options.selectKey(_bytes, start, end);
   }
 
   @override
   String readString() {
+    _beforeReadingValue();
     final (start, end) = _scanStringSpan();
-    _consumeTrailingComma();
+    _afterReadingValue();
     return _decodeStringUtf8(_bytes, start, end);
   }
 
   (int, int) _scanValueSpan() {
-    _skipWs();
+    _beforeReadingValue();
     final start = _offset;
     var i = start;
     while (i < _bytes.length) {
       final b = _bytes[i];
-      if (b == 44 || b == 125 || b == 93 || b <= 32) {
+      if (b == 44 || b == 125 || b == 93 || _isWs(b)) {
         break;
       }
       i++;
     }
     _offset = i;
-    _consumeTrailingComma();
+    _afterReadingValue();
     return (start, i);
   }
 
@@ -1031,7 +1206,7 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   void skipValue() {
-    _skipWs();
+    _beforeReadingValue();
     if (_offset >= _bytes.length) return;
     final b = _bytes[_offset];
     if (b == 123) {
@@ -1079,21 +1254,66 @@ final class _JsonTokenReader implements JsonTokenReader {
     } else if (b == 34) {
       _scanStringSpan();
     } else {
-      _scanValueSpan();
+      var i = _offset;
+      while (i < _bytes.length) {
+        final c = _bytes[i];
+        if (c == 44 || c == 125 || c == 93 || _isWs(c)) {
+          break;
+        }
+        i++;
+      }
+      _offset = i;
     }
-    _consumeTrailingComma();
+    _afterReadingValue();
   }
 
   @override
   (int start, int end) getTokenSpan() {
-    _skipWs();
-    final p = peek();
-    if (p == JsonTokenType.string) {
-      return _scanStringSpan();
+    var i = _offset;
+    while (i < _bytes.length && _isWs(_bytes[i])) {
+      i++;
     }
-    return _scanValueSpan();
+    if (_stack.isNotEmpty && _stack.last.state == _ReaderItemState.afterValue) {
+      if (i < _bytes.length && _bytes[i] == 44) {
+        i++;
+        while (i < _bytes.length && _isWs(_bytes[i])) {
+          i++;
+        }
+      }
+    }
+    if (i >= _bytes.length) {
+      throw FormatException('Unexpected end of document');
+    }
+    if (_bytes[i] == 34) {
+      final start = i + 1;
+      var j = start;
+      while (j < _bytes.length) {
+        final b = _bytes[j];
+        if (b == 92) {
+          j += 2;
+        } else if (b == 34) {
+          return (start, j);
+        } else {
+          j++;
+        }
+      }
+      throw FormatException('Unterminated string literal at offset $start');
+    } else {
+      final start = i;
+      var j = start;
+      while (j < _bytes.length) {
+        final b = _bytes[j];
+        if (b == 44 || b == 125 || b == 93 || _isWs(b)) {
+          break;
+        }
+        j++;
+      }
+      return (start, j);
+    }
   }
 }
+
+enum _ObjectState { empty, key, value }
 
 /// High-performance push-based JSON token writer.
 abstract interface class JsonTokenWriter {
@@ -1116,80 +1336,127 @@ abstract interface class JsonTokenWriter {
 }
 
 final class _JsonTokenWriter implements JsonTokenWriter {
+  static const int _maxDepth = 64;
   final BytesBuilder _sink;
-  final List<bool> _stateStack =
-      []; // true if inside object, false if inside array
-  final List<bool> _isFirstStack = [];
+  final List<_ContainerType> _stateStack = [];
+  final List<_ObjectState> _objectStateStack = [];
+  final List<bool> _isArrayFirstStack = [];
+  bool _hasRootValue = false;
 
   _JsonTokenWriter(this._sink);
 
   void _beforeValue() {
     if (_stateStack.isNotEmpty) {
-      final inObject = _stateStack.last;
-      if (!inObject) {
+      final inObject = _stateStack.last == _ContainerType.object;
+      if (inObject) {
+        if (_objectStateStack.last != _ObjectState.key) {
+          throw StateError('Expected property name before value in object');
+        }
+        _objectStateStack.last = _ObjectState.value;
+      } else {
         // In array
-        if (!_isFirstStack.last) {
+        if (!_isArrayFirstStack.last) {
           _sink.addByte(44); // ','
         }
-        _isFirstStack.last = false;
+        _isArrayFirstStack.last = false;
       }
+    } else {
+      if (_hasRootValue) {
+        throw StateError('Cannot write multiple root values');
+      }
+      _hasRootValue = true;
     }
   }
 
   @override
   void beginObject() {
+    if (_stateStack.length >= _maxDepth) {
+      throw StateError('Nesting depth exceeds limit of $_maxDepth');
+    }
     _beforeValue();
     _sink.addByte(123); // '{'
-    _stateStack.add(true);
-    _isFirstStack.add(true);
+    _stateStack.add(_ContainerType.object);
+    _objectStateStack.add(_ObjectState.empty);
   }
 
   @override
   void endObject() {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
+      throw StateError('Cannot endObject: not inside an object');
+    }
+    if (_objectStateStack.last == _ObjectState.key) {
+      throw StateError('Cannot endObject: expected value after property name');
+    }
     _sink.addByte(125); // '}'
-    if (_stateStack.isNotEmpty) {
-      _stateStack.removeLast();
-      _isFirstStack.removeLast();
+    _stateStack.removeLast();
+    _objectStateStack.removeLast();
+    if (_stateStack.isNotEmpty &&
+        _stateStack.last == _ContainerType.object &&
+        _objectStateStack.last == _ObjectState.key) {
+      _objectStateStack.last = _ObjectState.value;
     }
   }
 
   @override
   void beginArray() {
+    if (_stateStack.length >= _maxDepth) {
+      throw StateError('Nesting depth exceeds limit of $_maxDepth');
+    }
     _beforeValue();
     _sink.addByte(91); // '['
-    _stateStack.add(false);
-    _isFirstStack.add(true);
+    _stateStack.add(_ContainerType.array);
+    _isArrayFirstStack.add(true);
   }
 
   @override
   void endArray() {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.array) {
+      throw StateError('Cannot endArray: not inside an array');
+    }
     _sink.addByte(93); // ']'
-    if (_stateStack.isNotEmpty) {
-      _stateStack.removeLast();
-      _isFirstStack.removeLast();
+    _stateStack.removeLast();
+    _isArrayFirstStack.removeLast();
+    if (_stateStack.isNotEmpty &&
+        _stateStack.last == _ContainerType.object &&
+        _objectStateStack.last == _ObjectState.key) {
+      _objectStateStack.last = _ObjectState.value;
     }
   }
 
   @override
   void writeName(String name) {
-    if (_isFirstStack.isNotEmpty && !_isFirstStack.last) {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
+      throw StateError('Cannot writeName: not inside an object');
+    }
+    final objState = _objectStateStack.last;
+    if (objState == _ObjectState.key) {
+      throw StateError(
+        'Cannot writeName: already expecting a value for previous property',
+      );
+    }
+    if (objState == _ObjectState.value) {
       _sink.addByte(44); // ','
     }
-    if (_isFirstStack.isNotEmpty) {
-      _isFirstStack.last = false;
-    }
+    _objectStateStack.last = _ObjectState.key;
     JsonUtf8Encoder.writeString(name, _sink);
     _sink.addByte(58); // ':'
   }
 
   @override
   void writeNameBytes(Uint8List asciiKey) {
-    if (_isFirstStack.isNotEmpty && !_isFirstStack.last) {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
+      throw StateError('Cannot writeNameBytes: not inside an object');
+    }
+    final objState = _objectStateStack.last;
+    if (objState == _ObjectState.key) {
+      throw StateError(
+        'Cannot writeNameBytes: already expecting a value for previous property',
+      );
+    }
+    if (objState == _ObjectState.value) {
       _sink.addByte(44); // ','
     }
-    if (_isFirstStack.isNotEmpty) {
-      _isFirstStack.last = false;
-    }
+    _objectStateStack.last = _ObjectState.key;
     _sink.addByte(34); // '"'
     _sink.add(asciiKey);
     _sink.addByte(34); // '"'
@@ -1279,128 +1546,196 @@ double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
   if (start >= end || start < 0 || end > source.length) return null;
 
   var i = start;
-  while (i < end && source[i] <= 32) {
+  while (i < end &&
+      (source[i] == 0x20 ||
+          source[i] == 0x09 ||
+          source[i] == 0x0A ||
+          source[i] == 0x0D)) {
     i++;
   }
   if (i >= end) return null;
+
+  var actualEnd = end;
+  while (actualEnd > i &&
+      (source[actualEnd - 1] == 0x20 ||
+          source[actualEnd - 1] == 0x09 ||
+          source[actualEnd - 1] == 0x0A ||
+          source[actualEnd - 1] == 0x0D)) {
+    actualEnd--;
+  }
+  if (i >= actualEnd) return null;
+
+  final sliceStart = i;
+  if (source[i] == 45) {
+    // '-'
+    i++;
+    if (i >= actualEnd) return null;
+  }
+
+  // Integer part:
+  if (source[i] == 48) {
+    // '0'
+    i++;
+    // Leading zero cannot be followed by another digit
+    if (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
+      return null;
+    }
+  } else if (source[i] >= 49 && source[i] <= 57) {
+    // '1'..'9'
+    i++;
+    while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
+      i++;
+    }
+  } else {
+    return null;
+  }
+
+  // Fraction part (optional):
+  if (i < actualEnd && source[i] == 46) {
+    // '.'
+    i++;
+    if (i >= actualEnd || source[i] < 48 || source[i] > 57) {
+      return null;
+    }
+    while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
+      i++;
+    }
+  }
+
+  // Exponent part (optional):
+  if (i < actualEnd && (source[i] == 101 || source[i] == 69)) {
+    // 'e' or 'E'
+    i++;
+    if (i < actualEnd && (source[i] == 43 || source[i] == 45)) {
+      // '+' or '-'
+      i++;
+    }
+    if (i >= actualEnd || source[i] < 48 || source[i] > 57) {
+      return null;
+    }
+    while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
+      i++;
+    }
+  }
+
+  if (i != actualEnd) return null;
+
+  // The slice [sliceStart..actualEnd] is verified 100% valid RFC 8259 ASCII number.
+  return double.tryParse(String.fromCharCodes(source, sliceStart, actualEnd));
+}
+
+const List<int> _maxInt64Digits = [
+  57,
+  50,
+  50,
+  51,
+  51,
+  55,
+  50,
+  48,
+  51,
+  54,
+  56,
+  53,
+  52,
+  55,
+  55,
+  53,
+  56,
+  48,
+  55,
+]; // '9223372036854775807'
+const List<int> _minInt64Digits = [
+  57,
+  50,
+  50,
+  51,
+  51,
+  55,
+  50,
+  48,
+  51,
+  54,
+  56,
+  53,
+  52,
+  55,
+  55,
+  53,
+  56,
+  48,
+  56,
+]; // '9223372036854775808'
+
+int? _tryParseIntUtf8(Uint8List source, int start, int end) {
+  if (start >= end || start < 0 || end > source.length) return null;
+
+  var i = start;
+  while (i < end &&
+      (source[i] == 0x20 ||
+          source[i] == 0x09 ||
+          source[i] == 0x0A ||
+          source[i] == 0x0D)) {
+    i++;
+  }
+  if (i >= end) return null;
+
+  var actualEnd = end;
+  while (actualEnd > i &&
+      (source[actualEnd - 1] == 0x20 ||
+          source[actualEnd - 1] == 0x09 ||
+          source[actualEnd - 1] == 0x0A ||
+          source[actualEnd - 1] == 0x0D)) {
+    actualEnd--;
+  }
+  if (i >= actualEnd) return null;
 
   var negative = false;
   if (source[i] == 45) {
+    // '-'
     negative = true;
     i++;
-  } else if (source[i] == 43) {
+    if (i >= actualEnd) return null;
+  }
+
+  // Integer part:
+  if (source[i] == 48) {
+    // '0'
+    i++;
+    // Leading zero cannot be followed by another digit
+    if (i < actualEnd) return null;
+    return 0;
+  }
+
+  if (source[i] < 49 || source[i] > 57) {
+    // '1'..'9'
+    return null;
+  }
+
+  final digitsStart = i;
+  while (i < actualEnd) {
+    final byte = source[i];
+    if (byte < 48 || byte > 57) return null;
     i++;
   }
-  if (i >= end) return null;
 
-  var integerPart = 0;
-  var hasDigits = false;
-  while (i < end && source[i] >= 48 && source[i] <= 57) {
-    hasDigits = true;
-    integerPart = integerPart * 10 + (source[i] - 48);
-    i++;
-  }
-
-  var fractionalPart = 0;
-  var fractionDigits = 0;
-  if (i < end && source[i] == 46) {
-    i++;
-    while (i < end && source[i] >= 48 && source[i] <= 57) {
-      hasDigits = true;
-      fractionalPart = fractionalPart * 10 + (source[i] - 48);
-      fractionDigits++;
-      i++;
+  final numDigits = actualEnd - digitsStart;
+  if (numDigits > 19) return null;
+  if (numDigits == 19) {
+    final limit = negative ? _minInt64Digits : _maxInt64Digits;
+    for (var k = 0; k < 19; k++) {
+      final d = source[digitsStart + k];
+      final lim = limit[k];
+      if (d < lim) break;
+      if (d > lim) return null;
     }
   }
 
-  if (!hasDigits) return null;
-
-  var val = integerPart.toDouble();
-  if (fractionDigits > 0) {
-    if (fractionDigits < _powersOfTen.length) {
-      val += fractionalPart / _powersOfTen[fractionDigits];
-    } else {
-      val += fractionalPart / _pow10(fractionDigits);
-    }
+  int value = 0;
+  for (var k = digitsStart; k < actualEnd; k++) {
+    value = value * 10 - (source[k] - 48);
   }
-
-  if (i < end && (source[i] == 101 || source[i] == 69)) {
-    i++;
-    var expNegative = false;
-    if (i < end && source[i] == 45) {
-      expNegative = true;
-      i++;
-    } else if (i < end && source[i] == 43) {
-      i++;
-    }
-    var exp = 0;
-    var hasExpDigits = false;
-    while (i < end && source[i] >= 48 && source[i] <= 57) {
-      hasExpDigits = true;
-      exp = exp * 10 + (source[i] - 48);
-      i++;
-    }
-    if (!hasExpDigits) return null;
-    final factor = exp < _powersOfTen.length ? _powersOfTen[exp] : _pow10(exp);
-    val = expNegative ? val / factor : val * factor;
-  }
-
-  while (i < end && source[i] <= 32) {
-    i++;
-  }
-  if (i < end) return null;
-
-  return negative ? -val : val;
-}
-
-int? _tryParseIntUtf8(Uint8List source, int start, int end, {int? radix}) {
-  final r = radix ?? 10;
-  if (r < 2 || r > 36) throw RangeError.range(r, 2, 36, 'radix');
-  if (start >= end || start < 0 || end > source.length) return null;
-
-  var index = start;
-  while (index < end && source[index] <= 32) {
-    index++;
-  }
-  if (index >= end) return null;
-
-  var negative = false;
-  final first = source[index];
-  if (first == 45) {
-    negative = true;
-    index++;
-  } else if (first == 43) {
-    index++;
-  }
-  if (index >= end) return null;
-
-  var result = 0;
-  var hasDigits = false;
-  while (index < end) {
-    final byte = source[index++];
-    if (byte <= 32) {
-      while (index < end) {
-        if (source[index++] > 32) return null;
-      }
-      break;
-    }
-    final int digit;
-    if (byte >= 48 && byte <= 57) {
-      digit = byte - 48;
-    } else if (byte >= 65 && byte <= 90) {
-      digit = byte - 55;
-    } else if (byte >= 97 && byte <= 122) {
-      digit = byte - 87;
-    } else {
-      return null;
-    }
-    if (digit >= r) return null;
-    hasDigits = true;
-    result = result * r + digit;
-  }
-
-  if (!hasDigits) return null;
-  return negative ? -result : result;
+  return negative ? value : -value;
 }
 
 bool? _tryParseBoolUtf8(Uint8List source, int start, int end) {
@@ -1477,10 +1812,19 @@ String _decodeStringUtf8(
 
   final buffer = StringBuffer();
   var i = start;
+  var runStart = start;
   while (i < end) {
-    final byte = source[i];
-    if (byte == 92) {
-      i++;
+    if (source[i] == 92) {
+      // '\\'
+      if (i > runStart) {
+        buffer.write(
+          utf8.decode(
+            Uint8List.sublistView(source, runStart, i),
+            allowMalformed: allowMalformed,
+          ),
+        );
+      }
+      i++; // skip '\\'
       if (i >= end) {
         throw FormatException('Unexpected EOF in escape sequence', source, i);
       }
@@ -1528,24 +1872,18 @@ String _decodeStringUtf8(
             i - 1,
           );
       }
+      runStart = i;
     } else {
-      final charLen = _utf8SequenceLength(byte);
-      if (i + charLen > end) {
-        if (allowMalformed) {
-          buffer.write('\uFFFD');
-          i++;
-          continue;
-        }
-        throw FormatException('Truncated UTF-8 multibyte sequence', source, i);
-      }
-      buffer.write(
-        utf8.decode(
-          Uint8List.sublistView(source, i, i + charLen),
-          allowMalformed: allowMalformed,
-        ),
-      );
-      i += charLen;
+      i++;
     }
+  }
+  if (i > runStart) {
+    buffer.write(
+      utf8.decode(
+        Uint8List.sublistView(source, runStart, i),
+        allowMalformed: allowMalformed,
+      ),
+    );
   }
   return buffer.toString();
 }

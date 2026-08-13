@@ -8,9 +8,62 @@
 #include "vm/native_entry.h"
 #include "vm/object.h"
 #include "vm/symbols.h"
+#include <cmath>
 #include <string.h>
 
 namespace dart {
+
+static inline bool IsJsonWhitespace(uint8_t c) {
+  return c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D;
+}
+
+static bool IsValidJsonNumber(const uint8_t* str, intptr_t len) {
+  if (len == 0) return false;
+  intptr_t i = 0;
+  if (str[i] == '-') {
+    i++;
+    if (i == len) return false;
+  }
+  // Integer part
+  if (str[i] == '0') {
+    i++;
+    // A leading zero cannot be followed by another digit
+    if (i < len && str[i] >= '0' && str[i] <= '9') {
+      return false;
+    }
+  } else if (str[i] >= '1' && str[i] <= '9') {
+    i++;
+    while (i < len && str[i] >= '0' && str[i] <= '9') {
+      i++;
+    }
+  } else {
+    return false;
+  }
+  // Fraction part
+  if (i < len && str[i] == '.') {
+    i++;
+    if (i == len || str[i] < '0' || str[i] > '9') {
+      return false;
+    }
+    while (i < len && str[i] >= '0' && str[i] <= '9') {
+      i++;
+    }
+  }
+  // Exponent part
+  if (i < len && (str[i] == 'e' || str[i] == 'E')) {
+    i++;
+    if (i < len && (str[i] == '+' || str[i] == '-')) {
+      i++;
+    }
+    if (i == len || str[i] < '0' || str[i] > '9') {
+      return false;
+    }
+    while (i < len && str[i] >= '0' && str[i] <= '9') {
+      i++;
+    }
+  }
+  return i == len;
+}
 
 DEFINE_NATIVE_ENTRY(JsonUtf8Decoder_parseDouble, 0, 3) {
   GET_NON_NULL_NATIVE_ARGUMENT(TypedData, bytes, arguments->NativeArgAt(0));
@@ -25,16 +78,16 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Decoder_parseDouble, 0, 3) {
         reinterpret_cast<const uint8_t*>(bytes.DataAddr(start));
     intptr_t len = end - start;
 
-    // Skip leading ASCII whitespace.
-    while (len > 0 && *payload <= 32) {
+    // Skip leading JSON whitespace.
+    while (len > 0 && IsJsonWhitespace(*payload)) {
       payload++;
       len--;
     }
-    // Skip trailing ASCII whitespace.
-    while (len > 0 && payload[len - 1] <= 32) {
+    // Skip trailing JSON whitespace.
+    while (len > 0 && IsJsonWhitespace(payload[len - 1])) {
       len--;
     }
-    if (len == 0) {
+    if (len == 0 || !IsValidJsonNumber(payload, len)) {
       return Object::null();
     }
 
@@ -53,6 +106,9 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeDoubleToBuffer, 0, 3) {
   GET_NON_NULL_NATIVE_ARGUMENT(Smi, offset_obj, arguments->NativeArgAt(2));
 
   double value = value_obj.value();
+  if (!std::isfinite(value)) {
+    Exceptions::ThrowArgumentError(value_obj);
+  }
   intptr_t offset = offset_obj.Value();
 
   char char_buffer[128];
@@ -153,6 +209,11 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeStringToBuffer, 0, 3) {
             }
           }
           // Unpaired surrogate -> replacement char U+FFFD (0xEF, 0xBF, 0xBD)
+          if (!write_byte(0xEF) || !write_byte(0xBF) || !write_byte(0xBD)) {
+            return Smi::New(0);
+          }
+        } else if (c >= 0xDC00 && c <= 0xDFFF) {
+          // Unpaired low surrogate -> replacement char U+FFFD (0xEF, 0xBF, 0xBD)
           if (!write_byte(0xEF) || !write_byte(0xBF) || !write_byte(0xBD)) {
             return Smi::New(0);
           }

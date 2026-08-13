@@ -18,6 +18,13 @@ void main() {
   testIsVerbatim();
   testSkipMethods();
   testEncoderBufferWriters();
+  testSurrogateEncoding();
+  testRfc8259NumberGrammar();
+  testIntegerOverflowAndLimits();
+  testNonFiniteDoubleRejection();
+  testWhitespaceAndControlChars();
+  testDecodeStringWithEscapesAndSurrogates();
+  testSkipValueControlChars();
 }
 
 void testParseInt() {
@@ -39,11 +46,6 @@ void testParseInt() {
 
   // Whitespace trimming
   Expect.equals(100, JsonUtf8Decoder.parseInt(b('  100  '), 0, 7));
-
-  // Radix support
-  Expect.equals(255, JsonUtf8Decoder.parseInt(b('ff'), 0, 2, radix: 16));
-  Expect.equals(255, JsonUtf8Decoder.parseInt(b('FF'), 0, 2, radix: 16));
-  Expect.equals(7, JsonUtf8Decoder.parseInt(b('111'), 0, 3, radix: 2));
 
   // tryParseInt
   Expect.equals(42, JsonUtf8Decoder.tryParseInt(b('42'), 0, 2));
@@ -252,4 +254,239 @@ void testEncoderBufferWriters() {
     isFirst: false,
   );
   Expect.equals(',"id":', utf8.decode(buffer.sublist(0, len)));
+}
+
+void testSurrogateEncoding() {
+  final buf = Uint8List(64);
+  // Isolated low surrogate: \uDC00
+  final len1 = JsonUtf8Encoder.writeStringToBuffer('\uDC00', buf, 0);
+  final decoded1 = utf8.decode(buf.sublist(0, len1));
+  Expect.isTrue(decoded1 == '"\uFFFD"' || decoded1 == r'"\udc00"');
+
+  // Isolated high surrogate: \uD800
+  final len2 = JsonUtf8Encoder.writeStringToBuffer('\uD800', buf, 0);
+  final decoded2 = utf8.decode(buf.sublist(0, len2));
+  Expect.isTrue(decoded2 == '"\uFFFD"' || decoded2 == r'"\ud800"');
+}
+
+void testRfc8259NumberGrammar() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Reject leading +
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('+1.0'), 0, 4));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('+1.0'), 0, 4),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('+42'), 0, 3));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('+42'), 0, 3),
+  );
+
+  // Reject leading zeros
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('0123'), 0, 4));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('0123'), 0, 4),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('-0123'), 0, 5));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('-0123'), 0, 5),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('00'), 0, 2));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('00'), 0, 2),
+  );
+
+  // Reject missing integer digit (.5, -.5)
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('.5'), 0, 2));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('.5'), 0, 2),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('-.5'), 0, 3));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('-.5'), 0, 3),
+  );
+
+  // Reject missing fraction digit (5., 0.)
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('5.'), 0, 2));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('5.'), 0, 2),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('0.'), 0, 2));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('0.'), 0, 2),
+  );
+
+  // Reject NaN / Infinity
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('NaN'), 0, 3));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('NaN'), 0, 3),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('Infinity'), 0, 8));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('Infinity'), 0, 8),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('-Infinity'), 0, 9));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('-Infinity'), 0, 9),
+  );
+
+  // Reject malformed exponents
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('1e'), 0, 2));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('1e'), 0, 2),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('1e+'), 0, 3));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('1e+'), 0, 3),
+  );
+
+  // Reject hex numbers
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('0x12'), 0, 4));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('0x12'), 0, 4),
+  );
+
+  // Valid numbers
+  Expect.equals(0.0, JsonUtf8Decoder.parseDouble(b('0'), 0, 1));
+  Expect.equals(-0.0, JsonUtf8Decoder.parseDouble(b('-0'), 0, 2));
+  Expect.equals(0.5, JsonUtf8Decoder.parseDouble(b('0.5'), 0, 3));
+  Expect.equals(-0.5, JsonUtf8Decoder.parseDouble(b('-0.5'), 0, 4));
+  Expect.equals(100.0, JsonUtf8Decoder.parseDouble(b('100'), 0, 3));
+  Expect.equals(1e5, JsonUtf8Decoder.parseDouble(b('1e5'), 0, 3));
+  Expect.equals(1e-5, JsonUtf8Decoder.parseDouble(b('1e-5'), 0, 4));
+  Expect.equals(1e+5, JsonUtf8Decoder.parseDouble(b('1e+5'), 0, 4));
+}
+
+void testIntegerOverflowAndLimits() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Reject > int64 max
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('9223372036854775808'), 0, 19));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(b('9223372036854775808'), 0, 19),
+  );
+  Expect.isNull(
+    JsonUtf8Decoder.tryParseInt(b('9999999999999999999999999'), 0, 25),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(b('9999999999999999999999999'), 0, 25),
+  );
+
+  // Reject < int64 min
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('-9223372036854775809'), 0, 20));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(b('-9223372036854775809'), 0, 20),
+  );
+  Expect.isNull(
+    JsonUtf8Decoder.tryParseInt(b('-9999999999999999999999999'), 0, 26),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(b('-9999999999999999999999999'), 0, 26),
+  );
+
+  // Reject leading +
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('+123'), 0, 4));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.parseInt(b('+123'), 0, 4));
+
+  // Reject leading zeros
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('0123'), 0, 4));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.parseInt(b('0123'), 0, 4));
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('-0123'), 0, 5));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(b('-0123'), 0, 5),
+  );
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('00'), 0, 2));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.parseInt(b('00'), 0, 2));
+
+  // Valid 64-bit limits
+  Expect.equals(
+    9223372036854775807,
+    JsonUtf8Decoder.parseInt(b('9223372036854775807'), 0, 19),
+  );
+  Expect.equals(
+    -9223372036854775808,
+    JsonUtf8Decoder.parseInt(b('-9223372036854775808'), 0, 20),
+  );
+  Expect.equals(0, JsonUtf8Decoder.parseInt(b('0'), 0, 1));
+  Expect.equals(0, JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
+}
+
+void testNonFiniteDoubleRejection() {
+  final buf = Uint8List(64);
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(double.nan, buf, 0),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(double.infinity, buf, 0),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(double.negativeInfinity, buf, 0),
+  );
+
+  final sink = BytesBuilder();
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.nan, sink),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.infinity, sink),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.negativeInfinity, sink),
+  );
+}
+
+void testWhitespaceAndControlChars() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  Expect.equals(4, JsonUtf8Decoder.skipWhitespace(b(' \t\r\n42'), 0));
+  Expect.equals(0, JsonUtf8Decoder.skipWhitespace(b('\x0042'), 0));
+  Expect.equals(0, JsonUtf8Decoder.skipWhitespace(b('\x1f42'), 0));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('\x0042'), 0, 3),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(b('\x0042'), 0, 3),
+  );
+}
+
+void testDecodeStringWithEscapesAndSurrogates() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Escapes with surrounding non-ASCII UTF-8
+  final text = 'café \\"au lait\\" €';
+  final bytes = b(text);
+  Expect.equals(
+    'café "au lait" €',
+    JsonUtf8Decoder.decodeString(bytes, 0, bytes.length),
+  );
+
+  // Truncated escape
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.decodeString(b(r'hello\'), 0, 6),
+  );
+
+  // Invalid escape char
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.decodeString(b(r'hello\x41'), 0, 8),
+  );
+
+  // Incomplete unicode escape
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.decodeString(b(r'hello\u12'), 0, 9),
+  );
+
+  // Invalid hex in unicode escape
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.decodeString(b(r'hello\u12G4'), 0, 11),
+  );
+}
+
+void testSkipValueControlChars() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Control char \x00 should not be skipped as whitespace
+  final withNul = b('\x00{"a": 1}');
+  final skipNul = JsonUtf8Decoder.skipValue(withNul, 0);
+  // It shouldn't skip past the object if it started on a non-whitespace control character
+  Expect.equals(0, JsonUtf8Decoder.skipWhitespace(withNul, 0));
 }

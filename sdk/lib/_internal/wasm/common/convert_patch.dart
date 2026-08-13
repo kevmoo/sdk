@@ -2953,6 +2953,9 @@ double _parseDoubleNative(Uint8List bytes, int start, int end) {
 }
 
 int _writeDoubleToBufferNative(double value, Uint8List buffer, int offset) {
+  if (!value.isFinite) {
+    throw ArgumentError.value(value, 'value', 'Must be finite');
+  }
   final encoded = utf8.encode(value.toString());
   for (var i = 0; i < encoded.length; i++) buffer[offset + i] = encoded[i];
   return encoded.length;
