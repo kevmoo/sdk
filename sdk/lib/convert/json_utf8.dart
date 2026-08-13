@@ -633,90 +633,10 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   /// Writes [value] with standard JSON escaping directly into [sink].
   static void writeString(String value, BytesBuilder sink) {
-    sink.addByte(0x22); // '"'
-    final len = value.length;
-    for (var i = 0; i < len; i++) {
-      final c = value.codeUnitAt(i);
-      switch (c) {
-        case 0x22:
-          sink.addByte(0x5C);
-          sink.addByte(0x22);
-          break;
-        case 0x5C:
-          sink.addByte(0x5C);
-          sink.addByte(0x5C);
-          break;
-        case 0x08:
-          sink.addByte(0x5C);
-          sink.addByte(0x62); // 'b'
-          break;
-        case 0x0C:
-          sink.addByte(0x5C);
-          sink.addByte(0x66); // 'f'
-          break;
-        case 0x0A:
-          sink.addByte(0x5C);
-          sink.addByte(0x6E); // 'n'
-          break;
-        case 0x0D:
-          sink.addByte(0x5C);
-          sink.addByte(0x72); // 'r'
-          break;
-        case 0x09:
-          sink.addByte(0x5C);
-          sink.addByte(0x74); // 't'
-          break;
-        default:
-          if (c < 0x20) {
-            sink.addByte(0x5C);
-            sink.addByte(0x75); // 'u'
-            sink.addByte(0x30); // '0'
-            sink.addByte(0x30); // '0'
-            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
-            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
-          } else if (c <= 0x7F) {
-            sink.addByte(c);
-          } else if (c <= 0x7FF) {
-            sink.addByte(0xC0 | (c >> 6));
-            sink.addByte(0x80 | (c & 0x3F));
-          } else if (c >= 0xD800 && c <= 0xDBFF) {
-            if (i + 1 < len) {
-              final c2 = value.codeUnitAt(i + 1);
-              if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
-                i++;
-                final codePoint =
-                    0x10000 + ((c - 0xD800) << 10) + (c2 - 0xDC00);
-                sink.addByte(0xF0 | (codePoint >> 18));
-                sink.addByte(0x80 | ((codePoint >> 12) & 0x3F));
-                sink.addByte(0x80 | ((codePoint >> 6) & 0x3F));
-                sink.addByte(0x80 | (codePoint & 0x3F));
-                break;
-              }
-            }
-            // Isolated high surrogate -> \uXXXX
-            sink.addByte(0x5C);
-            sink.addByte(0x75); // 'u'
-            sink.addByte(_hexDigits.codeUnitAt((c >> 12) & 0xF));
-            sink.addByte(_hexDigits.codeUnitAt((c >> 8) & 0xF));
-            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
-            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
-          } else if (c >= 0xDC00 && c <= 0xDFFF) {
-            // Isolated low surrogate -> \uXXXX
-            sink.addByte(0x5C);
-            sink.addByte(0x75); // 'u'
-            sink.addByte(_hexDigits.codeUnitAt((c >> 12) & 0xF));
-            sink.addByte(_hexDigits.codeUnitAt((c >> 8) & 0xF));
-            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
-            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
-          } else {
-            sink.addByte(0xE0 | (c >> 12));
-            sink.addByte(0x80 | ((c >> 6) & 0x3F));
-            sink.addByte(0x80 | (c & 0x3F));
-          }
-          break;
-      }
-    }
-    sink.addByte(0x22); // '"'
+    final maxLen = value.length * 6 + 2;
+    final buf = Uint8List(maxLen);
+    final len = writeStringToBuffer(value, buf, 0);
+    sink.add(Uint8List.sublistView(buf, 0, len));
   }
 
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
@@ -730,10 +650,9 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    final str = value.toString();
-    for (var i = 0; i < str.length; i++) {
-      sink.addByte(str.codeUnitAt(i));
-    }
+    final buf = Uint8List(64);
+    final len = writeDoubleToBuffer(value, buf, 0);
+    sink.add(Uint8List.sublistView(buf, 0, len));
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -1501,6 +1420,13 @@ final class _JsonTokenReader implements JsonTokenReader {
             return _valueTokenType(_bytes[i]);
           case _ReaderItemState.afterComma:
             if (_bytes[i] == 34) return JsonTokenType.propertyName;
+            if (_bytes[i] == 125 || _bytes[i] == 93) {
+              throw FormatException(
+                'Trailing comma before closing delimiter',
+                _bytes,
+                _offset,
+              );
+            }
             return JsonTokenType.none;
           case _ReaderItemState.afterValue:
             if (_bytes[i] == 125) return JsonTokenType.endObject;
@@ -1510,6 +1436,13 @@ final class _JsonTokenReader implements JsonTokenReader {
                 i++;
               }
               if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+              if (_bytes[i] == 125 || _bytes[i] == 93) {
+                throw FormatException(
+                  'Trailing comma before closing delimiter',
+                  _bytes,
+                  _offset,
+                );
+              }
               if (_bytes[i] == 34) return JsonTokenType.propertyName;
               return JsonTokenType.none;
             }
@@ -1522,6 +1455,13 @@ final class _JsonTokenReader implements JsonTokenReader {
             if (_bytes[i] == 93) return JsonTokenType.endArray;
             return _valueTokenType(_bytes[i]);
           case _ReaderItemState.afterComma:
+            if (_bytes[i] == 93 || _bytes[i] == 125) {
+              throw FormatException(
+                'Trailing comma before closing delimiter',
+                _bytes,
+                _offset,
+              );
+            }
             return _valueTokenType(_bytes[i]);
           case _ReaderItemState.afterValue:
             if (_bytes[i] == 93) return JsonTokenType.endArray;
@@ -1531,6 +1471,13 @@ final class _JsonTokenReader implements JsonTokenReader {
                 i++;
               }
               if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+              if (_bytes[i] == 93 || _bytes[i] == 125) {
+                throw FormatException(
+                  'Trailing comma before closing delimiter',
+                  _bytes,
+                  _offset,
+                );
+              }
               return _valueTokenType(_bytes[i]);
             }
             return JsonTokenType.none;
@@ -1623,26 +1570,45 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   bool hasNext() {
-    _skipWs();
-    if (_offset >= _bytes.length) return false;
-    if (_stack.isNotEmpty) {
-      final top = _stack.last;
-      final closeChar = top.type == _ContainerType.object ? 125 : 93;
-      final closeStr = top.type == _ContainerType.object ? '"}"' : '"]"';
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    try {
+      _skipWs();
+      if (_offset >= _bytes.length) return false;
+      if (_stack.isNotEmpty) {
+        final top = _stack.last;
+        final closeChar = top.type == _ContainerType.object ? 125 : 93;
+        final closeStr = top.type == _ContainerType.object ? '"}"' : '"]"';
 
-      if (top.state == _ReaderItemState.start) {
-        if (_bytes[_offset] == closeChar) {
-          return false;
-        }
-        return true;
-      } else if (top.state == _ReaderItemState.afterValue) {
-        if (_bytes[_offset] == closeChar) {
-          return false;
-        }
-        if (_bytes[_offset] == 44) {
-          _offset++;
-          top.state = _ReaderItemState.afterComma;
-          _skipWs();
+        if (top.state == _ReaderItemState.start) {
+          if (_bytes[_offset] == closeChar) {
+            return false;
+          }
+          return true;
+        } else if (top.state == _ReaderItemState.afterValue) {
+          if (_bytes[_offset] == closeChar) {
+            return false;
+          }
+          if (_bytes[_offset] == 44) {
+            _offset++;
+            top.state = _ReaderItemState.afterComma;
+            _skipWs();
+            if (_offset >= _bytes.length) {
+              throw FormatException(
+                'Unexpected end of document after comma',
+                _bytes,
+                _offset,
+              );
+            }
+            if (_bytes[_offset] == 125 || _bytes[_offset] == 93) {
+              throw FormatException(
+                'Trailing comma before $closeStr at offset $_offset',
+              );
+            }
+            return true;
+          }
+          throw FormatException('Expected "," or $closeStr at offset $_offset');
+        } else if (top.state == _ReaderItemState.afterComma) {
           if (_offset >= _bytes.length) {
             throw FormatException(
               'Unexpected end of document after comma',
@@ -1656,32 +1622,23 @@ final class _JsonTokenReader implements JsonTokenReader {
             );
           }
           return true;
+        } else if (top.state == _ReaderItemState.afterName) {
+          return true;
         }
-        throw FormatException('Expected "," or $closeStr at offset $_offset');
-      } else if (top.state == _ReaderItemState.afterComma) {
-        if (_offset >= _bytes.length) {
-          throw FormatException(
-            'Unexpected end of document after comma',
-            _bytes,
-            _offset,
-          );
+      } else {
+        if (_hasReadRoot) {
+          return false;
         }
-        if (_bytes[_offset] == 125 || _bytes[_offset] == 93) {
-          throw FormatException(
-            'Trailing comma before $closeStr at offset $_offset',
-          );
-        }
-        return true;
-      } else if (top.state == _ReaderItemState.afterName) {
-        return true;
       }
-    } else {
-      if (_hasReadRoot) {
-        return false;
+      final b = _bytes[_offset];
+      return b != 125 && b != 93;
+    } catch (_) {
+      _offset = initialOffset;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
       }
+      rethrow;
     }
-    final b = _bytes[_offset];
-    return b != 125 && b != 93;
   }
 
   (int, int) _scanStringSpan() {
@@ -1864,9 +1821,6 @@ final class _JsonTokenReader implements JsonTokenReader {
   @override
   num readNum() {
     return _readValue((start, end) {
-      if (end - start >= 2 && _bytes[start] == 45 && _bytes[start + 1] == 48) {
-        return JsonUtf8Decoder.parseDouble(_bytes, start, end);
-      }
       final asInt = JsonUtf8Decoder.tryParseInt(_bytes, start, end);
       if (asInt != null) return asInt;
       return JsonUtf8Decoder.parseDouble(_bytes, start, end);

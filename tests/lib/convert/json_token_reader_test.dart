@@ -988,13 +988,13 @@ void testAllowMalformedUtf8WithEscapes() {
 void testTrailingCommaPeekRejection() {
   Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 
-  // Trailing comma before '}' in object: peek() must return none
+  // Trailing comma before '}' in object: peek() must throw FormatException
   {
     final r = JsonTokenReader.fromBytes(b('{"a": 1, }'));
     r.beginObject();
     Expect.equals('a', r.nextName());
     Expect.equals(1, r.readInt());
-    Expect.equals(JsonTokenType.none, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
   // Trailing comma with multiple properties
@@ -1005,16 +1005,16 @@ void testTrailingCommaPeekRejection() {
     Expect.equals(1, r.readInt());
     Expect.equals('b', r.nextName());
     Expect.equals(2, r.readInt());
-    Expect.equals(JsonTokenType.none, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
-  // Trailing comma before ']' in array: peek() must return none
+  // Trailing comma before ']' in array: peek() must throw FormatException
   {
     final r = JsonTokenReader.fromBytes(b('[1, 2, ]'));
     r.beginArray();
     Expect.equals(1, r.readInt());
     Expect.equals(2, r.readInt());
-    Expect.equals(JsonTokenType.none, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
   // Single-element array with trailing comma
@@ -1022,24 +1022,24 @@ void testTrailingCommaPeekRejection() {
     final r = JsonTokenReader.fromBytes(b('[true, ]'));
     r.beginArray();
     Expect.equals(true, r.readBool());
-    Expect.equals(JsonTokenType.none, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
-  // Mismatched closing delimiter after comma in array: peek() must return none
+  // Mismatched closing delimiter after comma in array: peek() must throw FormatException
   {
     final r = JsonTokenReader.fromBytes(b('[1, }'));
     r.beginArray();
     Expect.equals(1, r.readInt());
-    Expect.equals(JsonTokenType.none, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
-  // Mismatched closing delimiter after comma in object: peek() must return none
+  // Mismatched closing delimiter after comma in object: peek() must throw FormatException
   {
     final r = JsonTokenReader.fromBytes(b('{"a": 1, ]'));
     r.beginObject();
     Expect.equals('a', r.nextName());
     Expect.equals(1, r.readInt());
-    Expect.equals(JsonTokenType.none, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
   // Invalid value (non-string key) after comma in object: peek() must return none
@@ -1258,12 +1258,10 @@ void testTokenReaderSkipValueRollback() {
     final r = JsonTokenReader.fromBytes(b('[-0, 0, -0.0, 0.0, -0e0, -0e5]'));
     r.beginArray();
 
-    // -0 as readNum -> -0.0 (double)
+    // -0 as readNum -> 0 (int)
     final v1 = r.readNum();
-    Expect.type<double>(v1);
-    Expect.equals(-0.0, v1);
-    Expect.isTrue(v1.isNegative);
-    Expect.equals(double.negativeInfinity, 1 / v1);
+    Expect.type<int>(v1);
+    Expect.equals(0, v1);
 
     // 0 as readNum -> 0 (int)
     final v2 = r.readNum();

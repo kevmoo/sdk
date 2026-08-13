@@ -36,6 +36,9 @@ void main() {
   testWriteDoubleToBufferEdgeCases();
   testDecoderSkipValueScalarValidation();
   testDirectToSinkEncoderWriters();
+  testPeekTrailingComma();
+  testHasNextAtomicRollback();
+  testBatchedSinkWriters();
 }
 
 void testParseInt() {
@@ -844,22 +847,31 @@ void testNegativeZeroPreservation() {
   final intReader = JsonTokenReader.fromBytes(b('-0'));
   Expect.equals(0, intReader.readInt());
 
-  // JsonTokenReader.readNum() on -0 must return -0.0 (double)
+  // JsonTokenReader.readNum() on -0 must return integer 0 (aligning with jsonDecode)
   final reader = JsonTokenReader.fromBytes(b('-0'));
   final numVal = reader.readNum();
-  Expect.type<double>(numVal);
-  Expect.equals(-0.0, numVal);
-  Expect.isTrue(numVal.isNegative);
-  Expect.equals(double.negativeInfinity, 1 / numVal);
+  Expect.type<int>(numVal);
+  Expect.equals(0, numVal);
+
+  // jsonUtf8Decode on -0 must return integer 0
+  final topDecoded = jsonUtf8Decode(b('-0'));
+  Expect.type<int>(topDecoded);
+  Expect.equals(0, topDecoded);
+
+  // JsonTokenReader.readDouble() on -0 continues to return -0.0 (double)
+  final dblReader = JsonTokenReader.fromBytes(b('-0'));
+  final dblVal = dblReader.readDouble();
+  Expect.type<double>(dblVal);
+  Expect.equals(-0.0, dblVal);
+  Expect.isTrue(dblVal.isNegative);
+  Expect.equals(double.negativeInfinity, 1 / dblVal);
 
   // Array containing [-0, 0]
   final arrayReader = JsonTokenReader.fromBytes(b('[-0, 0]'));
   arrayReader.beginArray();
   final v1 = arrayReader.readNum();
-  Expect.type<double>(v1);
-  Expect.equals(-0.0, v1);
-  Expect.isTrue(v1.isNegative);
-  Expect.equals(double.negativeInfinity, 1 / v1);
+  Expect.type<int>(v1);
+  Expect.equals(0, v1);
 
   final v2 = arrayReader.readNum();
   Expect.type<int>(v2);
@@ -1258,4 +1270,160 @@ void testDirectToSinkEncoderWriters() {
   checkInt(-123456789, '-123456789');
   checkInt(9223372036854775807, '9223372036854775807');
   checkInt(-9223372036854775808, '-9223372036854775808');
+}
+
+void testPeekTrailingComma() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Array with trailing comma: peek() must throw FormatException
+  {
+    final r = JsonTokenReader.fromBytes(b('[1, ]'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+  }
+
+  // Array with multiple elements and trailing comma
+  {
+    final r = JsonTokenReader.fromBytes(b('[1, 2,  \n ]'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.equals(2, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+  }
+
+  // Object with trailing comma: peek() must throw FormatException
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, }'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+  }
+
+  // Object with multiple elements and trailing comma
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, "b": 2, \t\r\n }'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.equals('b', r.nextName());
+    Expect.equals(2, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+  }
+
+  // Mismatched closing delimiter after comma in array
+  {
+    final r = JsonTokenReader.fromBytes(b('[1, }'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+  }
+
+  // Mismatched closing delimiter after comma in object
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, ]'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+  }
+}
+
+void testHasNextAtomicRollback() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Truncated array ending on comma
+  {
+    final r = JsonTokenReader.fromBytes(b('[1,'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+    Expect.equals(JsonTokenType.endOfDocument, r.peek());
+  }
+
+  // Truncated object ending on comma
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1,'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+    Expect.equals(JsonTokenType.endOfDocument, r.peek());
+  }
+
+  // Trailing comma in array before ]
+  {
+    final r = JsonTokenReader.fromBytes(b('[1, ]'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+    Expect.throwsFormatException(() => r.peek());
+  }
+
+  // Trailing comma in object before }
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, }'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+    Expect.throwsFormatException(() => r.peek());
+  }
+}
+
+void testBatchedSinkWriters() {
+  // Test writeString with large strings and multiple UTF-8 categories
+  final largeStr = 'Hello World! ' * 1000;
+  final sink1 = BytesBuilder();
+  JsonUtf8Encoder.writeString(largeStr, sink1);
+  final actual1 = utf8.decode(sink1.takeBytes());
+  Expect.equals(jsonEncode(largeStr), actual1);
+
+  final complexStr =
+      'Emoji 🚀, Greek \u03B1\u03B2\u03B3, CJK 日本語, Escapes "\n\r\t\b\f\\", Controls \x01\x1F';
+  final sink2 = BytesBuilder();
+  JsonUtf8Encoder.writeString(complexStr, sink2);
+  final actual2 = utf8.decode(sink2.takeBytes());
+  Expect.equals(jsonEncode(complexStr), actual2);
+
+  // Test writeDouble batch writes
+  final doubles = <double>[
+    0.0,
+    -0.0,
+    1.0,
+    -1.0,
+    3.141592653589793,
+    -3.141592653589793,
+    1e10,
+    -1e10,
+    1e-10,
+    -1e-10,
+    double.minPositive,
+    double.maxFinite,
+    -double.maxFinite,
+    9007199254740991.0,
+    -9007199254740991.0,
+  ];
+  for (final d in doubles) {
+    final sink = BytesBuilder();
+    JsonUtf8Encoder.writeDouble(d, sink);
+    final str = utf8.decode(sink.takeBytes());
+    final parsed = double.parse(str);
+    Expect.equals(d, parsed);
+    if (d == 0.0) {
+      Expect.equals(d.isNegative, parsed.isNegative);
+    }
+  }
+
+  // Non-finite doubles must throw ArgumentError
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.nan, BytesBuilder()),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.infinity, BytesBuilder()),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.negativeInfinity, BytesBuilder()),
+  );
 }
