@@ -2943,6 +2943,10 @@ class JsonUtf8Encoder {
       _writeStringToBufferNative(value, buffer, offset);
 }
 
+// TODO(kevmoo): Opportunity to optimize Wasm string escaping and float/delimiter
+// scanning using explicit WebAssembly 128-bit SIMD vector instructions (v128) or
+// optimized pure linear-memory Dragonbox byte loops.
+
 // Emulating native behavior for Wasm. Actually in Wasm we can just provide the pure-Dart implementation, but the spec says "pure Wasm linear memory... compiled directly to Wasm linear memory byte scanners".
 // To make it simple we'll just declare them external for now.
 
