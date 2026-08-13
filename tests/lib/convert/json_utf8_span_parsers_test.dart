@@ -611,6 +611,34 @@ void testSkipValueControlChars() {
   final skipNul = JsonUtf8Decoder.skipValue(withNul, 0);
   // It shouldn't skip past the object if it started on a non-whitespace control character
   Expect.equals(0, JsonUtf8Decoder.skipWhitespace(withNul, 0));
+
+  // Unescaped control characters in strings within skipValue must throw FormatException
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(Uint8List.fromList([0x22, 0x0A, 0x22]), 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(
+      Uint8List.fromList([123, 0x22, 0x61, 0x22, 58, 0x22, 0x00, 0x22, 125]),
+      0,
+    ),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(
+      Uint8List.fromList([91, 0x22, 0x09, 0x22, 93]),
+      0,
+    ),
+  );
+
+  // skipString must throw FormatException on unescaped control characters
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipString(Uint8List.fromList([0x22, 0x00, 0x22]), 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipString(Uint8List.fromList([0x22, 0x1F, 0x22]), 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipString(Uint8List.fromList([0x22, 0x0A, 0x22]), 0),
+  );
 }
 
 void testDoubleFastPathAndNegativeZero() {
@@ -627,6 +655,24 @@ void testDoubleFastPathAndNegativeZero() {
   // Exact coordinates
   Expect.equals(37.7749, JsonUtf8Decoder.parseDouble(b('37.7749'), 0, 7));
   Expect.equals(-122.4194, JsonUtf8Decoder.parseDouble(b('-122.4194'), 0, 9));
+
+  // 15-digit fractional floats (excluding leading zero from digit count)
+  Expect.equals(
+    0.123456789012345,
+    JsonUtf8Decoder.parseDouble(b('0.123456789012345'), 0, 17),
+  );
+  Expect.equals(
+    0.00000000000001,
+    JsonUtf8Decoder.parseDouble(b('0.00000000000001'), 0, 16),
+  );
+  Expect.equals(
+    -0.123456789012345,
+    JsonUtf8Decoder.parseDouble(b('-0.123456789012345'), 0, 18),
+  );
+  Expect.equals(
+    0.987654321098765,
+    JsonUtf8Decoder.parseDouble(b('0.987654321098765'), 0, 17),
+  );
 
   // Exponent formats in fast path
   Expect.equals(1500.0, JsonUtf8Decoder.parseDouble(b('1.5e3'), 0, 5));

@@ -38,6 +38,9 @@ void main() {
   testSelectNameSurrogatePairsAndNonAscii();
   testNextNameAndReadStringRollback();
   testAllowMalformedUtf8WithEscapes();
+  testTrailingCommaPeekRejection();
+  testTokenReaderMultipleRoots();
+  testTokenReaderSkipValueControlChars();
 }
 
 void testTokenReaderPrimitives() {
@@ -975,4 +978,229 @@ void testAllowMalformedUtf8WithEscapes() {
 
   final reader = JsonTokenReader.fromBytes(bytes, allowMalformed: true);
   Expect.equals('\uFFFD\uFFFDa', reader.readString());
+}
+
+void testTrailingCommaPeekRejection() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Trailing comma before '}' in object: peek() must return none
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, }'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Trailing comma with multiple properties
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, "b": 2, }'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.equals('b', r.nextName());
+    Expect.equals(2, r.readInt());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Trailing comma before ']' in array: peek() must return none
+  {
+    final r = JsonTokenReader.fromBytes(b('[1, 2, ]'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.equals(2, r.readInt());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Single-element array with trailing comma
+  {
+    final r = JsonTokenReader.fromBytes(b('[true, ]'));
+    r.beginArray();
+    Expect.equals(true, r.readBool());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Mismatched closing delimiter after comma in array: peek() must return none
+  {
+    final r = JsonTokenReader.fromBytes(b('[1, }'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Mismatched closing delimiter after comma in object: peek() must return none
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, ]'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Invalid value (non-string key) after comma in object: peek() must return none
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1, 2}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Invalid value (non-string key) at start of object: peek() must return none
+  {
+    final r = JsonTokenReader.fromBytes(b('{123}'));
+    r.beginObject();
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // Bare closing brackets or delimiters at root level: peek() must return none
+  {
+    Expect.equals(JsonTokenType.none, JsonTokenReader.fromBytes(b('}')).peek());
+    Expect.equals(JsonTokenType.none, JsonTokenReader.fromBytes(b(']')).peek());
+    Expect.equals(JsonTokenType.none, JsonTokenReader.fromBytes(b(',')).peek());
+    Expect.equals(JsonTokenType.none, JsonTokenReader.fromBytes(b(':')).peek());
+  }
+
+  // hasNext() throws FormatException on mismatched delimiter after comma
+  {
+    final rArr = JsonTokenReader.fromBytes(b('[1, }'));
+    rArr.beginArray();
+    Expect.equals(1, rArr.readInt());
+    Expect.throwsFormatException(() => rArr.hasNext());
+
+    final rObj = JsonTokenReader.fromBytes(b('{"a": 1, ]'));
+    rObj.beginObject();
+    Expect.equals('a', rObj.nextName());
+    Expect.equals(1, rObj.readInt());
+    Expect.throwsFormatException(() => rObj.hasNext());
+  }
+}
+
+void testTokenReaderMultipleRoots() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Disallow multiple primitive root values
+  {
+    final r1 = JsonTokenReader.fromBytes(b('1 2'));
+    Expect.equals(1, r1.readInt());
+    Expect.isFalse(r1.hasNext());
+    Expect.equals(JsonTokenType.none, r1.peek());
+    Expect.throwsStateError(() => r1.readInt());
+  }
+
+  // Disallow root value after container
+  {
+    final r2 = JsonTokenReader.fromBytes(b('{"a": 1} 42'));
+    r2.beginObject();
+    Expect.equals('a', r2.nextName());
+    Expect.equals(1, r2.readInt());
+    r2.endObject();
+    Expect.isFalse(r2.hasNext());
+    Expect.equals(JsonTokenType.none, r2.peek());
+    Expect.throwsStateError(() => r2.readInt());
+  }
+
+  // Clean EOF after container: peek returns endOfDocument
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1}   '));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    r.endObject();
+    Expect.isFalse(r.hasNext());
+    Expect.equals(JsonTokenType.endOfDocument, r.peek());
+  }
+
+  // Clean EOF after primitive: peek returns endOfDocument
+  {
+    final r = JsonTokenReader.fromBytes(b('100'));
+    Expect.equals(100, r.readInt());
+    Expect.isFalse(r.hasNext());
+    Expect.equals(JsonTokenType.endOfDocument, r.peek());
+  }
+
+  // Disallow container after root value
+  {
+    final r3 = JsonTokenReader.fromBytes(b('"root" [1, 2]'));
+    Expect.equals('root', r3.readString());
+    Expect.isFalse(r3.hasNext());
+    Expect.equals(JsonTokenType.none, r3.peek());
+    Expect.throwsStateError(() => r3.beginArray());
+  }
+
+  // Disallow container after container
+  {
+    final r4 = JsonTokenReader.fromBytes(b('{} {}'));
+    r4.beginObject();
+    r4.endObject();
+    Expect.isFalse(r4.hasNext());
+    Expect.equals(JsonTokenType.none, r4.peek());
+    Expect.throwsStateError(() => r4.beginObject());
+  }
+
+  // Disallow bool after bool
+  {
+    final r5 = JsonTokenReader.fromBytes(b('true false'));
+    Expect.isTrue(r5.readBool());
+    Expect.isFalse(r5.hasNext());
+    Expect.equals(JsonTokenType.none, r5.peek());
+    Expect.throwsStateError(() => r5.readBool());
+  }
+
+  // Disallow null after null
+  {
+    final r6 = JsonTokenReader.fromBytes(b('null null'));
+    r6.readNull();
+    Expect.isFalse(r6.hasNext());
+    Expect.equals(JsonTokenType.none, r6.peek());
+    Expect.throwsStateError(() => r6.readNull());
+  }
+
+  // Disallow skipValue after root value
+  {
+    final r7 = JsonTokenReader.fromBytes(b('[1, 2] 3'));
+    r7.beginArray();
+    Expect.equals(1, r7.readInt());
+    Expect.equals(2, r7.readInt());
+    r7.endArray();
+    Expect.isFalse(r7.hasNext());
+    Expect.equals(JsonTokenType.none, r7.peek());
+    Expect.throwsStateError(() => r7.skipValue());
+  }
+
+  // Disallow double reading after root double
+  {
+    final r8 = JsonTokenReader.fromBytes(b('0.123456789012345 3.14'));
+    Expect.equals(0.123456789012345, r8.readDouble());
+    Expect.isFalse(r8.hasNext());
+    Expect.equals(JsonTokenType.none, r8.peek());
+    Expect.throwsStateError(() => r8.readDouble());
+  }
+}
+
+void testTokenReaderSkipValueControlChars() {
+  // Reject unescaped control char in nested string within skipValue
+  {
+    final bytes = Uint8List.fromList([
+      123,
+      0x22,
+      0x61,
+      0x22,
+      58,
+      0x22,
+      0x0A,
+      0x22,
+      125, // {"a": "\n"} where \n is byte 0x0A
+    ]);
+    final r = JsonTokenReader.fromBytes(bytes);
+    Expect.throwsFormatException(() => r.skipValue());
+  }
+
+  {
+    final bytes = Uint8List.fromList([
+      91, 0x22, 0x00, 0x22, 93, // ["\x00"]
+    ]);
+    final r = JsonTokenReader.fromBytes(bytes);
+    Expect.throwsFormatException(() => r.skipValue());
+  }
 }

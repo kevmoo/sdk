@@ -348,6 +348,13 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
         if (c == 34) {
           while (i < bytes.length) {
             final sc = bytes[i++];
+            if (sc < 0x20) {
+              throw FormatException(
+                'Unescaped control character in string literal at offset ${i - 1}',
+                bytes,
+                i - 1,
+              );
+            }
             if (sc == 92) {
               if (i < bytes.length) i++;
             } else if (sc == 34) {
@@ -401,6 +408,13 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       i++;
       while (i < bytes.length) {
         final c = bytes[i++];
+        if (c < 0x20) {
+          throw FormatException(
+            'Unescaped control character in string literal at offset ${i - 1}',
+            bytes,
+            i - 1,
+          );
+        }
         if (c == 92) {
           if (i < bytes.length) i++;
         } else if (c == 34) {
@@ -444,6 +458,13 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     if (i < bytes.length && bytes[i] == 34) i++;
     while (i < bytes.length) {
       final b = bytes[i++];
+      if (b < 0x20) {
+        throw FormatException(
+          'Unescaped control character in string literal at offset ${i - 1}',
+          bytes,
+          i - 1,
+        );
+      }
       if (b == 92) {
         if (i < bytes.length) i++;
       } else if (b == 34) {
@@ -784,9 +805,9 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!isQuoted) {
       buffer[cursor++] = 0x22; // '"'
     }
-    for (var i = 0; i < asciiKey.length; i++) {
-      buffer[cursor++] = asciiKey[i];
-    }
+    final keyLen = asciiKey.length;
+    buffer.setRange(cursor, cursor + keyLen, asciiKey);
+    cursor += keyLen;
     if (!isQuoted) {
       buffer[cursor++] = 0x22; // '"'
     }
@@ -1104,6 +1125,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   final bool allowMalformed;
   int _offset = 0;
   final List<_ContainerFrame> _stack = [];
+  bool _hasReadRoot = false;
 
   _JsonTokenReader(this._bytes, {this.allowMalformed = false}) {
     if (_bytes.length >= 3 &&
@@ -1180,52 +1202,28 @@ final class _JsonTokenReader implements JsonTokenReader {
           }
         }
       }
+    } else {
+      if (_hasReadRoot) {
+        throw StateError('Cannot read multiple root values');
+      }
     }
   }
 
   void _afterReadingValue() {
     if (_stack.isNotEmpty) {
       _stack.last.state = _ReaderItemState.afterValue;
+    } else {
+      _hasReadRoot = true;
     }
   }
 
-  @override
-  JsonTokenType peek() {
-    var i = _offset;
-    while (i < _bytes.length && _isWs(_bytes[i])) {
-      i++;
-    }
-    if (i >= _bytes.length) return JsonTokenType.endOfDocument;
-    if (_stack.isNotEmpty && _stack.last.state == _ReaderItemState.afterValue) {
-      final closingByte = _stack.last.type == _ContainerType.object ? 125 : 93;
-      if (i < _bytes.length && _bytes[i] == 44) {
-        i++;
-        while (i < _bytes.length && _isWs(_bytes[i])) {
-          i++;
-        }
-      } else if (i < _bytes.length && _bytes[i] == closingByte) {
-        // Closing delimiter is valid
-      } else {
-        return JsonTokenType.none;
-      }
-    }
-    if (i >= _bytes.length) return JsonTokenType.endOfDocument;
-    final b = _bytes[i];
+  static JsonTokenType _valueTokenType(int b) {
     switch (b) {
       case 123: // '{'
         return JsonTokenType.beginObject;
-      case 125: // '}'
-        return JsonTokenType.endObject;
       case 91: // '['
         return JsonTokenType.beginArray;
-      case 93: // ']'
-        return JsonTokenType.endArray;
       case 34: // '"'
-        if (_stack.isNotEmpty &&
-            _stack.last.type == _ContainerType.object &&
-            _stack.last.state != _ReaderItemState.afterName) {
-          return JsonTokenType.propertyName;
-        }
         return JsonTokenType.string;
       case 116: // 't'
       case 102: // 'f'
@@ -1246,6 +1244,71 @@ final class _JsonTokenReader implements JsonTokenReader {
         return JsonTokenType.number;
       default:
         return JsonTokenType.none;
+    }
+  }
+
+  @override
+  JsonTokenType peek() {
+    var i = _offset;
+    while (i < _bytes.length && _isWs(_bytes[i])) {
+      i++;
+    }
+    if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+
+    if (_stack.isNotEmpty) {
+      final top = _stack.last;
+      if (top.type == _ContainerType.object) {
+        switch (top.state) {
+          case _ReaderItemState.start:
+            if (_bytes[i] == 125) return JsonTokenType.endObject;
+            if (_bytes[i] == 34) return JsonTokenType.propertyName;
+            return JsonTokenType.none;
+          case _ReaderItemState.afterName:
+            return _valueTokenType(_bytes[i]);
+          case _ReaderItemState.afterComma:
+            if (_bytes[i] == 34) return JsonTokenType.propertyName;
+            return JsonTokenType.none;
+          case _ReaderItemState.afterValue:
+            if (_bytes[i] == 125) return JsonTokenType.endObject;
+            if (_bytes[i] == 44) {
+              i++;
+              while (i < _bytes.length && _isWs(_bytes[i])) {
+                i++;
+              }
+              if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+              if (_bytes[i] == 34) return JsonTokenType.propertyName;
+              return JsonTokenType.none;
+            }
+            return JsonTokenType.none;
+        }
+      } else {
+        // _ContainerType.array
+        switch (top.state) {
+          case _ReaderItemState.start:
+            if (_bytes[i] == 93) return JsonTokenType.endArray;
+            return _valueTokenType(_bytes[i]);
+          case _ReaderItemState.afterComma:
+            return _valueTokenType(_bytes[i]);
+          case _ReaderItemState.afterValue:
+            if (_bytes[i] == 93) return JsonTokenType.endArray;
+            if (_bytes[i] == 44) {
+              i++;
+              while (i < _bytes.length && _isWs(_bytes[i])) {
+                i++;
+              }
+              if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+              return _valueTokenType(_bytes[i]);
+            }
+            return JsonTokenType.none;
+          case _ReaderItemState.afterName:
+            return JsonTokenType.none;
+        }
+      }
+    } else {
+      if (_hasReadRoot) {
+        return JsonTokenType.none;
+      }
+      return _valueTokenType(_bytes[i]);
     }
   }
 
@@ -1346,7 +1409,8 @@ final class _JsonTokenReader implements JsonTokenReader {
           _offset++;
           top.state = _ReaderItemState.afterComma;
           _skipWs();
-          if (_offset < _bytes.length && _bytes[_offset] == closeChar) {
+          if (_offset < _bytes.length &&
+              (_bytes[_offset] == 125 || _bytes[_offset] == 93)) {
             throw FormatException(
               'Trailing comma before $closeStr at offset $_offset',
             );
@@ -1355,7 +1419,7 @@ final class _JsonTokenReader implements JsonTokenReader {
         }
         throw FormatException('Expected "," or $closeStr at offset $_offset');
       } else if (top.state == _ReaderItemState.afterComma) {
-        if (_bytes[_offset] == closeChar) {
+        if (_bytes[_offset] == 125 || _bytes[_offset] == 93) {
           throw FormatException(
             'Trailing comma before $closeStr at offset $_offset',
           );
@@ -1363,6 +1427,10 @@ final class _JsonTokenReader implements JsonTokenReader {
         return true;
       } else if (top.state == _ReaderItemState.afterName) {
         return true;
+      }
+    } else {
+      if (_hasReadRoot) {
+        return false;
       }
     }
     final b = _bytes[_offset];
@@ -1454,6 +1522,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   int selectString(JsonKeyOptions options) {
     final initialOffset = _offset;
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
     try {
       _beforeReadingValue();
       final (start, end) = _scanStringSpan();
@@ -1470,6 +1539,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       return options.keys.indexOf(unescaped);
     } catch (_) {
       _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
       if (_stack.isNotEmpty && initialFrameState != null) {
         _stack.last.state = initialFrameState;
       }
@@ -1481,6 +1551,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   String readString() {
     final initialOffset = _offset;
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
     try {
       _beforeReadingValue();
       final (start, end) = _scanStringSpan();
@@ -1493,6 +1564,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       );
     } catch (_) {
       _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
       if (_stack.isNotEmpty && initialFrameState != null) {
         _stack.last.state = initialFrameState;
       }
@@ -1503,6 +1575,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   T _readValue<T>(T Function(int start, int end) parser) {
     final initialOffset = _offset;
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
     _beforeReadingValue();
     final start = _offset;
     var i = start;
@@ -1519,6 +1592,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       return parser(start, i);
     } catch (_) {
       _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
       if (_stack.isNotEmpty && initialFrameState != null) {
         _stack.last.state = initialFrameState;
       }
@@ -1579,6 +1653,13 @@ final class _JsonTokenReader implements JsonTokenReader {
         if (c == 34) {
           while (_offset < _bytes.length) {
             final sc = _bytes[_offset++];
+            if (sc < 0x20) {
+              throw FormatException(
+                'Unescaped control character in string literal at offset ${_offset - 1}',
+                _bytes,
+                _offset - 1,
+              );
+            }
             if (sc == 92) {
               if (_offset < _bytes.length) _offset++;
             } else if (sc == 34) {
@@ -2488,7 +2569,7 @@ double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
   if (source[i] == 48) {
     // '0'
     hasLeadingZero = true;
-    digitCount = 1;
+    digitCount = 0;
     i++;
     // Leading zero cannot be followed by another digit
     if (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
