@@ -11,6 +11,14 @@
 #include <cmath>
 #include <string.h>
 
+// TODO(kevmoo): Architectural Opportunity (Horizon / Extreme-Scale Streaming):
+// Implement a native C++ compact 64-bit structural delimiter tape parser
+// (simdjson Stage 1 style) for JsonTokenReader. This records 64-bit offsets of
+// structural characters ('{', '}', '[', ']', '"', ':', ',') in a single vectorized
+// SIMD pass over the raw Uint8List buffer, allowing streaming consumers to parse
+// multi-megabyte payloads with minimal RAM overhead (~15MB vs >62MB) and zero
+// per-token VM FFI transition overhead.
+
 namespace dart {
 
 static inline bool IsJsonWhitespace(uint8_t c) {
