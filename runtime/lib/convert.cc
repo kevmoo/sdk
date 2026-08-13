@@ -136,6 +136,53 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeStringToBuffer, 0, 3) {
 
   uint8_t* dest = reinterpret_cast<uint8_t*>(buffer.DataAddr(offset));
   intptr_t max_write = buf_len - offset;
+  intptr_t str_len = value_str.Length();
+
+  // Fast path for OneByteString
+  if (value_str.IsOneByteString()) {
+    const uint8_t* src = OneByteString::DataStart(value_str);
+
+    // Vectorized 8-byte SWAR scan for characters needing escapes (< 0x20, '"', '\\', >= 0x80)
+    intptr_t i = 0;
+    while (i + 8 <= str_len) {
+      uint64_t chunk;
+      memcpy(&chunk, src + i, sizeof(chunk));
+      uint64_t has_high = chunk & 0x8080808080808080ULL;
+      uint64_t sub_20 = chunk - 0x2020202020202020ULL;
+      uint64_t has_ctrl = sub_20 & ~chunk & 0x8080808080808080ULL;
+      uint64_t xor_quote = chunk ^ 0x2222222222222222ULL;
+      uint64_t has_quote =
+          (xor_quote - 0x0101010101010101ULL) & ~xor_quote & 0x8080808080808080ULL;
+      uint64_t xor_slash = chunk ^ 0x5C5C5C5C5C5C5C5CULL;
+      uint64_t has_slash =
+          (xor_slash - 0x0101010101010101ULL) & ~xor_slash & 0x8080808080808080ULL;
+
+      if ((has_high | has_ctrl | has_quote | has_slash) != 0) {
+        break;
+      }
+      i += 8;
+    }
+    while (i < str_len) {
+      uint8_t c = src[i];
+      if (c < 0x20 || c == '"' || c == '\\' || c >= 0x80) {
+        break;
+      }
+      i++;
+    }
+
+    if (i == str_len) {
+      // Pure ASCII string without any escapes needed!
+      // Output is: '"' + src + '"'
+      if (str_len + 2 <= max_write) {
+        dest[0] = '"';
+        memmove(dest + 1, src, str_len);
+        dest[str_len + 1] = '"';
+        return Smi::New(str_len + 2);
+      }
+      return Smi::New(0);
+    }
+  }
+
   intptr_t cursor = 0;
 
   auto write_byte = [&](uint8_t b) -> bool {
@@ -148,7 +195,6 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeStringToBuffer, 0, 3) {
 
   if (!write_byte('"')) return Smi::New(0);
 
-  intptr_t str_len = value_str.Length();
   for (intptr_t i = 0; i < str_len; i++) {
     int32_t c = value_str.CharAt(i);
     switch (c) {

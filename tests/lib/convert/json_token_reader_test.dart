@@ -22,6 +22,8 @@ void main() {
   testTokenReaderOutsideObject();
   testTokenWriterMultipleRoots();
   testTokenReaderPeekWithCommas();
+  testTokenReaderUtf8Bom();
+  testDeepObjectTrees();
 }
 
 void testTokenReaderPrimitives() {
@@ -449,4 +451,70 @@ void testTokenReaderPeekWithCommas() {
   Expect.equals(2, rObj.readInt());
   Expect.equals(JsonTokenType.endObject, rObj.peek());
   rObj.endObject();
+}
+
+void testTokenReaderUtf8Bom() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Leading BOM followed by JSON
+  final withBom = Uint8List.fromList([
+    0xEF,
+    0xBB,
+    0xBF,
+    0x74,
+    0x72,
+    0x75,
+    0x65,
+  ]); // BOM + 'true'
+  final r1 = JsonTokenReader.fromBytes(withBom);
+  Expect.equals(JsonTokenType.boolean, r1.peek());
+  Expect.isTrue(r1.readBool());
+
+  // BOM followed by object
+  final objWithBom = Uint8List.fromList([
+    0xEF,
+    0xBB,
+    0xBF,
+    ...utf8.encode('{"id": 42}'),
+  ]);
+  final r2 = JsonTokenReader.fromBytes(objWithBom);
+  Expect.equals(JsonTokenType.beginObject, r2.peek());
+  r2.beginObject();
+  Expect.equals('id', r2.nextName());
+  Expect.equals(42, r2.readInt());
+  r2.endObject();
+
+  // BOM in middle of document should return none for peek and throw on read
+  final midBom = b('{"a": \xEF\xBB\xBF 1}');
+  final r3 = JsonTokenReader.fromBytes(midBom);
+  r3.beginObject();
+  Expect.equals('a', r3.nextName());
+  Expect.equals(JsonTokenType.none, r3.peek());
+  Expect.throwsFormatException(() => r3.readInt());
+}
+
+void testDeepObjectTrees() {
+  // Test depth up to 64
+  var nested = '{"a": ' * 64 + '42' + '}' * 64;
+  final bytes = Uint8List.fromList(utf8.encode(nested));
+  final reader = JsonTokenReader.fromBytes(bytes);
+  for (var i = 0; i < 64; i++) {
+    reader.beginObject();
+    Expect.equals('a', reader.nextName());
+  }
+  Expect.equals(42, reader.readInt());
+  for (var i = 0; i < 64; i++) {
+    reader.endObject();
+  }
+
+  // Test depth > 64 throws FormatException
+  var deep = '{"a": ' * 65 + '42' + '}' * 65;
+  final deepBytes = Uint8List.fromList(utf8.encode(deep));
+  final deepReader = JsonTokenReader.fromBytes(deepBytes);
+  Expect.throwsFormatException(() {
+    for (var i = 0; i < 65; i++) {
+      deepReader.beginObject();
+      deepReader.nextName();
+    }
+  });
 }

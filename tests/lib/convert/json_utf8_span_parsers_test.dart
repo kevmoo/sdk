@@ -25,6 +25,8 @@ void main() {
   testWhitespaceAndControlChars();
   testDecodeStringWithEscapesAndSurrogates();
   testSkipValueControlChars();
+  testDoubleFastPathAndNegativeZero();
+  testJsonKeyOptionsCollisionsAndDuplicates();
 }
 
 void testParseInt() {
@@ -489,4 +491,50 @@ void testSkipValueControlChars() {
   final skipNul = JsonUtf8Decoder.skipValue(withNul, 0);
   // It shouldn't skip past the object if it started on a non-whitespace control character
   Expect.equals(0, JsonUtf8Decoder.skipWhitespace(withNul, 0));
+}
+
+void testDoubleFastPathAndNegativeZero() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Pure Dart fast path values
+  Expect.equals(0.0, JsonUtf8Decoder.parseDouble(b('0'), 0, 1));
+  Expect.equals(0.0, JsonUtf8Decoder.parseDouble(b('0.0'), 0, 3));
+  Expect.equals(-0.0, JsonUtf8Decoder.parseDouble(b('-0'), 0, 2));
+  Expect.equals(-0.0, JsonUtf8Decoder.parseDouble(b('-0.0'), 0, 4));
+  Expect.isTrue(JsonUtf8Decoder.parseDouble(b('-0.0'), 0, 4).isNegative);
+  Expect.isTrue(JsonUtf8Decoder.parseDouble(b('-0'), 0, 2).isNegative);
+
+  // Exact coordinates
+  Expect.equals(37.7749, JsonUtf8Decoder.parseDouble(b('37.7749'), 0, 7));
+  Expect.equals(-122.4194, JsonUtf8Decoder.parseDouble(b('-122.4194'), 0, 9));
+
+  // Exponent formats in fast path
+  Expect.equals(1500.0, JsonUtf8Decoder.parseDouble(b('1.5e3'), 0, 5));
+  Expect.equals(0.0015, JsonUtf8Decoder.parseDouble(b('1.5e-3'), 0, 6));
+}
+
+void testJsonKeyOptionsCollisionsAndDuplicates() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Duplicate keys in list - should keep first index
+  final dupOptions = JsonKeyOptions.of(['duplicate', 'unique', 'duplicate']);
+  Expect.equals(3, dupOptions.length);
+  final dupBytes = b('"duplicate"');
+  Expect.equals(0, dupOptions.selectKey(dupBytes, 1, 10));
+
+  // Single key
+  final single = JsonKeyOptions.of(['single']);
+  Expect.equals(1, single.length);
+  Expect.equals(0, single.selectKey(b('single'), 0, 6));
+  Expect.equals(-1, single.selectKey(b('other'), 0, 5));
+
+  // Large key set (>50 keys) to test hash table linear probing and table resizing
+  final manyKeys = List.generate(100, (i) => 'key_schema_field_$i');
+  final manyOptions = JsonKeyOptions.of(manyKeys);
+  for (var i = 0; i < 100; i++) {
+    final kb = b(manyKeys[i]);
+    Expect.equals(i, manyOptions.selectKey(kb, 0, kb.length));
+  }
+  final missing = b('key_schema_field_999');
+  Expect.equals(-1, manyOptions.selectKey(missing, 0, missing.length));
 }

@@ -44,8 +44,17 @@ final class JsonKeyOptions {
   final Uint8List encodedKeys;
   final Int32List offsets;
   final Int32List lengths;
+  final Int32List _hashTable;
+  final int _hashMask;
 
-  JsonKeyOptions._(this.keys, this.encodedKeys, this.offsets, this.lengths);
+  JsonKeyOptions._(
+    this.keys,
+    this.encodedKeys,
+    this.offsets,
+    this.lengths,
+    this._hashTable,
+    this._hashMask,
+  );
 
   /// Pre-computes UTF-8 byte representations and length tables for [keys].
   factory JsonKeyOptions.of(List<String> keys) {
@@ -62,36 +71,83 @@ final class JsonKeyOptions {
       lengths[i] = encoded.length;
       builder.add(encoded);
     }
+    final encodedKeys = builder.takeBytes();
+
+    var tableSize = 8;
+    while (tableSize < keys.length * 2) {
+      tableSize <<= 1;
+    }
+    final mask = tableSize - 1;
+    final table = Int32List(tableSize)..fillRange(0, tableSize, -1);
+
+    for (var i = 0; i < keys.length; i++) {
+      final off = offsets[i];
+      final len = lengths[i];
+      var h = 0x811c9dc5;
+      for (var j = 0; j < len; j++) {
+        h = ((h ^ encodedKeys[off + j]) * 0x01000193) & 0x7fffffff;
+      }
+      var slot = h & mask;
+      while (table[slot] != -1) {
+        final existing = table[slot];
+        if (lengths[existing] == len) {
+          final existingOff = offsets[existing];
+          var match = true;
+          for (var j = 0; j < len; j++) {
+            if (encodedKeys[existingOff + j] != encodedKeys[off + j]) {
+              match = false;
+              break;
+            }
+          }
+          if (match) break; // duplicate, keep first
+        }
+        slot = (slot + 1) & mask;
+      }
+      if (table[slot] == -1) {
+        table[slot] = i;
+      }
+    }
+
     return JsonKeyOptions._(
       List.unmodifiable(keys),
-      builder.takeBytes(),
+      encodedKeys,
       offsets,
       lengths,
+      table,
+      mask,
     );
   }
 
   int get length => keys.length;
 
-  /// Matches the byte span `[start..end]` against pre-compiled keys.
+  /// Matches the byte span `[start..end]` against pre-compiled keys in O(1).
   int selectKey(Uint8List source, int start, int end) {
     if (start < 0 || end > source.length || start > end) {
       return -1;
     }
     final spanLen = end - start;
-    final count = keys.length;
-    for (var i = 0; i < count; i++) {
-      if (lengths[i] != spanLen) continue;
-      final off = offsets[i];
-      var match = true;
-      for (var j = 0; j < spanLen; j++) {
-        if (source[start + j] != encodedKeys[off + j]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) return i;
+    var h = 0x811c9dc5;
+    for (var i = start; i < end; i++) {
+      h = ((h ^ source[i]) * 0x01000193) & 0x7fffffff;
     }
-    return -1;
+    final mask = _hashMask;
+    var slot = h & mask;
+    while (true) {
+      final idx = _hashTable[slot];
+      if (idx == -1) return -1;
+      if (lengths[idx] == spanLen) {
+        final off = offsets[idx];
+        var match = true;
+        for (var j = 0; j < spanLen; j++) {
+          if (source[start + j] != encodedKeys[off + j]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) return idx;
+      }
+      slot = (slot + 1) & mask;
+    }
   }
 }
 
@@ -144,8 +200,14 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
 
   @override
   Object? convert(List<int> input) {
-    final str = utf8.decode(input, allowMalformed: allowMalformed);
-    return jsonDecode(str, reviver: reviver);
+    final bytes = input is Uint8List ? input : Uint8List.fromList(input);
+    final reader = JsonTokenReader.fromBytes(bytes);
+    final rev = reviver;
+    final result = _parseValueFromReader(reader, rev);
+    if (reader.peek() != JsonTokenType.endOfDocument) {
+      throw FormatException('Unexpected extra data after JSON value');
+    }
+    return rev != null ? rev(null, result) : result;
   }
 
   @override
@@ -463,7 +525,10 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    sink.add(utf8.encode(value.toString()));
+    final str = value.toString();
+    for (var i = 0; i < str.length; i++) {
+      sink.addByte(str.codeUnitAt(i));
+    }
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -472,35 +537,113 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    final encoded = utf8.encode(value.toString());
-    buffer.setRange(offset, offset + encoded.length, encoded);
-    return encoded.length;
+    final str = value.toString();
+    final len = str.length;
+    for (var i = 0; i < len; i++) {
+      buffer[offset + i] = str.codeUnitAt(i);
+    }
+    return len;
   }
 
   /// Formats [value] as an ASCII integer literal directly into [sink].
   static void writeInt(int value, BytesBuilder sink) {
-    sink.add(utf8.encode(value.toString()));
+    if (value == 0) {
+      sink.addByte(48); // '0'
+      return;
+    }
+    var v = value;
+    if (v < 0) {
+      sink.addByte(45); // '-'
+    } else {
+      v = -v;
+    }
+    final digitCount = _digitCountNegative(v);
+    final digits = Uint8List(digitCount);
+    var writePos = digitCount - 1;
+    var temp = v;
+    while (temp <= -100) {
+      final next = temp ~/ 100;
+      final rem = -(temp - next * 100);
+      final pairIdx = rem << 1;
+      digits[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+      digits[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+      writePos -= 2;
+      temp = next;
+    }
+    if (temp <= -10) {
+      final rem = -temp;
+      final pairIdx = rem << 1;
+      digits[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+      digits[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+    } else {
+      digits[writePos] = 48 - temp;
+    }
+    sink.add(digits);
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
   /// Returns the number of bytes written.
   static int writeIntToBuffer(int value, Uint8List buffer, int offset) {
-    final encoded = utf8.encode(value.toString());
-    buffer.setRange(offset, offset + encoded.length, encoded);
-    return encoded.length;
+    if (value == 0) {
+      buffer[offset] = 48; // '0'
+      return 1;
+    }
+    var cursor = offset;
+    var v = value;
+    if (v < 0) {
+      buffer[cursor++] = 45; // '-'
+    } else {
+      v = -v;
+    }
+    final digitCount = _digitCountNegative(v);
+    var writePos = cursor + digitCount - 1;
+    var temp = v;
+    while (temp <= -100) {
+      final next = temp ~/ 100;
+      final rem = -(temp - next * 100);
+      final pairIdx = rem << 1;
+      buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+      buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+      writePos -= 2;
+      temp = next;
+    }
+    if (temp <= -10) {
+      final rem = -temp;
+      final pairIdx = rem << 1;
+      buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+      buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+    } else {
+      buffer[writePos] = 48 - temp;
+    }
+    return cursor - offset + digitCount;
   }
 
   /// Writes a boolean literal (`true` or `false`) directly into [sink].
   static void writeBool(bool value, BytesBuilder sink) {
-    sink.add(utf8.encode(value ? 'true' : 'false'));
+    if (value) {
+      sink.add(const [116, 114, 117, 101]); // 'true'
+    } else {
+      sink.add(const [102, 97, 108, 115, 101]); // 'false'
+    }
   }
 
   /// Writes a boolean literal directly into [buffer] starting at [offset].
   /// Returns the number of bytes written.
   static int writeBoolToBuffer(bool value, Uint8List buffer, int offset) {
-    final encoded = utf8.encode(value ? 'true' : 'false');
-    buffer.setRange(offset, offset + encoded.length, encoded);
-    return encoded.length;
+    if (value) {
+      buffer[offset] = 116; // 't'
+      buffer[offset + 1] = 114; // 'r'
+      buffer[offset + 2] = 117; // 'u'
+      buffer[offset + 3] = 101; // 'e'
+      return 4;
+    } else {
+      buffer[offset] = 102; // 'f'
+      buffer[offset + 1] = 97; // 'a'
+      buffer[offset + 2] = 108; // 'l'
+      buffer[offset + 3] = 115; // 's'
+      buffer[offset + 4] = 101; // 'e'
+      return 5;
+    }
   }
 
   /// Writes a `null` literal directly into [sink].
@@ -848,7 +991,14 @@ final class _JsonTokenReader implements JsonTokenReader {
   int _offset = 0;
   final List<_ContainerFrame> _stack = [];
 
-  _JsonTokenReader(this._bytes);
+  _JsonTokenReader(this._bytes) {
+    if (_bytes.length >= 3 &&
+        _bytes[0] == 0xEF &&
+        _bytes[1] == 0xBB &&
+        _bytes[2] == 0xBF) {
+      _offset = 3;
+    }
+  }
 
   bool _isWs(int b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D;
 
@@ -1510,6 +1660,86 @@ final class _JsonTokenWriter implements JsonTokenWriter {
 // Pure Dart Private Span Helpers (Fallbacks & Shared Algorithms)
 // =============================================================================
 
+const String _digitPairs =
+    "00010203040506070809"
+    "10111213141516171819"
+    "20212223242526272829"
+    "30313233343536373839"
+    "40414243444546474849"
+    "50515253545556575859"
+    "60616263646566676869"
+    "70717273747576777879"
+    "80818283848586878889"
+    "90919293949596979899";
+
+int _digitCountNegative(int v) {
+  if (v > -10) return 1;
+  if (v > -100) return 2;
+  if (v > -1000) return 3;
+  if (v > -10000) return 4;
+  if (v > -100000) return 5;
+  if (v > -1000000) return 6;
+  if (v > -10000000) return 7;
+  if (v > -100000000) return 8;
+  if (v > -1000000000) return 9;
+  if (v > -10000000000) return 10;
+  if (v > -100000000000) return 11;
+  if (v > -1000000000000) return 12;
+  if (v > -10000000000000) return 13;
+  if (v > -100000000000000) return 14;
+  if (v > -1000000000000000) return 15;
+  if (v > -10000000000000000) return 16;
+  if (v > -100000000000000000) return 17;
+  if (v > -1000000000000000000) return 18;
+  return 19;
+}
+
+Object? _parseValueFromReader(
+  JsonTokenReader reader,
+  Object? Function(Object? key, Object? value)? reviver,
+) {
+  final type = reader.peek();
+  switch (type) {
+    case JsonTokenType.beginObject:
+      reader.beginObject();
+      final map = <String, dynamic>{};
+      while (reader.hasNext()) {
+        final key = reader.nextName();
+        var value = _parseValueFromReader(reader, reviver);
+        if (reviver != null) {
+          value = reviver(key, value);
+        }
+        map[key] = value;
+      }
+      reader.endObject();
+      return map;
+    case JsonTokenType.beginArray:
+      reader.beginArray();
+      final list = <dynamic>[];
+      while (reader.hasNext()) {
+        final index = list.length;
+        var value = _parseValueFromReader(reader, reviver);
+        if (reviver != null) {
+          value = reviver(index, value);
+        }
+        list.add(value);
+      }
+      reader.endArray();
+      return list;
+    case JsonTokenType.string:
+      return reader.readString();
+    case JsonTokenType.number:
+      return reader.readNum();
+    case JsonTokenType.boolean:
+      return reader.readBool();
+    case JsonTokenType.nullValue:
+      reader.readNull();
+      return null;
+    default:
+      throw FormatException('Unexpected JSON token: $type');
+  }
+}
+
 const List<double> _powersOfTen = [
   1.0,
   1e1,
@@ -1566,15 +1796,23 @@ double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
   if (i >= actualEnd) return null;
 
   final sliceStart = i;
+  var isNegative = false;
   if (source[i] == 45) {
     // '-'
+    isNegative = true;
     i++;
     if (i >= actualEnd) return null;
   }
 
+  int mantissa = 0;
+  int digitCount = 0;
+  var hasLeadingZero = false;
+
   // Integer part:
   if (source[i] == 48) {
     // '0'
+    hasLeadingZero = true;
+    digitCount = 1;
     i++;
     // Leading zero cannot be followed by another digit
     if (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
@@ -1582,14 +1820,18 @@ double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
     }
   } else if (source[i] >= 49 && source[i] <= 57) {
     // '1'..'9'
-    i++;
     while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
+      if (digitCount < 16) {
+        mantissa = mantissa * 10 + (source[i] - 48);
+        digitCount++;
+      }
       i++;
     }
   } else {
     return null;
   }
 
+  int decimalExp = 0;
   // Fraction part (optional):
   if (i < actualEnd && source[i] == 46) {
     // '.'
@@ -1598,6 +1840,11 @@ double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
       return null;
     }
     while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
+      if (digitCount < 16) {
+        mantissa = mantissa * 10 + (source[i] - 48);
+        digitCount++;
+        decimalExp--;
+      }
       i++;
     }
   }
@@ -1606,21 +1853,42 @@ double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
   if (i < actualEnd && (source[i] == 101 || source[i] == 69)) {
     // 'e' or 'E'
     i++;
+    var expNegative = false;
     if (i < actualEnd && (source[i] == 43 || source[i] == 45)) {
       // '+' or '-'
+      if (source[i] == 45) expNegative = true;
       i++;
     }
     if (i >= actualEnd || source[i] < 48 || source[i] > 57) {
       return null;
     }
+    var explicitExp = 0;
     while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
+      if (explicitExp < 1000) {
+        explicitExp = explicitExp * 10 + (source[i] - 48);
+      }
       i++;
     }
+    decimalExp += expNegative ? -explicitExp : explicitExp;
   }
 
   if (i != actualEnd) return null;
 
-  // The slice [sliceStart..actualEnd] is verified 100% valid RFC 8259 ASCII number.
+  // Exact fast path if mantissa <= 2^53 (up to 15 decimal digits) and exponent within power table
+  if (digitCount <= 15 && decimalExp >= -22 && decimalExp <= 22) {
+    double result = isNegative ? -mantissa.toDouble() : mantissa.toDouble();
+    if (decimalExp > 0) {
+      result *= _powersOfTen[decimalExp];
+    } else if (decimalExp < 0) {
+      result /= _powersOfTen[-decimalExp];
+    }
+    if (hasLeadingZero && mantissa == 0 && isNegative) {
+      return -0.0;
+    }
+    return result;
+  }
+
+  // Fallback to exact platform float parser
   return double.tryParse(String.fromCharCodes(source, sliceStart, actualEnd));
 }
 
@@ -1803,7 +2071,21 @@ String _decodeStringUtf8(
   if (start < 0 || end > source.length || start > end) {
     throw RangeError('Invalid byte span [$start, $end)');
   }
-  if (_isVerbatimUtf8(source, start, end)) {
+  var maxByte = 0;
+  var hasBackslash = false;
+  for (var i = start; i < end; i++) {
+    final b = source[i];
+    maxByte |= b;
+    if (b == 92) {
+      hasBackslash = true;
+      break;
+    }
+  }
+
+  if (!hasBackslash) {
+    if (maxByte <= 0x7F) {
+      return String.fromCharCodes(source, start, end);
+    }
     return utf8.decode(
       Uint8List.sublistView(source, start, end),
       allowMalformed: allowMalformed,
@@ -1817,12 +2099,20 @@ String _decodeStringUtf8(
     if (source[i] == 92) {
       // '\\'
       if (i > runStart) {
-        buffer.write(
-          utf8.decode(
-            Uint8List.sublistView(source, runStart, i),
-            allowMalformed: allowMalformed,
-          ),
-        );
+        var runMax = 0;
+        for (var k = runStart; k < i; k++) {
+          runMax |= source[k];
+        }
+        if (runMax <= 0x7F) {
+          buffer.write(String.fromCharCodes(source, runStart, i));
+        } else {
+          buffer.write(
+            utf8.decode(
+              Uint8List.sublistView(source, runStart, i),
+              allowMalformed: allowMalformed,
+            ),
+          );
+        }
       }
       i++; // skip '\\'
       if (i >= end) {
@@ -1830,22 +2120,22 @@ String _decodeStringUtf8(
       }
       final esc = source[i++];
       switch (esc) {
-        case 34:
-          buffer.write('"');
-        case 92:
-          buffer.write('\\');
-        case 47:
-          buffer.write('/');
-        case 98:
-          buffer.write('\b');
-        case 102:
-          buffer.write('\f');
-        case 110:
-          buffer.write('\n');
-        case 114:
-          buffer.write('\r');
-        case 116:
-          buffer.write('\t');
+        case 34: // '"'
+          buffer.writeCharCode(34);
+        case 92: // '\\'
+          buffer.writeCharCode(92);
+        case 47: // '/'
+          buffer.writeCharCode(47);
+        case 98: // 'b'
+          buffer.writeCharCode(8);
+        case 102: // 'f'
+          buffer.writeCharCode(12);
+        case 110: // 'n'
+          buffer.writeCharCode(10);
+        case 114: // 'r'
+          buffer.writeCharCode(13);
+        case 116: // 't'
+          buffer.writeCharCode(9);
         case 117: // \uXXXX
           if (i + 4 > end) {
             throw FormatException('Incomplete unicode escape', source, i);
@@ -1878,12 +2168,20 @@ String _decodeStringUtf8(
     }
   }
   if (i > runStart) {
-    buffer.write(
-      utf8.decode(
-        Uint8List.sublistView(source, runStart, i),
-        allowMalformed: allowMalformed,
-      ),
-    );
+    var runMax = 0;
+    for (var k = runStart; k < i; k++) {
+      runMax |= source[k];
+    }
+    if (runMax <= 0x7F) {
+      buffer.write(String.fromCharCodes(source, runStart, i));
+    } else {
+      buffer.write(
+        utf8.decode(
+          Uint8List.sublistView(source, runStart, i),
+          allowMalformed: allowMalformed,
+        ),
+      );
+    }
   }
   return buffer.toString();
 }
