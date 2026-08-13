@@ -2169,6 +2169,8 @@ class JsonUtf8Decoder {
 class JsonUtf8Encoder {
   @patch
   static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
+    final written = _writeDoubleToBufferUtf8(value, buffer, offset);
+    if (written > 0) return written;
     return _writeDoubleToBufferNative(value, buffer, offset);
   }
 

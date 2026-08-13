@@ -31,6 +31,7 @@ void main() {
   testUnescapedControlCharsInStrings();
   testContainerSkippingNesting();
   testSkipValueMaxDepth();
+  testWriteDoubleToBufferEdgeCases();
 }
 
 void testParseInt() {
@@ -815,4 +816,81 @@ void testSkipValueMaxDepth() {
     mixed65 += ']}';
   }
   Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b(mixed65), 0));
+}
+
+void testWriteDoubleToBufferEdgeCases() {
+  final buf = Uint8List(128);
+
+  void check(double value, String expected) {
+    final len = JsonUtf8Encoder.writeDoubleToBuffer(value, buf, 0);
+    final actual = utf8.decode(buf.sublist(0, len));
+    Expect.equals(expected, actual);
+    final parsed = double.parse(actual);
+    Expect.equals(value, parsed);
+    if (value == 0.0) {
+      Expect.equals(value.isNegative, parsed.isNegative);
+    }
+  }
+
+  // Zeros
+  check(0.0, '0.0');
+  check(-0.0, '-0.0');
+
+  // Exact integers
+  check(1.0, '1.0');
+  check(-1.0, '-1.0');
+  check(42.0, '42.0');
+  check(-42.0, '-42.0');
+  check(100.0, '100.0');
+  check(1000000.0, '1000000.0');
+
+  // Exact fractions
+  check(0.5, '0.5');
+  check(-0.5, '-0.5');
+  check(0.05, '0.05');
+  check(-0.05, '-0.05');
+  check(0.005, '0.005');
+  check(-0.005, '-0.005');
+  check(0.0005, '0.0005');
+  check(-0.0005, '-0.0005');
+  check(0.00005, '0.00005');
+  check(-0.00005, '-0.00005');
+  check(0.000005, '0.000005');
+  check(-0.000005, '-0.000005');
+
+  // Coordinates
+  check(37.7749, '37.7749');
+  check(-122.4194, '-122.4194');
+  check(3.14159, '3.14159');
+  check(-3.14159, '-3.14159');
+
+  // Exact 53-bit boundary integers
+  check(9007199254740991.0, '9007199254740991.0');
+  check(-9007199254740991.0, '-9007199254740991.0');
+
+  // Fallback paths (Grisu2 / native or toString fallback)
+  void checkRoundtrip(double value) {
+    final len = JsonUtf8Encoder.writeDoubleToBuffer(value, buf, 0);
+    final actual = utf8.decode(buf.sublist(0, len));
+    final parsed = double.parse(actual);
+    Expect.equals(value, parsed);
+  }
+
+  checkRoundtrip(1.0 / 3.0);
+  checkRoundtrip(0.1 + 0.2);
+  checkRoundtrip(1e10);
+  checkRoundtrip(-1e10);
+  checkRoundtrip(1e-10);
+  checkRoundtrip(-1e-10);
+  checkRoundtrip(1e20);
+  checkRoundtrip(-1e20);
+  checkRoundtrip(1e21);
+  checkRoundtrip(-1e21);
+  checkRoundtrip(1e-25);
+  checkRoundtrip(-1e-25);
+  checkRoundtrip(9007199254740992.0);
+  checkRoundtrip(-9007199254740992.0);
+  checkRoundtrip(double.minPositive);
+  checkRoundtrip(double.maxFinite);
+  checkRoundtrip(-double.maxFinite);
 }

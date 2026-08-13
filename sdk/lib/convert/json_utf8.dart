@@ -569,7 +569,22 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    return _writeDoubleToBufferUtf8(value, buffer, offset);
+    final written = _writeDoubleToBufferUtf8(value, buffer, offset);
+    if (written > 0) return written;
+    final str = value.toString();
+    final len = str.length;
+    if (offset + len > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= len ? buffer.length - len : 0,
+        'offset',
+      );
+    }
+    for (var i = 0; i < len; i++) {
+      buffer[offset + i] = str.codeUnitAt(i);
+    }
+    return len;
   }
 
   /// Formats [value] as an ASCII integer literal directly into [sink].
@@ -2260,21 +2275,8 @@ int _writeDoubleToBufferUtf8(double value, Uint8List buffer, int offset) {
     }
   }
 
-  // 4. Fallback for large exponents or subnormals
-  final str = value.toString();
-  final len = str.length;
-  if (offset + len > buffer.length) {
-    throw RangeError.range(
-      offset,
-      0,
-      buffer.length >= len ? buffer.length - len : 0,
-      'offset',
-    );
-  }
-  for (var i = 0; i < len; i++) {
-    buffer[offset + i] = str.codeUnitAt(i);
-  }
-  return len;
+  // 4. Return 0 when exact 53-bit mantissa scaling is not possible
+  return 0;
 }
 
 Object? _parseValueFromReader(

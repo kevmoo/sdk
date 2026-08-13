@@ -79,7 +79,22 @@ class JsonUtf8Encoder {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    return _writeDoubleToBufferUtf8(value, buffer, offset);
+    final written = _writeDoubleToBufferUtf8(value, buffer, offset);
+    if (written > 0) return written;
+    final str = value.toString();
+    final len = str.length;
+    if (offset + len > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= len ? buffer.length - len : 0,
+        'offset',
+      );
+    }
+    for (var i = 0; i < len; i++) {
+      buffer[offset + i] = str.codeUnitAt(i);
+    }
+    return len;
   }
 
   @patch
