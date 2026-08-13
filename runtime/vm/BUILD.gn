@@ -145,6 +145,7 @@ library_for_all_configs("libdart_lib") {
   }
   include_dirs = [ ".." ]
   allsources = async_runtime_cc_files + concurrent_runtime_cc_files +
+               convert_runtime_cc_files +
                core_runtime_cc_files + developer_runtime_cc_files +
                ffi_runtime_cc_files + isolate_runtime_cc_files +
                math_runtime_cc_files + mirrors_runtime_cc_files +

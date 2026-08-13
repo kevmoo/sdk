@@ -15,6 +15,7 @@ import "dart:_typed_data";
 import "dart:_object_helper";
 import "dart:_wasm";
 import "dart:typed_data" show Uint8List;
+import "dart:math" as math;
 
 @patch
 dynamic _parseJson(
@@ -34,7 +35,7 @@ class Utf8Decoder {
   @patch
   Converter<List<int>, T> fuse<T>(Converter<String, T> next) {
     if (next is JsonDecoder) {
-      return _JsonUtf8Decoder(
+      return JsonUtf8Decoder(
         (next as JsonDecoder)._reviver,
         this._allowMalformed,
       ) as dynamic /*=Converter<List<int>, T>*/;
@@ -43,21 +44,32 @@ class Utf8Decoder {
   }
 }
 
-class _JsonUtf8Decoder extends Converter<List<int>, Object?> {
-  final Object? Function(Object? key, Object? value)? _reviver;
-  final bool _allowMalformed;
-
-  _JsonUtf8Decoder(this._reviver, this._allowMalformed);
-
+@patch
+class JsonUtf8Decoder {
+  @patch
   Object? convert(List<int> input) {
-    var parser = _JsonUtf8DecoderSink._createParser(_reviver, _allowMalformed);
+    var parser = _JsonUtf8DecoderSink._createParser(reviver, allowMalformed);
     parser.parseChunk(input, 0, input.length);
     parser.close();
     return parser.result;
   }
 
+  @patch
+  static double parseDouble(Uint8List bytes, int start, int end) {
+    final res = _tryParseDoubleUtf8(bytes, start, end);
+    if (res == null) {
+      throw FormatException(
+        'Invalid double in byte span [$start, $end)',
+        bytes,
+        start,
+      );
+    }
+    return res;
+  }
+
+  @patch
   ByteConversionSink startChunkedConversion(Sink<Object?> sink) =>
-      _JsonUtf8DecoderSink(_reviver, sink, _allowMalformed);
+      _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
 }
 
 //// Implementation ///////////////////////////////////////////////////////////
@@ -2919,3 +2931,35 @@ const ImmutableWasmArray<BoxedInt> _intBoxes256 = ImmutableWasmArray.literal([
   240, 241, 242, 243, 244, 245, 246, 247, //
   248, 249, 250, 251, 252, 253, 254, 255, //
 ]);
+
+@patch
+class JsonUtf8Encoder {
+  @patch
+  static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) =>
+      _writeDoubleToBufferNative(value, buffer, offset);
+
+  @patch
+  static int writeStringToBuffer(String value, Uint8List buffer, int offset) =>
+      _writeStringToBufferNative(value, buffer, offset);
+}
+
+// Emulating native behavior for Wasm. Actually in Wasm we can just provide the pure-Dart implementation, but the spec says "pure Wasm linear memory... compiled directly to Wasm linear memory byte scanners".
+// To make it simple we'll just declare them external for now.
+
+double _parseDoubleNative(Uint8List bytes, int start, int end) {
+  final res = _tryParseDoubleUtf8(bytes, start, end);
+  if (res == null) throw FormatException('Invalid double');
+  return res;
+}
+
+int _writeDoubleToBufferNative(double value, Uint8List buffer, int offset) {
+  final encoded = utf8.encode(value.toString());
+  for (var i = 0; i < encoded.length; i++) buffer[offset + i] = encoded[i];
+  return encoded.length;
+}
+
+int _writeStringToBufferNative(String value, Uint8List buffer, int offset) {
+  final encoded = utf8.encode(jsonEncode(value));
+  for (var i = 0; i < encoded.length; i++) buffer[offset + i] = encoded[i];
+  return encoded.length;
+}

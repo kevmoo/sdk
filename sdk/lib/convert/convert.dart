@@ -179,3 +179,4 @@ part 'latin1.dart';
 part 'line_splitter.dart';
 part 'string_conversion.dart';
 part 'utf.dart';
+part 'json_utf8.dart';
