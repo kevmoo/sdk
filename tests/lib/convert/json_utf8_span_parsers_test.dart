@@ -27,6 +27,9 @@ void main() {
   testSkipValueControlChars();
   testDoubleFastPathAndNegativeZero();
   testJsonKeyOptionsCollisionsAndDuplicates();
+  testBufferOverflowAndBounds();
+  testUnescapedControlCharsInStrings();
+  testContainerSkippingNesting();
 }
 
 void testParseInt() {
@@ -259,16 +262,46 @@ void testEncoderBufferWriters() {
 }
 
 void testSurrogateEncoding() {
-  final buf = Uint8List(64);
+  final buf = Uint8List(128);
   // Isolated low surrogate: \uDC00
-  final len1 = JsonUtf8Encoder.writeStringToBuffer('\uDC00', buf, 0);
-  final decoded1 = utf8.decode(buf.sublist(0, len1));
-  Expect.isTrue(decoded1 == '"\uFFFD"' || decoded1 == r'"\udc00"');
+  var len = JsonUtf8Encoder.writeStringToBuffer('\uDC00', buf, 0);
+  Expect.equals(r'"\udc00"', utf8.decode(buf.sublist(0, len)));
 
   // Isolated high surrogate: \uD800
-  final len2 = JsonUtf8Encoder.writeStringToBuffer('\uD800', buf, 0);
-  final decoded2 = utf8.decode(buf.sublist(0, len2));
-  Expect.isTrue(decoded2 == '"\uFFFD"' || decoded2 == r'"\ud800"');
+  len = JsonUtf8Encoder.writeStringToBuffer('\uD800', buf, 0);
+  Expect.equals(r'"\ud800"', utf8.decode(buf.sublist(0, len)));
+
+  // High surrogate followed by ASCII: \uD800A
+  len = JsonUtf8Encoder.writeStringToBuffer('\uD800A', buf, 0);
+  Expect.equals(r'"\ud800A"', utf8.decode(buf.sublist(0, len)));
+
+  // ASCII followed by high surrogate: A\uD800
+  len = JsonUtf8Encoder.writeStringToBuffer('A\uD800', buf, 0);
+  Expect.equals(r'"A\ud800"', utf8.decode(buf.sublist(0, len)));
+
+  // Two consecutive isolated high surrogates: \uD800\uD800
+  len = JsonUtf8Encoder.writeStringToBuffer('\uD800\uD800', buf, 0);
+  Expect.equals(r'"\ud800\ud800"', utf8.decode(buf.sublist(0, len)));
+
+  // Two consecutive isolated low surrogates: \uDC00\uDC00
+  len = JsonUtf8Encoder.writeStringToBuffer('\uDC00\uDC00', buf, 0);
+  Expect.equals(r'"\udc00\udc00"', utf8.decode(buf.sublist(0, len)));
+
+  // Low surrogate followed by high surrogate: \uDC00\uD800
+  len = JsonUtf8Encoder.writeStringToBuffer('\uDC00\uD800', buf, 0);
+  Expect.equals(r'"\udc00\ud800"', utf8.decode(buf.sublist(0, len)));
+
+  // Valid surrogate pair: \uD83D\uDE00 (Grinning Face emoji 😀)
+  len = JsonUtf8Encoder.writeStringToBuffer('\uD83D\uDE00', buf, 0);
+  Expect.equals('"😀"', utf8.decode(buf.sublist(0, len)));
+
+  // Valid surrogate pair followed by isolated surrogate: 😀\uD800
+  len = JsonUtf8Encoder.writeStringToBuffer('😀\uD800', buf, 0);
+  Expect.equals(r'"😀\ud800"', utf8.decode(buf.sublist(0, len)));
+
+  // Isolated surrogate followed by valid surrogate pair: \uDC00😀
+  len = JsonUtf8Encoder.writeStringToBuffer('\uDC00😀', buf, 0);
+  Expect.equals(r'"\udc00😀"', utf8.decode(buf.sublist(0, len)));
 }
 
 void testRfc8259NumberGrammar() {
@@ -537,4 +570,153 @@ void testJsonKeyOptionsCollisionsAndDuplicates() {
   }
   final missing = b('key_schema_field_999');
   Expect.equals(-1, manyOptions.selectKey(missing, 0, missing.length));
+}
+
+void testBufferOverflowAndBounds() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // writeDoubleToBuffer exact fit -> Succeeds
+  final exactDoubleBuf = Uint8List(7);
+  final dLen = JsonUtf8Encoder.writeDoubleToBuffer(3.14159, exactDoubleBuf, 0);
+  Expect.equals(7, dLen);
+  Expect.equals('3.14159', utf8.decode(exactDoubleBuf));
+
+  // writeDoubleToBuffer exact boundary fit at offset -> Succeeds
+  final offsetDoubleBuf = Uint8List(10);
+  final dLen2 = JsonUtf8Encoder.writeDoubleToBuffer(
+    3.14159,
+    offsetDoubleBuf,
+    3,
+  );
+  Expect.equals(7, dLen2);
+  Expect.equals('3.14159', utf8.decode(offsetDoubleBuf.sublist(3, 10)));
+
+  // writeDoubleToBuffer undersized buffer -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(3.14159, Uint8List(2), 0),
+  );
+
+  // writeDoubleToBuffer negative offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(3.14159, Uint8List(16), -1),
+  );
+
+  // writeDoubleToBuffer offset out of bounds -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(3.14159, Uint8List(16), 14),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(3.14159, Uint8List(16), 1000),
+  );
+
+  // writeStringToBuffer exact fit -> Succeeds
+  final exactStrBuf = Uint8List(7);
+  final sLen = JsonUtf8Encoder.writeStringToBuffer('hello', exactStrBuf, 0);
+  Expect.equals(7, sLen);
+  Expect.equals('"hello"', utf8.decode(exactStrBuf));
+
+  // writeStringToBuffer exact boundary fit at offset -> Succeeds
+  final offsetStrBuf = Uint8List(10);
+  final sLen2 = JsonUtf8Encoder.writeStringToBuffer('hello', offsetStrBuf, 3);
+  Expect.equals(7, sLen2);
+  Expect.equals('"hello"', utf8.decode(offsetStrBuf.sublist(3, 10)));
+
+  // writeStringToBuffer undersized buffer -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeStringToBuffer('hello world', Uint8List(4), 0),
+  );
+
+  // writeStringToBuffer negative offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeStringToBuffer('hello', Uint8List(16), -1),
+  );
+
+  // writeStringToBuffer offset out of bounds -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeStringToBuffer('hello', Uint8List(16), 14),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeStringToBuffer('hello', Uint8List(16), 1000),
+  );
+
+  // In-place buffer rollback / non-corruption test:
+  final buf = Uint8List.fromList([1, 2, 3, 4, 5]);
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeStringToBuffer('long_string_overflow', buf, 0),
+  );
+  Expect.listEquals([1, 2, 3, 4, 5], buf);
+}
+
+void testUnescapedControlCharsInStrings() {
+  // Test that all unescaped control chars (0x00 to 0x1F) throw FormatException
+  for (var c = 0; c < 0x20; c++) {
+    final bytes = Uint8List.fromList([0x22, c, 0x22]); // '"<ctrl>"'
+    Expect.throwsFormatException(
+      () => JsonUtf8Decoder.decodeString(bytes, 1, 2),
+    );
+    Expect.isFalse(JsonUtf8Decoder.isVerbatim(bytes, 1, 2));
+    Expect.throwsFormatException(() => jsonUtf8Decode(bytes));
+  }
+
+  // Also test with mixed content containing control character
+  final withNewline = Uint8List.fromList(utf8.encode('hello\nworld'));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.decodeString(withNewline, 0, withNewline.length),
+  );
+  Expect.isFalse(
+    JsonUtf8Decoder.isVerbatim(withNewline, 0, withNewline.length),
+  );
+  Expect.throwsFormatException(
+    () => jsonUtf8Decode(Uint8List.fromList([0x22, ...withNewline, 0x22])),
+  );
+}
+
+void testContainerSkippingNesting() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Array containing nested object with inner arrays
+  final b1 = b('[{"a": [1, 2]}] rest');
+  Expect.equals(15, JsonUtf8Decoder.skipValue(b1, 0));
+
+  // Array with multiple objects having nested arrays
+  final b2 = b('[{"a": [1, 2]}, {"b": [3, [4, 5]]}, 42] rest');
+  Expect.equals(39, JsonUtf8Decoder.skipValue(b2, 0));
+
+  // Object containing array with nested objects
+  final b3 = b('{"a": [{"b": 1, "c": [2, 3]}], "d": 100} rest');
+  Expect.equals(40, JsonUtf8Decoder.skipValue(b3, 0));
+
+  // Deep multi-level container skipping (10 levels)
+  final bDeep = b('[{"l1": [{"l2": [{"l3": [1, {"l4": 2}]}]}]}] rest');
+  Expect.equals(44, JsonUtf8Decoder.skipValue(bDeep, 0));
+
+  // Strings containing escaped brackets and quotes inside containers
+  final bEsc = b('[ "{\\\"x\\\": [1, 2]}", "]" ] rest');
+  Expect.equals(26, JsonUtf8Decoder.skipValue(bEsc, 0));
+
+  // Mismatched container errors
+  final b4 = b('[{"a": 1]');
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b4, 0));
+
+  final b5 = b('{"a": [1, 2}');
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b5, 0));
+
+  final b6 = b('[1, 2}');
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b6, 0));
+
+  final b7 = b('{"a": 1]');
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b7, 0));
+
+  // Unclosed container errors
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('{"a": [1, 2'), 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('[{"a": 1}'), 0),
+  );
+
+  // Trailing backslash in skipString
+  final b8 = b('"hello\\');
+  final skipOffset = JsonUtf8Decoder.skipString(b8, 0);
+  Expect.isTrue(skipOffset <= b8.length);
 }

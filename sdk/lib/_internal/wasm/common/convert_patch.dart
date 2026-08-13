@@ -68,7 +68,7 @@ class JsonUtf8Decoder {
   }
 
   @patch
-  ByteConversionSink startChunkedConversion(Sink<Object?> sink) =>
+  ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) =>
       _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
 }
 
@@ -2950,23 +2950,17 @@ class JsonUtf8Encoder {
 // Emulating native behavior for Wasm. Actually in Wasm we can just provide the pure-Dart implementation, but the spec says "pure Wasm linear memory... compiled directly to Wasm linear memory byte scanners".
 // To make it simple we'll just declare them external for now.
 
-double _parseDoubleNative(Uint8List bytes, int start, int end) {
-  final res = _tryParseDoubleUtf8(bytes, start, end);
-  if (res == null) throw FormatException('Invalid double');
-  return res;
-}
-
 int _writeDoubleToBufferNative(double value, Uint8List buffer, int offset) {
   if (!value.isFinite) {
     throw ArgumentError.value(value, 'value', 'Must be finite');
   }
   final encoded = utf8.encode(value.toString());
-  for (var i = 0; i < encoded.length; i++) buffer[offset + i] = encoded[i];
+  buffer.setRange(offset, offset + encoded.length, encoded);
   return encoded.length;
 }
 
 int _writeStringToBufferNative(String value, Uint8List buffer, int offset) {
   final encoded = utf8.encode(jsonEncode(value));
-  for (var i = 0; i < encoded.length; i++) buffer[offset + i] = encoded[i];
+  buffer.setRange(offset, offset + encoded.length, encoded);
   return encoded.length;
 }

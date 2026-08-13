@@ -24,6 +24,9 @@ void main() {
   testTokenReaderPeekWithCommas();
   testTokenReaderUtf8Bom();
   testDeepObjectTrees();
+  testTokenReaderNonDestructivePeek();
+  testTokenReaderControlCharacters();
+  testTokenReaderComplexNestingSkipValue();
 }
 
 void testTokenReaderPrimitives() {
@@ -517,4 +520,72 @@ void testDeepObjectTrees() {
       deepReader.nextName();
     }
   });
+}
+
+void testTokenReaderNonDestructivePeek() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Whitespace in front of value: peek() should not mutate _offset
+  final bytes = b('   42');
+  final reader = JsonTokenReader.fromBytes(bytes);
+  Expect.equals(JsonTokenType.number, reader.peek());
+  Expect.equals(JsonTokenType.number, reader.peek());
+  Expect.equals(42, reader.readInt());
+
+  // 2. Whitespace in front of object: peek() should not mutate _offset
+  final objBytes = b('   {"k": 1}');
+  final objReader = JsonTokenReader.fromBytes(objBytes);
+  Expect.equals(JsonTokenType.beginObject, objReader.peek());
+  Expect.equals(JsonTokenType.beginObject, objReader.peek());
+  objReader.beginObject();
+  Expect.equals(JsonTokenType.propertyName, objReader.peek());
+  Expect.equals('k', objReader.nextName());
+  Expect.equals(1, objReader.readInt());
+  objReader.endObject();
+}
+
+void testTokenReaderControlCharacters() {
+  // Unescaped control characters in strings must throw FormatException
+  final bVal = Uint8List.fromList([0x22, 0x0A, 0x22]); // '"\n"'
+  final rVal = JsonTokenReader.fromBytes(bVal);
+  Expect.throwsFormatException(() => rVal.readString());
+
+  final bName = Uint8List.fromList([
+    0x7B,
+    0x22,
+    0x01,
+    0x22,
+    0x3A,
+    0x31,
+    0x7D,
+  ]); // '{"\x01":1}'
+  final rName = JsonTokenReader.fromBytes(bName);
+  rName.beginObject();
+  Expect.throwsFormatException(() => rName.nextName());
+
+  final rSpan = JsonTokenReader.fromBytes(bVal);
+  Expect.throwsFormatException(() => rSpan.getTokenSpan());
+}
+
+void testTokenReaderComplexNestingSkipValue() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final complexJson = b('{"skip": [{"a": [1, 2]}, {"b": [3, 4]}], "keep": 99}');
+  final r = JsonTokenReader.fromBytes(complexJson);
+  r.beginObject();
+  Expect.equals('skip', r.nextName());
+  r.skipValue();
+  Expect.isTrue(r.hasNext());
+  Expect.equals('keep', r.nextName());
+  Expect.equals(99, r.readInt());
+  r.endObject();
+
+  // Nested array skipValue with inner objects
+  final arrJson = b('[[{"x": [1, 2]}], 42]');
+  final rArr = JsonTokenReader.fromBytes(arrJson);
+  rArr.beginArray();
+  rArr.skipValue(); // skips '[{"x": [1, 2]}]'
+  Expect.isTrue(rArr.hasNext());
+  Expect.equals(42, rArr.readInt());
+  rArr.endArray();
 }

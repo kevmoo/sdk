@@ -336,26 +336,45 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     final b = bytes[i];
     if (b == 123 || b == 91) {
       // object or array
-      var depth = 1;
-      final open = b;
-      final close = b == 123 ? 125 : 93;
+      final stack = <int>[b];
       i++;
-      while (i < bytes.length && depth > 0) {
+      while (i < bytes.length && stack.isNotEmpty) {
         final c = bytes[i++];
         if (c == 34) {
           while (i < bytes.length) {
             final sc = bytes[i++];
             if (sc == 92) {
-              i++;
+              if (i < bytes.length) i++;
             } else if (sc == 34) {
               break;
             }
           }
-        } else if (c == open) {
-          depth++;
-        } else if (c == close) {
-          depth--;
+        } else if (c == 123 || c == 91) {
+          stack.add(c);
+        } else if (c == 125) {
+          if (stack.isEmpty || stack.removeLast() != 123) {
+            throw FormatException(
+              'Mismatched "}" at offset ${i - 1}',
+              bytes,
+              i - 1,
+            );
+          }
+        } else if (c == 93) {
+          if (stack.isEmpty || stack.removeLast() != 91) {
+            throw FormatException(
+              'Mismatched "]" at offset ${i - 1}',
+              bytes,
+              i - 1,
+            );
+          }
         }
+      }
+      if (stack.isNotEmpty) {
+        throw FormatException(
+          'Unclosed container at offset $offset',
+          bytes,
+          offset,
+        );
       }
       return i;
     }
@@ -364,7 +383,7 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       while (i < bytes.length) {
         final c = bytes[i++];
         if (c == 92) {
-          i++;
+          if (i < bytes.length) i++;
         } else if (c == 34) {
           break;
         }
@@ -407,7 +426,7 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     while (i < bytes.length) {
       final b = bytes[i++];
       if (b == 92) {
-        i++;
+        if (i < bytes.length) i++;
       } else if (b == 34) {
         break;
       }
@@ -539,6 +558,14 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     }
     final str = value.toString();
     final len = str.length;
+    if (offset < 0 || offset + len > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= len ? buffer.length - len : 0,
+        'offset',
+      );
+    }
     for (var i = 0; i < len; i++) {
       buffer[offset + i] = str.codeUnitAt(i);
     }
@@ -1077,9 +1104,11 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   JsonTokenType peek() {
-    _skipWs();
-    if (_offset >= _bytes.length) return JsonTokenType.endOfDocument;
     var i = _offset;
+    while (i < _bytes.length && _isWs(_bytes[i])) {
+      i++;
+    }
+    if (i >= _bytes.length) return JsonTokenType.endOfDocument;
     if (_stack.isNotEmpty && _stack.last.state == _ReaderItemState.afterValue) {
       if (i < _bytes.length && _bytes[i] == 44) {
         i++;
@@ -1257,6 +1286,13 @@ final class _JsonTokenReader implements JsonTokenReader {
     var i = start;
     while (i < _bytes.length) {
       final b = _bytes[i];
+      if (b < 0x20) {
+        throw FormatException(
+          'Unescaped control character in string literal at offset $i',
+          _bytes,
+          i,
+        );
+      }
       if (b == 92) {
         i += 2;
       } else if (b == 34) {
@@ -1359,47 +1395,46 @@ final class _JsonTokenReader implements JsonTokenReader {
     _beforeReadingValue();
     if (_offset >= _bytes.length) return;
     final b = _bytes[_offset];
-    if (b == 123) {
-      // object
-      var depth = 1;
+    if (b == 123 || b == 91) {
+      final stack = <int>[b];
       _offset++;
-      while (_offset < _bytes.length && depth > 0) {
+      while (_offset < _bytes.length && stack.isNotEmpty) {
         final c = _bytes[_offset++];
         if (c == 34) {
           while (_offset < _bytes.length) {
             final sc = _bytes[_offset++];
             if (sc == 92) {
-              _offset++;
+              if (_offset < _bytes.length) _offset++;
             } else if (sc == 34) {
               break;
             }
           }
-        } else if (c == 123) {
-          depth++;
+        } else if (c == 123 || c == 91) {
+          stack.add(c);
         } else if (c == 125) {
-          depth--;
+          if (stack.isEmpty || stack.removeLast() != 123) {
+            throw FormatException(
+              'Mismatched "}" at offset ${_offset - 1}',
+              _bytes,
+              _offset - 1,
+            );
+          }
+        } else if (c == 93) {
+          if (stack.isEmpty || stack.removeLast() != 91) {
+            throw FormatException(
+              'Mismatched "]" at offset ${_offset - 1}',
+              _bytes,
+              _offset - 1,
+            );
+          }
         }
       }
-    } else if (b == 91) {
-      // array
-      var depth = 1;
-      _offset++;
-      while (_offset < _bytes.length && depth > 0) {
-        final c = _bytes[_offset++];
-        if (c == 34) {
-          while (_offset < _bytes.length) {
-            final sc = _bytes[_offset++];
-            if (sc == 92) {
-              _offset++;
-            } else if (sc == 34) {
-              break;
-            }
-          }
-        } else if (c == 91) {
-          depth++;
-        } else if (c == 93) {
-          depth--;
-        }
+      if (stack.isNotEmpty) {
+        throw FormatException(
+          'Unclosed container at end of document',
+          _bytes,
+          _offset,
+        );
       }
     } else if (b == 34) {
       _scanStringSpan();
@@ -1439,6 +1474,13 @@ final class _JsonTokenReader implements JsonTokenReader {
       var j = start;
       while (j < _bytes.length) {
         final b = _bytes[j];
+        if (b < 0x20) {
+          throw FormatException(
+            'Unescaped control character in string literal at offset $j',
+            _bytes,
+            j,
+          );
+        }
         if (b == 92) {
           j += 2;
         } else if (b == 34) {
@@ -2056,7 +2098,9 @@ bool _isNullUtf8(Uint8List source, int start, int end) {
 bool _isVerbatimUtf8(Uint8List source, int start, int end) {
   if (start < 0 || end > source.length || start > end) return false;
   for (var i = start; i < end; i++) {
-    if (source[i] == 92) return false; // '\\'
+    final b = source[i];
+    if (b == 92 || b < 0x20)
+      return false; // '\\' or unescaped control character
   }
   return true;
 }
@@ -2075,6 +2119,13 @@ String _decodeStringUtf8(
   var hasBackslash = false;
   for (var i = start; i < end; i++) {
     final b = source[i];
+    if (b < 0x20) {
+      throw FormatException(
+        'Unescaped control character in string literal at offset $i',
+        source,
+        i,
+      );
+    }
     maxByte |= b;
     if (b == 92) {
       hasBackslash = true;
@@ -2096,7 +2147,15 @@ String _decodeStringUtf8(
   var i = start;
   var runStart = start;
   while (i < end) {
-    if (source[i] == 92) {
+    final b = source[i];
+    if (b < 0x20) {
+      throw FormatException(
+        'Unescaped control character in string literal at offset $i',
+        source,
+        i,
+      );
+    }
+    if (b == 92) {
       // '\\'
       if (i > runStart) {
         var runMax = 0;
