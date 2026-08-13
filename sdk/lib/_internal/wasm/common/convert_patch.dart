@@ -81,6 +81,10 @@ class JsonUtf8Encoder {
     }
     final written = _writeDoubleToBufferUtf8(value, buffer, offset);
     if (written > 0) return written;
+    // TODO(kevmoo): Pure-Dart Dragonbox/Ryu Port:
+    // On Wasm, complex floats failing the exact mantissa fast-path currently fall
+    // back to value.toString(). Integrate a pure-Dart linear memory Dragonbox
+    // port to eliminate heap String allocation on WebAssembly.
     final str = value.toString();
     final len = str.length;
     if (offset + len > buffer.length) {

@@ -2362,7 +2362,11 @@ int _writeDoubleToBufferUtf8(double value, Uint8List buffer, int offset) {
     }
   }
 
-  // 4. Return 0 when exact 53-bit mantissa scaling is not possible
+  // 4. Return 0 when exact 53-bit mantissa scaling is not possible.
+  // TODO(kevmoo): Pure-Dart Dragonbox/Ryu Port:
+  // Port a pure-Dart shortest float formatting algorithm (Dragonbox/Grisu2)
+  // directly into Uint8List buffers to eliminate fallback to C++ Grisu2 or
+  // value.toString() on numbers with > 15 digits or subnormals.
   return 0;
 }
 
