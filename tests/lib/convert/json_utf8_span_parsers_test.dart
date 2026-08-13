@@ -34,6 +34,8 @@ void main() {
   testContainerSkippingNesting();
   testSkipValueMaxDepth();
   testWriteDoubleToBufferEdgeCases();
+  testDecoderSkipValueScalarValidation();
+  testDirectToSinkEncoderWriters();
 }
 
 void testParseInt() {
@@ -1179,4 +1181,81 @@ void testWriteDoubleToBufferEdgeCases() {
   checkRoundtrip(double.minPositive);
   checkRoundtrip(double.maxFinite);
   checkRoundtrip(-double.maxFinite);
+}
+
+void testDecoderSkipValueScalarValidation() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Invalid boolean tails
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('true_junk'), 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('false_alarm'), 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('nullify'), 0),
+  );
+
+  // Invalid number tails and malformed numbers
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('123abc456'), 0),
+  );
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('-xyz'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('-'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('0123'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('+123'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('1.e2'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('1e'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('1e+'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('1.0e-'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('1.'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('-.5'), 0));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('-0123'), 0));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('123:456'), 0),
+  );
+}
+
+void testDirectToSinkEncoderWriters() {
+  // Test writeString directly into BytesBuilder
+  void checkString(String input, String expectedJson) {
+    final sink = BytesBuilder();
+    JsonUtf8Encoder.writeString(input, sink);
+    final actual = utf8.decode(sink.takeBytes());
+    Expect.equals(expectedJson, actual);
+  }
+
+  checkString('hello', '"hello"');
+  checkString('', '""');
+  checkString('a"b\\c', r'"a\"b\\c"');
+  checkString('line\nbreak', r'"line\nbreak"');
+  checkString('tab\tchar', r'"tab\tchar"');
+  checkString('ctrl\x00char', r'"ctrl\u0000char"');
+  checkString('café', '"café"');
+  checkString('日本語', '"日本語"');
+  checkString('🚀', '"🚀"');
+  checkString('\uD83D\uDE80', '"🚀"');
+  checkString('isolated \uD800 high', r'"isolated \ud800 high"');
+  checkString('isolated \uDC00 low', r'"isolated \udc00 low"');
+
+  // Test writeInt directly into BytesBuilder
+  void checkInt(int input, String expected) {
+    final sink = BytesBuilder();
+    JsonUtf8Encoder.writeInt(input, sink);
+    final actual = utf8.decode(sink.takeBytes());
+    Expect.equals(expected, actual);
+  }
+
+  checkInt(0, '0');
+  checkInt(1, '1');
+  checkInt(-1, '-1');
+  checkInt(42, '42');
+  checkInt(-42, '-42');
+  checkInt(100, '100');
+  checkInt(-100, '-100');
+  checkInt(123456789, '123456789');
+  checkInt(-123456789, '-123456789');
+  checkInt(9223372036854775807, '9223372036854775807');
+  checkInt(-9223372036854775808, '-9223372036854775808');
 }

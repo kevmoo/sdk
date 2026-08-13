@@ -426,24 +426,78 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       }
       return i;
     }
-    if (b != 116 && b != 102 && b != 110 && b != 45 && (b < 48 || b > 57)) {
-      throw FormatException(
-        'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $i',
-        bytes,
-        i,
-      );
+    if (b == 116) {
+      // 'true'
+      if (i + 4 > bytes.length ||
+          bytes[i + 1] != 114 ||
+          bytes[i + 2] != 117 ||
+          bytes[i + 3] != 101) {
+        throw FormatException('Expected true at offset $i', bytes, i);
+      }
+      if (i + 4 < bytes.length &&
+          bytes[i + 4] != 44 &&
+          bytes[i + 4] != 125 &&
+          bytes[i + 4] != 93 &&
+          !_isWs(bytes[i + 4])) {
+        throw FormatException(
+          'Invalid JSON token starting with true at offset $i',
+          bytes,
+          i,
+        );
+      }
+      return i + 4;
     }
-    while (i < bytes.length &&
-        bytes[i] != 44 &&
-        bytes[i] != 125 &&
-        bytes[i] != 93 &&
-        bytes[i] != 0x20 &&
-        bytes[i] != 0x09 &&
-        bytes[i] != 0x0A &&
-        bytes[i] != 0x0D) {
-      i++;
+    if (b == 102) {
+      // 'false'
+      if (i + 5 > bytes.length ||
+          bytes[i + 1] != 97 ||
+          bytes[i + 2] != 108 ||
+          bytes[i + 3] != 115 ||
+          bytes[i + 4] != 101) {
+        throw FormatException('Expected false at offset $i', bytes, i);
+      }
+      if (i + 5 < bytes.length &&
+          bytes[i + 5] != 44 &&
+          bytes[i + 5] != 125 &&
+          bytes[i + 5] != 93 &&
+          !_isWs(bytes[i + 5])) {
+        throw FormatException(
+          'Invalid JSON token starting with false at offset $i',
+          bytes,
+          i,
+        );
+      }
+      return i + 5;
     }
-    return i;
+    if (b == 110) {
+      // 'null'
+      if (i + 4 > bytes.length ||
+          bytes[i + 1] != 117 ||
+          bytes[i + 2] != 108 ||
+          bytes[i + 3] != 108) {
+        throw FormatException('Expected null at offset $i', bytes, i);
+      }
+      if (i + 4 < bytes.length &&
+          bytes[i + 4] != 44 &&
+          bytes[i + 4] != 125 &&
+          bytes[i + 4] != 93 &&
+          !_isWs(bytes[i + 4])) {
+        throw FormatException(
+          'Invalid JSON token starting with null at offset $i',
+          bytes,
+          i,
+        );
+      }
+      return i + 4;
+    }
+    if (b == 45 || (b >= 48 && b <= 57)) {
+      return _scanNumberSpan(bytes, i);
+    }
+    throw FormatException(
+      'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $i',
+      bytes,
+      i,
+    );
   }
 
   /// Fast-skips JSON whitespace (0x20, 0x09, 0x0A, 0x0D) starting at [offset]
@@ -579,7 +633,90 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   /// Writes [value] with standard JSON escaping directly into [sink].
   static void writeString(String value, BytesBuilder sink) {
-    sink.add(utf8.encode(jsonEncode(value)));
+    sink.addByte(0x22); // '"'
+    final len = value.length;
+    for (var i = 0; i < len; i++) {
+      final c = value.codeUnitAt(i);
+      switch (c) {
+        case 0x22:
+          sink.addByte(0x5C);
+          sink.addByte(0x22);
+          break;
+        case 0x5C:
+          sink.addByte(0x5C);
+          sink.addByte(0x5C);
+          break;
+        case 0x08:
+          sink.addByte(0x5C);
+          sink.addByte(0x62); // 'b'
+          break;
+        case 0x0C:
+          sink.addByte(0x5C);
+          sink.addByte(0x66); // 'f'
+          break;
+        case 0x0A:
+          sink.addByte(0x5C);
+          sink.addByte(0x6E); // 'n'
+          break;
+        case 0x0D:
+          sink.addByte(0x5C);
+          sink.addByte(0x72); // 'r'
+          break;
+        case 0x09:
+          sink.addByte(0x5C);
+          sink.addByte(0x74); // 't'
+          break;
+        default:
+          if (c < 0x20) {
+            sink.addByte(0x5C);
+            sink.addByte(0x75); // 'u'
+            sink.addByte(0x30); // '0'
+            sink.addByte(0x30); // '0'
+            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
+          } else if (c <= 0x7F) {
+            sink.addByte(c);
+          } else if (c <= 0x7FF) {
+            sink.addByte(0xC0 | (c >> 6));
+            sink.addByte(0x80 | (c & 0x3F));
+          } else if (c >= 0xD800 && c <= 0xDBFF) {
+            if (i + 1 < len) {
+              final c2 = value.codeUnitAt(i + 1);
+              if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+                i++;
+                final codePoint =
+                    0x10000 + ((c - 0xD800) << 10) + (c2 - 0xDC00);
+                sink.addByte(0xF0 | (codePoint >> 18));
+                sink.addByte(0x80 | ((codePoint >> 12) & 0x3F));
+                sink.addByte(0x80 | ((codePoint >> 6) & 0x3F));
+                sink.addByte(0x80 | (codePoint & 0x3F));
+                break;
+              }
+            }
+            // Isolated high surrogate -> \uXXXX
+            sink.addByte(0x5C);
+            sink.addByte(0x75); // 'u'
+            sink.addByte(_hexDigits.codeUnitAt((c >> 12) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 8) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
+          } else if (c >= 0xDC00 && c <= 0xDFFF) {
+            // Isolated low surrogate -> \uXXXX
+            sink.addByte(0x5C);
+            sink.addByte(0x75); // 'u'
+            sink.addByte(_hexDigits.codeUnitAt((c >> 12) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 8) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
+          } else {
+            sink.addByte(0xE0 | (c >> 12));
+            sink.addByte(0x80 | ((c >> 6) & 0x3F));
+            sink.addByte(0x80 | (c & 0x3F));
+          }
+          break;
+      }
+    }
+    sink.addByte(0x22); // '"'
   }
 
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
@@ -636,27 +773,12 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
       v = -v;
     }
     final digitCount = _digitCountNegative(v);
-    final digits = Uint8List(digitCount);
-    var writePos = digitCount - 1;
-    var temp = v;
-    while (temp <= -100) {
-      final next = temp ~/ 100;
-      final rem = -(temp - next * 100);
-      final pairIdx = rem << 1;
-      digits[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
-      digits[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
-      writePos -= 2;
-      temp = next;
+    for (var k = digitCount - 1; k >= 0; k--) {
+      final power = _powersOf10Int[k];
+      final digit = -(v ~/ power);
+      sink.addByte(48 + digit);
+      v += digit * power;
     }
-    if (temp <= -10) {
-      final rem = -temp;
-      final pairIdx = rem << 1;
-      digits[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
-      digits[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
-    } else {
-      digits[writePos] = 48 - temp;
-    }
-    sink.add(digits);
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -1521,8 +1643,14 @@ final class _JsonTokenReader implements JsonTokenReader {
           _offset++;
           top.state = _ReaderItemState.afterComma;
           _skipWs();
-          if (_offset < _bytes.length &&
-              (_bytes[_offset] == 125 || _bytes[_offset] == 93)) {
+          if (_offset >= _bytes.length) {
+            throw FormatException(
+              'Unexpected end of document after comma',
+              _bytes,
+              _offset,
+            );
+          }
+          if (_bytes[_offset] == 125 || _bytes[_offset] == 93) {
             throw FormatException(
               'Trailing comma before $closeStr at offset $_offset',
             );
@@ -1531,6 +1659,13 @@ final class _JsonTokenReader implements JsonTokenReader {
         }
         throw FormatException('Expected "," or $closeStr at offset $_offset');
       } else if (top.state == _ReaderItemState.afterComma) {
+        if (_offset >= _bytes.length) {
+          throw FormatException(
+            'Unexpected end of document after comma',
+            _bytes,
+            _offset,
+          );
+        }
         if (_bytes[_offset] == 125 || _bytes[_offset] == 93) {
           throw FormatException(
             'Trailing comma before $closeStr at offset $_offset',
@@ -1611,7 +1746,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       final (start, end) = _scanStringSpan();
       _consumeColon();
       _stack.last.state = _ReaderItemState.afterName;
-      if (_isVerbatimUtf8(_bytes, start, end)) {
+      if (_isUnescapedUtf8(_bytes, start, end)) {
         return options.selectKey(_bytes, start, end);
       }
       final unescaped = _decodeStringUtf8(
@@ -1639,7 +1774,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       _beforeReadingValue();
       final (start, end) = _scanStringSpan();
       _afterReadingValue();
-      if (_isVerbatimUtf8(_bytes, start, end)) {
+      if (_isUnescapedUtf8(_bytes, start, end)) {
         return options.selectKey(_bytes, start, end);
       }
       final unescaped = _decodeStringUtf8(
@@ -1828,23 +1963,84 @@ final class _JsonTokenReader implements JsonTokenReader {
         }
       } else if (b == 34) {
         _scanStringSpan();
-      } else {
-        if (b != 116 && b != 102 && b != 110 && b != 45 && (b < 48 || b > 57)) {
+      } else if (b == 116) {
+        if (_offset + 4 > _bytes.length ||
+            _bytes[_offset + 1] != 114 ||
+            _bytes[_offset + 2] != 117 ||
+            _bytes[_offset + 3] != 101) {
           throw FormatException(
-            'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $_offset',
+            'Expected true at offset $_offset',
             _bytes,
             _offset,
           );
         }
-        var i = _offset;
-        while (i < _bytes.length) {
-          final c = _bytes[i];
-          if (c == 44 || c == 125 || c == 93 || _isWs(c)) {
-            break;
-          }
-          i++;
+        if (_offset + 4 < _bytes.length &&
+            _bytes[_offset + 4] != 44 &&
+            _bytes[_offset + 4] != 125 &&
+            _bytes[_offset + 4] != 93 &&
+            !_isWs(_bytes[_offset + 4])) {
+          throw FormatException(
+            'Invalid JSON token starting with true at offset $_offset',
+            _bytes,
+            _offset,
+          );
         }
-        _offset = i;
+        _offset += 4;
+      } else if (b == 102) {
+        if (_offset + 5 > _bytes.length ||
+            _bytes[_offset + 1] != 97 ||
+            _bytes[_offset + 2] != 108 ||
+            _bytes[_offset + 3] != 115 ||
+            _bytes[_offset + 4] != 101) {
+          throw FormatException(
+            'Expected false at offset $_offset',
+            _bytes,
+            _offset,
+          );
+        }
+        if (_offset + 5 < _bytes.length &&
+            _bytes[_offset + 5] != 44 &&
+            _bytes[_offset + 5] != 125 &&
+            _bytes[_offset + 5] != 93 &&
+            !_isWs(_bytes[_offset + 5])) {
+          throw FormatException(
+            'Invalid JSON token starting with false at offset $_offset',
+            _bytes,
+            _offset,
+          );
+        }
+        _offset += 5;
+      } else if (b == 110) {
+        if (_offset + 4 > _bytes.length ||
+            _bytes[_offset + 1] != 117 ||
+            _bytes[_offset + 2] != 108 ||
+            _bytes[_offset + 3] != 108) {
+          throw FormatException(
+            'Expected null at offset $_offset',
+            _bytes,
+            _offset,
+          );
+        }
+        if (_offset + 4 < _bytes.length &&
+            _bytes[_offset + 4] != 44 &&
+            _bytes[_offset + 4] != 125 &&
+            _bytes[_offset + 4] != 93 &&
+            !_isWs(_bytes[_offset + 4])) {
+          throw FormatException(
+            'Invalid JSON token starting with null at offset $_offset',
+            _bytes,
+            _offset,
+          );
+        }
+        _offset += 4;
+      } else if (b == 45 || (b >= 48 && b <= 57)) {
+        _offset = _scanNumberSpan(_bytes, _offset);
+      } else {
+        throw FormatException(
+          'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $_offset',
+          _bytes,
+          _offset,
+        );
       }
       _afterReadingValue();
     } catch (_) {
@@ -1868,6 +2064,17 @@ final class _JsonTokenReader implements JsonTokenReader {
         i++;
         while (i < _bytes.length && _isWs(_bytes[i])) {
           i++;
+        }
+      } else {
+        final top = _stack.last;
+        final closeChar = top.type == _ContainerType.object ? 125 : 93;
+        final closeStr = top.type == _ContainerType.object ? '"}"' : '"]"';
+        if (i < _bytes.length && _bytes[i] != closeChar) {
+          throw FormatException(
+            'Expected "," or $closeStr at offset $i',
+            _bytes,
+            i,
+          );
         }
       }
     }
@@ -2058,6 +2265,17 @@ final class _JsonTokenWriter implements JsonTokenWriter {
       _sink.addByte(44); // ','
     }
     _objectStateStack.last = _ObjectState.key;
+    final isColonTerminated =
+        asciiKey.length >= 3 &&
+        asciiKey.first == 0x22 &&
+        asciiKey.last == 0x3A &&
+        _isSingleQuotedString(
+          Uint8List.sublistView(asciiKey, 0, asciiKey.length - 1),
+        );
+    if (isColonTerminated) {
+      _sink.add(asciiKey);
+      return;
+    }
     final isQuoted = _isSingleQuotedString(asciiKey);
     if (isQuoted) {
       _sink.add(asciiKey);
@@ -2675,6 +2893,115 @@ const List<double> _powersOfTen = [
   1e22,
 ];
 
+bool _isWs(int b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D;
+
+const List<int> _powersOf10Int = [
+  1,
+  10,
+  100,
+  1000,
+  10000,
+  100000,
+  1000000,
+  10000000,
+  100000000,
+  1000000000,
+  10000000000,
+  100000000000,
+  1000000000000,
+  10000000000000,
+  100000000000000,
+  1000000000000000,
+  10000000000000000,
+  100000000000000000,
+  1000000000000000000,
+];
+
+int _scanNumberSpan(Uint8List bytes, int offset) {
+  var i = offset;
+  if (i >= bytes.length) {
+    throw FormatException('Unexpected end of document', bytes, offset);
+  }
+  if (bytes[i] == 45) {
+    // '-'
+    i++;
+    if (i >= bytes.length) {
+      throw FormatException('Invalid number at offset $offset', bytes, offset);
+    }
+  }
+
+  // Integer part:
+  if (bytes[i] == 48) {
+    // '0'
+    i++;
+    // Leading zero cannot be followed by another digit
+    if (i < bytes.length && bytes[i] >= 48 && bytes[i] <= 57) {
+      throw FormatException(
+        'Leading zeros are not permitted at offset $offset',
+        bytes,
+        offset,
+      );
+    }
+  } else if (bytes[i] >= 49 && bytes[i] <= 57) {
+    // '1'..'9'
+    while (i < bytes.length && bytes[i] >= 48 && bytes[i] <= 57) {
+      i++;
+    }
+  } else {
+    throw FormatException('Invalid number at offset $offset', bytes, offset);
+  }
+
+  // Fraction part (optional):
+  if (i < bytes.length && bytes[i] == 46) {
+    // '.'
+    i++;
+    if (i >= bytes.length || bytes[i] < 48 || bytes[i] > 57) {
+      throw FormatException(
+        'Decimal point must be followed by at least one digit at offset $offset',
+        bytes,
+        offset,
+      );
+    }
+    while (i < bytes.length && bytes[i] >= 48 && bytes[i] <= 57) {
+      i++;
+    }
+  }
+
+  // Exponent part (optional):
+  if (i < bytes.length && (bytes[i] == 101 || bytes[i] == 69)) {
+    // 'e' or 'E'
+    i++;
+    if (i < bytes.length && (bytes[i] == 43 || bytes[i] == 45)) {
+      i++;
+    }
+    if (i >= bytes.length || bytes[i] < 48 || bytes[i] > 57) {
+      throw FormatException(
+        'Exponent must be followed by at least one digit at offset $offset',
+        bytes,
+        offset,
+      );
+    }
+    while (i < bytes.length && bytes[i] >= 48 && bytes[i] <= 57) {
+      i++;
+    }
+  }
+
+  // Ensure trailing character is a valid delimiter
+  if (i < bytes.length &&
+      bytes[i] != 44 &&
+      bytes[i] != 125 &&
+      bytes[i] != 93 &&
+      !_isWs(bytes[i])) {
+    throw FormatException(
+      'Unexpected character in number literal at offset $i',
+      bytes,
+      i,
+    );
+  }
+
+  return i;
+}
+
 num _pow10(int exp) {
   num res = 1;
   for (var j = 0; j < exp; j++) res *= 10;
@@ -2969,6 +3296,17 @@ bool _isVerbatimUtf8(Uint8List source, int start, int end) {
     final b = source[i];
     if (b < 0x20 || b > 0x7E || b == 0x22 || b == 0x5C) {
       return false; // Non-ASCII, control char, quote, or backslash
+    }
+  }
+  return true;
+}
+
+bool _isUnescapedUtf8(Uint8List source, int start, int end) {
+  if (start < 0 || end > source.length || start > end) return false;
+  for (var i = start; i < end; i++) {
+    final b = source[i];
+    if (b < 0x20 || b == 0x22 || b == 0x5C) {
+      return false; // Control char, unescaped quote, or backslash escape
     }
   }
   return true;

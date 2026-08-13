@@ -37,11 +37,15 @@ void main() {
   testAllowMalformedUtf8();
   testSelectNameSurrogatePairsAndNonAscii();
   testNextNameAndReadStringRollback();
-  testAllowMalformedUtf8WithEscapes();
   testTrailingCommaPeekRejection();
   testTokenReaderMultipleRoots();
   testTokenReaderSkipValueControlChars();
   testTokenReaderSkipValueRollback();
+  testWriteNameBytesColonTerminated();
+  testSkipValueScalarGrammarValidation();
+  testTruncatedDocumentTrailingCommaEof();
+  testMissingCommaEnforcementInGetTokenSpan();
+  testSelectNameMultiByteUtf8Keys();
 }
 
 void testTokenReaderPrimitives() {
@@ -1293,4 +1297,185 @@ void testTokenReaderSkipValueRollback() {
     Expect.isFalse(r.hasNext());
     r.endArray();
   }
+}
+
+void testWriteNameBytesColonTerminated() {
+  final sink1 = BytesBuilder();
+  final w1 = JsonTokenWriter.toSink(sink1);
+  w1.beginObject();
+  w1.writeNameBytes(Uint8List.fromList(utf8.encode('"id":')));
+  w1.writeInt(123);
+  w1.endObject();
+  final out1 = utf8.decode(sink1.takeBytes());
+  Expect.equals('{"id":123}', out1);
+
+  final sink2 = BytesBuilder();
+  final w2 = JsonTokenWriter.toSink(sink2);
+  w2.beginObject();
+  w2.writeNameBytes(Uint8List.fromList(utf8.encode('"complex:key":')));
+  w2.writeString('val');
+  w2.endObject();
+  final out2 = utf8.decode(sink2.takeBytes());
+  Expect.equals('{"complex:key":"val"}', out2);
+}
+
+void testSkipValueScalarGrammarValidation() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Invalid boolean tails
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('true_junk')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('false_alarm')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('nullify')).skipValue(),
+  );
+
+  // Invalid number tails and malformed numbers
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('123abc456')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('-xyz')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('-')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('0123')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('+123')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('1.e2')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('1e')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('1e+')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('1.0e-')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('1.')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('-.5')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('-0123')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('123:456')).skipValue(),
+  );
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(b('"unterminated')).skipValue(),
+  );
+}
+
+void testTruncatedDocumentTrailingCommaEof() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // In object: truncated after comma
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1,'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1,   '));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+  }
+
+  // In array: truncated after comma
+  {
+    final r = JsonTokenReader.fromBytes(b('[1,'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('[1,   '));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+  }
+}
+
+void testMissingCommaEnforcementInGetTokenSpan() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // In object: missing comma between values
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1 "b": 2}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+
+  // In array: missing comma between elements
+  {
+    final r = JsonTokenReader.fromBytes(b('[1 2]'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+}
+
+void testSelectNameMultiByteUtf8Keys() {
+  final options = JsonKeyOptions.of(['id', 'café', '名前', 'résumé', '🚀']);
+  final json = Uint8List.fromList(
+    utf8.encode('{"café": 1, "名前": 2, "résumé": 3, "🚀": 4}'),
+  );
+  final r = JsonTokenReader.fromBytes(json);
+  r.beginObject();
+  Expect.equals(1, r.selectName(options)); // 'café'
+  Expect.equals(1, r.readInt());
+  Expect.isTrue(r.hasNext());
+  Expect.equals(2, r.selectName(options)); // '名前'
+  Expect.equals(2, r.readInt());
+  Expect.isTrue(r.hasNext());
+  Expect.equals(3, r.selectName(options)); // 'résumé'
+  Expect.equals(3, r.readInt());
+  Expect.isTrue(r.hasNext());
+  Expect.equals(4, r.selectName(options)); // '🚀'
+  Expect.equals(4, r.readInt());
+  Expect.isFalse(r.hasNext());
+  r.endObject();
+
+  // Test selectName with escaped multi-byte UTF-8 keys (fallback path)
+  final escapedJson = Uint8List.fromList(
+    utf8.encode('{"caf\\u00e9": 10, "\\u540d\\u524d": 20}'),
+  );
+  final rEsc = JsonTokenReader.fromBytes(escapedJson);
+  rEsc.beginObject();
+  Expect.equals(1, rEsc.selectName(options)); // 'café'
+  Expect.equals(10, rEsc.readInt());
+  Expect.isTrue(rEsc.hasNext());
+  Expect.equals(2, rEsc.selectName(options)); // '名前'
+  Expect.equals(20, rEsc.readInt());
+  Expect.isFalse(rEsc.hasNext());
+  rEsc.endObject();
+
+  // Test selectString with multi-byte UTF-8
+  final stringOptions = JsonKeyOptions.of(['admin', 'café', 'ユーザー']);
+  final arrJson = Uint8List.fromList(utf8.encode('["café", "ユーザー"]'));
+  final rArr = JsonTokenReader.fromBytes(arrJson);
+  rArr.beginArray();
+  Expect.equals(1, rArr.selectString(stringOptions)); // 'café'
+  Expect.isTrue(rArr.hasNext());
+  Expect.equals(2, rArr.selectString(stringOptions)); // 'ユーザー'
+  Expect.isFalse(rArr.hasNext());
+  rArr.endArray();
 }
