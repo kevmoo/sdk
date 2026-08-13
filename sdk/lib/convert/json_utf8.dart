@@ -534,9 +534,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
   /// at [offset]. Returns the number of bytes written.
   static int writeStringToBuffer(String value, Uint8List buffer, int offset) {
-    final encoded = utf8.encode(jsonEncode(value));
-    buffer.setRange(offset, offset + encoded.length, encoded);
-    return encoded.length;
+    return _writeStringToBufferUtf8(value, buffer, offset);
   }
 
   /// Formats [value] as a valid JSON floating-point literal directly into [sink].
@@ -556,20 +554,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    final str = value.toString();
-    final len = str.length;
-    if (offset < 0 || offset + len > buffer.length) {
-      throw RangeError.range(
-        offset,
-        0,
-        buffer.length >= len ? buffer.length - len : 0,
-        'offset',
-      );
-    }
-    for (var i = 0; i < len; i++) {
-      buffer[offset + i] = str.codeUnitAt(i);
-    }
-    return len;
+    return _writeDoubleToBufferUtf8(value, buffer, offset);
   }
 
   /// Formats [value] as an ASCII integer literal directly into [sink].
@@ -612,17 +597,36 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
   /// Returns the number of bytes written.
   static int writeIntToBuffer(int value, Uint8List buffer, int offset) {
     if (value == 0) {
+      if (offset < 0 || offset >= buffer.length) {
+        throw RangeError.range(
+          offset,
+          0,
+          buffer.length >= 1 ? buffer.length - 1 : 0,
+          'offset',
+        );
+      }
       buffer[offset] = 48; // '0'
       return 1;
     }
-    var cursor = offset;
     var v = value;
-    if (v < 0) {
-      buffer[cursor++] = 45; // '-'
-    } else {
+    final isNeg = v < 0;
+    if (!isNeg) {
       v = -v;
     }
     final digitCount = _digitCountNegative(v);
+    final totalLen = (isNeg ? 1 : 0) + digitCount;
+    if (offset < 0 || offset + totalLen > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= totalLen ? buffer.length - totalLen : 0,
+        'offset',
+      );
+    }
+    var cursor = offset;
+    if (isNeg) {
+      buffer[cursor++] = 45; // '-'
+    }
     var writePos = cursor + digitCount - 1;
     var temp = v;
     while (temp <= -100) {
@@ -642,7 +646,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     } else {
       buffer[writePos] = 48 - temp;
     }
-    return cursor - offset + digitCount;
+    return totalLen;
   }
 
   /// Writes a boolean literal (`true` or `false`) directly into [sink].
@@ -825,14 +829,44 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
   String? get _partialResult => null;
 
   void writeNumber(num number) {
+    if (number is int) {
+      if (index + 24 > buffer.length) {
+        if (index > 0) {
+          addChunk(buffer, 0, index);
+          buffer = Uint8List(bufferSize);
+          index = 0;
+        }
+      }
+      if (index + 24 <= buffer.length) {
+        index += JsonUtf8Encoder.writeIntToBuffer(number, buffer, index);
+        return;
+      }
+    } else if (number is double && number.isFinite) {
+      if (index + 32 > buffer.length) {
+        if (index > 0) {
+          addChunk(buffer, 0, index);
+          buffer = Uint8List(bufferSize);
+          index = 0;
+        }
+      }
+      if (index + 32 <= buffer.length) {
+        index += JsonUtf8Encoder.writeDoubleToBuffer(number, buffer, index);
+        return;
+      }
+    }
     writeAsciiString(number.toString());
   }
 
   void writeAsciiString(String string) {
-    for (var i = 0; i < string.length; i++) {
-      var char = string.codeUnitAt(i);
-      assert(char <= 0x7f);
-      writeByte(char);
+    final len = string.length;
+    if (index + len <= buffer.length) {
+      for (var i = 0; i < len; i++) {
+        buffer[index++] = string.codeUnitAt(i);
+      }
+      return;
+    }
+    for (var i = 0; i < len; i++) {
+      writeByte(string.codeUnitAt(i));
     }
   }
 
@@ -1734,6 +1768,447 @@ int _digitCountNegative(int v) {
   if (v > -100000000000000000) return 17;
   if (v > -1000000000000000000) return 18;
   return 19;
+}
+
+const String _hexDigits = "0123456789abcdef";
+
+int _writeStringToBufferUtf8(String value, Uint8List buffer, int offset) {
+  final len = value.length;
+  if (offset < 0 || offset > buffer.length) {
+    throw RangeError.range(offset, 0, buffer.length, 'offset');
+  }
+
+  // Fast path: check if string is pure ASCII and requires no escaping
+  var isPureAscii = true;
+  for (var i = 0; i < len; i++) {
+    final c = value.codeUnitAt(i);
+    if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+      isPureAscii = false;
+      break;
+    }
+  }
+
+  if (isPureAscii) {
+    final requiredLen = len + 2;
+    if (offset + requiredLen > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= requiredLen ? buffer.length - requiredLen : 0,
+        'offset',
+      );
+    }
+    buffer[offset] = 0x22; // '"'
+    for (var i = 0; i < len; i++) {
+      buffer[offset + 1 + i] = value.codeUnitAt(i);
+    }
+    buffer[offset + 1 + len] = 0x22; // '"'
+    return requiredLen;
+  }
+
+  // General path: calculate exact required length first to ensure atomic rollback
+  var requiredLen = 2; // For opening and closing quotes
+  for (var i = 0; i < len; i++) {
+    final c = value.codeUnitAt(i);
+    switch (c) {
+      case 0x22: // '"'
+      case 0x5C: // '\\'
+      case 0x08: // '\b'
+      case 0x0C: // '\f'
+      case 0x0A: // '\n'
+      case 0x0D: // '\r'
+      case 0x09: // '\t'
+        requiredLen += 2;
+        break;
+      default:
+        if (c < 0x20) {
+          requiredLen += 6; // \u00XX
+        } else if (c <= 0x7F) {
+          requiredLen += 1;
+        } else if (c <= 0x7FF) {
+          requiredLen += 2;
+        } else if (c >= 0xD800 && c <= 0xDBFF) {
+          if (i + 1 < len) {
+            final c2 = value.codeUnitAt(i + 1);
+            if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+              i++;
+              requiredLen += 4;
+              break;
+            }
+          }
+          // Isolated high surrogate -> \uXXXX (6 bytes)
+          requiredLen += 6;
+        } else if (c >= 0xDC00 && c <= 0xDFFF) {
+          // Isolated low surrogate -> \uXXXX (6 bytes)
+          requiredLen += 6;
+        } else {
+          requiredLen += 3;
+        }
+        break;
+    }
+  }
+
+  if (offset + requiredLen > buffer.length) {
+    throw RangeError.range(
+      offset,
+      0,
+      buffer.length >= requiredLen ? buffer.length - requiredLen : 0,
+      'offset',
+    );
+  }
+
+  var cursor = offset;
+  buffer[cursor++] = 0x22; // '"'
+
+  for (var i = 0; i < len; i++) {
+    final c = value.codeUnitAt(i);
+    switch (c) {
+      case 0x22:
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x22;
+        break;
+      case 0x5C:
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x5C;
+        break;
+      case 0x08:
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x62; // 'b'
+        break;
+      case 0x0C:
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x66; // 'f'
+        break;
+      case 0x0A:
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x6E; // 'n'
+        break;
+      case 0x0D:
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x72; // 'r'
+        break;
+      case 0x09:
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x74; // 't'
+        break;
+      default:
+        if (c < 0x20) {
+          buffer[cursor++] = 0x5C;
+          buffer[cursor++] = 0x75; // 'u'
+          buffer[cursor++] = 0x30; // '0'
+          buffer[cursor++] = 0x30; // '0'
+          buffer[cursor++] = _hexDigits.codeUnitAt((c >> 4) & 0xF);
+          buffer[cursor++] = _hexDigits.codeUnitAt(c & 0xF);
+        } else if (c <= 0x7F) {
+          buffer[cursor++] = c;
+        } else if (c <= 0x7FF) {
+          buffer[cursor++] = 0xC0 | (c >> 6);
+          buffer[cursor++] = 0x80 | (c & 0x3F);
+        } else if (c >= 0xD800 && c <= 0xDBFF) {
+          if (i + 1 < len) {
+            final c2 = value.codeUnitAt(i + 1);
+            if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+              i++;
+              final codePoint = 0x10000 + ((c - 0xD800) << 10) + (c2 - 0xDC00);
+              buffer[cursor++] = 0xF0 | (codePoint >> 18);
+              buffer[cursor++] = 0x80 | ((codePoint >> 12) & 0x3F);
+              buffer[cursor++] = 0x80 | ((codePoint >> 6) & 0x3F);
+              buffer[cursor++] = 0x80 | (codePoint & 0x3F);
+              break;
+            }
+          }
+          // Isolated high surrogate -> \uXXXX
+          buffer[cursor++] = 0x5C;
+          buffer[cursor++] = 0x75; // 'u'
+          buffer[cursor++] = _hexDigits.codeUnitAt((c >> 12) & 0xF);
+          buffer[cursor++] = _hexDigits.codeUnitAt((c >> 8) & 0xF);
+          buffer[cursor++] = _hexDigits.codeUnitAt((c >> 4) & 0xF);
+          buffer[cursor++] = _hexDigits.codeUnitAt(c & 0xF);
+        } else if (c >= 0xDC00 && c <= 0xDFFF) {
+          // Isolated low surrogate -> \uXXXX
+          buffer[cursor++] = 0x5C;
+          buffer[cursor++] = 0x75; // 'u'
+          buffer[cursor++] = _hexDigits.codeUnitAt((c >> 12) & 0xF);
+          buffer[cursor++] = _hexDigits.codeUnitAt((c >> 8) & 0xF);
+          buffer[cursor++] = _hexDigits.codeUnitAt((c >> 4) & 0xF);
+          buffer[cursor++] = _hexDigits.codeUnitAt(c & 0xF);
+        } else {
+          buffer[cursor++] = 0xE0 | (c >> 12);
+          buffer[cursor++] = 0x80 | ((c >> 6) & 0x3F);
+          buffer[cursor++] = 0x80 | (c & 0x3F);
+        }
+        break;
+    }
+  }
+
+  buffer[cursor++] = 0x22; // '"'
+  return cursor - offset;
+}
+
+int _writeDoubleToBufferUtf8(double value, Uint8List buffer, int offset) {
+  if (offset < 0 || offset > buffer.length) {
+    throw RangeError.range(offset, 0, buffer.length, 'offset');
+  }
+
+  // 1. Zero handling
+  if (value == 0.0) {
+    if (value.isNegative) {
+      if (offset + 4 > buffer.length) {
+        throw RangeError.range(
+          offset,
+          0,
+          buffer.length >= 4 ? buffer.length - 4 : 0,
+          'offset',
+        );
+      }
+      buffer[offset] = 0x2D; // '-'
+      buffer[offset + 1] = 0x30; // '0'
+      buffer[offset + 2] = 0x2E; // '.'
+      buffer[offset + 3] = 0x30; // '0'
+      return 4;
+    } else {
+      if (offset + 3 > buffer.length) {
+        throw RangeError.range(
+          offset,
+          0,
+          buffer.length >= 3 ? buffer.length - 3 : 0,
+          'offset',
+        );
+      }
+      buffer[offset] = 0x30; // '0'
+      buffer[offset + 1] = 0x2E; // '.'
+      buffer[offset + 2] = 0x30; // '0'
+      return 3;
+    }
+  }
+
+  // 2. Integer float fast path (up to 15 digits)
+  final isNeg = value.isNegative;
+  final absVal = isNeg ? -value : value;
+  final trunc = absVal.truncateToDouble();
+
+  if (absVal == trunc && absVal <= 9007199254740991.0) {
+    final intVal = absVal.toInt();
+    final negVal = -intVal;
+    final digitCount = _digitCountNegative(negVal);
+    final totalLen = (isNeg ? 1 : 0) + digitCount + 2; // +2 for '.0'
+    if (offset + totalLen > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= totalLen ? buffer.length - totalLen : 0,
+        'offset',
+      );
+    }
+    var cursor = offset;
+    if (isNeg) {
+      buffer[cursor++] = 0x2D; // '-'
+    }
+    var writePos = cursor + digitCount - 1;
+    var temp = negVal;
+    while (temp <= -100) {
+      final next = temp ~/ 100;
+      final rem = -(temp - next * 100);
+      final pairIdx = rem << 1;
+      buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+      buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+      writePos -= 2;
+      temp = next;
+    }
+    if (temp <= -10) {
+      final rem = -temp;
+      final pairIdx = rem << 1;
+      buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+      buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+    } else {
+      buffer[writePos] = 48 - temp;
+    }
+    cursor += digitCount;
+    buffer[cursor++] = 0x2E; // '.'
+    buffer[cursor++] = 0x30; // '0'
+    return totalLen;
+  }
+
+  // 3. Decimal fraction fast path (exact representation within 53-bit mantissa)
+  if (absVal >= 1e-15 && absVal <= 1e15) {
+    final intPart = absVal.toInt();
+    final intPartDigits = intPart == 0 ? 0 : _digitCountNegative(-intPart);
+    final maxFrac = 15 - intPartDigits;
+    if (maxFrac > 0 && maxFrac <= 15) {
+      final p10 = _powersOfTen[maxFrac];
+      final scaled = absVal * p10;
+      if (scaled <= 9007199254740991.0) {
+        var intVal = scaled.round();
+        if (intVal / p10 == absVal) {
+          // Exactly representable! Strip trailing zeros to get shortest representation.
+          var k = maxFrac;
+          while (k >= 4 && intVal % 10000 == 0) {
+            intVal ~/= 10000;
+            k -= 4;
+          }
+          while (k >= 2 && intVal % 100 == 0) {
+            intVal ~/= 100;
+            k -= 2;
+          }
+          if (k > 0 && intVal % 10 == 0) {
+            intVal ~/= 10;
+            k--;
+          }
+          if (k == 0) {
+            // Integer float, append '.0'
+            final negVal = -intVal;
+            final digitCount = _digitCountNegative(negVal);
+            final totalLen = (isNeg ? 1 : 0) + digitCount + 2;
+            if (offset + totalLen > buffer.length) {
+              throw RangeError.range(
+                offset,
+                0,
+                buffer.length >= totalLen ? buffer.length - totalLen : 0,
+                'offset',
+              );
+            }
+            var cursor = offset;
+            if (isNeg) {
+              buffer[cursor++] = 0x2D; // '-'
+            }
+            var writePos = cursor + digitCount - 1;
+            var temp = negVal;
+            while (temp <= -100) {
+              final next = temp ~/ 100;
+              final rem = -(temp - next * 100);
+              final pairIdx = rem << 1;
+              buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+              buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+              writePos -= 2;
+              temp = next;
+            }
+            if (temp <= -10) {
+              final rem = -temp;
+              final pairIdx = rem << 1;
+              buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+              buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+            } else {
+              buffer[writePos] = 48 - temp;
+            }
+            cursor += digitCount;
+            buffer[cursor++] = 0x2E; // '.'
+            buffer[cursor++] = 0x30; // '0'
+            return totalLen;
+          }
+
+          final negVal = -intVal;
+          final numDigits = _digitCountNegative(negVal);
+          if (numDigits > k) {
+            // >= 1, e.g. 3.14 (k=2, intVal=314, numDigits=3)
+            final totalLen = (isNeg ? 1 : 0) + numDigits + 1; // +1 for '.'
+            if (offset + totalLen > buffer.length) {
+              throw RangeError.range(
+                offset,
+                0,
+                buffer.length >= totalLen ? buffer.length - totalLen : 0,
+                'offset',
+              );
+            }
+            var cursor = offset;
+            if (isNeg) {
+              buffer[cursor++] = 0x2D; // '-'
+            }
+            final digitsStart = cursor;
+            var writePos = digitsStart + numDigits;
+            var temp = negVal;
+            var digitsWritten = 0;
+            while (digitsWritten < k) {
+              final next = temp ~/ 10;
+              final rem = -(temp - next * 10);
+              buffer[writePos--] = 48 + rem;
+              temp = next;
+              digitsWritten++;
+            }
+            buffer[writePos--] = 0x2E; // '.'
+            while (temp <= -100) {
+              final next = temp ~/ 100;
+              final rem = -(temp - next * 100);
+              final pairIdx = rem << 1;
+              buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+              buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+              writePos -= 2;
+              temp = next;
+            }
+            if (temp <= -10) {
+              final rem = -temp;
+              final pairIdx = rem << 1;
+              buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+              buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+            } else {
+              buffer[writePos] = 48 - temp;
+            }
+            return totalLen;
+          } else {
+            // < 1, e.g. 0.05 (k=2, intVal=5, numDigits=1)
+            final leadingZeros = k - numDigits;
+            final totalLen =
+                (isNeg ? 1 : 0) +
+                2 +
+                leadingZeros +
+                numDigits; // '0.' + zeros + digits
+            if (offset + totalLen > buffer.length) {
+              throw RangeError.range(
+                offset,
+                0,
+                buffer.length >= totalLen ? buffer.length - totalLen : 0,
+                'offset',
+              );
+            }
+            var cursor = offset;
+            if (isNeg) {
+              buffer[cursor++] = 0x2D; // '-'
+            }
+            buffer[cursor++] = 0x30; // '0'
+            buffer[cursor++] = 0x2E; // '.'
+            for (var z = 0; z < leadingZeros; z++) {
+              buffer[cursor++] = 0x30; // '0'
+            }
+            var writePos = cursor + numDigits - 1;
+            var temp = negVal;
+            while (temp <= -100) {
+              final next = temp ~/ 100;
+              final rem = -(temp - next * 100);
+              final pairIdx = rem << 1;
+              buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+              buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+              writePos -= 2;
+              temp = next;
+            }
+            if (temp <= -10) {
+              final rem = -temp;
+              final pairIdx = rem << 1;
+              buffer[writePos] = _digitPairs.codeUnitAt(pairIdx + 1);
+              buffer[writePos - 1] = _digitPairs.codeUnitAt(pairIdx);
+            } else {
+              buffer[writePos] = 48 - temp;
+            }
+            return totalLen;
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Fallback for large exponents or subnormals
+  final str = value.toString();
+  final len = str.length;
+  if (offset + len > buffer.length) {
+    throw RangeError.range(
+      offset,
+      0,
+      buffer.length >= len ? buffer.length - len : 0,
+      'offset',
+    );
+  }
+  for (var i = 0; i < len; i++) {
+    buffer[offset + i] = str.codeUnitAt(i);
+  }
+  return len;
 }
 
 Object? _parseValueFromReader(

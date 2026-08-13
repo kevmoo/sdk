@@ -11,6 +11,12 @@
 #include <cmath>
 #include <string.h>
 
+#if defined(__x86_64__) || defined(_M_X64)
+#include <emmintrin.h>
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#include <arm_neon.h>
+#endif
+
 // TODO(kevmoo): Architectural Opportunity (Horizon / Extreme-Scale Streaming):
 // Implement a native C++ compact 64-bit structural delimiter tape parser
 // (simdjson Stage 1 style) for JsonTokenReader. This records 64-bit offsets of
@@ -151,8 +157,95 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeStringToBuffer, 0, 3) {
   if (value_str.IsOneByteString()) {
     const uint8_t* src = OneByteString::DataStart(value_str);
 
-    // Vectorized 8-byte SWAR scan for characters needing escapes (< 0x20, '"', '\\', >= 0x80)
+    // Vectorized 16/32-byte SIMD scan for characters needing escapes (< 0x20, '"', '\\', >= 0x80)
     intptr_t i = 0;
+#if defined(__x86_64__) || defined(_M_X64)
+    const __m128i v_0x20 = _mm_set1_epi8(0x20);
+    const __m128i v_quote = _mm_set1_epi8('"');
+    const __m128i v_slash = _mm_set1_epi8('\\');
+
+    // 32-byte unrolled loop (2x 16-byte SSE2 vectors)
+    while (i + 32 <= str_len) {
+      __m128i c0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i));
+      __m128i c1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i + 16));
+
+      // _mm_cmplt_epi8 treats signed 8-bit ints:
+      // chars in [0x00, 0x1F] are signed 0..31 (< 32 = 0x20)
+      // chars in [0x80, 0xFF] are signed -128..-1 (< 32 = 0x20)
+      // So this detects both control characters (< 0x20) AND non-ASCII bytes (>= 0x80)!
+      __m128i ctrl_or_high0 = _mm_cmplt_epi8(c0, v_0x20);
+      __m128i ctrl_or_high1 = _mm_cmplt_epi8(c1, v_0x20);
+
+      __m128i quote0 = _mm_cmpeq_epi8(c0, v_quote);
+      __m128i quote1 = _mm_cmpeq_epi8(c1, v_quote);
+
+      __m128i slash0 = _mm_cmpeq_epi8(c0, v_slash);
+      __m128i slash1 = _mm_cmpeq_epi8(c1, v_slash);
+
+      __m128i escapes0 = _mm_or_si128(_mm_or_si128(ctrl_or_high0, quote0), slash0);
+      __m128i escapes1 = _mm_or_si128(_mm_or_si128(ctrl_or_high1, quote1), slash1);
+
+      __m128i any_escapes = _mm_or_si128(escapes0, escapes1);
+      if (_mm_movemask_epi8(any_escapes) != 0) {
+        break;
+      }
+      i += 32;
+    }
+    while (i + 16 <= str_len) {
+      __m128i c0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i));
+      __m128i ctrl_or_high0 = _mm_cmplt_epi8(c0, v_0x20);
+      __m128i quote0 = _mm_cmpeq_epi8(c0, v_quote);
+      __m128i slash0 = _mm_cmpeq_epi8(c0, v_slash);
+      __m128i escapes0 = _mm_or_si128(_mm_or_si128(ctrl_or_high0, quote0), slash0);
+      if (_mm_movemask_epi8(escapes0) != 0) {
+        break;
+      }
+      i += 16;
+    }
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    const uint8x16_t v_0x20 = vdupq_n_u8(0x20);
+    const uint8x16_t v_0x80 = vdupq_n_u8(0x80);
+    const uint8x16_t v_quote = vdupq_n_u8('"');
+    const uint8x16_t v_slash = vdupq_n_u8('\\');
+
+    // 32-byte unrolled loop (2x 16-byte NEON vectors)
+    while (i + 32 <= str_len) {
+      uint8x16_t chunk0 = vld1q_u8(src + i);
+      uint8x16_t chunk1 = vld1q_u8(src + i + 16);
+      uint8x16_t is_ctrl0 = vcltq_u8(chunk0, v_0x20);
+      uint8x16_t is_ctrl1 = vcltq_u8(chunk1, v_0x20);
+      uint8x16_t is_high0 = vcgeq_u8(chunk0, v_0x80);
+      uint8x16_t is_high1 = vcgeq_u8(chunk1, v_0x80);
+      uint8x16_t is_quote0 = vceqq_u8(chunk0, v_quote);
+      uint8x16_t is_quote1 = vceqq_u8(chunk1, v_quote);
+      uint8x16_t is_slash0 = vceqq_u8(chunk0, v_slash);
+      uint8x16_t is_slash1 = vceqq_u8(chunk1, v_slash);
+      uint8x16_t escapes0 =
+          vorrq_u8(vorrq_u8(is_ctrl0, is_high0), vorrq_u8(is_quote0, is_slash0));
+      uint8x16_t escapes1 =
+          vorrq_u8(vorrq_u8(is_ctrl1, is_high1), vorrq_u8(is_quote1, is_slash1));
+      uint8x16_t any = vorrq_u8(escapes0, escapes1);
+      uint64x2_t mask64 = vreinterpretq_u64_u8(any);
+      if ((vgetq_lane_u64(mask64, 0) | vgetq_lane_u64(mask64, 1)) != 0) {
+        break;
+      }
+      i += 32;
+    }
+    while (i + 16 <= str_len) {
+      uint8x16_t chunk = vld1q_u8(src + i);
+      uint8x16_t is_ctrl = vcltq_u8(chunk, v_0x20);
+      uint8x16_t is_high = vcgeq_u8(chunk, v_0x80);
+      uint8x16_t is_quote = vceqq_u8(chunk, v_quote);
+      uint8x16_t is_slash = vceqq_u8(chunk, v_slash);
+      uint8x16_t escapes =
+          vorrq_u8(vorrq_u8(is_ctrl, is_high), vorrq_u8(is_quote, is_slash));
+      uint64x2_t mask64 = vreinterpretq_u64_u8(escapes);
+      if ((vgetq_lane_u64(mask64, 0) | vgetq_lane_u64(mask64, 1)) != 0) {
+        break;
+      }
+      i += 16;
+    }
+#else
     while (i + 8 <= str_len) {
       uint64_t chunk;
       memcpy(&chunk, src + i, sizeof(chunk));
@@ -171,6 +264,7 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeStringToBuffer, 0, 3) {
       }
       i += 8;
     }
+#endif
     while (i < str_len) {
       uint8_t c = src[i];
       if (c < 0x20 || c == '"' || c == '\\' || c >= 0x80) {

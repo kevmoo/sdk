@@ -2146,27 +2146,36 @@ class _Utf8Decoder {
 @patch
 class JsonUtf8Encoder {
   @patch
-  static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
-    if (!value.isFinite) {
-      throw ArgumentError.value(value, 'value', 'Must be finite');
+  static int writeStringToBuffer(String value, Uint8List buffer, int offset) {
+    final len = value.length;
+    if (len <= 16) {
+      final requiredLen = len + 2;
+      if (offset < 0 || offset + requiredLen > buffer.length) {
+        return _writeStringToBufferNative(value, buffer, offset);
+      }
+      var isAscii = true;
+      for (var i = 0; i < len; i++) {
+        final c = value.codeUnitAt(i);
+        if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+          isAscii = false;
+          break;
+        }
+      }
+      if (isAscii) {
+        buffer[offset] = 0x22;
+        for (var i = 0; i < len; i++) {
+          buffer[offset + 1 + i] = value.codeUnitAt(i);
+        }
+        buffer[offset + 1 + len] = 0x22;
+        return requiredLen;
+      }
     }
-    return _writeDoubleToBufferNative(value, buffer, offset);
+    return _writeStringToBufferNative(value, buffer, offset);
   }
-
-  @patch
-  static int writeStringToBuffer(String value, Uint8List buffer, int offset) =>
-      _writeStringToBufferNative(value, buffer, offset);
 }
 
 @pragma("vm:external-name", "JsonUtf8Decoder_parseDouble")
 external double? _parseDoubleNative(Uint8List bytes, int start, int end);
-
-@pragma("vm:external-name", "JsonUtf8Encoder_writeDoubleToBuffer")
-external int _writeDoubleToBufferNative(
-  double value,
-  Uint8List buffer,
-  int offset,
-);
 
 @pragma("vm:external-name", "JsonUtf8Encoder_writeStringToBuffer")
 external int _writeStringToBufferNative(

@@ -15,6 +15,15 @@ void main() {
   benchmarkJsonKeyOptionsSelectKey();
   benchmarkDecodeString();
   benchmarkJsonUtf8DecoderConvert();
+
+  print('=== JSON UTF-8 Macro Benchmark Suite (Canonical Datasets) ===\n');
+  benchmarkMacroCanadaGeoJson();
+  benchmarkMacroCitmCatalog();
+  benchmarkMacroCoordinateArray();
+
+  print('=== JSON UTF-8 Direct Buffer Throughput Suites ===\n');
+  benchmarkFloatArrayDirectFormat();
+  benchmarkAsciiStringArrayDirectFormat();
 }
 
 void benchmarkWriteIntToBuffer() {
@@ -302,5 +311,249 @@ void benchmarkJsonUtf8DecoderConvert() {
   print('7. JsonUtf8Decoder.convert (Full UTF-8 JSON document):');
   print(
     '   Ops: $totalOps in ${sw.elapsedMilliseconds} ms ($opsPerSec ops/s, $mbPerSec MB/s, dummyHash=$dummyHash)\n',
+  );
+}
+
+void benchmarkMacroCanadaGeoJson() {
+  // Simulates canada.json: float-heavy GeoJSON dataset with thousands of float coordinates
+  final coords = <List<double>>[];
+  for (var i = 0; i < 25000; i++) {
+    coords.add([-65.613617 + (i % 100) * 0.001, 43.420273 + (i % 80) * 0.001]);
+  }
+  final geoJson = {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {"name": "Canada Boundary"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [coords],
+        },
+      },
+    ],
+  };
+
+  // Warmup
+  for (var i = 0; i < 5; i++) {
+    jsonUtf8Encode(geoJson);
+  }
+
+  const iterations = 50;
+  final sw = Stopwatch()..start();
+  var totalBytes = 0;
+  for (var i = 0; i < iterations; i++) {
+    final encoded = jsonUtf8Encode(geoJson);
+    totalBytes += encoded.length;
+  }
+  sw.stop();
+
+  final opsPerSec = (iterations / (sw.elapsedMicroseconds / 1000000))
+      .toStringAsFixed(1);
+  final mbPerSec =
+      ((totalBytes / (1024 * 1024)) / (sw.elapsedMicroseconds / 1000000))
+          .toStringAsFixed(2);
+
+  print('8. Macro: canada.json (Float-heavy GeoJSON):');
+  print(
+    '   ${iterations} iterations (${(totalBytes / iterations / 1024).toStringAsFixed(1)} KB/doc) in ${sw.elapsedMilliseconds} ms ($opsPerSec docs/s, $mbPerSec MB/s)\n',
+  );
+}
+
+void benchmarkMacroCitmCatalog() {
+  // Simulates citm_catalog.json: string-heavy ticketing catalog
+  final events = <Map<String, dynamic>>[];
+  for (var i = 0; i < 5000; i++) {
+    events.add({
+      "id": 100000 + i,
+      "name": "Festival Performance Event #$i - Grand Hall Symphony",
+      "description":
+          "Comprehensive musical performance with orchestra and soloist ensemble in metropolitan hall #$i",
+      "venue":
+          "Metropolitan Philharmonic Concert Hall & Opera Complex, Stage ${i % 12}",
+      "category": "Classical and Contemporary Symphony Orchestra Performances",
+      "date": "2026-08-13T20:00:00.000Z",
+      "status": "AVAILABLE_FOR_BOOKING",
+      "price": 149.50,
+      "tags": ["concert", "music", "orchestra", "symphony", "festival"],
+    });
+  }
+  final catalog = {
+    "catalogName": "International Summer Music Festival 2026",
+    "version": "2.4.0",
+    "totalEvents": events.length,
+    "events": events,
+  };
+
+  // Warmup
+  for (var i = 0; i < 5; i++) {
+    jsonUtf8Encode(catalog);
+  }
+
+  const iterations = 30;
+  final sw = Stopwatch()..start();
+  var totalBytes = 0;
+  for (var i = 0; i < iterations; i++) {
+    final encoded = jsonUtf8Encode(catalog);
+    totalBytes += encoded.length;
+  }
+  sw.stop();
+
+  final opsPerSec = (iterations / (sw.elapsedMicroseconds / 1000000))
+      .toStringAsFixed(1);
+  final mbPerSec =
+      ((totalBytes / (1024 * 1024)) / (sw.elapsedMicroseconds / 1000000))
+          .toStringAsFixed(2);
+
+  print('9. Macro: citm_catalog.json (String-heavy Catalog):');
+  print(
+    '   ${iterations} iterations (${(totalBytes / iterations / 1024).toStringAsFixed(1)} KB/doc) in ${sw.elapsedMilliseconds} ms ($opsPerSec docs/s, $mbPerSec MB/s)\n',
+  );
+}
+
+void benchmarkMacroCoordinateArray() {
+  // Simulates 1.json: large-scale coordinate stream (50k points in micro-run)
+  const count = 50000;
+  final coords = List.generate(
+    count,
+    (i) => {
+      "x": 0.123456 + (i % 1000) * 0.001,
+      "y": -12.3456 + (i % 500) * 0.002,
+      "z": 98.7654 + (i % 250) * 0.005,
+      "name": "coord_point_$i",
+    },
+  );
+  final doc = {
+    "dataset": "Kostya Coordinate Benchmark Dataset",
+    "coordinates": coords,
+  };
+
+  final encoded = jsonUtf8Encode(doc);
+
+  // Measure stream decode throughput
+  final sw = Stopwatch()..start();
+  const iterations = 20;
+  var checksum = 0.0;
+  for (var i = 0; i < iterations; i++) {
+    final reader = JsonTokenReader.fromBytes(encoded);
+    reader.beginObject();
+    while (reader.hasNext()) {
+      final key = reader.nextName();
+      if (key == 'coordinates') {
+        reader.beginArray();
+        while (reader.hasNext()) {
+          reader.beginObject();
+          while (reader.hasNext()) {
+            final fName = reader.nextName();
+            if (fName == 'x' || fName == 'y' || fName == 'z') {
+              checksum += reader.readDouble();
+            } else {
+              reader.skipValue();
+            }
+          }
+          reader.endObject();
+        }
+        reader.endArray();
+      } else {
+        reader.skipValue();
+      }
+    }
+    reader.endObject();
+  }
+  sw.stop();
+
+  final totalBytes = iterations * encoded.length;
+  final mbPerSec =
+      ((totalBytes / (1024 * 1024)) / (sw.elapsedMicroseconds / 1000000))
+          .toStringAsFixed(2);
+
+  print('10. Macro: 1.json (50k Coordinates Stream Zero-Copy Reader):');
+  print(
+    '   ${iterations} stream passes (${(encoded.length / 1024).toStringAsFixed(1)} KB/doc) in ${sw.elapsedMilliseconds} ms ($mbPerSec MB/s, checksum=${checksum.toStringAsFixed(0)})\n',
+  );
+}
+
+void benchmarkFloatArrayDirectFormat() {
+  // Directly measures raw buffer throughput for writeDoubleToBuffer across 100,000 float points
+  const count = 100000;
+  final floats = List.generate(count, (i) => -122.419415 + (i % 1000) * 0.0001);
+  final buffer = Uint8List(count * 20);
+
+  // Warmup
+  for (var i = 0; i < 5; i++) {
+    var cursor = 0;
+    for (final v in floats) {
+      cursor += JsonUtf8Encoder.writeDoubleToBuffer(v, buffer, cursor);
+    }
+  }
+
+  const iterations = 50;
+  final sw = Stopwatch()..start();
+  var totalBytes = 0;
+  for (var i = 0; i < iterations; i++) {
+    var cursor = 0;
+    for (final v in floats) {
+      cursor += JsonUtf8Encoder.writeDoubleToBuffer(v, buffer, cursor);
+    }
+    totalBytes += cursor;
+  }
+  sw.stop();
+
+  final totalOps = iterations * count;
+  final opsPerSec = (totalOps / (sw.elapsedMicroseconds / 1000000))
+      .toStringAsFixed(0);
+  final mbPerSec =
+      ((totalBytes / (1024 * 1024)) / (sw.elapsedMicroseconds / 1000000))
+          .toStringAsFixed(2);
+
+  print(
+    '11. Direct Contiguous Float Array Formatting (100k coords into Uint8List):',
+  );
+  print(
+    '    $totalOps floats in ${sw.elapsedMilliseconds} ms ($opsPerSec floats/s, $mbPerSec MB/s, totalBytes=$totalBytes)\n',
+  );
+}
+
+void benchmarkAsciiStringArrayDirectFormat() {
+  // Directly measures raw buffer throughput for writeStringToBuffer across 50,000 ASCII strings
+  const count = 50000;
+  final strings = List.generate(
+    count,
+    (i) => 'property_name_identifier_field_token_key_$i',
+  );
+  final buffer = Uint8List(count * 64);
+
+  // Warmup
+  for (var i = 0; i < 5; i++) {
+    var cursor = 0;
+    for (final s in strings) {
+      cursor += JsonUtf8Encoder.writeStringToBuffer(s, buffer, cursor);
+    }
+  }
+
+  const iterations = 50;
+  final sw = Stopwatch()..start();
+  var totalBytes = 0;
+  for (var i = 0; i < iterations; i++) {
+    var cursor = 0;
+    for (final s in strings) {
+      cursor += JsonUtf8Encoder.writeStringToBuffer(s, buffer, cursor);
+    }
+    totalBytes += cursor;
+  }
+  sw.stop();
+
+  final totalOps = iterations * count;
+  final opsPerSec = (totalOps / (sw.elapsedMicroseconds / 1000000))
+      .toStringAsFixed(0);
+  final mbPerSec =
+      ((totalBytes / (1024 * 1024)) / (sw.elapsedMicroseconds / 1000000))
+          .toStringAsFixed(2);
+
+  print(
+    '12. Direct Contiguous ASCII String Array Formatting (50k keys into Uint8List):',
+  );
+  print(
+    '    $totalOps strings in ${sw.elapsedMilliseconds} ms ($opsPerSec strings/s, $mbPerSec MB/s, totalBytes=$totalBytes)\n',
   );
 }

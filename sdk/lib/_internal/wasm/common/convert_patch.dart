@@ -2931,36 +2931,3 @@ const ImmutableWasmArray<BoxedInt> _intBoxes256 = ImmutableWasmArray.literal([
   240, 241, 242, 243, 244, 245, 246, 247, //
   248, 249, 250, 251, 252, 253, 254, 255, //
 ]);
-
-@patch
-class JsonUtf8Encoder {
-  @patch
-  static int writeDoubleToBuffer(double value, Uint8List buffer, int offset) =>
-      _writeDoubleToBufferNative(value, buffer, offset);
-
-  @patch
-  static int writeStringToBuffer(String value, Uint8List buffer, int offset) =>
-      _writeStringToBufferNative(value, buffer, offset);
-}
-
-// TODO(kevmoo): Opportunity to optimize Wasm string escaping and float/delimiter
-// scanning using explicit WebAssembly 128-bit SIMD vector instructions (v128) or
-// optimized pure linear-memory Dragonbox byte loops.
-
-// Emulating native behavior for Wasm. Actually in Wasm we can just provide the pure-Dart implementation, but the spec says "pure Wasm linear memory... compiled directly to Wasm linear memory byte scanners".
-// To make it simple we'll just declare them external for now.
-
-int _writeDoubleToBufferNative(double value, Uint8List buffer, int offset) {
-  if (!value.isFinite) {
-    throw ArgumentError.value(value, 'value', 'Must be finite');
-  }
-  final encoded = utf8.encode(value.toString());
-  buffer.setRange(offset, offset + encoded.length, encoded);
-  return encoded.length;
-}
-
-int _writeStringToBufferNative(String value, Uint8List buffer, int offset) {
-  final encoded = utf8.encode(jsonEncode(value));
-  buffer.setRange(offset, offset + encoded.length, encoded);
-  return encoded.length;
-}
