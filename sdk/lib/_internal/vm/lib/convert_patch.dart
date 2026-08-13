@@ -61,20 +61,27 @@ class JsonUtf8Decoder {
   }
 
   @patch
-  static double parseDouble(Uint8List bytes, int start, int end) {
-    final nativeRes = _parseDoubleNative(bytes, start, end);
-    if (nativeRes != null) return nativeRes;
-    return _tryParseDoubleUtf8(bytes, start, end) ??
-        (throw FormatException(
-          'Invalid double in byte span [$start, $end)',
-          bytes,
-          start,
-        ));
+  ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) {
+    return _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
   }
 
   @patch
-  ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) {
-    return _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
+  static double parseDouble(Uint8List bytes, int start, int end) {
+    final res = tryParseDouble(bytes, start, end);
+    if (res == null) {
+      throw FormatException(
+        'Invalid double in byte span [$start, $end)',
+        bytes,
+        start,
+      );
+    }
+    return res;
+  }
+
+  @patch
+  static double? tryParseDouble(Uint8List bytes, int start, int end) {
+    return _parseDoubleNative(bytes, start, end) ??
+        _tryParseDoubleUtf8(bytes, start, end);
   }
 }
 
@@ -2140,28 +2147,6 @@ class _Utf8Decoder {
           : (j == size),
     );
     return result;
-  }
-}
-
-@patch
-class JsonUtf8Decoder {
-  @patch
-  static double parseDouble(Uint8List bytes, int start, int end) {
-    final res = tryParseDouble(bytes, start, end);
-    if (res == null) {
-      throw FormatException(
-        'Invalid double in byte span [$start, $end)',
-        bytes,
-        start,
-      );
-    }
-    return res;
-  }
-
-  @patch
-  static double? tryParseDouble(Uint8List bytes, int start, int end) {
-    return _parseDoubleNative(bytes, start, end) ??
-        _tryParseDoubleUtf8(bytes, start, end);
   }
 }
 

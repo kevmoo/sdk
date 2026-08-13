@@ -13,7 +13,8 @@ const JsonUtf8Codec jsonUtf8 = JsonUtf8Codec();
 Object? jsonUtf8Decode(
   List<int> bytes, {
   Object? Function(Object? key, Object? value)? reviver,
-}) => JsonUtf8Decoder(reviver).convert(bytes);
+  bool allowMalformed = false,
+}) => JsonUtf8Decoder(reviver, allowMalformed).convert(bytes);
 
 /// Converts [value] directly to UTF-8 encoded JSON bytes as a [Uint8List].
 ///
@@ -201,7 +202,10 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   @override
   Object? convert(List<int> input) {
     final bytes = input is Uint8List ? input : Uint8List.fromList(input);
-    final reader = JsonTokenReader.fromBytes(bytes);
+    final reader = JsonTokenReader.fromBytes(
+      bytes,
+      allowMalformed: allowMalformed,
+    );
     final rev = reviver;
     final result = _parseValueFromReader(reader, rev);
     if (reader.peek() != JsonTokenType.endOfDocument) {
@@ -762,8 +766,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     Uint8List asciiKey, {
     required bool isFirst,
   }) {
-    final isQuoted =
-        asciiKey.length >= 2 && asciiKey.first == 0x22 && asciiKey.last == 0x22;
+    final isQuoted = _isSingleQuotedString(asciiKey);
     final requiredLen =
         (isFirst ? 0 : 1) + asciiKey.length + (isQuoted ? 0 : 2) + 1;
     if (offset < 0 || offset + requiredLen > buffer.length) {
@@ -1028,7 +1031,8 @@ class _JsonUtf8StringifierPretty extends _JsonUtf8Stringifier
 /// High-performance imperative pull-based JSON token reader.
 abstract interface class JsonTokenReader {
   /// Instantiates a pull-based token reader over [bytes].
-  factory JsonTokenReader.fromBytes(Uint8List bytes) = _JsonTokenReader;
+  factory JsonTokenReader.fromBytes(Uint8List bytes, {bool allowMalformed}) =
+      _JsonTokenReader;
 
   /// Peeks at the next token type without advancing the cursor.
   JsonTokenType peek();
@@ -1097,10 +1101,11 @@ final class _ContainerFrame {
 final class _JsonTokenReader implements JsonTokenReader {
   static const int _maxDepth = 64;
   final Uint8List _bytes;
+  final bool allowMalformed;
   int _offset = 0;
   final List<_ContainerFrame> _stack = [];
 
-  _JsonTokenReader(this._bytes) {
+  _JsonTokenReader(this._bytes, {this.allowMalformed = false}) {
     if (_bytes.length >= 3 &&
         _bytes[0] == 0xEF &&
         _bytes[1] == 0xBB &&
@@ -1395,39 +1400,109 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   String nextName() {
-    _beforeReadingName();
-    final (start, end) = _scanStringSpan();
-    _consumeColon();
-    _stack.last.state = _ReaderItemState.afterName;
-    return _decodeStringUtf8(_bytes, start, end);
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    try {
+      _beforeReadingName();
+      final (start, end) = _scanStringSpan();
+      _consumeColon();
+      _stack.last.state = _ReaderItemState.afterName;
+      return _decodeStringUtf8(
+        _bytes,
+        start,
+        end,
+        allowMalformed: allowMalformed,
+      );
+    } catch (_) {
+      _offset = initialOffset;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
   int selectName(JsonKeyOptions options) {
-    _beforeReadingName();
-    final (start, end) = _scanStringSpan();
-    _consumeColon();
-    _stack.last.state = _ReaderItemState.afterName;
-    return options.selectKey(_bytes, start, end);
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    try {
+      _beforeReadingName();
+      final (start, end) = _scanStringSpan();
+      _consumeColon();
+      _stack.last.state = _ReaderItemState.afterName;
+      if (_isVerbatimUtf8(_bytes, start, end)) {
+        return options.selectKey(_bytes, start, end);
+      }
+      final unescaped = _decodeStringUtf8(
+        _bytes,
+        start,
+        end,
+        allowMalformed: allowMalformed,
+      );
+      return options.keys.indexOf(unescaped);
+    } catch (_) {
+      _offset = initialOffset;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
   int selectString(JsonKeyOptions options) {
-    _beforeReadingValue();
-    final (start, end) = _scanStringSpan();
-    _afterReadingValue();
-    return options.selectKey(_bytes, start, end);
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    try {
+      _beforeReadingValue();
+      final (start, end) = _scanStringSpan();
+      _afterReadingValue();
+      if (_isVerbatimUtf8(_bytes, start, end)) {
+        return options.selectKey(_bytes, start, end);
+      }
+      final unescaped = _decodeStringUtf8(
+        _bytes,
+        start,
+        end,
+        allowMalformed: allowMalformed,
+      );
+      return options.keys.indexOf(unescaped);
+    } catch (_) {
+      _offset = initialOffset;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
   String readString() {
-    _beforeReadingValue();
-    final (start, end) = _scanStringSpan();
-    _afterReadingValue();
-    return _decodeStringUtf8(_bytes, start, end);
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    try {
+      _beforeReadingValue();
+      final (start, end) = _scanStringSpan();
+      _afterReadingValue();
+      return _decodeStringUtf8(
+        _bytes,
+        start,
+        end,
+        allowMalformed: allowMalformed,
+      );
+    } catch (_) {
+      _offset = initialOffset;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
-  (int, int) _scanValueSpan() {
+  T _readValue<T>(T Function(int start, int end) parser) {
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
     _beforeReadingValue();
     final start = _offset;
     var i = start;
@@ -1440,41 +1515,54 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
     _offset = i;
     _afterReadingValue();
-    return (start, i);
+    try {
+      return parser(start, i);
+    } catch (_) {
+      _offset = initialOffset;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
   int readInt() {
-    final (start, end) = _scanValueSpan();
-    return JsonUtf8Decoder.parseInt(_bytes, start, end);
+    return _readValue(
+      (start, end) => JsonUtf8Decoder.parseInt(_bytes, start, end),
+    );
   }
 
   @override
   double readDouble() {
-    final (start, end) = _scanValueSpan();
-    return JsonUtf8Decoder.parseDouble(_bytes, start, end);
+    return _readValue(
+      (start, end) => JsonUtf8Decoder.parseDouble(_bytes, start, end),
+    );
   }
 
   @override
   num readNum() {
-    final (start, end) = _scanValueSpan();
-    final asInt = JsonUtf8Decoder.tryParseInt(_bytes, start, end);
-    if (asInt != null) return asInt;
-    return JsonUtf8Decoder.parseDouble(_bytes, start, end);
+    return _readValue((start, end) {
+      final asInt = JsonUtf8Decoder.tryParseInt(_bytes, start, end);
+      if (asInt != null) return asInt;
+      return JsonUtf8Decoder.parseDouble(_bytes, start, end);
+    });
   }
 
   @override
   bool readBool() {
-    final (start, end) = _scanValueSpan();
-    return JsonUtf8Decoder.parseBool(_bytes, start, end);
+    return _readValue(
+      (start, end) => JsonUtf8Decoder.parseBool(_bytes, start, end),
+    );
   }
 
   @override
   void readNull() {
-    final (start, end) = _scanValueSpan();
-    if (!_isNullUtf8(_bytes, start, end)) {
-      throw FormatException('Expected null at offset $start');
-    }
+    _readValue((start, end) {
+      if (!_isNullUtf8(_bytes, start, end)) {
+        throw FormatException('Expected null at offset $start');
+      }
+    });
   }
 
   @override
@@ -1755,8 +1843,7 @@ final class _JsonTokenWriter implements JsonTokenWriter {
       _sink.addByte(44); // ','
     }
     _objectStateStack.last = _ObjectState.key;
-    final isQuoted =
-        asciiKey.length >= 2 && asciiKey.first == 0x22 && asciiKey.last == 0x22;
+    final isQuoted = _isSingleQuotedString(asciiKey);
     if (!isQuoted) {
       _sink.addByte(34); // '"'
     }
@@ -2818,4 +2905,24 @@ int _utf8SequenceLength(int firstByte) {
   if ((firstByte & 0xF0) == 0xE0) return 3;
   if ((firstByte & 0xF8) == 0xF0) return 4;
   return 1;
+}
+
+bool _isSingleQuotedString(Uint8List bytes) {
+  if (bytes.length < 2 || bytes.first != 0x22 || bytes.last != 0x22) {
+    return false;
+  }
+  var i = 1;
+  final end = bytes.length - 1;
+  while (i < end) {
+    final b = bytes[i];
+    if (b == 0x22) {
+      return false;
+    }
+    if (b == 0x5C) {
+      i += 2;
+    } else {
+      i++;
+    }
+  }
+  return i == end;
 }

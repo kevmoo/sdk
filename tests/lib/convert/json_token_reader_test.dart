@@ -31,6 +31,13 @@ void main() {
   testPeekMissingCommaError();
   testWriteNameBytesPreQuoted();
   testSkipValueMaxDepthLimit();
+  testSelectNameEscapedKeys();
+  testSelectStringEscapedEnums();
+  testTokenReaderCursorRollbackOnFormatException();
+  testAllowMalformedUtf8();
+  testSelectNameSurrogatePairsAndNonAscii();
+  testNextNameAndReadStringRollback();
+  testAllowMalformedUtf8WithEscapes();
 }
 
 void testTokenReaderPrimitives() {
@@ -721,4 +728,251 @@ void testSkipValueMaxDepthLimit() {
     Uint8List.fromList(utf8.encode(mixed65)),
   );
   Expect.throwsFormatException(() => rMixed65.skipValue());
+}
+
+void testSelectNameEscapedKeys() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final options = JsonKeyOptions.of(['id', 'title', 'active', r'a"b', r'c\d']);
+  final reader = JsonTokenReader.fromBytes(
+    b(
+      r'{"\u0069\u0064": 42, "\u0074\u0069\u0074\u006c\u0065": "Dart 4", "active": true, "unknown_\u0031": 99, "a\"b": 100, "c\\d": 200}',
+    ),
+  );
+
+  reader.beginObject();
+
+  // "\u0069\u0064" -> matches 'id' (index 0)
+  Expect.equals(0, reader.selectName(options));
+  Expect.equals(42, reader.readInt());
+
+  // "\u0074\u0069\u0074\u006c\u0065" -> matches 'title' (index 1)
+  Expect.equals(1, reader.selectName(options));
+  Expect.equals('Dart 4', reader.readString());
+
+  // "active" -> verbatim ASCII match (index 2)
+  Expect.equals(2, reader.selectName(options));
+  Expect.isTrue(reader.readBool());
+
+  // "unknown_\u0031" -> unknown key -> returns -1
+  Expect.equals(-1, reader.selectName(options));
+  reader.skipValue();
+
+  // "a\"b" -> escaped quote -> index 3
+  Expect.equals(3, reader.selectName(options));
+  Expect.equals(100, reader.readInt());
+
+  // "c\\d" -> escaped backslash -> index 4
+  Expect.equals(4, reader.selectName(options));
+  Expect.equals(200, reader.readInt());
+
+  Expect.isFalse(reader.hasNext());
+  reader.endObject();
+}
+
+void testSelectStringEscapedEnums() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final roleOptions = JsonKeyOptions.of(['admin', 'user', 'guest']);
+  final reader = JsonTokenReader.fromBytes(
+    b(
+      r'["\u0061\u0064\u006d\u0069\u006e", "user", "\u0067\u0075\u0065\u0073\u0074", "\u006f\u0074\u0068\u0065\u0072"]',
+    ),
+  );
+
+  reader.beginArray();
+
+  // "\u0061\u0064\u006d\u0069\u006e" -> matches 'admin' (index 0)
+  Expect.equals(0, reader.selectString(roleOptions));
+
+  // "user" -> matches 'user' (index 1)
+  Expect.equals(1, reader.selectString(roleOptions));
+
+  // "\u0067\u0075\u0065\u0073\u0074" -> matches 'guest' (index 2)
+  Expect.equals(2, reader.selectString(roleOptions));
+
+  // "\u006f\u0074\u0068\u0065\u0072" -> "other" -> unmatched enum -> returns -1
+  Expect.equals(-1, reader.selectString(roleOptions));
+
+  Expect.isFalse(reader.hasNext());
+  reader.endArray();
+}
+
+void testTokenReaderCursorRollbackOnFormatException() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Test rollback in object value on readInt
+  {
+    final reader = JsonTokenReader.fromBytes(
+      b('{"key": "not_an_int", "other": 123}'),
+    );
+    reader.beginObject();
+    Expect.equals('key', reader.nextName());
+
+    // Expect FormatException when reading int on string literal
+    Expect.throwsFormatException(() => reader.readInt());
+
+    // After caught FormatException, cursor and container state must be preserved
+    final (start, end) = reader.getTokenSpan();
+    Expect.equals(
+      'not_an_int',
+      utf8.decode(b('{"key": "not_an_int", "other": 123}').sublist(start, end)),
+    );
+    Expect.equals('not_an_int', reader.readString());
+
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('other', reader.nextName());
+    Expect.equals(123, reader.readInt());
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
+
+  // Test rollback on readDouble, readBool, readNull in array
+  {
+    final raw = '[10, "abc", true, null, 30]';
+    final bytes = b(raw);
+    final reader = JsonTokenReader.fromBytes(bytes);
+    reader.beginArray();
+    Expect.equals(10, reader.readInt());
+
+    // Attempt to read double on "abc" (throws FormatException)
+    Expect.throwsFormatException(() => reader.readDouble());
+    final (start1, end1) = reader.getTokenSpan();
+    Expect.equals('abc', utf8.decode(bytes.sublist(start1, end1)));
+    Expect.equals('abc', reader.readString());
+
+    // Next element is `true`, attempt to readNull (throws FormatException)
+    Expect.throwsFormatException(() => reader.readNull());
+    final (start2, end2) = reader.getTokenSpan();
+    Expect.equals('true', utf8.decode(bytes.sublist(start2, end2)));
+    Expect.isTrue(reader.readBool());
+
+    // Next element is `null`, attempt to readBool (throws FormatException)
+    Expect.throwsFormatException(() => reader.readBool());
+    final (start3, end3) = reader.getTokenSpan();
+    Expect.equals('null', utf8.decode(bytes.sublist(start3, end3)));
+    reader.readNull();
+
+    // Next element in array
+    Expect.isTrue(reader.hasNext());
+    Expect.equals(30, reader.readInt());
+    Expect.isFalse(reader.hasNext());
+    reader.endArray();
+  }
+}
+
+void testAllowMalformedUtf8() {
+  // Invalid UTF-8 bytes: [0x22, 0xFF, 0xFE, 0x22] -> "\xFF\xFE" in string quotes
+  final malformedBytes = Uint8List.fromList([0x22, 0xFF, 0xFE, 0x22]);
+
+  // Default decoder (allowMalformed: false) throws FormatException
+  Expect.throwsFormatException(() => jsonUtf8Decode(malformedBytes));
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(malformedBytes).readString(),
+  );
+
+  // allowMalformed: true replaces invalid bytes with \uFFFD
+  final decoded = jsonUtf8Decode(malformedBytes, allowMalformed: true);
+  Expect.equals('\uFFFD\uFFFD', decoded);
+
+  final reader = JsonTokenReader.fromBytes(
+    malformedBytes,
+    allowMalformed: true,
+  );
+  Expect.equals('\uFFFD\uFFFD', reader.readString());
+}
+
+void testSelectNameSurrogatePairsAndNonAscii() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final options = JsonKeyOptions.of(['😀', 'é', 'café', 'regular']);
+  // 1. Escaped surrogate pair: \uD83D\uDE00 -> 😀
+  // 2. Escaped non-ASCII: \u00e9 -> é
+  // 3. Raw non-ASCII UTF-8: café
+  // 4. Verbatim ASCII: regular
+  final reader = JsonTokenReader.fromBytes(
+    b(r'{"\uD83D\uDE00": 1, "\u00e9": 2, "café": 3, "regular": 4}'),
+  );
+
+  reader.beginObject();
+
+  Expect.equals(0, reader.selectName(options));
+  Expect.equals(1, reader.readInt());
+
+  Expect.equals(1, reader.selectName(options));
+  Expect.equals(2, reader.readInt());
+
+  Expect.equals(2, reader.selectName(options));
+  Expect.equals(3, reader.readInt());
+
+  Expect.equals(3, reader.selectName(options));
+  Expect.equals(4, reader.readInt());
+
+  Expect.isFalse(reader.hasNext());
+  reader.endObject();
+}
+
+void testNextNameAndReadStringRollback() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Calling nextName when expecting value throws FormatException and rolls back
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": 100}'));
+    reader.beginObject();
+    Expect.equals('a', reader.nextName());
+
+    // Mistakenly call nextName again instead of reading value
+    Expect.throwsFormatException(() => reader.nextName());
+
+    // Reader state preserved: readInt succeeds
+    Expect.equals(100, reader.readInt());
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
+
+  // 2. Calling readString on numeric token throws FormatException and rolls back
+  {
+    final reader = JsonTokenReader.fromBytes(b('[123, "abc"]'));
+    reader.beginArray();
+
+    Expect.throwsFormatException(() => reader.readString());
+
+    // Reader state preserved: readInt succeeds
+    Expect.equals(123, reader.readInt());
+
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('abc', reader.readString());
+    Expect.isFalse(reader.hasNext());
+    reader.endArray();
+  }
+}
+
+void testAllowMalformedUtf8WithEscapes() {
+  // String containing both invalid UTF-8 bytes and unicode escape:
+  // bytes: '"' + [0xFF, 0xFE] + '\u0061' + '"'
+  final bytes = Uint8List.fromList([
+    0x22,
+    0xFF,
+    0xFE,
+    0x5C,
+    0x75,
+    0x30,
+    0x30,
+    0x36,
+    0x31,
+    0x22,
+  ]);
+
+  // allowMalformed: false throws FormatException
+  Expect.throwsFormatException(() => jsonUtf8Decode(bytes));
+  Expect.throwsFormatException(
+    () => JsonTokenReader.fromBytes(bytes).readString(),
+  );
+
+  // allowMalformed: true replaces malformed bytes with \uFFFD and decodes escape
+  final decoded = jsonUtf8Decode(bytes, allowMalformed: true);
+  Expect.equals('\uFFFD\uFFFDa', decoded);
+
+  final reader = JsonTokenReader.fromBytes(bytes, allowMalformed: true);
+  Expect.equals('\uFFFD\uFFFDa', reader.readString());
 }

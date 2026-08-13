@@ -305,6 +305,47 @@ void testEncoderBufferWriters() {
     isFirst: false,
   );
   Expect.equals(',"clé":', utf8.decode(buffer.sublist(0, len)));
+
+  // Key with inner unescaped quotes: utf8.encode('"a"b"')
+  // Must NOT be treated as pre-quoted; must be safely wrapped in quotes.
+  final innerQuoteKey = Uint8List.fromList(utf8.encode('"a"b"'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    innerQuoteKey,
+    isFirst: true,
+  );
+  Expect.equals('""a"b"":', utf8.decode(buffer.sublist(0, len)));
+
+  // Key with escaped inner quotes: utf8.encode(r'"a\"b"')
+  // IS a valid pre-quoted string; must not be double quoted.
+  final escapedQuoteKey = Uint8List.fromList(utf8.encode(r'"a\"b"'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    escapedQuoteKey,
+    isFirst: true,
+  );
+  Expect.equals(r'"a\"b":', utf8.decode(buffer.sublist(0, len)));
+
+  // Key with pre-quoted escaped backslash: utf8.encode(r'"\\"')
+  final escapedBackslashKey = Uint8List.fromList(utf8.encode(r'"\\"'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    escapedBackslashKey,
+    isFirst: true,
+  );
+  Expect.equals(r'"\\":', utf8.decode(buffer.sublist(0, len)));
+
+  // Empty key bytes: Uint8List(0)
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    Uint8List(0),
+    isFirst: true,
+  );
+  Expect.equals('"":', utf8.decode(buffer.sublist(0, len)));
 }
 
 void testSurrogateEncoding() {
