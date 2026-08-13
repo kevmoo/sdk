@@ -26,6 +26,8 @@ void main() {
   testDecodeStringWithEscapesAndSurrogates();
   testSkipValueControlChars();
   testDoubleFastPathAndNegativeZero();
+  testNegativeZeroPreservation();
+  testMultiRootFormatException();
   testJsonKeyOptionsCollisionsAndDuplicates();
   testBufferOverflowAndBounds();
   testUnescapedControlCharsInStrings();
@@ -148,6 +150,11 @@ void testJsonKeyOptions() {
     'type',
   ]);
   Expect.equals(5, options.length);
+
+  // Immutability checks: buffers must be unmodifiable
+  Expect.throws<UnsupportedError>(() => options.encodedKeys[0] = 0);
+  Expect.throws<UnsupportedError>(() => options.offsets[0] = 0);
+  Expect.throws<UnsupportedError>(() => options.lengths[0] = 0);
 
   Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 
@@ -307,7 +314,7 @@ void testEncoderBufferWriters() {
   Expect.equals(',"clé":', utf8.decode(buffer.sublist(0, len)));
 
   // Key with inner unescaped quotes: utf8.encode('"a"b"')
-  // Must NOT be treated as pre-quoted; must be safely wrapped in quotes.
+  // Must NOT be treated as pre-quoted; must safely escape unquoted inner quotes.
   final innerQuoteKey = Uint8List.fromList(utf8.encode('"a"b"'));
   len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
     buffer,
@@ -315,7 +322,17 @@ void testEncoderBufferWriters() {
     innerQuoteKey,
     isFirst: true,
   );
-  Expect.equals('""a"b"":', utf8.decode(buffer.sublist(0, len)));
+  Expect.equals(r'"\"a\"b\"":', utf8.decode(buffer.sublist(0, len)));
+
+  // Raw key with inner quote: utf8.encode('a"b')
+  final rawInnerQuoteKey = Uint8List.fromList(utf8.encode('a"b'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    rawInnerQuoteKey,
+    isFirst: true,
+  );
+  Expect.equals(r'"a\"b":', utf8.decode(buffer.sublist(0, len)));
 
   // Key with escaped inner quotes: utf8.encode(r'"a\"b"')
   // IS a valid pre-quoted string; must not be double quoted.
@@ -337,6 +354,36 @@ void testEncoderBufferWriters() {
     isFirst: true,
   );
   Expect.equals(r'"\\":', utf8.decode(buffer.sublist(0, len)));
+
+  // Key with invalid escape \z: utf8.encode(r'"a\zb"') -> must escape safely
+  final invalidEscapeKey = Uint8List.fromList(utf8.encode(r'"a\zb"'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    invalidEscapeKey,
+    isFirst: true,
+  );
+  Expect.equals(r'"\"a\\zb\"":', utf8.decode(buffer.sublist(0, len)));
+
+  // Key with truncated unicode escape: utf8.encode(r'"a\u12"') -> must escape safely
+  final truncatedUnicodeKey = Uint8List.fromList(utf8.encode(r'"a\u12"'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    truncatedUnicodeKey,
+    isFirst: true,
+  );
+  Expect.equals(r'"\"a\\u12\"":', utf8.decode(buffer.sublist(0, len)));
+
+  // Key with unescaped newline inside quotes: [0x22, 0x0A, 0x22] -> must escape safely
+  final unescapedCtrlKey = Uint8List.fromList([0x22, 0x0A, 0x22]);
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    unescapedCtrlKey,
+    isFirst: true,
+  );
+  Expect.equals(r'"\"\u000a\"":', utf8.decode(buffer.sublist(0, len)));
 
   // Empty key bytes: Uint8List(0)
   len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
@@ -389,6 +436,21 @@ void testSurrogateEncoding() {
   // Isolated surrogate followed by valid surrogate pair: \uDC00😀
   len = JsonUtf8Encoder.writeStringToBuffer('\uDC00😀', buf, 0);
   Expect.equals(r'"\udc00😀"', utf8.decode(buf.sublist(0, len)));
+
+  // Stringifier & top-level encoder consistency on isolated surrogates
+  Expect.equals(r'"\ud800"', utf8.decode(jsonUtf8Encode('\uD800')));
+  Expect.equals(r'"\udc00"', utf8.decode(jsonUtf8Encode('\uDC00')));
+  Expect.equals(r'"a\ud800b"', utf8.decode(jsonUtf8Encode('a\uD800b')));
+  Expect.equals('"\u{10000}"', utf8.decode(jsonUtf8Encode('\uD800\uDC00')));
+  Expect.equals(r'"\udc00\ud800"', utf8.decode(jsonUtf8Encode('\uDC00\uD800')));
+
+  final enc = JsonUtf8Encoder();
+  Expect.equals(r'"\ud800"', utf8.decode(enc.convert('\uD800')));
+  Expect.equals(r'"\udc00"', utf8.decode(enc.convert('\uDC00')));
+
+  final sb = BytesBuilder();
+  JsonUtf8Encoder.writeString('\uD800', sb);
+  Expect.equals(r'"\ud800"', utf8.decode(sb.takeBytes()));
 }
 
 void testRfc8259NumberGrammar() {
@@ -530,7 +592,9 @@ void testIntegerOverflowAndLimits() {
     JsonUtf8Decoder.parseInt(b('-9223372036854775808'), 0, 20),
   );
   Expect.equals(0, JsonUtf8Decoder.parseInt(b('0'), 0, 1));
-  Expect.equals(0, JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
+  // -0 is not a valid int (must return null to preserve -0.0 double)
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('-0'), 0, 2));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
 }
 
 void testNonFiniteDoubleRejection() {
@@ -677,6 +741,50 @@ void testDoubleFastPathAndNegativeZero() {
   // Exponent formats in fast path
   Expect.equals(1500.0, JsonUtf8Decoder.parseDouble(b('1.5e3'), 0, 5));
   Expect.equals(0.0015, JsonUtf8Decoder.parseDouble(b('1.5e-3'), 0, 6));
+}
+
+void testNegativeZeroPreservation() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // tryParseInt must return null for -0 to preserve sign in numeric dispatch
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('-0'), 0, 2));
+  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('  -0  '), 0, 6));
+  Expect.throwsFormatException(() => JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
+
+  // JsonTokenReader.readNum() on -0 must return -0.0 (double)
+  final reader = JsonTokenReader.fromBytes(b('-0'));
+  final numVal = reader.readNum();
+  Expect.type<double>(numVal);
+  Expect.equals(-0.0, numVal);
+  Expect.isTrue(numVal.isNegative);
+  Expect.equals(double.negativeInfinity, 1 / numVal);
+
+  // Array containing [-0, 0]
+  final arrayReader = JsonTokenReader.fromBytes(b('[-0, 0]'));
+  arrayReader.beginArray();
+  final v1 = arrayReader.readNum();
+  Expect.type<double>(v1);
+  Expect.equals(-0.0, v1);
+  Expect.isTrue(v1.isNegative);
+  Expect.equals(double.negativeInfinity, 1 / v1);
+
+  final v2 = arrayReader.readNum();
+  Expect.type<int>(v2);
+  Expect.equals(0, v2);
+  arrayReader.endArray();
+}
+
+void testMultiRootFormatException() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final reader = JsonTokenReader.fromBytes(b('{"a": 1} 42'));
+  reader.beginObject();
+  Expect.equals('a', reader.nextName());
+  Expect.equals(1, reader.readInt());
+  reader.endObject();
+
+  // Reading another root token after document root must throw FormatException (not StateError)
+  Expect.throws<FormatException>(() => reader.readNum());
 }
 
 void testJsonKeyOptionsCollisionsAndDuplicates() {

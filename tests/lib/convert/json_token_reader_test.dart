@@ -1085,7 +1085,7 @@ void testTokenReaderMultipleRoots() {
     Expect.equals(1, r1.readInt());
     Expect.isFalse(r1.hasNext());
     Expect.equals(JsonTokenType.none, r1.peek());
-    Expect.throwsStateError(() => r1.readInt());
+    Expect.throwsFormatException(() => r1.readInt());
   }
 
   // Disallow root value after container
@@ -1097,7 +1097,7 @@ void testTokenReaderMultipleRoots() {
     r2.endObject();
     Expect.isFalse(r2.hasNext());
     Expect.equals(JsonTokenType.none, r2.peek());
-    Expect.throwsStateError(() => r2.readInt());
+    Expect.throwsFormatException(() => r2.readInt());
   }
 
   // Clean EOF after container: peek returns endOfDocument
@@ -1125,7 +1125,7 @@ void testTokenReaderMultipleRoots() {
     Expect.equals('root', r3.readString());
     Expect.isFalse(r3.hasNext());
     Expect.equals(JsonTokenType.none, r3.peek());
-    Expect.throwsStateError(() => r3.beginArray());
+    Expect.throwsFormatException(() => r3.beginArray());
   }
 
   // Disallow container after container
@@ -1135,7 +1135,7 @@ void testTokenReaderMultipleRoots() {
     r4.endObject();
     Expect.isFalse(r4.hasNext());
     Expect.equals(JsonTokenType.none, r4.peek());
-    Expect.throwsStateError(() => r4.beginObject());
+    Expect.throwsFormatException(() => r4.beginObject());
   }
 
   // Disallow bool after bool
@@ -1144,7 +1144,7 @@ void testTokenReaderMultipleRoots() {
     Expect.isTrue(r5.readBool());
     Expect.isFalse(r5.hasNext());
     Expect.equals(JsonTokenType.none, r5.peek());
-    Expect.throwsStateError(() => r5.readBool());
+    Expect.throwsFormatException(() => r5.readBool());
   }
 
   // Disallow null after null
@@ -1153,7 +1153,7 @@ void testTokenReaderMultipleRoots() {
     r6.readNull();
     Expect.isFalse(r6.hasNext());
     Expect.equals(JsonTokenType.none, r6.peek());
-    Expect.throwsStateError(() => r6.readNull());
+    Expect.throwsFormatException(() => r6.readNull());
   }
 
   // Disallow skipValue after root value
@@ -1165,7 +1165,7 @@ void testTokenReaderMultipleRoots() {
     r7.endArray();
     Expect.isFalse(r7.hasNext());
     Expect.equals(JsonTokenType.none, r7.peek());
-    Expect.throwsStateError(() => r7.skipValue());
+    Expect.throwsFormatException(() => r7.skipValue());
   }
 
   // Disallow double reading after root double
@@ -1174,7 +1174,7 @@ void testTokenReaderMultipleRoots() {
     Expect.equals(0.123456789012345, r8.readDouble());
     Expect.isFalse(r8.hasNext());
     Expect.equals(JsonTokenType.none, r8.peek());
-    Expect.throwsStateError(() => r8.readDouble());
+    Expect.throwsFormatException(() => r8.readDouble());
   }
 }
 

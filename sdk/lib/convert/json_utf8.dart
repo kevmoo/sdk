@@ -22,7 +22,10 @@ Object? jsonUtf8Decode(
 Uint8List jsonUtf8Encode(
   Object? value, {
   Object? Function(dynamic object)? toEncodable,
-}) => Uint8List.fromList(JsonUtf8Encoder(null, toEncodable).convert(value));
+}) {
+  final res = JsonUtf8Encoder(null, toEncodable).convert(value);
+  return res is Uint8List ? res : Uint8List.fromList(res);
+}
 
 /// JSON token structural type discriminator.
 enum JsonTokenType {
@@ -111,9 +114,9 @@ final class JsonKeyOptions {
 
     return JsonKeyOptions._(
       List.unmodifiable(keys),
-      encodedKeys,
-      offsets,
-      lengths,
+      encodedKeys.asUnmodifiableView(),
+      offsets.asUnmodifiableView(),
+      lengths.asUnmodifiableView(),
       table,
       mask,
     );
@@ -477,8 +480,8 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
 
 /// An encoder that encodes an object directly into UTF-8 JSON bytes.
 final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
-  /// Default buffer size used by the JSON-to-UTF-8 encoder.
-  static const int _defaultBufferSize = 256;
+  /// Default buffer size used by the JSON-to-UTF-8 encoder (32 KB).
+  static const int _defaultBufferSize = 32768;
 
   /// Indentation used in pretty-print mode, `null` if not pretty.
   final List<int>? _indent;
@@ -513,7 +516,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   @override
   List<int> convert(Object? object) {
-    var bytes = <List<int>>[];
+    var bytes = <Uint8List>[];
     void addChunk(Uint8List chunk, int start, int end) {
       if (start > 0 || end < chunk.length) {
         var length = end - start;
@@ -533,6 +536,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
       _bufferSize,
       addChunk,
     );
+    if (bytes.isEmpty) return Uint8List(0);
     if (bytes.length == 1) return bytes[0];
     var length = 0;
     for (var i = 0; i < bytes.length; i++) {
@@ -788,8 +792,41 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     required bool isFirst,
   }) {
     final isQuoted = _isSingleQuotedString(asciiKey);
-    final requiredLen =
-        (isFirst ? 0 : 1) + asciiKey.length + (isQuoted ? 0 : 2) + 1;
+    final isFirstOffset = isFirst ? 0 : 1;
+    if (isQuoted) {
+      final requiredLen = isFirstOffset + asciiKey.length + 1;
+      if (offset < 0 || offset + requiredLen > buffer.length) {
+        throw RangeError.range(
+          offset,
+          0,
+          buffer.length >= requiredLen ? buffer.length - requiredLen : 0,
+          'offset',
+        );
+      }
+      var cursor = offset;
+      if (!isFirst) {
+        buffer[cursor++] = 44; // ','
+      }
+      final keyLen = asciiKey.length;
+      buffer.setRange(cursor, cursor + keyLen, asciiKey);
+      cursor += keyLen;
+      buffer[cursor++] = 58; // ':'
+      return cursor - offset;
+    }
+
+    var escapedContentLen = 0;
+    for (var i = 0; i < asciiKey.length; i++) {
+      final b = asciiKey[i];
+      if (b == 0x22 || b == 0x5C) {
+        escapedContentLen += 2;
+      } else if (b < 0x20) {
+        escapedContentLen += 6;
+      } else {
+        escapedContentLen += 1;
+      }
+    }
+
+    final requiredLen = isFirstOffset + 2 + escapedContentLen + 1;
     if (offset < 0 || offset + requiredLen > buffer.length) {
       throw RangeError.range(
         offset,
@@ -798,19 +835,32 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
         'offset',
       );
     }
+
     var cursor = offset;
     if (!isFirst) {
       buffer[cursor++] = 44; // ','
     }
-    if (!isQuoted) {
-      buffer[cursor++] = 0x22; // '"'
+    buffer[cursor++] = 0x22; // '"'
+    for (var i = 0; i < asciiKey.length; i++) {
+      final b = asciiKey[i];
+      if (b == 0x22) {
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x22;
+      } else if (b == 0x5C) {
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x5C;
+      } else if (b < 0x20) {
+        buffer[cursor++] = 0x5C;
+        buffer[cursor++] = 0x75; // 'u'
+        buffer[cursor++] = 0x30; // '0'
+        buffer[cursor++] = 0x30; // '0'
+        buffer[cursor++] = _hexDigits.codeUnitAt((b >> 4) & 0xF);
+        buffer[cursor++] = _hexDigits.codeUnitAt(b & 0xF);
+      } else {
+        buffer[cursor++] = b;
+      }
     }
-    final keyLen = asciiKey.length;
-    buffer.setRange(cursor, cursor + keyLen, asciiKey);
-    cursor += keyLen;
-    if (!isQuoted) {
-      buffer[cursor++] = 0x22; // '"'
-    }
+    buffer[cursor++] = 0x22; // '"'
     buffer[cursor++] = 58; // ':'
     return cursor - offset;
   }
@@ -947,10 +997,26 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
   }
 
   void writeStringSlice(String string, int start, int end) {
-    for (var i = start; i < end; i++) {
+    var i = start;
+    while (i < end) {
       var char = string.codeUnitAt(i);
       if (char <= 0x7f) {
-        writeByte(char);
+        final asciiStart = i;
+        i++;
+        while (i < end) {
+          if (string.codeUnitAt(i) > 0x7f) break;
+          i++;
+        }
+        final asciiLen = i - asciiStart;
+        if (index + asciiLen <= buffer.length) {
+          for (var k = asciiStart; k < i; k++) {
+            buffer[index++] = string.codeUnitAt(k);
+          }
+        } else {
+          for (var k = asciiStart; k < i; k++) {
+            writeByte(string.codeUnitAt(k));
+          }
+        }
       } else {
         if ((char & 0xF800) == 0xD800) {
           // Surrogate.
@@ -959,14 +1025,22 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
             if ((nextChar & 0xFC00) == 0xDC00) {
               char = 0x10000 + ((char & 0x3ff) << 10) + (nextChar & 0x3ff);
               writeFourByteCharCode(char);
-              i++;
+              i += 2;
               continue;
             }
           }
-          writeMultiByteCharCode(unicodeReplacementCharacterRune);
+          // Isolated surrogate -> \uXXXX escape matching writeStringToBuffer & RFC 8259
+          writeByte(0x5C); // '\'
+          writeByte(0x75); // 'u'
+          writeByte(_hexDigits.codeUnitAt((char >> 12) & 0xF));
+          writeByte(_hexDigits.codeUnitAt((char >> 8) & 0xF));
+          writeByte(_hexDigits.codeUnitAt((char >> 4) & 0xF));
+          writeByte(_hexDigits.codeUnitAt(char & 0xF));
+          i++;
           continue;
         }
         writeMultiByteCharCode(char);
+        i++;
       }
     }
   }
@@ -1204,7 +1278,11 @@ final class _JsonTokenReader implements JsonTokenReader {
       }
     } else {
       if (_hasReadRoot) {
-        throw StateError('Cannot read multiple root values');
+        throw FormatException(
+          'Cannot read multiple root values',
+          _bytes,
+          _offset,
+        );
       }
     }
   }
@@ -1925,11 +2003,29 @@ final class _JsonTokenWriter implements JsonTokenWriter {
     }
     _objectStateStack.last = _ObjectState.key;
     final isQuoted = _isSingleQuotedString(asciiKey);
-    if (!isQuoted) {
+    if (isQuoted) {
+      _sink.add(asciiKey);
+    } else {
       _sink.addByte(34); // '"'
-    }
-    _sink.add(asciiKey);
-    if (!isQuoted) {
+      for (var i = 0; i < asciiKey.length; i++) {
+        final b = asciiKey[i];
+        if (b == 0x22) {
+          _sink.addByte(0x5C);
+          _sink.addByte(0x22);
+        } else if (b == 0x5C) {
+          _sink.addByte(0x5C);
+          _sink.addByte(0x5C);
+        } else if (b < 0x20) {
+          _sink.addByte(0x5C);
+          _sink.addByte(0x75); // 'u'
+          _sink.addByte(0x30); // '0'
+          _sink.addByte(0x30); // '0'
+          _sink.addByte(_hexDigits.codeUnitAt((b >> 4) & 0xF));
+          _sink.addByte(_hexDigits.codeUnitAt(b & 0xF));
+        } else {
+          _sink.addByte(b);
+        }
+      }
       _sink.addByte(34); // '"'
     }
     _sink.addByte(58); // ':'
@@ -2729,6 +2825,7 @@ int? _tryParseIntUtf8(Uint8List source, int start, int end) {
     i++;
     // Leading zero cannot be followed by another digit
     if (i < actualEnd) return null;
+    if (negative) return null;
     return 0;
   }
 
@@ -3000,11 +3097,37 @@ bool _isSingleQuotedString(Uint8List bytes) {
   final end = bytes.length - 1;
   while (i < end) {
     final b = bytes[i];
-    if (b == 0x22) {
+    if (b == 0x22 || b < 0x20) {
       return false;
     }
     if (b == 0x5C) {
-      i += 2;
+      if (i + 1 >= end) return false;
+      final next = bytes[i + 1];
+      if (next == 0x22 || // '"'
+          next == 0x5C || // '\'
+          next == 0x2F || // '/'
+          next == 0x62 || // 'b'
+          next == 0x66 || // 'f'
+          next == 0x6E || // 'n'
+          next == 0x72 || // 'r'
+          next == 0x74) {
+        // 't'
+        i += 2;
+      } else if (next == 0x75) {
+        // 'u'
+        if (i + 5 >= end + 1) return false;
+        for (var j = i + 2; j <= i + 5; j++) {
+          final c = bytes[j];
+          final isHex =
+              (c >= 48 && c <= 57) ||
+              (c >= 65 && c <= 70) ||
+              (c >= 97 && c <= 102);
+          if (!isHex) return false;
+        }
+        i += 6;
+      } else {
+        return false;
+      }
     } else {
       i++;
     }
