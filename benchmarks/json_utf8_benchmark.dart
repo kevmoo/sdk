@@ -430,6 +430,9 @@ void benchmarkMacroCoordinateArray() {
 
   final encoded = jsonUtf8Encode(doc);
 
+  final rootOptions = JsonKeyOptions.of(['coordinates']);
+  final coordOptions = JsonKeyOptions.of(['x', 'y', 'z']);
+
   // Measure stream decode throughput
   final sw = Stopwatch()..start();
   const iterations = 20;
@@ -438,14 +441,14 @@ void benchmarkMacroCoordinateArray() {
     final reader = JsonTokenReader.fromBytes(encoded);
     reader.beginObject();
     while (reader.hasNext()) {
-      final key = reader.nextName();
-      if (key == 'coordinates') {
+      final keyIdx = reader.selectName(rootOptions);
+      if (keyIdx == 0) {
         reader.beginArray();
         while (reader.hasNext()) {
           reader.beginObject();
           while (reader.hasNext()) {
-            final fName = reader.nextName();
-            if (fName == 'x' || fName == 'y' || fName == 'z') {
+            final fIdx = reader.selectName(coordOptions);
+            if (fIdx >= 0) {
               checksum += reader.readDouble();
             } else {
               reader.skipValue();

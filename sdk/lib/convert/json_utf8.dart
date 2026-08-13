@@ -426,6 +426,13 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       }
       return i;
     }
+    if (b != 116 && b != 102 && b != 110 && b != 45 && (b < 48 || b > 57)) {
+      throw FormatException(
+        'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $i',
+        bytes,
+        i,
+      );
+    }
     while (i < bytes.length &&
         bytes[i] != 44 &&
         bytes[i] != 125 &&
@@ -791,8 +798,35 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     Uint8List asciiKey, {
     required bool isFirst,
   }) {
-    final isQuoted = _isSingleQuotedString(asciiKey);
     final isFirstOffset = isFirst ? 0 : 1;
+    final isColonTerminated =
+        asciiKey.length >= 3 &&
+        asciiKey.first == 0x22 &&
+        asciiKey.last == 0x3A &&
+        _isSingleQuotedString(
+          Uint8List.sublistView(asciiKey, 0, asciiKey.length - 1),
+        );
+    if (isColonTerminated) {
+      final requiredLen = isFirstOffset + asciiKey.length;
+      if (offset < 0 || offset + requiredLen > buffer.length) {
+        throw RangeError.range(
+          offset,
+          0,
+          buffer.length >= requiredLen ? buffer.length - requiredLen : 0,
+          'offset',
+        );
+      }
+      var cursor = offset;
+      if (!isFirst) {
+        buffer[cursor++] = 44; // ','
+      }
+      final keyLen = asciiKey.length;
+      buffer.setRange(cursor, cursor + keyLen, asciiKey);
+      cursor += keyLen;
+      return cursor - offset;
+    }
+
+    final isQuoted = _isSingleQuotedString(asciiKey);
     if (isQuoted) {
       final requiredLen = isFirstOffset + asciiKey.length + 1;
       if (offset < 0 || offset + requiredLen > buffer.length) {
@@ -1695,6 +1729,9 @@ final class _JsonTokenReader implements JsonTokenReader {
   @override
   num readNum() {
     return _readValue((start, end) {
+      if (end - start >= 2 && _bytes[start] == 45 && _bytes[start + 1] == 48) {
+        return JsonUtf8Decoder.parseDouble(_bytes, start, end);
+      }
       final asInt = JsonUtf8Decoder.tryParseInt(_bytes, start, end);
       if (asInt != null) return asInt;
       return JsonUtf8Decoder.parseDouble(_bytes, start, end);
@@ -1719,86 +1756,105 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   void skipValue() {
-    _beforeReadingValue();
-    if (_offset >= _bytes.length) return;
-    final b = _bytes[_offset];
-    if (b == 123 || b == 91) {
-      var depth = 1;
-      var mask = (b == 123) ? 1 : 0;
-      _offset++;
-      while (_offset < _bytes.length && depth > 0) {
-        final c = _bytes[_offset++];
-        if (c == 34) {
-          while (_offset < _bytes.length) {
-            final sc = _bytes[_offset++];
-            if (sc < 0x20) {
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
+    try {
+      _beforeReadingValue();
+      if (_offset >= _bytes.length) return;
+      final b = _bytes[_offset];
+      if (b == 123 || b == 91) {
+        var depth = 1;
+        var mask = (b == 123) ? 1 : 0;
+        _offset++;
+        while (_offset < _bytes.length && depth > 0) {
+          final c = _bytes[_offset++];
+          if (c == 34) {
+            while (_offset < _bytes.length) {
+              final sc = _bytes[_offset++];
+              if (sc < 0x20) {
+                throw FormatException(
+                  'Unescaped control character in string literal at offset ${_offset - 1}',
+                  _bytes,
+                  _offset - 1,
+                );
+              }
+              if (sc == 92) {
+                if (_offset < _bytes.length) _offset++;
+              } else if (sc == 34) {
+                break;
+              }
+            }
+          } else if (c == 123 || c == 91) {
+            if (depth >= _maxDepth) {
               throw FormatException(
-                'Unescaped control character in string literal at offset ${_offset - 1}',
+                'Nesting depth exceeds limit of $_maxDepth at offset ${_offset - 1}',
                 _bytes,
                 _offset - 1,
               );
             }
-            if (sc == 92) {
-              if (_offset < _bytes.length) _offset++;
-            } else if (sc == 34) {
-              break;
+            if (c == 123) {
+              mask |= (1 << depth);
+            } else {
+              mask &= ~(1 << depth);
             }
+            depth++;
+          } else if (c == 125) {
+            if (depth == 0 || ((mask >> (depth - 1)) & 1) != 1) {
+              throw FormatException(
+                'Mismatched "}" at offset ${_offset - 1}',
+                _bytes,
+                _offset - 1,
+              );
+            }
+            depth--;
+          } else if (c == 93) {
+            if (depth == 0 || ((mask >> (depth - 1)) & 1) != 0) {
+              throw FormatException(
+                'Mismatched "]" at offset ${_offset - 1}',
+                _bytes,
+                _offset - 1,
+              );
+            }
+            depth--;
           }
-        } else if (c == 123 || c == 91) {
-          if (depth >= _maxDepth) {
-            throw FormatException(
-              'Nesting depth exceeds limit of $_maxDepth at offset ${_offset - 1}',
-              _bytes,
-              _offset - 1,
-            );
-          }
-          if (c == 123) {
-            mask |= (1 << depth);
-          } else {
-            mask &= ~(1 << depth);
-          }
-          depth++;
-        } else if (c == 125) {
-          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 1) {
-            throw FormatException(
-              'Mismatched "}" at offset ${_offset - 1}',
-              _bytes,
-              _offset - 1,
-            );
-          }
-          depth--;
-        } else if (c == 93) {
-          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 0) {
-            throw FormatException(
-              'Mismatched "]" at offset ${_offset - 1}',
-              _bytes,
-              _offset - 1,
-            );
-          }
-          depth--;
         }
-      }
-      if (depth > 0) {
-        throw FormatException(
-          'Unclosed container at end of document',
-          _bytes,
-          _offset,
-        );
-      }
-    } else if (b == 34) {
-      _scanStringSpan();
-    } else {
-      var i = _offset;
-      while (i < _bytes.length) {
-        final c = _bytes[i];
-        if (c == 44 || c == 125 || c == 93 || _isWs(c)) {
-          break;
+        if (depth > 0) {
+          throw FormatException(
+            'Unclosed container at end of document',
+            _bytes,
+            _offset,
+          );
         }
-        i++;
+      } else if (b == 34) {
+        _scanStringSpan();
+      } else {
+        if (b != 116 && b != 102 && b != 110 && b != 45 && (b < 48 || b > 57)) {
+          throw FormatException(
+            'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $_offset',
+            _bytes,
+            _offset,
+          );
+        }
+        var i = _offset;
+        while (i < _bytes.length) {
+          final c = _bytes[i];
+          if (c == 44 || c == 125 || c == 93 || _isWs(c)) {
+            break;
+          }
+          i++;
+        }
+        _offset = i;
       }
-      _offset = i;
+      _afterReadingValue();
+    } catch (_) {
+      _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
     }
-    _afterReadingValue();
   }
 
   @override
@@ -2825,7 +2881,6 @@ int? _tryParseIntUtf8(Uint8List source, int start, int end) {
     i++;
     // Leading zero cannot be followed by another digit
     if (i < actualEnd) return null;
-    if (negative) return null;
     return 0;
   }
 
@@ -2892,7 +2947,8 @@ bool _equalsAsciiUtf8(
     return false;
   }
   for (var i = 0; i < asciiString.length; i++) {
-    if (source[start + i] != asciiString.codeUnitAt(i)) return false;
+    final c = asciiString.codeUnitAt(i);
+    if (c > 0x7F || source[start + i] != c) return false;
   }
   return true;
 }

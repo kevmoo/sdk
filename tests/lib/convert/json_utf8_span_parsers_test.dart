@@ -139,6 +139,19 @@ void testEqualsAscii() {
   Expect.isTrue(JsonUtf8Decoder.equalsAscii(bytes, 6, 11, 'world'));
   Expect.isFalse(JsonUtf8Decoder.equalsAscii(bytes, 0, 5, 'world'));
   Expect.isFalse(JsonUtf8Decoder.equalsAscii(bytes, 0, 4, 'hello'));
+
+  // Non-ASCII candidate string must return false (not match raw Latin-1 byte)
+  final latin1Bytes = Uint8List.fromList([0xE9]);
+  Expect.isFalse(JsonUtf8Decoder.equalsAscii(latin1Bytes, 0, 1, 'é'));
+  final utf8Bytes = Uint8List.fromList(utf8.encode('café'));
+  Expect.isFalse(
+    JsonUtf8Decoder.equalsAscii(utf8Bytes, 0, utf8Bytes.length, 'café'),
+  );
+
+  // Emojis, Cyrillic, and Greek
+  Expect.isFalse(JsonUtf8Decoder.equalsAscii(b('😀'), 0, 4, '😀'));
+  Expect.isFalse(JsonUtf8Decoder.equalsAscii(b('привет'), 0, 12, 'привет'));
+  Expect.isFalse(JsonUtf8Decoder.equalsAscii(b('αβγ'), 0, 6, 'αβγ'));
 }
 
 void testJsonKeyOptions() {
@@ -393,6 +406,54 @@ void testEncoderBufferWriters() {
     isFirst: true,
   );
   Expect.equals('"":', utf8.decode(buffer.sublist(0, len)));
+
+  // Pre-encoded colon-terminated keys: utf8.encode('"id":')
+  final colonKey = Uint8List.fromList(utf8.encode('"id":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    colonKey,
+    isFirst: true,
+  );
+  Expect.equals('"id":', utf8.decode(buffer.sublist(0, len)));
+
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    colonKey,
+    isFirst: false,
+  );
+  Expect.equals(',"id":', utf8.decode(buffer.sublist(0, len)));
+
+  // Pre-encoded colon-terminated empty key: utf8.encode('"":')
+  final emptyColonKey = Uint8List.fromList(utf8.encode('"":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    emptyColonKey,
+    isFirst: true,
+  );
+  Expect.equals('"":', utf8.decode(buffer.sublist(0, len)));
+
+  // Pre-encoded colon-terminated key with escaped quotes: utf8.encode(r'"k\"ey":')
+  final colonEscapedQuoteKey = Uint8List.fromList(utf8.encode(r'"k\"ey":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    colonEscapedQuoteKey,
+    isFirst: true,
+  );
+  Expect.equals(r'"k\"ey":', utf8.decode(buffer.sublist(0, len)));
+
+  // Pre-encoded colon-terminated key with escaped backslash: utf8.encode(r'"k\\":')
+  final colonEscapedBackslashKey = Uint8List.fromList(utf8.encode(r'"k\\":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buffer,
+    0,
+    colonEscapedBackslashKey,
+    isFirst: false,
+  );
+  Expect.equals(r',"k\\":', utf8.decode(buffer.sublist(0, len)));
 }
 
 void testSurrogateEncoding() {
@@ -592,9 +653,9 @@ void testIntegerOverflowAndLimits() {
     JsonUtf8Decoder.parseInt(b('-9223372036854775808'), 0, 20),
   );
   Expect.equals(0, JsonUtf8Decoder.parseInt(b('0'), 0, 1));
-  // -0 is not a valid int (must return null to preserve -0.0 double)
-  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('-0'), 0, 2));
-  Expect.throwsFormatException(() => JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
+  // -0 is a valid integer (matching int.parse("-0") == 0)
+  Expect.equals(0, JsonUtf8Decoder.tryParseInt(b('-0'), 0, 2));
+  Expect.equals(0, JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
 }
 
 void testNonFiniteDoubleRejection() {
@@ -670,10 +731,9 @@ void testDecodeStringWithEscapesAndSurrogates() {
 void testSkipValueControlChars() {
   Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 
-  // Control char \x00 should not be skipped as whitespace
+  // Control char \x00 should not be skipped as whitespace, and skipValue must reject it
   final withNul = b('\x00{"a": 1}');
-  final skipNul = JsonUtf8Decoder.skipValue(withNul, 0);
-  // It shouldn't skip past the object if it started on a non-whitespace control character
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(withNul, 0));
   Expect.equals(0, JsonUtf8Decoder.skipWhitespace(withNul, 0));
 
   // Unescaped control characters in strings within skipValue must throw FormatException
@@ -703,6 +763,32 @@ void testSkipValueControlChars() {
   Expect.throwsFormatException(
     () => JsonUtf8Decoder.skipString(Uint8List.fromList([0x22, 0x0A, 0x22]), 0),
   );
+
+  // Invalid scalar tokens starting characters (@#$%, undefined) must throw FormatException
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b(r'{"skip": @#$%^&*!, "keep": 1}'), 9),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('{"skip": undefined}'), 9),
+  );
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b(r'@#$%'), 0));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('undefined'), 0),
+  );
+
+  // JsonTokenReader.skipValue() must also throw on invalid scalar tokens
+  final tr1 = JsonTokenReader.fromBytes(b(r'{"skip": @#$%^&*!, "keep": 1}'));
+  tr1.beginObject();
+  Expect.equals('skip', tr1.nextName());
+  Expect.throwsFormatException(() => tr1.skipValue());
+
+  final tr2 = JsonTokenReader.fromBytes(b('{"skip": undefined}'));
+  tr2.beginObject();
+  Expect.equals('skip', tr2.nextName());
+  Expect.throwsFormatException(() => tr2.skipValue());
+
+  final tr3 = JsonTokenReader.fromBytes(b('undefined'));
+  Expect.throwsFormatException(() => tr3.skipValue());
 }
 
 void testDoubleFastPathAndNegativeZero() {
@@ -746,10 +832,15 @@ void testDoubleFastPathAndNegativeZero() {
 void testNegativeZeroPreservation() {
   Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 
-  // tryParseInt must return null for -0 to preserve sign in numeric dispatch
-  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('-0'), 0, 2));
-  Expect.isNull(JsonUtf8Decoder.tryParseInt(b('  -0  '), 0, 6));
-  Expect.throwsFormatException(() => JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
+  // tryParseInt and parseInt must parse -0 as integer 0
+  Expect.equals(0, JsonUtf8Decoder.tryParseInt(b('-0'), 0, 2));
+  Expect.equals(0, JsonUtf8Decoder.tryParseInt(b('  -0  '), 0, 6));
+  Expect.equals(0, JsonUtf8Decoder.parseInt(b('-0'), 0, 2));
+  Expect.equals(0, JsonUtf8Decoder.parseInt(b('  -0  '), 0, 6));
+
+  // JsonTokenReader.readInt() on -0 must return integer 0
+  final intReader = JsonTokenReader.fromBytes(b('-0'));
+  Expect.equals(0, intReader.readInt());
 
   // JsonTokenReader.readNum() on -0 must return -0.0 (double)
   final reader = JsonTokenReader.fromBytes(b('-0'));

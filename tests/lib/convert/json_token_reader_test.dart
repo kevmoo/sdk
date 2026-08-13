@@ -41,6 +41,7 @@ void main() {
   testTrailingCommaPeekRejection();
   testTokenReaderMultipleRoots();
   testTokenReaderSkipValueControlChars();
+  testTokenReaderSkipValueRollback();
 }
 
 void testTokenReaderPrimitives() {
@@ -1202,5 +1203,94 @@ void testTokenReaderSkipValueControlChars() {
     ]);
     final r = JsonTokenReader.fromBytes(bytes);
     Expect.throwsFormatException(() => r.skipValue());
+  }
+}
+
+void testTokenReaderSkipValueRollback() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Rollback on invalid scalar token in object value
+  {
+    final r = JsonTokenReader.fromBytes(
+      b(r'{"keep": 10, "broken": @#$%^&*, "after": 20}'),
+    );
+    r.beginObject();
+    Expect.equals('keep', r.nextName());
+    Expect.equals(10, r.readInt());
+
+    Expect.equals('broken', r.nextName());
+    // skipValue on invalid scalar @#$%^&* throws and rolls back
+    Expect.throwsFormatException(() => r.skipValue());
+
+    // Reader state is preserved: peek() sees the invalid scalar
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // 2. Rollback on invalid scalar token in array
+  {
+    final r = JsonTokenReader.fromBytes(b(r'[1, @#$%^&*, 3]'));
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+
+    // skipValue on invalid scalar @#$%^&* in array throws and rolls back
+    Expect.throwsFormatException(() => r.skipValue());
+
+    // Reader state is preserved in array
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // 3. Rollback on mismatched container delimiter in skipValue
+  {
+    final r = JsonTokenReader.fromBytes(b('{"data": {"a": 1], "after": 2}'));
+    r.beginObject();
+    Expect.equals('data', r.nextName());
+
+    Expect.throwsFormatException(() => r.skipValue());
+    Expect.equals(JsonTokenType.beginObject, r.peek());
+  }
+
+  // 4. Negative zero variations in stream array
+  {
+    final r = JsonTokenReader.fromBytes(b('[-0, 0, -0.0, 0.0, -0e0, -0e5]'));
+    r.beginArray();
+
+    // -0 as readNum -> -0.0 (double)
+    final v1 = r.readNum();
+    Expect.type<double>(v1);
+    Expect.equals(-0.0, v1);
+    Expect.isTrue(v1.isNegative);
+    Expect.equals(double.negativeInfinity, 1 / v1);
+
+    // 0 as readNum -> 0 (int)
+    final v2 = r.readNum();
+    Expect.type<int>(v2);
+    Expect.equals(0, v2);
+
+    // -0.0 as readNum -> -0.0 (double)
+    final v3 = r.readNum();
+    Expect.type<double>(v3);
+    Expect.equals(-0.0, v3);
+    Expect.isTrue(v3.isNegative);
+
+    // 0.0 as readNum -> 0.0 (double)
+    final v4 = r.readNum();
+    Expect.type<double>(v4);
+    Expect.equals(0.0, v4);
+    Expect.isFalse(v4.isNegative);
+
+    // -0e0 as readNum -> -0.0 (double)
+    final v5 = r.readNum();
+    Expect.type<double>(v5);
+    Expect.equals(-0.0, v5);
+    Expect.isTrue(v5.isNegative);
+
+    // -0e5 as readNum -> -0.0 (double)
+    final v6 = r.readNum();
+    Expect.type<double>(v6);
+    Expect.equals(-0.0, v6);
+    Expect.isTrue(v6.isNegative);
+
+    Expect.isFalse(r.hasNext());
+    r.endArray();
   }
 }
