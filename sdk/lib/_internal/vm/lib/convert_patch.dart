@@ -2188,6 +2188,26 @@ class JsonUtf8Encoder {
   }
 }
 
+@patch
+class JsonUtf8Decoder {
+  @patch
+  static double parseDouble(Uint8List bytes, int start, int end) {
+    final res = tryParseDouble(bytes, start, end);
+    if (res == null) {
+      throw FormatException(
+        'Invalid double in byte span [$start, $end)',
+        bytes,
+        start,
+      );
+    }
+    return res;
+  }
+
+  @patch
+  static double? tryParseDouble(Uint8List bytes, int start, int end) =>
+      _parseDoubleNative(bytes, start, end);
+}
+
 @pragma("vm:external-name", "JsonUtf8Decoder_parseDouble")
 external double? _parseDoubleNative(Uint8List bytes, int start, int end);
 

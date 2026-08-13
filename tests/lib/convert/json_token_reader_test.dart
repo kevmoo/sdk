@@ -657,19 +657,19 @@ void testPeekMissingCommaError() {
   Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 
   // In an object, after reading a value, next must be comma or '}'.
-  // If followed directly by another key without comma, peek() must return none.
+  // If followed directly by another key without comma, peek() must throw FormatException.
   final rObj = JsonTokenReader.fromBytes(b('{"a": 1 "b": 2}'));
   rObj.beginObject();
   Expect.equals('a', rObj.nextName());
   Expect.equals(1, rObj.readInt());
-  Expect.equals(JsonTokenType.none, rObj.peek());
+  Expect.throwsFormatException(() => rObj.peek());
 
   // In an array, after reading a value, next must be comma or ']'.
-  // If followed directly by another element without comma, peek() must return none.
+  // If followed directly by another element without comma, peek() must throw FormatException.
   final rArr = JsonTokenReader.fromBytes(b('[1 2]'));
   rArr.beginArray();
   Expect.equals(1, rArr.readInt());
-  Expect.equals(JsonTokenType.none, rArr.peek());
+  Expect.throwsFormatException(() => rArr.peek());
 }
 
 void testWriteNameBytesPreQuoted() {

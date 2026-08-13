@@ -349,6 +349,7 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       while (i < bytes.length && depth > 0) {
         final c = bytes[i++];
         if (c == 34) {
+          var closed = false;
           while (i < bytes.length) {
             final sc = bytes[i++];
             if (sc < 0x20) {
@@ -361,8 +362,12 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
             if (sc == 92) {
               if (i < bytes.length) i++;
             } else if (sc == 34) {
+              closed = true;
               break;
             }
+          }
+          if (!closed) {
+            throw FormatException('Unterminated string literal', bytes, offset);
           }
         } else if (c == 123 || c == 91) {
           if (depth >= 64) {
@@ -409,6 +414,7 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     }
     if (b == 34) {
       i++;
+      var closed = false;
       while (i < bytes.length) {
         final c = bytes[i++];
         if (c < 0x20) {
@@ -421,8 +427,12 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
         if (c == 92) {
           if (i < bytes.length) i++;
         } else if (c == 34) {
+          closed = true;
           break;
         }
+      }
+      if (!closed) {
+        throw FormatException('Unterminated string literal', bytes, offset);
       }
       return i;
     }
@@ -519,7 +529,12 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   /// parsing escapes, returning the byte offset after the closing quote.
   static int skipString(Uint8List bytes, int offset) {
     var i = offset;
-    if (i < bytes.length && bytes[i] == 34) i++;
+    if (i < bytes.length && bytes[i] == 34) {
+      i++;
+    } else {
+      throw FormatException('Expected """ at offset $offset', bytes, offset);
+    }
+    var closed = false;
     while (i < bytes.length) {
       final b = bytes[i++];
       if (b < 0x20) {
@@ -532,8 +547,12 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       if (b == 92) {
         if (i < bytes.length) i++;
       } else if (b == 34) {
+        closed = true;
         break;
       }
+    }
+    if (!closed) {
+      throw FormatException('Unterminated string literal', bytes, offset);
     }
     return i;
   }
@@ -629,14 +648,22 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     return super.bind(stream);
   }
 
-  // --- Static Direct-To-Buffer Formatting Helpers ---
+  static final Uint8List _sharedDoubleBuffer = Uint8List(64);
+  static final Uint8List _sharedStringBuffer = Uint8List(256);
 
   /// Writes [value] with standard JSON escaping directly into [sink].
   static void writeString(String value, BytesBuilder sink) {
     final maxLen = value.length * 6 + 2;
-    final buf = Uint8List(maxLen);
-    final len = writeStringToBuffer(value, buf, 0);
-    sink.add(Uint8List.sublistView(buf, 0, len));
+    if (maxLen <= _sharedStringBuffer.length) {
+      final len = writeStringToBuffer(value, _sharedStringBuffer, 0);
+      for (var i = 0; i < len; i++) {
+        sink.addByte(_sharedStringBuffer[i]);
+      }
+    } else {
+      final buf = Uint8List(maxLen);
+      final len = writeStringToBuffer(value, buf, 0);
+      sink.add(Uint8List.sublistView(buf, 0, len));
+    }
   }
 
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
@@ -650,9 +677,10 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    final buf = Uint8List(64);
-    final len = writeDoubleToBuffer(value, buf, 0);
-    sink.add(Uint8List.sublistView(buf, 0, len));
+    final len = writeDoubleToBuffer(value, _sharedDoubleBuffer, 0);
+    for (var i = 0; i < len; i++) {
+      sink.addByte(_sharedDoubleBuffer[i]);
+    }
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -1446,7 +1474,11 @@ final class _JsonTokenReader implements JsonTokenReader {
               if (_bytes[i] == 34) return JsonTokenType.propertyName;
               return JsonTokenType.none;
             }
-            return JsonTokenType.none;
+            throw FormatException(
+              'Expected comma or closing delimiter',
+              _bytes,
+              _offset,
+            );
         }
       } else {
         // _ContainerType.array
@@ -1480,7 +1512,11 @@ final class _JsonTokenReader implements JsonTokenReader {
               }
               return _valueTokenType(_bytes[i]);
             }
-            return JsonTokenType.none;
+            throw FormatException(
+              'Expected comma or closing delimiter',
+              _bytes,
+              _offset,
+            );
           case _ReaderItemState.afterName:
             return JsonTokenType.none;
         }
@@ -1859,6 +1895,7 @@ final class _JsonTokenReader implements JsonTokenReader {
         while (_offset < _bytes.length && depth > 0) {
           final c = _bytes[_offset++];
           if (c == 34) {
+            var closed = false;
             while (_offset < _bytes.length) {
               final sc = _bytes[_offset++];
               if (sc < 0x20) {
@@ -1871,8 +1908,16 @@ final class _JsonTokenReader implements JsonTokenReader {
               if (sc == 92) {
                 if (_offset < _bytes.length) _offset++;
               } else if (sc == 34) {
+                closed = true;
                 break;
               }
+            }
+            if (!closed) {
+              throw FormatException(
+                'Unterminated string literal',
+                _bytes,
+                _offset,
+              );
             }
           } else if (c == 123 || c == 91) {
             if (depth >= _maxDepth) {

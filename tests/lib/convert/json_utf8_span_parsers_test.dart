@@ -39,6 +39,9 @@ void main() {
   testPeekTrailingComma();
   testHasNextAtomicRollback();
   testBatchedSinkWriters();
+  testUnterminatedStringSkipping();
+  testDoubleNativeLinkageAndPrecision();
+  testBufferPoolSinkWriters();
 }
 
 void testParseInt() {
@@ -1071,10 +1074,9 @@ void testContainerSkippingNesting() {
     () => JsonUtf8Decoder.skipValue(b('[{"a": 1}'), 0),
   );
 
-  // Trailing backslash in skipString
+  // Trailing backslash in skipString is an unterminated string and must throw
   final b8 = b('"hello\\');
-  final skipOffset = JsonUtf8Decoder.skipString(b8, 0);
-  Expect.isTrue(skipOffset <= b8.length);
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipString(b8, 0));
 }
 
 void testSkipValueMaxDepth() {
@@ -1426,4 +1428,142 @@ void testBatchedSinkWriters() {
   Expect.throwsArgumentError(
     () => JsonUtf8Encoder.writeDouble(double.negativeInfinity, BytesBuilder()),
   );
+}
+
+void testUnterminatedStringSkipping() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Top-level unclosed string in skipValue
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('"unterminated'), 0),
+  );
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b('"'), 0));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b(r'"escape at end \'), 0),
+  );
+
+  // Top-level unclosed string in skipString
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipString(b('"unterminated'), 0),
+  );
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipString(b('"'), 0));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipString(b(r'"escape at end \'), 0),
+  );
+
+  // Unclosed string inside container in skipValue
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('{"unclosed'), 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b('["unclosed'), 0),
+  );
+
+  // Unclosed string in JsonTokenReader.skipValue
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": "unclosed'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.throwsFormatException(() => r.skipValue());
+  }
+}
+
+void testDoubleNativeLinkageAndPrecision() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Basic floating-point parsing
+  Expect.equals(3.14159, JsonUtf8Decoder.parseDouble(b('3.14159'), 0, 7));
+  Expect.equals(3.14159, JsonUtf8Decoder.tryParseDouble(b('3.14159'), 0, 7));
+
+  // Subnormal double
+  Expect.equals(
+    double.minPositive,
+    JsonUtf8Decoder.parseDouble(
+      b('${double.minPositive}'),
+      0,
+      '${double.minPositive}'.length,
+    ),
+  );
+  Expect.equals(
+    double.minPositive,
+    JsonUtf8Decoder.tryParseDouble(
+      b('${double.minPositive}'),
+      0,
+      '${double.minPositive}'.length,
+    ),
+  );
+
+  // Large exponents
+  Expect.equals(1e308, JsonUtf8Decoder.parseDouble(b('1e308'), 0, 5));
+  Expect.equals(1e-308, JsonUtf8Decoder.parseDouble(b('1e-308'), 0, 6));
+
+  // Exact 17-digit precision double
+  const preciseStr = '0.12345678901234567';
+  Expect.equals(
+    double.parse(preciseStr),
+    JsonUtf8Decoder.parseDouble(b(preciseStr), 0, preciseStr.length),
+  );
+
+  // Negative zero
+  final negZero = JsonUtf8Decoder.parseDouble(b('-0.0'), 0, 4);
+  Expect.equals(0.0, negZero);
+  Expect.isTrue(negZero.isNegative);
+
+  // Whitespace around double in byte span
+  Expect.equals(42.5, JsonUtf8Decoder.parseDouble(b('  42.5  '), 0, 8));
+  Expect.equals(42.5, JsonUtf8Decoder.tryParseDouble(b('  42.5  '), 0, 8));
+
+  // Invalid doubles
+  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('abc'), 0, 3));
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseDouble(b('abc'), 0, 3),
+  );
+}
+
+void testBufferPoolSinkWriters() {
+  // Short string <= 64 bytes
+  final shortSink = BytesBuilder();
+  JsonUtf8Encoder.writeString('hello world', shortSink);
+  Expect.equals('"hello world"', utf8.decode(shortSink.takeBytes()));
+
+  // Medium string <= 256 bytes
+  final medSink = BytesBuilder();
+  final medStr = 'a' * 100;
+  JsonUtf8Encoder.writeString(medStr, medSink);
+  Expect.equals('"$medStr"', utf8.decode(medSink.takeBytes()));
+
+  // Large string > 256 bytes
+  final largeSink = BytesBuilder();
+  final largeStr = 'b' * 1000;
+  JsonUtf8Encoder.writeString(largeStr, largeSink);
+  Expect.equals('"$largeStr"', utf8.decode(largeSink.takeBytes()));
+
+  // Double formatting into sink
+  final dSink = BytesBuilder();
+  JsonUtf8Encoder.writeDouble(123.456, dSink);
+  Expect.equals('123.456', utf8.decode(dSink.takeBytes()));
+
+  // Non-copying builder (BytesBuilder(copy: false)) multiple writes
+  {
+    final nonCopySink = BytesBuilder(copy: false);
+    JsonUtf8Encoder.writeString('alpha', nonCopySink);
+    JsonUtf8Encoder.writeString('beta', nonCopySink);
+    JsonUtf8Encoder.writeDouble(1.25, nonCopySink);
+    JsonUtf8Encoder.writeDouble(99.5, nonCopySink);
+    final combined = utf8.decode(nonCopySink.takeBytes());
+    Expect.equals('"alpha""beta"1.2599.5', combined);
+  }
+
+  // Non-copying builder single write and subsequent mutation check
+  {
+    final nonCopySink1 = BytesBuilder(copy: false);
+    JsonUtf8Encoder.writeString('first', nonCopySink1);
+    final bytes1 = nonCopySink1.takeBytes();
+    Expect.equals('"first"', utf8.decode(bytes1));
+
+    // A second write to another sink or same sink must not mutate bytes1
+    final nonCopySink2 = BytesBuilder(copy: false);
+    JsonUtf8Encoder.writeString('second_longer_string', nonCopySink2);
+    Expect.equals('"first"', utf8.decode(bytes1));
+  }
 }
