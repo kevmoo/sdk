@@ -18,6 +18,7 @@ void main() {
   testReentrantSerialization();
   testChunkedDecoderAllowMalformed();
   testCodecDecodeEncodeNamedParameters();
+  testCanonicalLargeIntegers();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -393,4 +394,83 @@ void testCodecDecodeEncodeNamedParameters() {
   // 8. Return type guarantee (Uint8List)
   final Uint8List encodedDefault = jsonUtf8.encode({'x': 1});
   Expect.type<Uint8List>(encodedDefault);
+}
+
+void testCanonicalLargeIntegers() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Positive 64-bit integer overflow (2^63 = 9223372036854775808)
+  final posStr = "9223372036854775808";
+  final posBytes = b(posStr);
+
+  // jsonUtf8Decode returns 9223372036854775808.0 (double) matching jsonDecode
+  final posDecoded = jsonUtf8Decode(posBytes);
+  Expect.type<double>(posDecoded);
+  Expect.equals(9223372036854775808.0, posDecoded);
+  Expect.equals(jsonDecode(posStr), posDecoded);
+
+  // jsonUtf8.decode returns 9223372036854775808.0 (double)
+  final posCodecDecoded = jsonUtf8.decode(posBytes);
+  Expect.type<double>(posCodecDecoded);
+  Expect.equals(9223372036854775808.0, posCodecDecoded);
+
+  // JsonUtf8Decoder.parseInt throws FormatException on overflow
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(posBytes, 0, posBytes.length),
+  );
+
+  // 2. Negative 64-bit integer overflow (-2^63 - 1 = -9223372036854775809)
+  final negStr = "-9223372036854775809";
+  final negBytes = b(negStr);
+
+  final negDecoded = jsonUtf8Decode(negBytes);
+  Expect.type<double>(negDecoded);
+  Expect.equals(-9223372036854775809.0, negDecoded);
+  Expect.equals(jsonDecode(negStr), negDecoded);
+
+  final negCodecDecoded = jsonUtf8.decode(negBytes);
+  Expect.type<double>(negCodecDecoded);
+  Expect.equals(-9223372036854775809.0, negCodecDecoded);
+
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.parseInt(negBytes, 0, negBytes.length),
+  );
+
+  // 3. Exact boundary cases from json_test.dart
+  final boundaryCases = <String, Object?>{
+    "9223372036854774784": 9223372036854774784,
+    "-9223372036854775808": -9223372036854775808,
+    "9223372036854775808": 9223372036854775808.0,
+    "-9223372036854775809": -9223372036854775809.0,
+    "9223372036854775808.0": 9223372036854775808.0,
+    "9223372036854775810": 9223372036854775810.0,
+    "18446744073709551616.0": 18446744073709551616.0,
+  };
+
+  for (final entry in boundaryCases.entries) {
+    final bytes = b(entry.key);
+    final expected = entry.value;
+    final actual = jsonUtf8Decode(bytes);
+    if (expected is double) {
+      Expect.type<double>(actual);
+    } else if (expected is int) {
+      Expect.type<int>(actual);
+    }
+    Expect.equals(expected, actual);
+    Expect.equals(jsonDecode(entry.key), actual);
+  }
+
+  // 4. Arrays of large integers
+  final listJson =
+      "[9223372036854774784, -9223372036854775808, 9223372036854775808, -9223372036854775809]";
+  final listBytes = b(listJson);
+  final listDecoded = jsonUtf8Decode(listBytes) as List<dynamic>;
+  Expect.equals(9223372036854774784, listDecoded[0]);
+  Expect.type<int>(listDecoded[0]);
+  Expect.equals(-9223372036854775808, listDecoded[1]);
+  Expect.type<int>(listDecoded[1]);
+  Expect.equals(9223372036854775808.0, listDecoded[2]);
+  Expect.type<double>(listDecoded[2]);
+  Expect.equals(-9223372036854775809.0, listDecoded[3]);
+  Expect.type<double>(listDecoded[3]);
 }

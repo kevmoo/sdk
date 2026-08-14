@@ -52,6 +52,8 @@ void main() {
   testSelectNameMalformedUtf8();
   testSelectStringMalformedUtf8();
   testTokenReaderSkipObjectMember();
+  testCanonicalLargeIntegers();
+  testContainerSyntaxCorruptionInSkipValue();
 }
 
 void testTokenReaderPrimitives() {
@@ -2126,5 +2128,198 @@ void testTokenReaderSkipObjectMember() {
     Expect.equals(20, reader.readInt());
     Expect.isFalse(reader.hasNext());
     reader.endObject();
+  }
+}
+
+void testCanonicalLargeIntegers() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Positive 64-bit integer overflow (2^63 = 9223372036854775808)
+  // readInt / parseInt throw FormatException (exact integer required)
+  final posOverflowStr = "9223372036854775808";
+  final posOverflowBytes = b(posOverflowStr);
+
+  final rPos = JsonTokenReader.fromBytes(posOverflowBytes);
+  Expect.throwsFormatException(() => rPos.readInt());
+
+  Expect.throwsFormatException(
+    () =>
+        JsonUtf8Decoder.parseInt(posOverflowBytes, 0, posOverflowBytes.length),
+  );
+
+  // readNum returns 9223372036854775808.0 (double), matching json_test.dart:171
+  final rPosNum = JsonTokenReader.fromBytes(posOverflowBytes);
+  final posNumResult = rPosNum.readNum();
+  Expect.type<double>(posNumResult);
+  Expect.equals(9223372036854775808.0, posNumResult);
+
+  // jsonUtf8Decode returns 9223372036854775808.0 (double), matching standard jsonDecode
+  final posDecoded = jsonUtf8Decode(posOverflowBytes);
+  Expect.type<double>(posDecoded);
+  Expect.equals(9223372036854775808.0, posDecoded);
+  Expect.equals(jsonDecode(posOverflowStr), posDecoded);
+
+  // 2. Negative 64-bit integer overflow (-2^63 - 1 = -9223372036854775809)
+  final negOverflowStr = "-9223372036854775809";
+  final negOverflowBytes = b(negOverflowStr);
+
+  final rNeg = JsonTokenReader.fromBytes(negOverflowBytes);
+  Expect.throwsFormatException(() => rNeg.readInt());
+
+  Expect.throwsFormatException(
+    () =>
+        JsonUtf8Decoder.parseInt(negOverflowBytes, 0, negOverflowBytes.length),
+  );
+
+  final rNegNum = JsonTokenReader.fromBytes(negOverflowBytes);
+  final negNumResult = rNegNum.readNum();
+  Expect.type<double>(negNumResult);
+  Expect.equals(-9223372036854775809.0, negNumResult);
+
+  final negDecoded = jsonUtf8Decode(negOverflowBytes);
+  Expect.type<double>(negDecoded);
+  Expect.equals(-9223372036854775809.0, negDecoded);
+  Expect.equals(jsonDecode(negOverflowStr), negDecoded);
+
+  // 3. Valid 64-bit bounds (2^63 - 1 = 9223372036854775807, -2^63 = -9223372036854775808, and 9223372036854774784)
+  final maxIntStr = "9223372036854775807";
+  final maxIntBytes = b(maxIntStr);
+  final rMax = JsonTokenReader.fromBytes(maxIntBytes);
+  Expect.equals(9223372036854775807, rMax.readInt());
+  final rMaxNum = JsonTokenReader.fromBytes(maxIntBytes);
+  Expect.equals(9223372036854775807, rMaxNum.readNum());
+
+  final minIntStr = "-9223372036854775808";
+  final minIntBytes = b(minIntStr);
+  final rMin = JsonTokenReader.fromBytes(minIntBytes);
+  Expect.equals(-9223372036854775808, rMin.readInt());
+  final rMinNum = JsonTokenReader.fromBytes(minIntBytes);
+  Expect.equals(-9223372036854775808, rMinNum.readNum());
+
+  final regIntStr = "9223372036854774784";
+  final regIntBytes = b(regIntStr);
+  final rReg = JsonTokenReader.fromBytes(regIntBytes);
+  Expect.equals(9223372036854774784, rReg.readInt());
+  final rRegNum = JsonTokenReader.fromBytes(regIntBytes);
+  Expect.equals(9223372036854774784, rRegNum.readNum());
+
+  // 4. Large integers inside arrays
+  final arrJson =
+      "[9223372036854775808, -9223372036854775809, 9223372036854774784, -9223372036854775808]";
+  final arrBytes = b(arrJson);
+  final arrDecoded = jsonUtf8Decode(arrBytes) as List<dynamic>;
+  Expect.equals(9223372036854775808.0, arrDecoded[0]);
+  Expect.type<double>(arrDecoded[0]);
+  Expect.equals(-9223372036854775809.0, arrDecoded[1]);
+  Expect.type<double>(arrDecoded[1]);
+  Expect.equals(9223372036854774784, arrDecoded[2]);
+  Expect.type<int>(arrDecoded[2]);
+  Expect.equals(-9223372036854775808, arrDecoded[3]);
+  Expect.type<int>(arrDecoded[3]);
+}
+
+void testContainerSyntaxCorruptionInSkipValue() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final corruptContainers = [
+    '[123., 456]',
+    '{"a": @#\$%}',
+    '[undefined, nullify]',
+    '{"a": 1, "b": 2,}',
+    '[1, 2,]',
+    '{"a": 1 "b": 2}',
+    '[1 2 3]',
+    '{"a" 123}',
+    '{"a":}',
+    '{"a":,}',
+    '[,]',
+    '[: ]',
+    '{ : }',
+    '{ , }',
+    '{"a": 1, 2: 3}',
+    '[{"a": [1 2]}]',
+    '[{"a": [1, 2,], "b": 3}]',
+    '[{"a": 1 "b": 2}]',
+    '{"a": {"b": [123., 456]}}',
+    '{"a": {"b": @#\$%}}',
+    '{"a": 1]}',
+    '[1, 2}',
+    '{"a": [1, 2}',
+    '[{"a": 1]',
+    '{"a"}',
+    '{"a": , "b": 1}',
+    '[1,,2]',
+    '{"a": 1,, "b": 2}',
+    '{"a": "b" "c": "d"}',
+    '["a" "b"]',
+    '[true false]',
+    '[null null]',
+    '[[1] [2]]',
+    '[{"a": 1} {"b": 2}]',
+    '{"a": [1] "b": [2]}',
+    '{"a": {"k": 1} "b": {"k": 2}}',
+    '{"a": 1, [1, 2]: 3}',
+    '{"a": 1, {}: 3}',
+    '{"a": 1, true: 3}',
+    '{"a": 1, null: 3}',
+    '{"a": 1, 123: 3}',
+    '{"a": 1',
+    '[1, 2',
+    '{"a": 1,',
+    '[1, 2,',
+    '{"a": "\x01"}',
+    '{"\x01": 1}',
+    '["\x01"]',
+    '{"a": "\\z"}',
+    '{"\\z": 1}',
+    '["\\z"]',
+    '{"a": "\\u12"}',
+    '{"\\u12": 1}',
+    '["\\u12"]',
+    '[' * 65 + ']' * 65,
+    '[' * 64 + '1,' + ']' * 64,
+    '{"a": ' * 64 + '1,' + '}' * 64,
+    '{"a": ' * 65 + '1' + '}' * 65,
+  ];
+
+  for (final corrupt in corruptContainers) {
+    final bytes = b(corrupt);
+
+    // 1. JsonTokenReader.skipValue() throws FormatException
+    final reader = JsonTokenReader.fromBytes(bytes);
+    Expect.throwsFormatException(
+      () => reader.skipValue(),
+      'Expected FormatException on reader.skipValue() for: $corrupt',
+    );
+
+    // 2. JsonUtf8Decoder.skipValue() throws FormatException
+    Expect.throwsFormatException(
+      () => JsonUtf8Decoder.skipValue(bytes, 0),
+      'Expected FormatException on JsonUtf8Decoder.skipValue() for: $corrupt',
+    );
+  }
+
+  // Verify valid containers skip successfully
+  final validContainers = [
+    '[]',
+    '{}',
+    '[1, 2, 3]',
+    '{"a": 1, "b": 2}',
+    '{"a": [1, {"b": 2}], "c": true, "d": null, "e": "hello"}',
+    '[[], [[]], [[[]]]]',
+    '{"k": {"nested": {"arr": [1, 2, 3]}}}',
+    '[' * 64 + '1' + ']' * 64,
+    '{"a": ' * 64 + '1' + '}' * 64,
+    '{"a": [' * 32 + '42' + ']}' * 32,
+  ];
+
+  for (final valid in validContainers) {
+    final bytes = b(valid);
+    final reader = JsonTokenReader.fromBytes(bytes);
+    reader.skipValue();
+    Expect.equals(JsonTokenType.endOfDocument, reader.peek());
+
+    final endOffset = JsonUtf8Decoder.skipValue(bytes, 0);
+    Expect.equals(bytes.length, endOffset);
   }
 }

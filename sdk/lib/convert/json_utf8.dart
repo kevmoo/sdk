@@ -376,84 +376,428 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       var depth = 1;
       var maskLo = (b == 123) ? 1 : 0;
       var maskHi = 0;
+      var hasElementsLo = 0;
+      var hasElementsHi = 0;
+      var stateLo0 = 0;
+      var stateLo1 = 0;
+      var stateHi0 = 0;
+      var stateHi1 = 0;
       i++;
+
       while (i < bytes.length && depth > 0) {
-        final c = bytes[i++];
-        if (c == 34) {
-          var closed = false;
-          while (i < bytes.length) {
-            final sc = bytes[i];
-            if (sc < 0x20) {
+        while (i < bytes.length &&
+            (bytes[i] == 0x20 ||
+                bytes[i] == 0x09 ||
+                bytes[i] == 0x0A ||
+                bytes[i] == 0x0D)) {
+          i++;
+        }
+        if (i >= bytes.length) break;
+
+        final c = bytes[i];
+        final d = depth - 1;
+        final isObject = (d < 32)
+            ? (((maskLo >> d) & 1) == 1)
+            : (((maskHi >> (d - 32)) & 1) == 1);
+        final hasElements = (d < 32)
+            ? (((hasElementsLo >> d) & 1) == 1)
+            : (((hasElementsHi >> (d - 32)) & 1) == 1);
+        final st = (d < 16)
+            ? ((stateLo0 >> (d << 1)) & 3)
+            : (d < 32)
+            ? ((stateLo1 >> ((d - 16) << 1)) & 3)
+            : (d < 48)
+            ? ((stateHi0 >> ((d - 32) << 1)) & 3)
+            : ((stateHi1 >> ((d - 48) << 1)) & 3);
+
+        if (c == 125 || c == 93) {
+          if (c == 125) {
+            if (!isObject) {
+              throw FormatException('Mismatched "}" at offset $i', bytes, i);
+            }
+          } else {
+            if (isObject) {
+              throw FormatException('Mismatched "]" at offset $i', bytes, i);
+            }
+          }
+          if (st == 3) {
+            // Valid close after value
+          } else if (st == 0) {
+            if (hasElements) {
+              final closeChar = isObject ? '"}"' : '"]"';
               throw FormatException(
-                'Unescaped control character in string literal at offset $i',
+                'Trailing comma before $closeChar at offset $i',
                 bytes,
                 i,
               );
             }
-            if (sc == 92) {
-              i = _validateEscape(bytes, i + 1, bytes.length);
-            } else if (sc == 34) {
-              i++;
-              closed = true;
-              break;
-            } else {
-              i++;
-            }
-          }
-          if (!closed) {
-            throw FormatException('Unterminated string literal', bytes, offset);
-          }
-        } else if (c == 123 || c == 91) {
-          if (depth >= 64) {
+            // Valid close of empty container: [] or {}
+          } else if (st == 1) {
+            throw FormatException('Expected ":" at offset $i', bytes, i);
+          } else {
             throw FormatException(
-              'Nesting depth exceeds limit of 64 at offset ${i - 1}',
+              'Expected value in object at offset $i',
               bytes,
-              i - 1,
+              i,
             );
           }
-          if (depth < 32) {
-            if (c == 123) {
-              maskLo |= (1 << depth);
+          i++;
+          depth--;
+          if (depth > 0) {
+            final pd = depth - 1;
+            if (pd < 32) {
+              hasElementsLo |= (1 << pd);
             } else {
-              maskLo &= ~(1 << depth);
+              hasElementsHi |= (1 << (pd - 32));
+            }
+            if (pd < 16) {
+              final shift = pd << 1;
+              stateLo0 = (stateLo0 & ~(3 << shift)) | (3 << shift);
+            } else if (pd < 32) {
+              final shift = (pd - 16) << 1;
+              stateLo1 = (stateLo1 & ~(3 << shift)) | (3 << shift);
+            } else if (pd < 48) {
+              final shift = (pd - 32) << 1;
+              stateHi0 = (stateHi0 & ~(3 << shift)) | (3 << shift);
+            } else {
+              final shift = (pd - 48) << 1;
+              stateHi1 = (stateHi1 & ~(3 << shift)) | (3 << shift);
+            }
+          }
+        } else if (c == 44) {
+          if (st != 3) {
+            if (st == 0) {
+              throw FormatException(
+                'Unexpected "," in container at offset $i',
+                bytes,
+                i,
+              );
+            } else if (st == 1) {
+              throw FormatException('Expected ":" at offset $i', bytes, i);
+            } else {
+              throw FormatException(
+                'Expected value before "," at offset $i',
+                bytes,
+                i,
+              );
+            }
+          }
+          i++;
+          if (d < 32) {
+            hasElementsLo |= (1 << d);
+          } else {
+            hasElementsHi |= (1 << (d - 32));
+          }
+          if (d < 16) {
+            final shift = d << 1;
+            stateLo0 &= ~(3 << shift);
+          } else if (d < 32) {
+            final shift = (d - 16) << 1;
+            stateLo1 &= ~(3 << shift);
+          } else if (d < 48) {
+            final shift = (d - 32) << 1;
+            stateHi0 &= ~(3 << shift);
+          } else {
+            final shift = (d - 48) << 1;
+            stateHi1 &= ~(3 << shift);
+          }
+        } else if (c == 58) {
+          if (!isObject || st != 1) {
+            throw FormatException('Unexpected ":" at offset $i', bytes, i);
+          }
+          i++;
+          if (d < 16) {
+            final shift = d << 1;
+            stateLo0 = (stateLo0 & ~(3 << shift)) | (2 << shift);
+          } else if (d < 32) {
+            final shift = (d - 16) << 1;
+            stateLo1 = (stateLo1 & ~(3 << shift)) | (2 << shift);
+          } else if (d < 48) {
+            final shift = (d - 32) << 1;
+            stateHi0 = (stateHi0 & ~(3 << shift)) | (2 << shift);
+          } else {
+            final shift = (d - 48) << 1;
+            stateHi1 = (stateHi1 & ~(3 << shift)) | (2 << shift);
+          }
+        } else if (c == 34) {
+          if (isObject) {
+            if (st == 0) {
+              // String is a property key
+              i++;
+              var closed = false;
+              while (i < bytes.length) {
+                final sc = bytes[i];
+                if (sc < 0x20) {
+                  throw FormatException(
+                    'Unescaped control character in string literal at offset $i',
+                    bytes,
+                    i,
+                  );
+                }
+                if (sc == 92) {
+                  i = _validateEscape(bytes, i + 1, bytes.length);
+                } else if (sc == 34) {
+                  i++;
+                  closed = true;
+                  break;
+                } else {
+                  i++;
+                }
+              }
+              if (!closed) {
+                throw FormatException(
+                  'Unterminated string literal at offset $i',
+                  bytes,
+                  i,
+                );
+              }
+              if (d < 16) {
+                final shift = d << 1;
+                stateLo0 = (stateLo0 & ~(3 << shift)) | (1 << shift);
+              } else if (d < 32) {
+                final shift = (d - 16) << 1;
+                stateLo1 = (stateLo1 & ~(3 << shift)) | (1 << shift);
+              } else if (d < 48) {
+                final shift = (d - 32) << 1;
+                stateHi0 = (stateHi0 & ~(3 << shift)) | (1 << shift);
+              } else {
+                final shift = (d - 48) << 1;
+                stateHi1 = (stateHi1 & ~(3 << shift)) | (1 << shift);
+              }
+            } else if (st == 2) {
+              // String is a property value
+              i++;
+              var closed = false;
+              while (i < bytes.length) {
+                final sc = bytes[i];
+                if (sc < 0x20) {
+                  throw FormatException(
+                    'Unescaped control character in string literal at offset $i',
+                    bytes,
+                    i,
+                  );
+                }
+                if (sc == 92) {
+                  i = _validateEscape(bytes, i + 1, bytes.length);
+                } else if (sc == 34) {
+                  i++;
+                  closed = true;
+                  break;
+                } else {
+                  i++;
+                }
+              }
+              if (!closed) {
+                throw FormatException(
+                  'Unterminated string literal at offset $i',
+                  bytes,
+                  i,
+                );
+              }
+              if (d < 32) {
+                hasElementsLo |= (1 << d);
+              } else {
+                hasElementsHi |= (1 << (d - 32));
+              }
+              if (d < 16) {
+                final shift = d << 1;
+                stateLo0 = (stateLo0 & ~(3 << shift)) | (3 << shift);
+              } else if (d < 32) {
+                final shift = (d - 16) << 1;
+                stateLo1 = (stateLo1 & ~(3 << shift)) | (3 << shift);
+              } else if (d < 48) {
+                final shift = (d - 32) << 1;
+                stateHi0 = (stateHi0 & ~(3 << shift)) | (3 << shift);
+              } else {
+                final shift = (d - 48) << 1;
+                stateHi1 = (stateHi1 & ~(3 << shift)) | (3 << shift);
+              }
+            } else if (st == 1) {
+              throw FormatException('Expected ":" at offset $i', bytes, i);
+            } else {
+              throw FormatException(
+                'Expected "," or "}" at offset $i',
+                bytes,
+                i,
+              );
             }
           } else {
-            final shift = depth - 32;
-            if (c == 123) {
+            // Array element
+            if (st == 0 || st == 2) {
+              i++;
+              var closed = false;
+              while (i < bytes.length) {
+                final sc = bytes[i];
+                if (sc < 0x20) {
+                  throw FormatException(
+                    'Unescaped control character in string literal at offset $i',
+                    bytes,
+                    i,
+                  );
+                }
+                if (sc == 92) {
+                  i = _validateEscape(bytes, i + 1, bytes.length);
+                } else if (sc == 34) {
+                  i++;
+                  closed = true;
+                  break;
+                } else {
+                  i++;
+                }
+              }
+              if (!closed) {
+                throw FormatException(
+                  'Unterminated string literal at offset $i',
+                  bytes,
+                  i,
+                );
+              }
+              if (d < 32) {
+                hasElementsLo |= (1 << d);
+              } else {
+                hasElementsHi |= (1 << (d - 32));
+              }
+              if (d < 16) {
+                final shift = d << 1;
+                stateLo0 = (stateLo0 & ~(3 << shift)) | (3 << shift);
+              } else if (d < 32) {
+                final shift = (d - 16) << 1;
+                stateLo1 = (stateLo1 & ~(3 << shift)) | (3 << shift);
+              } else if (d < 48) {
+                final shift = (d - 32) << 1;
+                stateHi0 = (stateHi0 & ~(3 << shift)) | (3 << shift);
+              } else {
+                final shift = (d - 48) << 1;
+                stateHi1 = (stateHi1 & ~(3 << shift)) | (3 << shift);
+              }
+            } else {
+              throw FormatException(
+                'Expected "," or "]" at offset $i',
+                bytes,
+                i,
+              );
+            }
+          }
+        } else if (c == 123 || c == 91) {
+          if (isObject) {
+            if (st == 0) {
+              throw FormatException(
+                'Expected string key in object at offset $i',
+                bytes,
+                i,
+              );
+            } else if (st == 1) {
+              throw FormatException('Expected ":" at offset $i', bytes, i);
+            } else if (st == 3) {
+              throw FormatException(
+                'Expected "," or "}" at offset $i',
+                bytes,
+                i,
+              );
+            }
+          } else {
+            if (st == 3) {
+              throw FormatException(
+                'Expected "," or "]" at offset $i',
+                bytes,
+                i,
+              );
+            }
+          }
+
+          if (depth >= 64) {
+            throw FormatException(
+              'Nesting depth exceeds limit of 64 at offset $i',
+              bytes,
+              i,
+            );
+          }
+
+          final newIsObj = (c == 123);
+          final nd = depth;
+          if (nd < 32) {
+            if (newIsObj) {
+              maskLo |= (1 << nd);
+            } else {
+              maskLo &= ~(1 << nd);
+            }
+            hasElementsLo &= ~(1 << nd);
+          } else {
+            final shift = nd - 32;
+            if (newIsObj) {
               maskHi |= (1 << shift);
             } else {
               maskHi &= ~(1 << shift);
             }
+            hasElementsHi &= ~(1 << shift);
           }
+
+          if (nd < 16) {
+            final shift = nd << 1;
+            stateLo0 &= ~(3 << shift);
+          } else if (nd < 32) {
+            final shift = (nd - 16) << 1;
+            stateLo1 &= ~(3 << shift);
+          } else if (nd < 48) {
+            final shift = (nd - 32) << 1;
+            stateHi0 &= ~(3 << shift);
+          } else {
+            final shift = (nd - 48) << 1;
+            stateHi1 &= ~(3 << shift);
+          }
+
           depth++;
-        } else if (c == 125) {
-          final d = depth - 1;
-          final isObject = (d < 32)
-              ? (((maskLo >> d) & 1) == 1)
-              : (((maskHi >> (d - 32)) & 1) == 1);
-          if (depth == 0 || !isObject) {
-            throw FormatException(
-              'Mismatched "}" at offset ${i - 1}',
-              bytes,
-              i - 1,
-            );
+          i++;
+        } else {
+          if (isObject) {
+            if (st == 0) {
+              throw FormatException(
+                'Expected string key in object at offset $i',
+                bytes,
+                i,
+              );
+            } else if (st == 1) {
+              throw FormatException('Expected ":" at offset $i', bytes, i);
+            } else if (st == 3) {
+              throw FormatException(
+                'Expected "," or "}" at offset $i',
+                bytes,
+                i,
+              );
+            }
+          } else {
+            if (st == 3) {
+              throw FormatException(
+                'Expected "," or "]" at offset $i',
+                bytes,
+                i,
+              );
+            }
           }
-          depth--;
-        } else if (c == 93) {
-          final d = depth - 1;
-          final isObject = (d < 32)
-              ? (((maskLo >> d) & 1) == 1)
-              : (((maskHi >> (d - 32)) & 1) == 1);
-          if (depth == 0 || isObject) {
-            throw FormatException(
-              'Mismatched "]" at offset ${i - 1}',
-              bytes,
-              i - 1,
-            );
+
+          i = _skipScalar(bytes, i);
+
+          if (d < 32) {
+            hasElementsLo |= (1 << d);
+          } else {
+            hasElementsHi |= (1 << (d - 32));
           }
-          depth--;
+          if (d < 16) {
+            final shift = d << 1;
+            stateLo0 = (stateLo0 & ~(3 << shift)) | (3 << shift);
+          } else if (d < 32) {
+            final shift = (d - 16) << 1;
+            stateLo1 = (stateLo1 & ~(3 << shift)) | (3 << shift);
+          } else if (d < 48) {
+            final shift = (d - 32) << 1;
+            stateHi0 = (stateHi0 & ~(3 << shift)) | (3 << shift);
+          } else {
+            final shift = (d - 48) << 1;
+            stateHi1 = (stateHi1 & ~(3 << shift)) | (3 << shift);
+          }
         }
       }
+
       if (depth > 0) {
         throw FormatException(
           'Unclosed container at offset $offset',
@@ -490,78 +834,7 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       }
       return i;
     }
-    if (b == 116) {
-      // 'true'
-      if (i + 4 > bytes.length ||
-          bytes[i + 1] != 114 ||
-          bytes[i + 2] != 117 ||
-          bytes[i + 3] != 101) {
-        throw FormatException('Expected true at offset $i', bytes, i);
-      }
-      if (i + 4 < bytes.length &&
-          bytes[i + 4] != 44 &&
-          bytes[i + 4] != 125 &&
-          bytes[i + 4] != 93 &&
-          !_isWs(bytes[i + 4])) {
-        throw FormatException(
-          'Invalid JSON token starting with true at offset $i',
-          bytes,
-          i,
-        );
-      }
-      return i + 4;
-    }
-    if (b == 102) {
-      // 'false'
-      if (i + 5 > bytes.length ||
-          bytes[i + 1] != 97 ||
-          bytes[i + 2] != 108 ||
-          bytes[i + 3] != 115 ||
-          bytes[i + 4] != 101) {
-        throw FormatException('Expected false at offset $i', bytes, i);
-      }
-      if (i + 5 < bytes.length &&
-          bytes[i + 5] != 44 &&
-          bytes[i + 5] != 125 &&
-          bytes[i + 5] != 93 &&
-          !_isWs(bytes[i + 5])) {
-        throw FormatException(
-          'Invalid JSON token starting with false at offset $i',
-          bytes,
-          i,
-        );
-      }
-      return i + 5;
-    }
-    if (b == 110) {
-      // 'null'
-      if (i + 4 > bytes.length ||
-          bytes[i + 1] != 117 ||
-          bytes[i + 2] != 108 ||
-          bytes[i + 3] != 108) {
-        throw FormatException('Expected null at offset $i', bytes, i);
-      }
-      if (i + 4 < bytes.length &&
-          bytes[i + 4] != 44 &&
-          bytes[i + 4] != 125 &&
-          bytes[i + 4] != 93 &&
-          !_isWs(bytes[i + 4])) {
-        throw FormatException(
-          'Invalid JSON token starting with null at offset $i',
-          bytes,
-          i,
-        );
-      }
-      return i + 4;
-    }
-    if (b == 45 || (b >= 48 && b <= 57)) {
-      return _scanNumberSpan(bytes, i);
-    }
-    throw FormatException(
-      'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $i',
-      bytes,
-      i,
-    );
+    return _skipScalar(bytes, i);
   }
 
   /// Fast-skips JSON whitespace (0x20, 0x09, 0x0A, 0x0D) starting at [offset]
@@ -2042,178 +2315,11 @@ final class _JsonTokenReader implements JsonTokenReader {
       if (_offset >= _bytes.length) return;
       final b = _bytes[_offset];
       if (b == 123 || b == 91) {
-        var depth = 1;
-        var maskLo = (b == 123) ? 1 : 0;
-        var maskHi = 0;
-        _offset++;
-        while (_offset < _bytes.length && depth > 0) {
-          final c = _bytes[_offset++];
-          if (c == 34) {
-            var closed = false;
-            while (_offset < _bytes.length) {
-              final sc = _bytes[_offset];
-              if (sc < 0x20) {
-                throw FormatException(
-                  'Unescaped control character in string literal at offset $_offset',
-                  _bytes,
-                  _offset,
-                );
-              }
-              if (sc == 92) {
-                _offset = _validateEscape(_bytes, _offset + 1, _bytes.length);
-              } else if (sc == 34) {
-                _offset++;
-                closed = true;
-                break;
-              } else {
-                _offset++;
-              }
-            }
-            if (!closed) {
-              throw FormatException(
-                'Unterminated string literal',
-                _bytes,
-                _offset,
-              );
-            }
-          } else if (c == 123 || c == 91) {
-            if (depth >= _maxDepth) {
-              throw FormatException(
-                'Nesting depth exceeds limit of $_maxDepth at offset ${_offset - 1}',
-                _bytes,
-                _offset - 1,
-              );
-            }
-            if (depth < 32) {
-              if (c == 123) {
-                maskLo |= (1 << depth);
-              } else {
-                maskLo &= ~(1 << depth);
-              }
-            } else {
-              final shift = depth - 32;
-              if (c == 123) {
-                maskHi |= (1 << shift);
-              } else {
-                maskHi &= ~(1 << shift);
-              }
-            }
-            depth++;
-          } else if (c == 125) {
-            final d = depth - 1;
-            final isObject = (d < 32)
-                ? (((maskLo >> d) & 1) == 1)
-                : (((maskHi >> (d - 32)) & 1) == 1);
-            if (depth == 0 || !isObject) {
-              throw FormatException(
-                'Mismatched "}" at offset ${_offset - 1}',
-                _bytes,
-                _offset - 1,
-              );
-            }
-            depth--;
-          } else if (c == 93) {
-            final d = depth - 1;
-            final isObject = (d < 32)
-                ? (((maskLo >> d) & 1) == 1)
-                : (((maskHi >> (d - 32)) & 1) == 1);
-            if (depth == 0 || isObject) {
-              throw FormatException(
-                'Mismatched "]" at offset ${_offset - 1}',
-                _bytes,
-                _offset - 1,
-              );
-            }
-            depth--;
-          }
-        }
-        if (depth > 0) {
-          throw FormatException(
-            'Unclosed container at end of document',
-            _bytes,
-            _offset,
-          );
-        }
+        _offset = JsonUtf8Decoder.skipValue(_bytes, _offset);
       } else if (b == 34) {
         _scanStringSpan();
-      } else if (b == 116) {
-        if (_offset + 4 > _bytes.length ||
-            _bytes[_offset + 1] != 114 ||
-            _bytes[_offset + 2] != 117 ||
-            _bytes[_offset + 3] != 101) {
-          throw FormatException(
-            'Expected true at offset $_offset',
-            _bytes,
-            _offset,
-          );
-        }
-        if (_offset + 4 < _bytes.length &&
-            _bytes[_offset + 4] != 44 &&
-            _bytes[_offset + 4] != 125 &&
-            _bytes[_offset + 4] != 93 &&
-            !_isWs(_bytes[_offset + 4])) {
-          throw FormatException(
-            'Invalid JSON token starting with true at offset $_offset',
-            _bytes,
-            _offset,
-          );
-        }
-        _offset += 4;
-      } else if (b == 102) {
-        if (_offset + 5 > _bytes.length ||
-            _bytes[_offset + 1] != 97 ||
-            _bytes[_offset + 2] != 108 ||
-            _bytes[_offset + 3] != 115 ||
-            _bytes[_offset + 4] != 101) {
-          throw FormatException(
-            'Expected false at offset $_offset',
-            _bytes,
-            _offset,
-          );
-        }
-        if (_offset + 5 < _bytes.length &&
-            _bytes[_offset + 5] != 44 &&
-            _bytes[_offset + 5] != 125 &&
-            _bytes[_offset + 5] != 93 &&
-            !_isWs(_bytes[_offset + 5])) {
-          throw FormatException(
-            'Invalid JSON token starting with false at offset $_offset',
-            _bytes,
-            _offset,
-          );
-        }
-        _offset += 5;
-      } else if (b == 110) {
-        if (_offset + 4 > _bytes.length ||
-            _bytes[_offset + 1] != 117 ||
-            _bytes[_offset + 2] != 108 ||
-            _bytes[_offset + 3] != 108) {
-          throw FormatException(
-            'Expected null at offset $_offset',
-            _bytes,
-            _offset,
-          );
-        }
-        if (_offset + 4 < _bytes.length &&
-            _bytes[_offset + 4] != 44 &&
-            _bytes[_offset + 4] != 125 &&
-            _bytes[_offset + 4] != 93 &&
-            !_isWs(_bytes[_offset + 4])) {
-          throw FormatException(
-            'Invalid JSON token starting with null at offset $_offset',
-            _bytes,
-            _offset,
-          );
-        }
-        _offset += 4;
-      } else if (b == 45 || (b >= 48 && b <= 57)) {
-        _offset = _scanNumberSpan(_bytes, _offset);
       } else {
-        throw FormatException(
-          'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $_offset',
-          _bytes,
-          _offset,
-        );
+        _offset = _skipScalar(_bytes, _offset);
       }
       _afterReadingValue();
     } catch (_) {
@@ -3169,6 +3275,85 @@ const List<int> _powersOf10Int = [
   100000000000000000,
   1000000000000000000,
 ];
+
+int _skipScalar(Uint8List bytes, int offset) {
+  if (offset >= bytes.length) {
+    throw FormatException('Unexpected end of document', bytes, offset);
+  }
+  final b = bytes[offset];
+  if (b == 116) {
+    // 'true'
+    if (offset + 4 > bytes.length ||
+        bytes[offset + 1] != 114 ||
+        bytes[offset + 2] != 117 ||
+        bytes[offset + 3] != 101) {
+      throw FormatException('Expected true at offset $offset', bytes, offset);
+    }
+    if (offset + 4 < bytes.length &&
+        bytes[offset + 4] != 44 &&
+        bytes[offset + 4] != 125 &&
+        bytes[offset + 4] != 93 &&
+        !_isWs(bytes[offset + 4])) {
+      throw FormatException(
+        'Invalid JSON token starting with true at offset $offset',
+        bytes,
+        offset,
+      );
+    }
+    return offset + 4;
+  }
+  if (b == 102) {
+    // 'false'
+    if (offset + 5 > bytes.length ||
+        bytes[offset + 1] != 97 ||
+        bytes[offset + 2] != 108 ||
+        bytes[offset + 3] != 115 ||
+        bytes[offset + 4] != 101) {
+      throw FormatException('Expected false at offset $offset', bytes, offset);
+    }
+    if (offset + 5 < bytes.length &&
+        bytes[offset + 5] != 44 &&
+        bytes[offset + 5] != 125 &&
+        bytes[offset + 5] != 93 &&
+        !_isWs(bytes[offset + 5])) {
+      throw FormatException(
+        'Invalid JSON token starting with false at offset $offset',
+        bytes,
+        offset,
+      );
+    }
+    return offset + 5;
+  }
+  if (b == 110) {
+    // 'null'
+    if (offset + 4 > bytes.length ||
+        bytes[offset + 1] != 117 ||
+        bytes[offset + 2] != 108 ||
+        bytes[offset + 3] != 108) {
+      throw FormatException('Expected null at offset $offset', bytes, offset);
+    }
+    if (offset + 4 < bytes.length &&
+        bytes[offset + 4] != 44 &&
+        bytes[offset + 4] != 125 &&
+        bytes[offset + 4] != 93 &&
+        !_isWs(bytes[offset + 4])) {
+      throw FormatException(
+        'Invalid JSON token starting with null at offset $offset',
+        bytes,
+        offset,
+      );
+    }
+    return offset + 4;
+  }
+  if (b == 45 || (b >= 48 && b <= 57)) {
+    return _scanNumberSpan(bytes, offset);
+  }
+  throw FormatException(
+    'Invalid JSON value starting with "${String.fromCharCode(b)}" at offset $offset',
+    bytes,
+    offset,
+  );
+}
 
 int _scanNumberSpan(Uint8List bytes, int offset) {
   var i = offset;
