@@ -19,6 +19,7 @@ void main() {
   testChunkedDecoderAllowMalformed();
   testCodecDecodeEncodeNamedParameters();
   testCanonicalLargeIntegers();
+  testSplitChunkNetworkStreaming();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -473,4 +474,78 @@ void testCanonicalLargeIntegers() {
   Expect.type<double>(listDecoded[2]);
   Expect.equals(-9223372036854775809.0, listDecoded[3]);
   Expect.type<double>(listDecoded[3]);
+}
+
+void testSplitChunkNetworkStreaming() {
+  // Helper to parse input byte-by-byte into a ChunkedConversionSink
+  dynamic parse1ByteChunks(
+    List<int> bytes, {
+    bool allowMalformed = false,
+    Object? Function(Object? key, Object? value)? reviver,
+  }) {
+    Object? result;
+    var received = false;
+    final sink = JsonUtf8Decoder(reviver, allowMalformed)
+        .startChunkedConversion(
+          ChunkedConversionSink.withCallback((List<Object?> values) {
+            result = values[0];
+            received = true;
+          }),
+        );
+    for (var b in bytes) {
+      sink.add([b]);
+    }
+    sink.close();
+    Expect.isTrue(received);
+    return result;
+  }
+
+  // 1. Astral emojis and ZWJ sequences across 1-byte chunks
+  // Grinning face: 😀 (4 bytes: 0xF0, 0x9F, 0x98, 0x80)
+  // Rocket: 🚀 (4 bytes: 0xF0, 0x9F, 0x9A, 0x80)
+  // US Flag: 🇺🇸 (8 bytes)
+  // Family: 👨‍👩‍👧‍👦 (ZWJ sequence: 18 UTF-8 bytes)
+  final emojiJson =
+      '{"emoji": "😀", "rocket": "🚀", "flag": "🇺🇸", "family": "👨‍👩‍👧‍👦"}';
+  final emojiBytes = utf8.encode(emojiJson);
+  final emojiDecoded = parse1ByteChunks(emojiBytes) as Map<String, dynamic>;
+  Expect.equals('😀', emojiDecoded['emoji']);
+  Expect.equals('🚀', emojiDecoded['rocket']);
+  Expect.equals('🇺🇸', emojiDecoded['flag']);
+  Expect.equals('👨‍👩‍👧‍👦', emojiDecoded['family']);
+
+  // 2. Split escapes across 1-byte chunks
+  final escapesJson =
+      r'{"esc": "line1\nline2\ttab\"quote\\slash\u0000null\u20ACeuro\uD83D\uDE00surrogate"}';
+  final escapesBytes = utf8.encode(escapesJson);
+  final escapesDecoded = parse1ByteChunks(escapesBytes) as Map<String, dynamic>;
+  Expect.equals(
+    'line1\nline2\ttab"quote\\slash\x00null€euro😀surrogate',
+    escapesDecoded['esc'],
+  );
+
+  // 3. Split numbers across 1-byte chunks
+  final numbersJson =
+      '{"ints": [0, -1, 42, 9223372036854775807, -9223372036854775808], "doubles": [0.0, -0.5, 3.14159265, 1.23e10, -4.56e-8, 1e-15]}';
+  final numbersBytes = utf8.encode(numbersJson);
+  final numbersDecoded = parse1ByteChunks(numbersBytes) as Map<String, dynamic>;
+  Expect.equals(42, (numbersDecoded['ints'] as List)[2]);
+  Expect.equals(9223372036854775807, (numbersDecoded['ints'] as List)[3]);
+  Expect.equals(-9223372036854775808, (numbersDecoded['ints'] as List)[4]);
+  Expect.equals(3.14159265, (numbersDecoded['doubles'] as List)[2]);
+  Expect.equals(1.23e10, (numbersDecoded['doubles'] as List)[3]);
+  Expect.equals(-4.56e-8, (numbersDecoded['doubles'] as List)[4]);
+
+  // 4. Split chunk allowMalformed: true with partial / truncated multibyte UTF-8 sequences
+  final malformedTruncated = [0x22, 0xF0, 0x9F, 0x22]; // '"\xF0\x9F"'
+  final malformedDecoded = parse1ByteChunks(
+    malformedTruncated,
+    allowMalformed: true,
+  );
+  Expect.equals('\uFFFD', malformedDecoded);
+
+  // Split chunk allowMalformed: false must throw FormatException
+  Expect.throwsFormatException(() {
+    parse1ByteChunks(malformedTruncated, allowMalformed: false);
+  });
 }

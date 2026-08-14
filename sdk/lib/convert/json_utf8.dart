@@ -1789,10 +1789,6 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
   }
 
-  @pragma('vm:prefer-inline')
-  @pragma('wasm:prefer-inline')
-  bool _isWs(int b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D;
-
   void _skipWs() {
     while (_offset < _bytes.length && _isWs(_bytes[_offset])) {
       _offset++;
@@ -2843,6 +2839,8 @@ int _imul32(int a, int b) {
 bool _isHexDigit(int b) =>
     (b >= 48 && b <= 57) || (b >= 65 && b <= 70) || (b >= 97 && b <= 102);
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool _isValidEscapeChar(int b) =>
     b == 34 ||
     b == 92 ||
@@ -3591,12 +3589,6 @@ int _scanNumberSpan(Uint8List bytes, int offset) {
   return i;
 }
 
-num _pow10(int exp) {
-  num res = 1;
-  for (var j = 0; j < exp; j++) res *= 10;
-  return res;
-}
-
 double? _tryParseDoubleUtf8(
   Uint8List source,
   int start,
@@ -3905,19 +3897,6 @@ bool _isVerbatimUtf8(Uint8List source, int start, int end) {
   return true;
 }
 
-@pragma('vm:prefer-inline')
-@pragma('wasm:prefer-inline')
-bool _isUnescapedUtf8(Uint8List source, int start, int end) {
-  if (start < 0 || end > source.length || start > end) return false;
-  for (var i = start; i < end; i++) {
-    final b = source[i];
-    if (b < 0x20 || b == 0x22 || b == 0x5C) {
-      return false; // Control char, unescaped quote, or backslash escape
-    }
-  }
-  return true;
-}
-
 String _decodeStringUtf8(
   Uint8List source,
   int start,
@@ -4058,6 +4037,8 @@ String _decodeStringUtf8(
   return buffer.toString();
 }
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 int _parseHex4(Uint8List source, int offset) {
   var v = 0;
   for (var i = 0; i < 4; i++) {
@@ -4081,14 +4062,8 @@ int _parseHex4(Uint8List source, int offset) {
   return v;
 }
 
-int _utf8SequenceLength(int firstByte) {
-  if (firstByte <= 0x7F) return 1;
-  if ((firstByte & 0xE0) == 0xC0) return 2;
-  if ((firstByte & 0xF0) == 0xE0) return 3;
-  if ((firstByte & 0xF8) == 0xF0) return 4;
-  return 1;
-}
-
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool _isSingleQuotedString(Uint8List bytes) {
   return _isSingleQuotedSlice(bytes, 0, bytes.length);
 }

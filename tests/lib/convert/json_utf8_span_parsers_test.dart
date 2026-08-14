@@ -52,6 +52,9 @@ void main() {
   testMatchKeyEscapedKeys();
   testDirectSinkFormatterStress();
   testWholeCodebaseBoundsAndSentinels();
+  testTypedDataViewsNative();
+  testJsonKeyOptionsStressAndCollisions();
+  testMatchKeySurrogatesAndPathologicalKeys();
 }
 
 void testParseInt() {
@@ -2770,4 +2773,250 @@ void testWholeCodebaseBoundsAndSentinels() {
     () =>
         JsonUtf8Encoder.writeDoubleToBuffer(1.2345678901234567e-100, buf, 100),
   );
+}
+
+void testTypedDataViewsNative() {
+  // 1. JsonUtf8Decoder.parseDouble with Uint8List.view and sublistView
+  // (Fast-path number)
+  final rawBytes = utf8.encode('   {"val": 3.14159265, "extra": 42}   ');
+  final byteBuffer = Uint8List.fromList(rawBytes).buffer;
+  final view = Uint8List.view(
+    byteBuffer,
+    3,
+    27,
+  ); // '{"val": 3.14159265, "extra": 42}'
+  final parsed = JsonUtf8Decoder.parseDouble(view, 8, 18);
+  Expect.equals(3.14159265, parsed);
+
+  final subview = Uint8List.sublistView(Uint8List.fromList(rawBytes), 3, 30);
+  final parsedSub = JsonUtf8Decoder.parseDouble(subview, 8, 18);
+  Expect.equals(3.14159265, parsedSub);
+
+  // (C++ Native Fallback: extreme exponents and > 15 decimal digits)
+  final extremeBytes = utf8.encode(
+    '{"exp": 1.2345678901234567e-30, "max": 1.7976931348623157e+308}',
+  );
+  final extremeBuf = Uint8List.fromList(extremeBytes).buffer;
+  // Unaligned byte offset (3) for view
+  final unalignedView = Uint8List.view(extremeBuf, 3, extremeBytes.length - 3);
+  // '1.2345678901234567e-30' is at index 5 in unalignedView (index 8 in extremeBytes)
+  final parsedExtreme = JsonUtf8Decoder.parseDouble(unalignedView, 5, 27);
+  Expect.equals(1.2345678901234567e-30, parsedExtreme);
+
+  final parsedMax = JsonUtf8Decoder.parseDouble(unalignedView, 36, 59);
+  Expect.equals(1.7976931348623157e+308, parsedMax);
+
+  // 2. JsonUtf8Encoder.writeDoubleToBuffer with Uint8List.view and sublistView
+  final backingBuffer = Uint8List(128).buffer;
+  final destView = Uint8List.view(backingBuffer, 32, 64);
+  final writtenLen = JsonUtf8Encoder.writeDoubleToBuffer(
+    2.718281828,
+    destView,
+    10,
+  );
+  Expect.isTrue(writtenLen > 0);
+  Expect.equals(
+    '2.718281828',
+    utf8.decode(destView.sublist(10, 10 + writtenLen)),
+  );
+
+  // C++ Native Fallback with unaligned offset in view
+  final unalignedDest = Uint8List.view(backingBuffer, 3, 90);
+  final writtenLenFallback = JsonUtf8Encoder.writeDoubleToBuffer(
+    1.2345678901234567e-100,
+    unalignedDest,
+    5,
+  );
+  Expect.isTrue(writtenLenFallback > 0);
+  final decodedFallback = double.parse(
+    utf8.decode(unalignedDest.sublist(5, 5 + writtenLenFallback)),
+  );
+  Expect.equals(1.2345678901234567e-100, decodedFallback);
+
+  final destSubView = Uint8List.sublistView(Uint8List(128), 16, 80);
+  final writtenLenSub = JsonUtf8Encoder.writeDoubleToBuffer(
+    2.718281828,
+    destSubView,
+    8,
+  );
+  Expect.isTrue(writtenLenSub > 0);
+  Expect.equals(
+    '2.718281828',
+    utf8.decode(destSubView.sublist(8, 8 + writtenLenSub)),
+  );
+
+  // 3. JsonUtf8Encoder.writeStringToBuffer with Uint8List.view and sublistView
+  final strBacking = Uint8List(512).buffer;
+  final strView = Uint8List.view(strBacking, 32, 256);
+  // Short string fast path (<= 16 chars)
+  final sLen1 = JsonUtf8Encoder.writeStringToBuffer('hello_view', strView, 5);
+  Expect.equals(12, sLen1); // '"hello_view"' = 12 bytes
+  Expect.equals('"hello_view"', utf8.decode(strView.sublist(5, 5 + sLen1)));
+
+  // Long string SIMD path (> 16 chars)
+  final longStr =
+      'this_is_a_very_long_string_designed_to_hit_the_native_simd_code_path';
+  final sLen2 = JsonUtf8Encoder.writeStringToBuffer(longStr, strView, 20);
+  Expect.equals(longStr.length + 2, sLen2);
+  Expect.equals('"$longStr"', utf8.decode(strView.sublist(20, 20 + sLen2)));
+
+  // Non-ASCII and Escaped Unicode string on unaligned view (C++ TwoByteString native path)
+  final unalignedStrView = Uint8List.view(strBacking, 7, 300);
+  final unicodeStr = 'hello "world" \n \u0000 \u20AC 🚀';
+  final sLenUnicode = JsonUtf8Encoder.writeStringToBuffer(
+    unicodeStr,
+    unalignedStrView,
+    11,
+  );
+  Expect.isTrue(sLenUnicode > 0);
+  final decodedUnicodeJson = jsonDecode(
+    utf8.decode(unalignedStrView.sublist(11, 11 + sLenUnicode)),
+  );
+  Expect.equals(unicodeStr, decodedUnicodeJson);
+
+  // Sliced sublistView
+  final strSubView = Uint8List.sublistView(Uint8List(256), 16, 160);
+  final sLenSub = JsonUtf8Encoder.writeStringToBuffer(longStr, strSubView, 10);
+  Expect.equals(longStr.length + 2, sLenSub);
+  Expect.equals(
+    '"$longStr"',
+    utf8.decode(strSubView.sublist(10, 10 + sLenSub)),
+  );
+}
+
+void testJsonKeyOptionsStressAndCollisions() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. 1000+ keys scaling and collision stress
+  final thousandKeys = List.generate(1200, (i) => 'stress_test_field_key_$i');
+  final thousandOptions = JsonKeyOptions.of(thousandKeys);
+  Expect.equals(1200, thousandOptions.length);
+  for (var i = 0; i < 1200; i++) {
+    final kb = b(thousandKeys[i]);
+    Expect.equals(i, thousandOptions.selectKey(kb, 0, kb.length));
+  }
+  // Verify missing key in large set
+  final notPresent = b('stress_test_field_key_9999');
+  Expect.equals(
+    -1,
+    thousandOptions.selectKey(notPresent, 0, notPresent.length),
+  );
+
+  // 2. Prefix collision chains (e.g. "p", "pr", "pre", "pref", "prefix", ...)
+  final prefixKeys = [
+    'p',
+    'pr',
+    'pre',
+    'pref',
+    'prefi',
+    'prefix',
+    'prefix_',
+    'prefix_k',
+    'prefix_ke',
+    'prefix_key',
+    'prefix_key_1',
+    'prefix_key_12',
+    'prefix_key_123',
+  ];
+  final prefixOptions = JsonKeyOptions.of(prefixKeys);
+  for (var i = 0; i < prefixKeys.length; i++) {
+    final pk = b(prefixKeys[i]);
+    Expect.equals(i, prefixOptions.selectKey(pk, 0, pk.length));
+  }
+  // Prefix not in set
+  final prefixMissing = b('prefix_key_1234');
+  Expect.equals(
+    -1,
+    prefixOptions.selectKey(prefixMissing, 0, prefixMissing.length),
+  );
+
+  // 3. Similar keys with differing single characters
+  final similarKeys = [
+    'test_var_alpha',
+    'test_var_alphb',
+    'test_var_alphc',
+    'west_var_alpha',
+    'zest_var_alpha',
+    'test_bar_alpha',
+    'test_car_alpha',
+  ];
+  final similarOptions = JsonKeyOptions.of(similarKeys);
+  for (var i = 0; i < similarKeys.length; i++) {
+    final sk = b(similarKeys[i]);
+    Expect.equals(i, similarOptions.selectKey(sk, 0, sk.length));
+  }
+}
+
+void testMatchKeySurrogatesAndPathologicalKeys() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Surrogate pair unescaping in matchKey
+  final emojiOptions = JsonKeyOptions.of(['id', '😀', 'rocket_🚀', 'simple']);
+  // UTF-8 payload containing literal emoji
+  final literalPayload = b('{"😀": 123}');
+  Expect.equals(
+    1,
+    JsonUtf8Decoder.matchKey(literalPayload, 2, 6, emojiOptions),
+  );
+
+  // JSON payload containing escaped surrogate pair \uD83D\uDE00
+  final escapedPayload = b(r'{"\uD83D\uDE00": 123}');
+  Expect.equals(
+    1,
+    JsonUtf8Decoder.matchKey(escapedPayload, 2, 14, emojiOptions),
+  );
+
+  // Escaped rocket emoji \uD83D\uDE80
+  final rocketEscaped = b(r'{"rocket_\uD83D\uDE80": 456}');
+  Expect.equals(
+    2,
+    JsonUtf8Decoder.matchKey(rocketEscaped, 2, 21, emojiOptions),
+  );
+
+  // 2. Standard escape sequences in keys
+  final escapeOptions = JsonKeyOptions.of([
+    'hello "world"',
+    'key\nwith\nnewlines',
+    'key\twith\ttabs',
+    'path/with/slash',
+    'path\\with\\backslash',
+  ]);
+  final srcEscapes = b(
+    r'{"hello \"world\"": 1, "key\nwith\nnewlines": 2, "key\twith\ttabs": 3, "path\/with\/slash": 4, "path\\with\\backslash": 5}',
+  );
+  final r = JsonTokenReader.fromBytes(srcEscapes);
+  r.beginObject();
+  var count = 0;
+  while (r.hasNext()) {
+    final name = r.nextName();
+    final idx = escapeOptions.selectKey(b(name), 0, utf8.encode(name).length);
+    Expect.equals(count, idx);
+    r.skipValue();
+    count++;
+  }
+  r.endObject();
+  Expect.equals(5, count);
+
+  // 3. Pathological and boundary keys
+  final pathOptions = JsonKeyOptions.of([
+    '',
+    ' ',
+    '  ',
+    '\x00',
+    'null',
+    'true',
+    'false',
+    '0',
+    '-1',
+  ]);
+  Expect.equals(9, pathOptions.length);
+  Expect.equals(0, pathOptions.selectKey(b(''), 0, 0));
+  Expect.equals(1, pathOptions.selectKey(b(' '), 0, 1));
+  Expect.equals(2, pathOptions.selectKey(b('  '), 0, 2));
+  Expect.equals(3, pathOptions.selectKey(Uint8List.fromList([0x00]), 0, 1));
+  Expect.equals(4, pathOptions.selectKey(b('null'), 0, 4));
+  Expect.equals(5, pathOptions.selectKey(b('true'), 0, 4));
+  Expect.equals(6, pathOptions.selectKey(b('false'), 0, 5));
+  Expect.equals(7, pathOptions.selectKey(b('0'), 0, 1));
+  Expect.equals(8, pathOptions.selectKey(b('-1'), 0, 2));
 }

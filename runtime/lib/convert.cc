@@ -80,7 +80,7 @@ static bool IsValidJsonNumber(const uint8_t* str, intptr_t len) {
 }
 
 DEFINE_NATIVE_ENTRY(JsonUtf8Decoder_parseDouble, 0, 3) {
-  GET_NON_NULL_NATIVE_ARGUMENT(TypedData, bytes, arguments->NativeArgAt(0));
+  GET_NON_NULL_NATIVE_ARGUMENT(TypedDataBase, bytes, arguments->NativeArgAt(0));
   GET_NON_NULL_NATIVE_ARGUMENT(Smi, startValue, arguments->NativeArgAt(1));
   GET_NON_NULL_NATIVE_ARGUMENT(Smi, endValue, arguments->NativeArgAt(2));
 
@@ -116,7 +116,7 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Decoder_parseDouble, 0, 3) {
 
 DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeDoubleToBuffer, 0, 3) {
   GET_NON_NULL_NATIVE_ARGUMENT(Double, value_obj, arguments->NativeArgAt(0));
-  GET_NON_NULL_NATIVE_ARGUMENT(TypedData, buffer, arguments->NativeArgAt(1));
+  GET_NON_NULL_NATIVE_ARGUMENT(TypedDataBase, buffer, arguments->NativeArgAt(1));
   GET_NON_NULL_NATIVE_ARGUMENT(Smi, offset_obj, arguments->NativeArgAt(2));
 
   double value = value_obj.value();
@@ -142,7 +142,7 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeDoubleToBuffer, 0, 3) {
 
 DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeStringToBuffer, 0, 3) {
   GET_NON_NULL_NATIVE_ARGUMENT(String, value_str, arguments->NativeArgAt(0));
-  GET_NON_NULL_NATIVE_ARGUMENT(TypedData, buffer, arguments->NativeArgAt(1));
+  GET_NON_NULL_NATIVE_ARGUMENT(TypedDataBase, buffer, arguments->NativeArgAt(1));
   GET_NON_NULL_NATIVE_ARGUMENT(Smi, offset_obj, arguments->NativeArgAt(2));
 
   intptr_t offset = offset_obj.Value();
