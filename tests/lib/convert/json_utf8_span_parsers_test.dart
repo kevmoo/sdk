@@ -50,6 +50,7 @@ void main() {
   testWebSafeFnv1aHash();
   testWriteAsciiAndRawJsonBounds();
   testMatchKeyEscapedKeys();
+  testDirectSinkFormatterStress();
 }
 
 void testParseInt() {
@@ -2552,4 +2553,133 @@ void testMatchKeyEscapedKeys() {
   Expect.throwsFormatException(
     () => JsonUtf8Decoder.matchKey(b(r'\u123z'), 0, 6, options),
   );
+}
+
+void testDirectSinkFormatterStress() {
+  // 1. Stress test writeDouble across varied float types into BytesBuilder
+  final doubleSink = BytesBuilder();
+  final testDoubles = [
+    0.0,
+    -0.0,
+    1.0,
+    -1.0,
+    123.456,
+    -987.654,
+    3.141592653589793,
+    1e10,
+    -1e10,
+    1.23456789e-20,
+    2.2250738585072014e-308,
+    1.7976931348623157e308,
+  ];
+
+  for (final d in testDoubles) {
+    final singleSink = BytesBuilder();
+    JsonUtf8Encoder.writeDouble(d, singleSink);
+    final expected = utf8.encode(jsonEncode(d));
+    Expect.listEquals(
+      expected,
+      singleSink.takeBytes(),
+      'Mismatch formatting double $d',
+    );
+  }
+
+  for (var i = 0; i < 1000; i++) {
+    for (final d in testDoubles) {
+      JsonUtf8Encoder.writeDouble(d, doubleSink);
+      doubleSink.addByte(0x0A); // '\n'
+    }
+  }
+  final doubleLines = utf8.decode(doubleSink.takeBytes()).trim().split('\n');
+  Expect.equals(1000 * testDoubles.length, doubleLines.length);
+
+  // 2. Stress test writeString across varied strings into BytesBuilder
+  final strSink = BytesBuilder();
+  final testStrings = [
+    '',
+    'a',
+    'hello world',
+    'escaped "quotes" and \\backslashes\\',
+    'ctrl\x00\x01\x1fchars',
+    'line\nbreak\ttab\rreturn\fform\bback',
+    'café résumé naïve über',
+    '東京 日本語 中文 한국어 €',
+    '🚀 😀 🎉 🐱‍👤',
+    'isolated \uD800 high',
+    'isolated \uDC00 low',
+    'paired \uD83D\uDE00 emoji',
+    'a' * 500,
+    'é' * 200,
+  ];
+
+  for (final s in testStrings) {
+    final singleSink = BytesBuilder();
+    JsonUtf8Encoder.writeString(s, singleSink);
+    final expected = utf8.encode(jsonEncode(s));
+    Expect.listEquals(
+      expected,
+      singleSink.takeBytes(),
+      'Mismatch formatting string: $s',
+    );
+  }
+
+  // Also verify with BytesBuilder(copy: false)
+  final noCopySink = BytesBuilder(copy: false);
+  for (final s in testStrings) {
+    JsonUtf8Encoder.writeString(s, noCopySink);
+    noCopySink.addByte(0x0A);
+  }
+  final noCopyLines = utf8.decode(noCopySink.takeBytes()).trim().split('\n');
+  Expect.equals(testStrings.length, noCopyLines.length);
+
+  for (var i = 0; i < 500; i++) {
+    for (final s in testStrings) {
+      JsonUtf8Encoder.writeString(s, strSink);
+      strSink.addByte(0x0A); // '\n'
+    }
+  }
+  final strLines = utf8.decode(strSink.takeBytes()).trim().split('\n');
+  Expect.equals(500 * testStrings.length, strLines.length);
+
+  // 3. Verify non-finite doubles throw ArgumentError in writeDouble
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.nan, BytesBuilder()),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.infinity, BytesBuilder()),
+  );
+  Expect.throwsArgumentError(
+    () => JsonUtf8Encoder.writeDouble(double.negativeInfinity, BytesBuilder()),
+  );
+
+  // 4. Verify JsonKeyOptions web-safe FNV-1a hash matching
+  final testKeys = [
+    'a',
+    'b',
+    'c',
+    'id',
+    'name',
+    'value',
+    'type',
+    'status',
+    'created_at',
+    'updated_at',
+    'deleted_at',
+    'café',
+    'résumé',
+    '東京',
+    '🚀',
+    'key_with_many_characters_to_test_hash_accumulation_over_32_bits_0123456789',
+  ];
+  final opt = JsonKeyOptions.of(testKeys);
+  for (var i = 0; i < testKeys.length; i++) {
+    final keyBytes = Uint8List.fromList(utf8.encode(testKeys[i]));
+    Expect.equals(i, opt.selectKey(keyBytes, 0, keyBytes.length));
+  }
+
+  // Out of bounds queries to selectKey
+  final sampleBytes = Uint8List.fromList(utf8.encode('created_at'));
+  Expect.equals(-1, opt.selectKey(sampleBytes, -1, 5));
+  Expect.equals(-1, opt.selectKey(sampleBytes, 5, 4));
+  Expect.equals(-1, opt.selectKey(sampleBytes, 0, 100));
 }

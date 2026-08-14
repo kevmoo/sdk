@@ -89,7 +89,7 @@ final class JsonKeyOptions {
       final len = lengths[i];
       var h = 0x811c9dc5;
       for (var j = 0; j < len; j++) {
-        h = ((h ^ encodedKeys[off + j]) * 0x01000193) & 0x7fffffff;
+        h = _imul32(h ^ encodedKeys[off + j], 0x01000193);
       }
       var slot = h & mask;
       while (table[slot] != -1) {
@@ -132,7 +132,7 @@ final class JsonKeyOptions {
     final spanLen = end - start;
     var h = 0x811c9dc5;
     for (var i = start; i < end; i++) {
-      h = ((h ^ source[i]) * 0x01000193) & 0x7fffffff;
+      h = _imul32(h ^ source[i], 0x01000193);
     }
     final mask = _hashMask;
     var slot = h & mask;
@@ -986,10 +986,110 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   /// Writes [value] with standard JSON escaping directly into [sink].
   static void writeString(String value, BytesBuilder sink) {
-    final maxLen = value.length * 6 + 2;
-    final buf = Uint8List(maxLen);
-    final len = writeStringToBuffer(value, buf, 0);
-    sink.add(Uint8List.sublistView(buf, 0, len));
+    final len = value.length;
+    // Fast path: check if string is pure ASCII and requires no escaping
+    var isPureAscii = true;
+    for (var i = 0; i < len; i++) {
+      final c = value.codeUnitAt(i);
+      if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+        isPureAscii = false;
+        break;
+      }
+    }
+
+    if (isPureAscii) {
+      sink.addByte(0x22); // '"'
+      for (var i = 0; i < len; i++) {
+        sink.addByte(value.codeUnitAt(i));
+      }
+      sink.addByte(0x22); // '"'
+      return;
+    }
+
+    // General path: handle multi-byte UTF-8, escapes, and surrogates
+    sink.addByte(0x22); // '"'
+    for (var i = 0; i < len; i++) {
+      final c = value.codeUnitAt(i);
+      switch (c) {
+        case 0x22:
+          sink.addByte(0x5C);
+          sink.addByte(0x22);
+          break;
+        case 0x5C:
+          sink.addByte(0x5C);
+          sink.addByte(0x5C);
+          break;
+        case 0x08:
+          sink.addByte(0x5C);
+          sink.addByte(0x62); // 'b'
+          break;
+        case 0x0C:
+          sink.addByte(0x5C);
+          sink.addByte(0x66); // 'f'
+          break;
+        case 0x0A:
+          sink.addByte(0x5C);
+          sink.addByte(0x6E); // 'n'
+          break;
+        case 0x0D:
+          sink.addByte(0x5C);
+          sink.addByte(0x72); // 'r'
+          break;
+        case 0x09:
+          sink.addByte(0x5C);
+          sink.addByte(0x74); // 't'
+          break;
+        default:
+          if (c < 0x20) {
+            sink.addByte(0x5C);
+            sink.addByte(0x75); // 'u'
+            sink.addByte(0x30); // '0'
+            sink.addByte(0x30); // '0'
+            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
+          } else if (c <= 0x7F) {
+            sink.addByte(c);
+          } else if (c <= 0x7FF) {
+            sink.addByte(0xC0 | (c >> 6));
+            sink.addByte(0x80 | (c & 0x3F));
+          } else if (c >= 0xD800 && c <= 0xDBFF) {
+            if (i + 1 < len) {
+              final c2 = value.codeUnitAt(i + 1);
+              if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+                i++;
+                final codePoint =
+                    0x10000 + ((c - 0xD800) << 10) + (c2 - 0xDC00);
+                sink.addByte(0xF0 | (codePoint >> 18));
+                sink.addByte(0x80 | ((codePoint >> 12) & 0x3F));
+                sink.addByte(0x80 | ((codePoint >> 6) & 0x3F));
+                sink.addByte(0x80 | (codePoint & 0x3F));
+                break;
+              }
+            }
+            // Isolated high surrogate -> \uXXXX
+            sink.addByte(0x5C);
+            sink.addByte(0x75); // 'u'
+            sink.addByte(_hexDigits.codeUnitAt((c >> 12) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 8) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
+          } else if (c >= 0xDC00 && c <= 0xDFFF) {
+            // Isolated low surrogate -> \uXXXX
+            sink.addByte(0x5C);
+            sink.addByte(0x75); // 'u'
+            sink.addByte(_hexDigits.codeUnitAt((c >> 12) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 8) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt((c >> 4) & 0xF));
+            sink.addByte(_hexDigits.codeUnitAt(c & 0xF));
+          } else {
+            sink.addByte(0xE0 | (c >> 12));
+            sink.addByte(0x80 | ((c >> 6) & 0x3F));
+            sink.addByte(0x80 | (c & 0x3F));
+          }
+          break;
+      }
+    }
+    sink.addByte(0x22); // '"'
   }
 
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
@@ -1005,7 +1105,9 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     }
     final buf = Uint8List(32);
     final len = writeDoubleToBuffer(value, buf, 0);
-    sink.add(Uint8List.sublistView(buf, 0, len));
+    for (var i = 0; i < len; i++) {
+      sink.addByte(buf[i]);
+    }
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -2677,6 +2779,8 @@ const String _hexDigits = "0123456789abcdef";
 /// Web-safe 32-bit integer multiplication performing exact modulo 2^32
 /// multiplication with 31-bit non-negative masking (`& 0x7fffffff`), safe
 /// against JavaScript 53-bit float mantissa precision limits.
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 int _imul32(int a, int b) {
   final aLo = a & 0xffff;
   final aHi = (a >> 16) & 0xffff;
