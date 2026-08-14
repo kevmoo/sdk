@@ -50,6 +50,20 @@ final class JsonKeyOptions {
   final Int32List lengths;
   final Int32List _hashTable;
   final int _hashMask;
+  final Int64List? _shortKeyInts;
+  final Uint8List? _shortKeyLens;
+
+  static const _lenMasks = <int>[
+    0x0,
+    0x00000000000000FF,
+    0x000000000000FFFF,
+    0x0000000000FFFFFF,
+    0x00000000FFFFFFFF,
+    0x000000FFFFFFFFFF,
+    0x0000FFFFFFFFFFFF,
+    (0x0000FFFFFFFFFFFF << 8) | 0xFF,
+    -1, // 0xFFFFFFFFFFFFFFFF (all 64 bits set)
+  ];
 
   JsonKeyOptions._(
     this.keys,
@@ -58,6 +72,8 @@ final class JsonKeyOptions {
     this.lengths,
     this._hashTable,
     this._hashMask,
+    this._shortKeyInts,
+    this._shortKeyLens,
   );
 
   /// Pre-computes UTF-8 byte representations and length tables for [keys].
@@ -68,12 +84,32 @@ final class JsonKeyOptions {
     final builder = BytesBuilder(copy: false);
     final offsets = Int32List(keys.length);
     final lengths = Int32List(keys.length);
+    final Int64List? shortKeyInts;
+    final Uint8List? shortKeyLens;
+
+    if (!identical(1, 1.0)) {
+      shortKeyInts = Int64List(keys.length);
+      shortKeyLens = Uint8List(keys.length);
+    } else {
+      shortKeyInts = null;
+      shortKeyLens = null;
+    }
 
     for (var i = 0; i < keys.length; i++) {
       offsets[i] = builder.length;
       final encoded = utf8.encode(keys[i]);
-      lengths[i] = encoded.length;
+      final len = encoded.length;
+      lengths[i] = len;
       builder.add(encoded);
+
+      if (shortKeyInts != null && shortKeyLens != null && len <= 8) {
+        shortKeyLens[i] = len;
+        var packed = 0;
+        for (var j = 0; j < len; j++) {
+          packed |= encoded[j] << (j * 8);
+        }
+        shortKeyInts[i] = packed;
+      }
     }
     final encodedKeys = builder.takeBytes();
 
@@ -119,10 +155,28 @@ final class JsonKeyOptions {
       lengths.asUnmodifiableView(),
       table,
       mask,
+      shortKeyInts?.asUnmodifiableView(),
+      shortKeyLens?.asUnmodifiableView(),
     );
   }
 
   int get length => keys.length;
+
+  /// Fast-path 64-bit SWAR short key matching (len <= 8) in O(K).
+  @pragma('vm:prefer-inline')
+  @pragma('wasm:prefer-inline')
+  int findShortKeyIndex(int keyInt, int len) {
+    final ints = _shortKeyInts;
+    final lens = _shortKeyLens;
+    if (ints == null || lens == null) return -1;
+    final count = keys.length;
+    for (var i = 0; i < count; i++) {
+      if (lens[i] == len && ints[i] == keyInt) {
+        return i;
+      }
+    }
+    return -1;
+  }
 
   /// Matches the byte span `[start..end]` against pre-compiled keys in O(1).
   int selectKey(Uint8List source, int start, int end) {
@@ -335,7 +389,17 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     JsonKeyOptions options,
   ) {
     if (start < 0 || end > bytes.length || start > end) return -1;
+    final len = end - start;
     if (_isVerbatimUtf8(bytes, start, end)) {
+      if (len <= 8 && options._shortKeyInts != null) {
+        if (start + 8 <= bytes.length) {
+          final bd = ByteData.sublistView(bytes);
+          final keyInt =
+              bd.getInt64(start, Endian.little) & JsonKeyOptions._lenMasks[len];
+          return options.findShortKeyIndex(keyInt, len);
+        }
+        return options.selectKey(bytes, start, end);
+      }
       return options.selectKey(bytes, start, end);
     }
     final unescaped = _decodeStringUtf8(bytes, start, end);
@@ -1877,12 +1941,14 @@ final class _ContainerFrame {
 final class _JsonTokenReader implements JsonTokenReader {
   static const int _maxDepth = 64;
   final Uint8List _bytes;
+  final ByteData _byteData;
   final bool allowMalformed;
   int _offset = 0;
   final List<_ContainerFrame> _stack = [];
   bool _hasReadRoot = false;
 
-  _JsonTokenReader(this._bytes, {this.allowMalformed = false}) {
+  _JsonTokenReader(this._bytes, {this.allowMalformed = false})
+    : _byteData = ByteData.sublistView(_bytes) {
     if (_bytes.length >= 3 &&
         _bytes[0] == 0xEF &&
         _bytes[1] == 0xBB &&
@@ -2327,9 +2393,21 @@ final class _JsonTokenReader implements JsonTokenReader {
       final (start, end) = _scanStringSpan();
       _consumeColon();
       _stack.last.state = _ReaderItemState.afterName;
+
+      final len = end - start;
       if (_isVerbatimUtf8(_bytes, start, end)) {
+        if (len <= 8 && options._shortKeyInts != null) {
+          if (start + 8 <= _bytes.length) {
+            final keyInt =
+                _byteData.getInt64(start, Endian.little) &
+                JsonKeyOptions._lenMasks[len];
+            return options.findShortKeyIndex(keyInt, len);
+          }
+          return options.selectKey(_bytes, start, end);
+        }
         return options.selectKey(_bytes, start, end);
       }
+
       final unescaped = _decodeStringUtf8(
         _bytes,
         start,
@@ -2355,9 +2433,21 @@ final class _JsonTokenReader implements JsonTokenReader {
       _beforeReadingValue();
       final (start, end) = _scanStringSpan();
       _afterReadingValue();
+
+      final len = end - start;
       if (_isVerbatimUtf8(_bytes, start, end)) {
+        if (len <= 8 && options._shortKeyInts != null) {
+          if (start + 8 <= _bytes.length) {
+            final keyInt =
+                _byteData.getInt64(start, Endian.little) &
+                JsonKeyOptions._lenMasks[len];
+            return options.findShortKeyIndex(keyInt, len);
+          }
+          return options.selectKey(_bytes, start, end);
+        }
         return options.selectKey(_bytes, start, end);
       }
+
       final unescaped = _decodeStringUtf8(
         _bytes,
         start,
@@ -3835,7 +3925,8 @@ int _scanNumberSpan(Uint8List bytes, int offset) {
 
 // Precomputed 128-bit power-of-10 lookup tables for Eisel-Lemire (q in [-342, 308]).
 // 651 entries.
-Int64List _initInt64From32(List<int> words) {
+Int64List? _initInt64From32(List<int> words) {
+  if (identical(1, 1.0)) return null;
   final list = Int64List(words.length ~/ 2);
   for (var i = 0; i < list.length; i++) {
     final lo = words[i * 2];
@@ -5153,8 +5244,8 @@ const List<int> _power10_L_32 = <int>[
   0xa7ea7649, 0x570f09ea, // q = 308
 ];
 
-final Int64List _power10_H = _initInt64From32(_power10_H_32);
-final Int64List _power10_L = _initInt64From32(_power10_L_32);
+final Int64List? _power10_H = _initInt64From32(_power10_H_32);
+final Int64List? _power10_L = _initInt64From32(_power10_L_32);
 
 final Int32List _power10_Exp = Int32List.fromList(const <int>[
   -1136, // q = -342
@@ -5866,9 +5957,13 @@ double? _tryParseDoubleFastEiselLemire(
   }
 
   // Range of exponents supported by the power-of-10 table
-  if (decimalExp < -342 || decimalExp > 308) {
+  if (decimalExp < -342 || decimalExp > 308 || identical(1, 1.0)) {
     return null;
   }
+
+  final power10_H = _power10_H;
+  final power10_L = _power10_L;
+  if (power10_H == null || power10_L == null) return null;
 
   final qIndex = decimalExp + 342;
 
@@ -5877,12 +5972,12 @@ double? _tryParseDoubleFastEiselLemire(
   final normMantissa = mantissa << lz;
 
   // 192-bit full multiplication: normMantissa * (H_q * 2^64 + L_q)
-  final p1Hi = _mul64x64High(normMantissa, _power10_L[qIndex]);
+  final p1Hi = _mul64x64High(normMantissa, power10_L[qIndex]);
 
   final aLo = normMantissa & 0xFFFFFFFF;
   final aHi = normMantissa >>> 32;
-  final bLo = _power10_H[qIndex] & 0xFFFFFFFF;
-  final bHi = _power10_H[qIndex] >>> 32;
+  final bLo = power10_H[qIndex] & 0xFFFFFFFF;
+  final bHi = power10_H[qIndex] >>> 32;
 
   final p0 = aLo * bLo;
   final p1 = aLo * bHi;
