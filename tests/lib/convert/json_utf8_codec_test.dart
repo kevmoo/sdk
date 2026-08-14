@@ -14,6 +14,7 @@ void main() {
   testReviverAndToEncodable();
   testPrettyPrinting();
   testBitExactJsonCompatibility();
+  testExactBufferCapacity();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -165,4 +166,62 @@ void testBitExactJsonCompatibility() {
   final decoded2 = jsonUtf8Decode(utf8Bytes) as Map;
 
   _expectDeepEquals(decoded1, decoded2);
+}
+
+void testExactBufferCapacity() {
+  final cases = <Object?>[
+    null,
+    true,
+    false,
+    0,
+    42,
+    3.14,
+    "",
+    "hello",
+    <Object?>[],
+    [1, 2, 3],
+    <String, Object?>{},
+    {"a": 1},
+    {"key": "value", "count": 100},
+  ];
+
+  for (final item in cases) {
+    final encodedTopLevel = jsonUtf8Encode(item);
+    Expect.equals(
+      encodedTopLevel.length,
+      encodedTopLevel.buffer.lengthInBytes,
+      'jsonUtf8Encode buffer capacity mismatch for $item',
+    );
+
+    final encodedCodec = jsonUtf8.encode(item);
+    Expect.equals(
+      encodedCodec.length,
+      (encodedCodec as Uint8List).buffer.lengthInBytes,
+      'jsonUtf8.encode buffer capacity mismatch for $item',
+    );
+
+    final encodedEncoder = JsonUtf8Encoder().convert(item);
+    Expect.equals(
+      encodedEncoder.length,
+      (encodedEncoder as Uint8List).buffer.lengthInBytes,
+      'JsonUtf8Encoder.convert buffer capacity mismatch for $item',
+    );
+
+    final encodedIndented = JsonUtf8Encoder('  ').convert(item);
+    Expect.equals(
+      encodedIndented.length,
+      (encodedIndented as Uint8List).buffer.lengthInBytes,
+      'JsonUtf8Encoder(indent).convert buffer capacity mismatch for $item',
+    );
+  }
+
+  // Large payload spanning multiple chunks (> 32 KB)
+  final largeList = List.generate(5000, (i) => 'item_$i');
+  final largeEncoded = jsonUtf8Encode(largeList);
+  Expect.isTrue(largeEncoded.length > 32768);
+  Expect.equals(
+    largeEncoded.length,
+    largeEncoded.buffer.lengthInBytes,
+    'Large multi-chunk buffer capacity mismatch',
+  );
 }

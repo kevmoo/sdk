@@ -617,7 +617,13 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
       addChunk,
     );
     if (bytes.isEmpty) return Uint8List(0);
-    if (bytes.length == 1) return bytes[0];
+    if (bytes.length == 1) {
+      final first = bytes[0];
+      if (first.length < first.buffer.lengthInBytes) {
+        return Uint8List.fromList(first);
+      }
+      return first;
+    }
     var length = 0;
     for (var i = 0; i < bytes.length; i++) {
       length += bytes[i].length;
@@ -3037,7 +3043,12 @@ num _pow10(int exp) {
   return res;
 }
 
-double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
+double? _tryParseDoubleUtf8(
+  Uint8List source,
+  int start,
+  int end, {
+  bool allowFallback = true,
+}) {
   if (start >= end || start < 0 || end > source.length) return null;
 
   var i = start;
@@ -3152,6 +3163,8 @@ double? _tryParseDoubleUtf8(Uint8List source, int start, int end) {
     }
     return result;
   }
+
+  if (!allowFallback) return null;
 
   // Fallback to exact platform float parser
   return double.tryParse(String.fromCharCodes(source, sliceStart, actualEnd));

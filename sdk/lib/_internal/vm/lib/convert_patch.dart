@@ -67,21 +67,19 @@ class JsonUtf8Decoder {
 
   @patch
   static double parseDouble(Uint8List bytes, int start, int end) {
-    final res = tryParseDouble(bytes, start, end);
-    if (res == null) {
-      throw FormatException(
-        'Invalid double in byte span [$start, $end)',
-        bytes,
-        start,
-      );
-    }
-    return res;
+    return _tryParseDoubleUtf8(bytes, start, end, allowFallback: false) ??
+        _parseDoubleNative(bytes, start, end) ??
+        (throw FormatException(
+          'Invalid double in byte span [$start, $end)',
+          bytes,
+          start,
+        ));
   }
 
   @patch
   static double? tryParseDouble(Uint8List bytes, int start, int end) {
-    return _parseDoubleNative(bytes, start, end) ??
-        _tryParseDoubleUtf8(bytes, start, end);
+    return _tryParseDoubleUtf8(bytes, start, end, allowFallback: false) ??
+        _parseDoubleNative(bytes, start, end);
   }
 }
 

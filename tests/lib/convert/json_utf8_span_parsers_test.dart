@@ -1583,11 +1583,35 @@ void testUnterminatedStringSkipping() {
 void testDoubleNativeLinkageAndPrecision() {
   Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 
-  // Basic floating-point parsing
+  // Basic floating-point parsing (fast-path)
+  Expect.equals(0.0, JsonUtf8Decoder.parseDouble(b('0.0'), 0, 3));
+  Expect.equals(0.0, JsonUtf8Decoder.tryParseDouble(b('0.0'), 0, 3));
   Expect.equals(3.14159, JsonUtf8Decoder.parseDouble(b('3.14159'), 0, 7));
   Expect.equals(3.14159, JsonUtf8Decoder.tryParseDouble(b('3.14159'), 0, 7));
+  Expect.equals(0.12345, JsonUtf8Decoder.parseDouble(b('0.12345'), 0, 7));
+  Expect.equals(0.12345, JsonUtf8Decoder.tryParseDouble(b('0.12345'), 0, 7));
+  Expect.equals(100.5, JsonUtf8Decoder.parseDouble(b('100.5'), 0, 5));
+  Expect.equals(100.5, JsonUtf8Decoder.tryParseDouble(b('100.5'), 0, 5));
 
-  // Subnormal double
+  // Fast-path exponents
+  Expect.equals(1e10, JsonUtf8Decoder.parseDouble(b('1e10'), 0, 4));
+  Expect.equals(1e10, JsonUtf8Decoder.tryParseDouble(b('1e10'), 0, 4));
+  Expect.equals(1e-10, JsonUtf8Decoder.parseDouble(b('1e-10'), 0, 5));
+  Expect.equals(1e-10, JsonUtf8Decoder.tryParseDouble(b('1e-10'), 0, 5));
+  Expect.equals(1.5e3, JsonUtf8Decoder.parseDouble(b('1.5e3'), 0, 5));
+  Expect.equals(1.5e3, JsonUtf8Decoder.tryParseDouble(b('1.5e3'), 0, 5));
+  Expect.equals(-2.5e-2, JsonUtf8Decoder.parseDouble(b('-2.5e-2'), 0, 7));
+  Expect.equals(-2.5e-2, JsonUtf8Decoder.tryParseDouble(b('-2.5e-2'), 0, 7));
+  Expect.equals(
+    1.234567e15,
+    JsonUtf8Decoder.parseDouble(b('1.234567e15'), 0, 11),
+  );
+  Expect.equals(
+    1.234567e15,
+    JsonUtf8Decoder.tryParseDouble(b('1.234567e15'), 0, 11),
+  );
+
+  // Subnormal double & boundary floats
   Expect.equals(
     double.minPositive,
     JsonUtf8Decoder.parseDouble(
@@ -1604,10 +1628,39 @@ void testDoubleNativeLinkageAndPrecision() {
       '${double.minPositive}'.length,
     ),
   );
+  // Min positive subnormal (4.9e-324)
+  Expect.equals(4.9e-324, JsonUtf8Decoder.parseDouble(b('4.9e-324'), 0, 8));
+  Expect.equals(4.9e-324, JsonUtf8Decoder.tryParseDouble(b('4.9e-324'), 0, 8));
+  // Min positive normal (2.2250738585072014e-308)
+  const minNormalStr = '2.2250738585072014e-308';
+  Expect.equals(
+    double.parse(minNormalStr),
+    JsonUtf8Decoder.parseDouble(b(minNormalStr), 0, minNormalStr.length),
+  );
+  Expect.equals(
+    double.parse(minNormalStr),
+    JsonUtf8Decoder.tryParseDouble(b(minNormalStr), 0, minNormalStr.length),
+  );
+  // Max finite double (1.7976931348623157e+308)
+  const maxDoubleStr = '1.7976931348623157e+308';
+  Expect.equals(
+    double.maxFinite,
+    JsonUtf8Decoder.parseDouble(b(maxDoubleStr), 0, maxDoubleStr.length),
+  );
+  Expect.equals(
+    double.maxFinite,
+    JsonUtf8Decoder.tryParseDouble(b(maxDoubleStr), 0, maxDoubleStr.length),
+  );
 
-  // Large exponents
+  // Large / complex exponents (native fallback)
+  Expect.equals(1e300, JsonUtf8Decoder.parseDouble(b('1e300'), 0, 5));
+  Expect.equals(1e300, JsonUtf8Decoder.tryParseDouble(b('1e300'), 0, 5));
+  Expect.equals(1e-300, JsonUtf8Decoder.parseDouble(b('1e-300'), 0, 6));
+  Expect.equals(1e-300, JsonUtf8Decoder.tryParseDouble(b('1e-300'), 0, 6));
   Expect.equals(1e308, JsonUtf8Decoder.parseDouble(b('1e308'), 0, 5));
+  Expect.equals(1e308, JsonUtf8Decoder.tryParseDouble(b('1e308'), 0, 5));
   Expect.equals(1e-308, JsonUtf8Decoder.parseDouble(b('1e-308'), 0, 6));
+  Expect.equals(1e-308, JsonUtf8Decoder.tryParseDouble(b('1e-308'), 0, 6));
 
   // Exact 17-digit precision double
   const preciseStr = '0.12345678901234567';
@@ -1615,21 +1668,64 @@ void testDoubleNativeLinkageAndPrecision() {
     double.parse(preciseStr),
     JsonUtf8Decoder.parseDouble(b(preciseStr), 0, preciseStr.length),
   );
+  Expect.equals(
+    double.parse(preciseStr),
+    JsonUtf8Decoder.tryParseDouble(b(preciseStr), 0, preciseStr.length),
+  );
 
   // Negative zero
   final negZero = JsonUtf8Decoder.parseDouble(b('-0.0'), 0, 4);
   Expect.equals(0.0, negZero);
   Expect.isTrue(negZero.isNegative);
+  final negZeroTry = JsonUtf8Decoder.tryParseDouble(b('-0.0'), 0, 4);
+  Expect.isNotNull(negZeroTry);
+  Expect.equals(0.0, negZeroTry!);
+  Expect.isTrue(negZeroTry.isNegative);
+
+  final negZeroInt = JsonUtf8Decoder.parseDouble(b('-0'), 0, 2);
+  Expect.equals(0.0, negZeroInt);
+  Expect.isTrue(negZeroInt.isNegative);
+  final negZeroIntTry = JsonUtf8Decoder.tryParseDouble(b('-0'), 0, 2);
+  Expect.isNotNull(negZeroIntTry);
+  Expect.equals(0.0, negZeroIntTry!);
+  Expect.isTrue(negZeroIntTry.isNegative);
 
   // Whitespace around double in byte span
   Expect.equals(42.5, JsonUtf8Decoder.parseDouble(b('  42.5  '), 0, 8));
   Expect.equals(42.5, JsonUtf8Decoder.tryParseDouble(b('  42.5  '), 0, 8));
 
+  // Subslice bounds
+  final containerBytes = b('{"key": 3.14159, "other": 100}');
+  Expect.equals(3.14159, JsonUtf8Decoder.parseDouble(containerBytes, 8, 15));
+  Expect.equals(3.14159, JsonUtf8Decoder.tryParseDouble(containerBytes, 8, 15));
+
   // Invalid doubles
-  Expect.isNull(JsonUtf8Decoder.tryParseDouble(b('abc'), 0, 3));
-  Expect.throwsFormatException(
-    () => JsonUtf8Decoder.parseDouble(b('abc'), 0, 3),
-  );
+  const invalidDoubles = [
+    'abc',
+    '',
+    '  ',
+    '1.',
+    '.5',
+    '+1.0',
+    '--1.0',
+    '1e',
+    '1e+',
+    '1e-',
+    '0123',
+    'NaN',
+    'Infinity',
+    '-Infinity',
+  ];
+  for (final inv in invalidDoubles) {
+    Expect.isNull(
+      JsonUtf8Decoder.tryParseDouble(b(inv), 0, inv.length),
+      'Expected tryParseDouble to return null for $inv',
+    );
+    Expect.throwsFormatException(
+      () => JsonUtf8Decoder.parseDouble(b(inv), 0, inv.length),
+      'Expected parseDouble to throw FormatException for $inv',
+    );
+  }
 }
 
 void testBufferPoolSinkWriters() {
