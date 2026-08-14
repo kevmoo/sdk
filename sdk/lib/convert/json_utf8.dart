@@ -1529,14 +1529,115 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
 
   String? get _partialResult => null;
 
+  void _flushBuffer([int requiredExtra = 0]) {
+    if (index > 0) {
+      addChunk(buffer, 0, index);
+      index = 0;
+    }
+    final nextSize = requiredExtra > bufferSize ? requiredExtra : bufferSize;
+    buffer = Uint8List(nextSize);
+  }
+
+  @override
+  bool writeJsonValue(Object? object) {
+    if (object is num) {
+      if (!object.isFinite) return false;
+      writeNumber(object);
+      return true;
+    } else if (identical(object, true)) {
+      writeAsciiString('true');
+      return true;
+    } else if (identical(object, false)) {
+      writeAsciiString('false');
+      return true;
+    } else if (object == null) {
+      writeAsciiString('null');
+      return true;
+    } else if (object is String) {
+      final maxLen = object.length * 6 + 2;
+      if (index + maxLen > buffer.length) {
+        _flushBuffer(maxLen);
+      }
+      if (index + maxLen <= buffer.length) {
+        index += JsonUtf8Encoder.writeStringToBuffer(object, buffer, index);
+        return true;
+      }
+      writeByte(0x22);
+      writeStringContent(object);
+      writeByte(0x22);
+      return true;
+    } else if (object is List) {
+      _checkCycle(object);
+      writeList(object);
+      _removeSeen(object);
+      return true;
+    } else if (object is Map) {
+      _checkCycle(object);
+      var success = writeMap(object);
+      _removeSeen(object);
+      return success;
+    } else {
+      return false;
+    }
+  }
+
+  @override
+  bool writeMap(Map<Object?, Object?> map) {
+    if (map.isEmpty) {
+      writeAsciiString("{}");
+      return true;
+    }
+    var keyValueList = List<Object?>.filled(map.length * 2, null);
+    var i = 0;
+    var allStringKeys = true;
+    map.forEach((key, value) {
+      if (key is! String) {
+        allStringKeys = false;
+      }
+      keyValueList[i++] = key;
+      keyValueList[i++] = value;
+    });
+    if (!allStringKeys) return false;
+    writeByte(0x7B); // '{'
+    for (var i = 0; i < keyValueList.length; i += 2) {
+      if (i > 0) writeByte(0x2C); // ','
+      final key = keyValueList[i] as String;
+      final maxLen = key.length * 6 + 3; // quotes + escapes + ':'
+      if (index + maxLen > buffer.length) {
+        _flushBuffer(maxLen);
+      }
+      if (index + maxLen <= buffer.length) {
+        index += JsonUtf8Encoder.writeStringToBuffer(key, buffer, index);
+        buffer[index++] = 0x3A; // ':'
+      } else {
+        writeByte(0x22);
+        writeStringContent(key);
+        writeByte(0x22);
+        writeByte(0x3A);
+      }
+      writeObject(keyValueList[i + 1]);
+    }
+    writeByte(0x7D); // '}'
+    return true;
+  }
+
+  @override
+  void writeList(List<Object?> list) {
+    writeByte(0x5B); // '['
+    if (list.isNotEmpty) {
+      writeObject(list[0]);
+      for (var i = 1; i < list.length; i++) {
+        writeByte(0x2C); // ','
+        writeObject(list[i]);
+      }
+    }
+    writeByte(0x5D); // ']'
+  }
+
   void writeNumber(num number) {
     if (number is int) {
       if (index + 24 > buffer.length) {
-        if (index > 0) {
-          addChunk(buffer, 0, index);
-          buffer = Uint8List(bufferSize);
-          index = 0;
-        }
+        _flushBuffer(24);
       }
       if (index + 24 <= buffer.length) {
         index += JsonUtf8Encoder.writeIntToBuffer(number, buffer, index);
@@ -1544,11 +1645,7 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
       }
     } else if (number is double && number.isFinite) {
       if (index + 32 > buffer.length) {
-        if (index > 0) {
-          addChunk(buffer, 0, index);
-          buffer = Uint8List(bufferSize);
-          index = 0;
-        }
+        _flushBuffer(32);
       }
       if (index + 32 <= buffer.length) {
         index += JsonUtf8Encoder.writeDoubleToBuffer(number, buffer, index);
@@ -1560,6 +1657,9 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
 
   void writeAsciiString(String string) {
     final len = string.length;
+    if (index + len > buffer.length) {
+      _flushBuffer(len);
+    }
     if (index + len <= buffer.length) {
       for (var i = 0; i < len; i++) {
         buffer[index++] = string.codeUnitAt(i);
@@ -1658,7 +1758,9 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
   void writeByte(int byte) {
     assert(byte <= 0xff);
     if (index == buffer.length) {
-      addChunk(buffer, 0, index);
+      if (index > 0) {
+        addChunk(buffer, 0, index);
+      }
       buffer = Uint8List(bufferSize);
       index = 0;
     }

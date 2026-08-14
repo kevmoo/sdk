@@ -252,11 +252,10 @@ class _NumberBuffer {
     return result;
   }
 
-  // TODO(lrn): See if parsing of numbers can be abstracted to something
-  // not only working on strings, but also on char-code lists, without losing
-  // performance.
-  num parseNum() => num.parse(getString());
-  double parseDouble() => double.parse(getString());
+  num parseNum() =>
+      JsonUtf8Decoder.tryParseInt(list, 0, length) ??
+      JsonUtf8Decoder.parseDouble(list, 0, length);
+  double parseDouble() => JsonUtf8Decoder.parseDouble(list, 0, length);
 }
 
 abstract class _JsonParserWithListener {
@@ -1666,8 +1665,7 @@ class _JsonUtf8Parser extends _JsonParserWithListener
   }
 
   double parseDouble(int start, int end) {
-    String string = getString(start, end, 0x7f);
-    return _parseDouble(string, 0, string.length);
+    return JsonUtf8Decoder.parseDouble(chunk, start, end);
   }
 }
 

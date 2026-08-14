@@ -20,6 +20,7 @@ void main() {
   testCodecDecodeEncodeNamedParameters();
   testCanonicalLargeIntegers();
   testSplitChunkNetworkStreaming();
+  testFusedCodecs();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -548,4 +549,49 @@ void testSplitChunkNetworkStreaming() {
   Expect.throwsFormatException(() {
     parse1ByteChunks(malformedTruncated, allowMalformed: false);
   });
+}
+
+void testFusedCodecs() {
+  // 1. utf8.decoder.fuse(json.decoder) returns JsonUtf8Decoder
+  final fusedDecoder = utf8.decoder.fuse(json.decoder);
+  Expect.type<JsonUtf8Decoder>(fusedDecoder);
+  Expect.isFalse((fusedDecoder as JsonUtf8Decoder).allowMalformed);
+  Expect.isNull(fusedDecoder.reviver);
+
+  // 2. Decode UTF-8 bytes through fused decoder
+  final jsonUtf8Bytes = Uint8List.fromList(
+    utf8.encode('{"score": 98.5, "passed": true, "items": [1, 2, 3]}'),
+  );
+  final decoded = fusedDecoder.convert(jsonUtf8Bytes) as Map<String, dynamic>;
+  Expect.equals(98.5, decoded['score']);
+  Expect.equals(true, decoded['passed']);
+  Expect.listEquals([1, 2, 3], decoded['items'] as List);
+
+  // 3. Fusing with custom reviver
+  final reviver = (Object? k, Object? v) => k == 'score' ? 100.0 : v;
+  final fusedWithReviver = utf8.decoder.fuse(JsonDecoder(reviver));
+  Expect.type<JsonUtf8Decoder>(fusedWithReviver);
+  Expect.equals(reviver, (fusedWithReviver as JsonUtf8Decoder).reviver);
+  final decodedReviver =
+      fusedWithReviver.convert(jsonUtf8Bytes) as Map<String, dynamic>;
+  Expect.equals(100.0, decodedReviver['score']);
+
+  // 4. Fusing with allowMalformed: true
+  final fusedMalformed =
+      Utf8Decoder(allowMalformed: true).fuse(json.decoder) as JsonUtf8Decoder;
+  Expect.isTrue(fusedMalformed.allowMalformed);
+  final badBytes = Uint8List.fromList([0x22, 0x80, 0x22]); // '"\x80"'
+  Expect.equals('\uFFFD', fusedMalformed.convert(badBytes));
+
+  // 5. json.fuse(utf8) encoder and decoder
+  final jsonToUtf8 = json.fuse(utf8);
+  final encodedData = jsonToUtf8.encode({
+    'name': 'fused',
+    'values': [10, 20.5],
+  });
+  Expect.type<Uint8List>(encodedData);
+
+  final decodedData = jsonToUtf8.decode(encodedData) as Map<String, dynamic>;
+  Expect.equals('fused', decodedData['name']);
+  Expect.listEquals([10, 20.5], decodedData['values'] as List);
 }

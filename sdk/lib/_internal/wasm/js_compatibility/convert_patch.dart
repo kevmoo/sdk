@@ -29,6 +29,12 @@ dynamic _parseJson(
 class Utf8Decoder {
   @patch
   Converter<List<int>, T> fuse<T>(Converter<String, T> next) {
+    if (next is JsonDecoder) {
+      return JsonUtf8Decoder(
+        (next as JsonDecoder)._reviver,
+        this._allowMalformed,
+      ) as dynamic;
+    }
     return super.fuse(next);
   }
 }
