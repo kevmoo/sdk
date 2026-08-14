@@ -42,6 +42,8 @@ void main() {
   testUnterminatedStringSkipping();
   testDoubleNativeLinkageAndPrecision();
   testBufferPoolSinkWriters();
+  testLeadingFractionalZerosPrecision();
+  testReentrantSinkWriters();
 }
 
 void testParseInt() {
@@ -1774,4 +1776,110 @@ void testBufferPoolSinkWriters() {
     JsonUtf8Encoder.writeString('second_longer_string', nonCopySink2);
     Expect.equals('"first"', utf8.decode(bytes1));
   }
+}
+
+void testLeadingFractionalZerosPrecision() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Numbers with many leading fractional zeros
+  final testCases = <String, double>{
+    '0.0000000000000000123': 1.23e-17,
+    '0.000000000000000123': 1.23e-16,
+    '0.000000000000000000123': 1.23e-19,
+    '0.00000123456789': 0.00000123456789,
+    '0.000000000000001': 1e-15,
+    '0.0000000000000001': 1e-16,
+    '0.00000000000000001': 1e-17,
+    '-0.0000000000000000123': -1.23e-17,
+    '0.0000000000000000000001': 1e-22,
+    '0.00000000000000000000001': 1e-23,
+    '0.0000000000000000123e2': 1.23e-15,
+    '0.0000000000000000123e-2': 1.23e-19,
+    '0.000000000000000000000000000001': 1e-30,
+    '0.000000000000000000000000000000': 0.0,
+    '-0.000000000000000000000000000000': -0.0,
+    '0.00000000000000001234567890123456789e-200': 1.2345678901234568e-217,
+    '0.000000000000000000000000000000e50': 0.0,
+    '10.0000000000000000123': 10.0000000000000000123,
+    '1.000000000000000000000000000001': 1.0,
+  };
+
+  for (final entry in testCases.entries) {
+    final bytes = b(entry.key);
+    final expected = entry.value;
+    final parsed = JsonUtf8Decoder.parseDouble(bytes, 0, bytes.length);
+    Expect.equals(expected, parsed, 'parseDouble failed for ${entry.key}');
+    final tryParsed = JsonUtf8Decoder.tryParseDouble(bytes, 0, bytes.length);
+    Expect.isNotNull(
+      tryParsed,
+      'tryParseDouble returned null for ${entry.key}',
+    );
+    Expect.equals(
+      expected,
+      tryParsed!,
+      'tryParseDouble failed for ${entry.key}',
+    );
+
+    // Negative zero sign bit check
+    if (expected == 0.0 && expected.isNegative) {
+      Expect.isTrue(
+        parsed.isNegative,
+        'parseDouble sign bit mismatch for ${entry.key}',
+      );
+      Expect.isTrue(
+        tryParsed.isNegative,
+        'tryParseDouble sign bit mismatch for ${entry.key}',
+      );
+    }
+
+    // Full JSON decode
+    final jsonDoc = b('{"val": ${entry.key}}');
+    final decoded = jsonUtf8Decode(jsonDoc) as Map<String, dynamic>;
+    Expect.equals(
+      expected,
+      decoded['val'] as double,
+      'jsonUtf8Decode failed for ${entry.key}',
+    );
+  }
+}
+
+void testReentrantSinkWriters() {
+  final outerSink = BytesBuilder(copy: false);
+  final innerSink = BytesBuilder(copy: false);
+
+  JsonUtf8Encoder.writeString('outer_start', outerSink);
+  JsonUtf8Encoder.writeString('inner_string', innerSink);
+  JsonUtf8Encoder.writeDouble(42.5, innerSink);
+  JsonUtf8Encoder.writeDouble(100.125, outerSink);
+
+  Expect.equals('"outer_start"100.125', utf8.decode(outerSink.takeBytes()));
+  Expect.equals('"inner_string"42.5', utf8.decode(innerSink.takeBytes()));
+
+  // Interleaved writeDouble calls on separate non-copying sinks
+  final sinks = List.generate(5, (_) => BytesBuilder(copy: false));
+  for (var i = 0; i < 5; i++) {
+    JsonUtf8Encoder.writeDouble(i * 1.5 + 0.25, sinks[i]);
+  }
+  for (var i = 0; i < 5; i++) {
+    Expect.equals('${i * 1.5 + 0.25}', utf8.decode(sinks[i].takeBytes()));
+  }
+
+  // Nested recursive multi-level writes
+  final b1 = BytesBuilder(copy: false);
+  JsonUtf8Encoder.writeString('level1', b1);
+  final b2 = BytesBuilder(copy: false);
+  JsonUtf8Encoder.writeString('level2', b2);
+  JsonUtf8Encoder.writeDouble(2.5, b2);
+  final b3 = BytesBuilder(copy: false);
+  JsonUtf8Encoder.writeString('level3', b3);
+  JsonUtf8Encoder.writeDouble(3.75, b3);
+
+  JsonUtf8Encoder.writeDouble(1.25, b1);
+  b1.add(b2.takeBytes());
+  b1.add(b3.takeBytes());
+
+  Expect.equals(
+    '"level1"1.25"level2"2.5"level3"3.75',
+    utf8.decode(b1.takeBytes()),
+  );
 }

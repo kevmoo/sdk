@@ -654,22 +654,12 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     return super.bind(stream);
   }
 
-  static final Uint8List _sharedDoubleBuffer = Uint8List(64);
-  static final Uint8List _sharedStringBuffer = Uint8List(256);
-
   /// Writes [value] with standard JSON escaping directly into [sink].
   static void writeString(String value, BytesBuilder sink) {
     final maxLen = value.length * 6 + 2;
-    if (maxLen <= _sharedStringBuffer.length) {
-      final len = writeStringToBuffer(value, _sharedStringBuffer, 0);
-      for (var i = 0; i < len; i++) {
-        sink.addByte(_sharedStringBuffer[i]);
-      }
-    } else {
-      final buf = Uint8List(maxLen);
-      final len = writeStringToBuffer(value, buf, 0);
-      sink.add(Uint8List.sublistView(buf, 0, len));
-    }
+    final buf = Uint8List(maxLen);
+    final len = writeStringToBuffer(value, buf, 0);
+    sink.add(Uint8List.sublistView(buf, 0, len));
   }
 
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
@@ -683,10 +673,9 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite');
     }
-    final len = writeDoubleToBuffer(value, _sharedDoubleBuffer, 0);
-    for (var i = 0; i < len; i++) {
-      sink.addByte(_sharedDoubleBuffer[i]);
-    }
+    final buf = Uint8List(32);
+    final len = writeDoubleToBuffer(value, buf, 0);
+    sink.add(Uint8List.sublistView(buf, 0, len));
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -3116,7 +3105,9 @@ double? _tryParseDoubleUtf8(
       return null;
     }
     while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
-      if (digitCount < 16) {
+      if (mantissa == 0 && source[i] == 48) {
+        decimalExp--;
+      } else if (digitCount < 16) {
         mantissa = mantissa * 10 + (source[i] - 48);
         digitCount++;
         decimalExp--;

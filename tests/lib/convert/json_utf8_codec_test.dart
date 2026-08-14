@@ -15,6 +15,7 @@ void main() {
   testPrettyPrinting();
   testBitExactJsonCompatibility();
   testExactBufferCapacity();
+  testReentrantSerialization();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -223,5 +224,44 @@ void testExactBufferCapacity() {
     largeEncoded.length,
     largeEncoded.buffer.lengthInBytes,
     'Large multi-chunk buffer capacity mismatch',
+  );
+}
+
+class _ReentrantCustomObject {
+  final double value;
+  final String text;
+  final _ReentrantCustomObject? child;
+  _ReentrantCustomObject(this.value, this.text, [this.child]);
+
+  Map<String, dynamic> toJson() {
+    final b = BytesBuilder(copy: false);
+    JsonUtf8Encoder.writeDouble(value, b);
+    JsonUtf8Encoder.writeString(text, b);
+    if (child != null) {
+      final childJson = jsonUtf8Encode(child!.toJson());
+      b.add(childJson);
+    }
+    return {'serialized': utf8.decode(b.takeBytes())};
+  }
+}
+
+void testReentrantSerialization() {
+  final obj = _ReentrantCustomObject(
+    123.456,
+    'nested',
+    _ReentrantCustomObject(78.9, 'deep_child'),
+  );
+  final map = <String, dynamic>{
+    'top_double': 99.5,
+    'top_string': 'hello',
+    'obj': obj,
+  };
+  final encoded = jsonUtf8Encode(map);
+  final decoded = jsonUtf8Decode(encoded) as Map<String, dynamic>;
+  Expect.equals(99.5, decoded['top_double']);
+  Expect.equals('hello', decoded['top_string']);
+  Expect.equals(
+    '123.456"nested"{"serialized":"78.9\\"deep_child\\""}',
+    (decoded['obj'] as Map)['serialized'],
   );
 }
