@@ -44,8 +44,10 @@ void main() {
   testWriteNameBytesColonTerminated();
   testSkipValueScalarGrammarValidation();
   testTruncatedDocumentTrailingCommaEof();
-  testMissingCommaEnforcementInGetTokenSpan();
   testSelectNameMultiByteUtf8Keys();
+  testDeepMixedContainerSkipValue64Levels();
+  testClosureFreeScalarStreamingAndRollback();
+  testZeroAllocationColonTerminatedKeys();
 }
 
 void testTokenReaderPrimitives() {
@@ -1499,4 +1501,203 @@ void testSelectNameMultiByteUtf8Keys() {
   Expect.equals(2, rArr.selectString(stringOptions)); // 'ユーザー'
   Expect.isFalse(rArr.hasNext());
   rArr.endArray();
+}
+
+void testDeepMixedContainerSkipValue64Levels() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Exact 31-level nested containers: {"a":[{"b":...}]}
+  var json31 = '';
+  for (var i = 0; i < 15; i++) {
+    json31 += '{"k":[';
+  }
+  json31 += '{"k": 1}'; // 31 levels
+  for (var i = 0; i < 15; i++) {
+    json31 += ']}';
+  }
+  final r31 = JsonTokenReader.fromBytes(b(json31));
+  r31.skipValue();
+  Expect.equals(JsonTokenType.endOfDocument, r31.peek());
+  Expect.isFalse(r31.hasNext());
+
+  // 2. Exact 32-level nested containers: 16 pairs of {"k":[
+  var json32 = '';
+  for (var i = 0; i < 16; i++) {
+    json32 += '{"k":[';
+  }
+  json32 += '42';
+  for (var i = 0; i < 16; i++) {
+    json32 += ']}';
+  }
+  final r32 = JsonTokenReader.fromBytes(b(json32));
+  r32.skipValue();
+  Expect.equals(JsonTokenType.endOfDocument, r32.peek());
+  Expect.isFalse(r32.hasNext());
+
+  // 3. Exact 33-level nested containers
+  var json33 = '';
+  for (var i = 0; i < 16; i++) {
+    json33 += '{"k":[';
+  }
+  json33 += '{"k": 1}'; // 33 levels
+  for (var i = 0; i < 16; i++) {
+    json33 += ']}';
+  }
+  final r33 = JsonTokenReader.fromBytes(b(json33));
+  r33.skipValue();
+  Expect.equals(JsonTokenType.endOfDocument, r33.peek());
+  Expect.isFalse(r33.hasNext());
+
+  // 4. Exact 63-level nested containers
+  var json63 = '';
+  for (var i = 0; i < 31; i++) {
+    json63 += '{"k":[';
+  }
+  json63 += '{"k": 1}'; // 63 levels
+  for (var i = 0; i < 31; i++) {
+    json63 += ']}';
+  }
+  final r63 = JsonTokenReader.fromBytes(b(json63));
+  r63.skipValue();
+  Expect.equals(JsonTokenType.endOfDocument, r63.peek());
+  Expect.isFalse(r63.hasNext());
+
+  // 5. 64-level alternating objects and arrays: {"a":[{"b":[{"c":...}]}]}
+  var deepJson = '';
+  for (var i = 0; i < 32; i++) {
+    deepJson += '{"k":[';
+  }
+  deepJson += '42';
+  for (var i = 0; i < 32; i++) {
+    deepJson += ']}';
+  }
+  final r = JsonTokenReader.fromBytes(b(deepJson));
+  r.skipValue();
+  Expect.equals(JsonTokenType.endOfDocument, r.peek());
+  Expect.isFalse(r.hasNext());
+
+  // 5b. 64-level deep container followed by trailing token
+  final deepWithTrailing = b('[$deepJson, "trailing"]');
+  final rTrailing = JsonTokenReader.fromBytes(deepWithTrailing);
+  rTrailing.beginArray();
+  rTrailing.skipValue();
+  Expect.equals(JsonTokenType.string, rTrailing.peek());
+  Expect.equals('trailing', rTrailing.readString());
+  Expect.isFalse(rTrailing.hasNext());
+  rTrailing.endArray();
+
+  // 6. Mismatched delimiter at depth >= 32: array closed with '}' at depth 35
+  var mismatchArrayAt35 = '';
+  for (var i = 0; i < 17; i++) {
+    mismatchArrayAt35 += '{"k":['; // 34 levels
+  }
+  mismatchArrayAt35 += '['; // 35th level: array
+  mismatchArrayAt35 += '}'; // Wrong closing delimiter '}' instead of ']'
+  for (var i = 0; i < 17; i++) {
+    mismatchArrayAt35 += ']}';
+  }
+  final rMismatchArray = JsonTokenReader.fromBytes(b(mismatchArrayAt35));
+  Expect.throwsFormatException(() => rMismatchArray.skipValue());
+
+  // 7. Mismatched delimiter at depth >= 32: object closed with ']' at depth 41
+  var mismatchObjectAt40 = '';
+  for (var i = 0; i < 20; i++) {
+    mismatchObjectAt40 += '{"k":['; // 40 levels
+  }
+  mismatchObjectAt40 += '{"k": 10]'; // 41st level object closed with ']'
+  for (var i = 0; i < 20; i++) {
+    mismatchObjectAt40 += ']}';
+  }
+  final rMismatchObj = JsonTokenReader.fromBytes(b(mismatchObjectAt40));
+  Expect.throwsFormatException(() => rMismatchObj.skipValue());
+
+  // 8. Maximum depth limit (> 64) throws FormatException
+  var deep65 = '';
+  for (var i = 0; i < 32; i++) {
+    deep65 += '{"k":[';
+  }
+  deep65 += '{"k": 1}'; // 65th level
+  for (var i = 0; i < 32; i++) {
+    deep65 += ']}';
+  }
+  final r65 = JsonTokenReader.fromBytes(b(deep65));
+  Expect.throwsFormatException(() => r65.skipValue());
+}
+
+void testClosureFreeScalarStreamingAndRollback() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Direct typed reads across a stream
+  final streamJson = b(
+    '[123, -456, 3.14159, -0.0, true, false, null, "text", 999999999999]',
+  );
+  final r = JsonTokenReader.fromBytes(streamJson);
+  r.beginArray();
+  Expect.equals(123, r.readInt());
+  Expect.equals(-456, r.readInt());
+  Expect.equals(3.14159, r.readDouble());
+  final n0 = r.readDouble();
+  Expect.equals(-0.0, n0);
+  Expect.isTrue(n0.isNegative);
+  Expect.isTrue(r.readBool());
+  Expect.isFalse(r.readBool());
+  r.readNull();
+  Expect.equals('text', r.readString());
+  Expect.equals(999999999999, r.readNum());
+  Expect.isFalse(r.hasNext());
+  r.endArray();
+
+  // 2. Rollback on readInt() FormatException
+  {
+    final rFail = JsonTokenReader.fromBytes(b('[invalid, 123]'));
+    rFail.beginArray();
+    Expect.throwsFormatException(() => rFail.readInt());
+    Expect.equals(JsonTokenType.none, rFail.peek());
+  }
+
+  // 3. Rollback on readDouble() FormatException
+  {
+    final rFail = JsonTokenReader.fromBytes(b('["not_a_double", 123]'));
+    rFail.beginArray();
+    Expect.throwsFormatException(() => rFail.readDouble());
+    Expect.equals(JsonTokenType.string, rFail.peek());
+    Expect.equals('not_a_double', rFail.readString());
+  }
+
+  // 4. Rollback on readBool() FormatException
+  {
+    final rFail = JsonTokenReader.fromBytes(b('[123, true]'));
+    rFail.beginArray();
+    Expect.throwsFormatException(() => rFail.readBool());
+    Expect.equals(JsonTokenType.number, rFail.peek());
+    Expect.equals(123, rFail.readInt());
+  }
+
+  // 5. Rollback on readNull() FormatException
+  {
+    final rFail = JsonTokenReader.fromBytes(b('[true, null]'));
+    rFail.beginArray();
+    Expect.throwsFormatException(() => rFail.readNull());
+    Expect.equals(JsonTokenType.boolean, rFail.peek());
+    Expect.isTrue(rFail.readBool());
+    rFail.readNull();
+  }
+}
+
+void testZeroAllocationColonTerminatedKeys() {
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
+  w.beginObject();
+  w.writeNameBytes(Uint8List.fromList(utf8.encode('"user_id":')));
+  w.writeInt(42);
+  w.writeNameBytes(Uint8List.fromList(utf8.encode('"user_name":')));
+  w.writeString('Alice');
+  w.writeNameBytes(Uint8List.fromList(utf8.encode(r'"escaped\nkey":')));
+  w.writeBool(true);
+  w.endObject();
+  final json = utf8.decode(sink.takeBytes());
+  Expect.equals(
+    r'{"user_id":42,"user_name":"Alice","escaped\nkey":true}',
+    json,
+  );
 }

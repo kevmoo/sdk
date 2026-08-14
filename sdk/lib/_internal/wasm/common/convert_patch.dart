@@ -68,6 +68,10 @@ class JsonUtf8Decoder {
   }
 
   @patch
+  static double? tryParseDouble(Uint8List bytes, int start, int end) =>
+      _tryParseDoubleUtf8(bytes, start, end);
+
+  @patch
   ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) =>
       _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
 }

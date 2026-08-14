@@ -344,7 +344,8 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     if (b == 123 || b == 91) {
       // object or array
       var depth = 1;
-      var mask = (b == 123) ? 1 : 0;
+      var maskLo = (b == 123) ? 1 : 0;
+      var maskHi = 0;
       i++;
       while (i < bytes.length && depth > 0) {
         final c = bytes[i++];
@@ -377,14 +378,27 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
               i - 1,
             );
           }
-          if (c == 123) {
-            mask |= (1 << depth);
+          if (depth < 32) {
+            if (c == 123) {
+              maskLo |= (1 << depth);
+            } else {
+              maskLo &= ~(1 << depth);
+            }
           } else {
-            mask &= ~(1 << depth);
+            final shift = depth - 32;
+            if (c == 123) {
+              maskHi |= (1 << shift);
+            } else {
+              maskHi &= ~(1 << shift);
+            }
           }
           depth++;
         } else if (c == 125) {
-          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 1) {
+          final d = depth - 1;
+          final isObject = (d < 32)
+              ? (((maskLo >> d) & 1) == 1)
+              : (((maskHi >> (d - 32)) & 1) == 1);
+          if (depth == 0 || !isObject) {
             throw FormatException(
               'Mismatched "}" at offset ${i - 1}',
               bytes,
@@ -393,7 +407,11 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
           }
           depth--;
         } else if (c == 93) {
-          if (depth == 0 || ((mask >> (depth - 1)) & 1) != 0) {
+          final d = depth - 1;
+          final isObject = (d < 32)
+              ? (((maskLo >> d) & 1) == 1)
+              : (((maskHi >> (d - 32)) & 1) == 1);
+          if (depth == 0 || isObject) {
             throw FormatException(
               'Mismatched "]" at offset ${i - 1}',
               bytes,
@@ -885,9 +903,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
         asciiKey.length >= 3 &&
         asciiKey.first == 0x22 &&
         asciiKey.last == 0x3A &&
-        _isSingleQuotedString(
-          Uint8List.sublistView(asciiKey, 0, asciiKey.length - 1),
-        );
+        _isSingleQuotedSlice(asciiKey, 0, asciiKey.length - 1);
     if (isColonTerminated) {
       final requiredLen = isFirstOffset + asciiKey.length;
       if (offset < 0 || offset + requiredLen > buffer.length) {
@@ -1837,10 +1853,7 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
   }
 
-  T _readValue<T>(T Function(int start, int end) parser) {
-    final initialOffset = _offset;
-    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
-    final hadReadRoot = _hasReadRoot;
+  (int, int) _scanScalarSpan() {
     _beforeReadingValue();
     final start = _offset;
     var i = start;
@@ -1853,8 +1866,17 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
     _offset = i;
     _afterReadingValue();
+    return (start, i);
+  }
+
+  @override
+  int readInt() {
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
     try {
-      return parser(start, i);
+      final (start, end) = _scanScalarSpan();
+      return JsonUtf8Decoder.parseInt(_bytes, start, end);
     } catch (_) {
       _offset = initialOffset;
       _hasReadRoot = hadReadRoot;
@@ -1866,42 +1888,79 @@ final class _JsonTokenReader implements JsonTokenReader {
   }
 
   @override
-  int readInt() {
-    return _readValue(
-      (start, end) => JsonUtf8Decoder.parseInt(_bytes, start, end),
-    );
-  }
-
-  @override
   double readDouble() {
-    return _readValue(
-      (start, end) => JsonUtf8Decoder.parseDouble(_bytes, start, end),
-    );
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
+    try {
+      final (start, end) = _scanScalarSpan();
+      return JsonUtf8Decoder.parseDouble(_bytes, start, end);
+    } catch (_) {
+      _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
   num readNum() {
-    return _readValue((start, end) {
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
+    try {
+      final (start, end) = _scanScalarSpan();
       final asInt = JsonUtf8Decoder.tryParseInt(_bytes, start, end);
       if (asInt != null) return asInt;
       return JsonUtf8Decoder.parseDouble(_bytes, start, end);
-    });
+    } catch (_) {
+      _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
   bool readBool() {
-    return _readValue(
-      (start, end) => JsonUtf8Decoder.parseBool(_bytes, start, end),
-    );
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
+    try {
+      final (start, end) = _scanScalarSpan();
+      return JsonUtf8Decoder.parseBool(_bytes, start, end);
+    } catch (_) {
+      _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
   void readNull() {
-    _readValue((start, end) {
+    final initialOffset = _offset;
+    final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
+    final hadReadRoot = _hasReadRoot;
+    try {
+      final (start, end) = _scanScalarSpan();
       if (!_isNullUtf8(_bytes, start, end)) {
         throw FormatException('Expected null at offset $start');
       }
-    });
+    } catch (_) {
+      _offset = initialOffset;
+      _hasReadRoot = hadReadRoot;
+      if (_stack.isNotEmpty && initialFrameState != null) {
+        _stack.last.state = initialFrameState;
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -1915,7 +1974,8 @@ final class _JsonTokenReader implements JsonTokenReader {
       final b = _bytes[_offset];
       if (b == 123 || b == 91) {
         var depth = 1;
-        var mask = (b == 123) ? 1 : 0;
+        var maskLo = (b == 123) ? 1 : 0;
+        var maskHi = 0;
         _offset++;
         while (_offset < _bytes.length && depth > 0) {
           final c = _bytes[_offset++];
@@ -1952,14 +2012,27 @@ final class _JsonTokenReader implements JsonTokenReader {
                 _offset - 1,
               );
             }
-            if (c == 123) {
-              mask |= (1 << depth);
+            if (depth < 32) {
+              if (c == 123) {
+                maskLo |= (1 << depth);
+              } else {
+                maskLo &= ~(1 << depth);
+              }
             } else {
-              mask &= ~(1 << depth);
+              final shift = depth - 32;
+              if (c == 123) {
+                maskHi |= (1 << shift);
+              } else {
+                maskHi &= ~(1 << shift);
+              }
             }
             depth++;
           } else if (c == 125) {
-            if (depth == 0 || ((mask >> (depth - 1)) & 1) != 1) {
+            final d = depth - 1;
+            final isObject = (d < 32)
+                ? (((maskLo >> d) & 1) == 1)
+                : (((maskHi >> (d - 32)) & 1) == 1);
+            if (depth == 0 || !isObject) {
               throw FormatException(
                 'Mismatched "}" at offset ${_offset - 1}',
                 _bytes,
@@ -1968,7 +2041,11 @@ final class _JsonTokenReader implements JsonTokenReader {
             }
             depth--;
           } else if (c == 93) {
-            if (depth == 0 || ((mask >> (depth - 1)) & 1) != 0) {
+            final d = depth - 1;
+            final isObject = (d < 32)
+                ? (((maskLo >> d) & 1) == 1)
+                : (((maskHi >> (d - 32)) & 1) == 1);
+            if (depth == 0 || isObject) {
               throw FormatException(
                 'Mismatched "]" at offset ${_offset - 1}',
                 _bytes,
@@ -2293,9 +2370,7 @@ final class _JsonTokenWriter implements JsonTokenWriter {
         asciiKey.length >= 3 &&
         asciiKey.first == 0x22 &&
         asciiKey.last == 0x3A &&
-        _isSingleQuotedString(
-          Uint8List.sublistView(asciiKey, 0, asciiKey.length - 1),
-        );
+        _isSingleQuotedSlice(asciiKey, 0, asciiKey.length - 1);
     if (isColonTerminated) {
       _sink.add(asciiKey);
       return;
@@ -3517,18 +3592,26 @@ int _utf8SequenceLength(int firstByte) {
 }
 
 bool _isSingleQuotedString(Uint8List bytes) {
-  if (bytes.length < 2 || bytes.first != 0x22 || bytes.last != 0x22) {
+  return _isSingleQuotedSlice(bytes, 0, bytes.length);
+}
+
+bool _isSingleQuotedSlice(Uint8List bytes, int start, int end) {
+  if (start < 0 ||
+      end > bytes.length ||
+      end - start < 2 ||
+      bytes[start] != 0x22 ||
+      bytes[end - 1] != 0x22) {
     return false;
   }
-  var i = 1;
-  final end = bytes.length - 1;
-  while (i < end) {
+  var i = start + 1;
+  final last = end - 1;
+  while (i < last) {
     final b = bytes[i];
     if (b == 0x22 || b < 0x20) {
       return false;
     }
     if (b == 0x5C) {
-      if (i + 1 >= end) return false;
+      if (i + 1 >= last) return false;
       final next = bytes[i + 1];
       if (next == 0x22 || // '"'
           next == 0x5C || // '\'
@@ -3542,7 +3625,7 @@ bool _isSingleQuotedString(Uint8List bytes) {
         i += 2;
       } else if (next == 0x75) {
         // 'u'
-        if (i + 5 >= end + 1) return false;
+        if (i + 5 >= last + 1) return false;
         for (var j = i + 2; j <= i + 5; j++) {
           final c = bytes[j];
           final isHex =
@@ -3559,5 +3642,5 @@ bool _isSingleQuotedString(Uint8List bytes) {
       i++;
     }
   }
-  return i == end;
+  return i == last;
 }

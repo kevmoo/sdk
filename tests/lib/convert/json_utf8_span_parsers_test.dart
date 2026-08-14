@@ -44,6 +44,8 @@ void main() {
   testBufferPoolSinkWriters();
   testLeadingFractionalZerosPrecision();
   testReentrantSinkWriters();
+  testDecoderSkipValue64LevelsMixedContainers();
+  testZeroAllocationKeySlicing();
 }
 
 void testParseInt() {
@@ -1882,4 +1884,226 @@ void testReentrantSinkWriters() {
     '"level1"1.25"level2"2.5"level3"3.75',
     utf8.decode(b1.takeBytes()),
   );
+}
+
+void testDecoderSkipValue64LevelsMixedContainers() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Exact 31-level nested containers: {"a":[{"b":...}]}
+  var json31 = '';
+  for (var i = 0; i < 15; i++) {
+    json31 += '{"k":[';
+  }
+  json31 += '{"k": 1}'; // 31 levels
+  for (var i = 0; i < 15; i++) {
+    json31 += ']}';
+  }
+  final bytes31 = b(json31);
+  Expect.equals(bytes31.length, JsonUtf8Decoder.skipValue(bytes31, 0));
+
+  // 2. Exact 32-level nested containers: 16 pairs of {"k":[
+  var json32 = '';
+  for (var i = 0; i < 16; i++) {
+    json32 += '{"k":[';
+  }
+  json32 += '42';
+  for (var i = 0; i < 16; i++) {
+    json32 += ']}';
+  }
+  final bytes32 = b(json32);
+  Expect.equals(bytes32.length, JsonUtf8Decoder.skipValue(bytes32, 0));
+
+  // 3. Exact 33-level nested containers
+  var json33 = '';
+  for (var i = 0; i < 16; i++) {
+    json33 += '{"k":[';
+  }
+  json33 += '{"k": 1}'; // 33 levels
+  for (var i = 0; i < 16; i++) {
+    json33 += ']}';
+  }
+  final bytes33 = b(json33);
+  Expect.equals(bytes33.length, JsonUtf8Decoder.skipValue(bytes33, 0));
+
+  // 4. Exact 63-level nested containers
+  var json63 = '';
+  for (var i = 0; i < 31; i++) {
+    json63 += '{"k":[';
+  }
+  json63 += '{"k": 1}'; // 63 levels
+  for (var i = 0; i < 31; i++) {
+    json63 += ']}';
+  }
+  final bytes63 = b(json63);
+  Expect.equals(bytes63.length, JsonUtf8Decoder.skipValue(bytes63, 0));
+
+  // 5. 64-level alternating objects and arrays: {"a":[{"b":[{"c":...}]}]}
+  var deepJson = '';
+  for (var i = 0; i < 32; i++) {
+    deepJson += '{"k":[';
+  }
+  deepJson += '42';
+  for (var i = 0; i < 32; i++) {
+    deepJson += ']}';
+  }
+  final deepBytes = b(deepJson);
+  final endOffset = JsonUtf8Decoder.skipValue(deepBytes, 0);
+  Expect.equals(deepBytes.length, endOffset);
+
+  // 6. Mismatched closing brace '}' at depth 31 (closing an array)
+  var mismatch31 = '';
+  for (var i = 0; i < 15; i++) {
+    mismatch31 += '{"k":['; // 30 levels
+  }
+  mismatch31 += '['; // 31st level: array
+  mismatch31 += '}'; // Wrong delimiter '}'
+  for (var i = 0; i < 15; i++) {
+    mismatch31 += ']}';
+  }
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b(mismatch31), 0),
+  );
+
+  // 7. Mismatched closing brace '}' at depth 32 (closing an array)
+  var mismatch32 = '';
+  for (var i = 0; i < 15; i++) {
+    mismatch32 += '{"k":['; // 30 levels
+  }
+  mismatch32 += '{"k":['; // 32nd level: array
+  mismatch32 += '}'; // Wrong delimiter '}'
+  for (var i = 0; i < 15; i++) {
+    mismatch32 += ']}';
+  }
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b(mismatch32), 0),
+  );
+
+  // 8. Mismatched closing brace '}' at depth 33 (closing an array)
+  var mismatch33 = '';
+  for (var i = 0; i < 16; i++) {
+    mismatch33 += '{"k":['; // 32 levels
+  }
+  mismatch33 += '['; // 33rd level: array
+  mismatch33 += '}'; // Wrong delimiter '}'
+  for (var i = 0; i < 16; i++) {
+    mismatch33 += ']}';
+  }
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b(mismatch33), 0),
+  );
+
+  // 9. Mismatched closing bracket ']' at depth 33 (closing an object)
+  var mismatch34 = '';
+  for (var i = 0; i < 16; i++) {
+    mismatch34 += '{"k":['; // 32 levels
+  }
+  mismatch34 += '{"k": 1]'; // 33rd level object closed with ']'
+  for (var i = 0; i < 16; i++) {
+    mismatch34 += ']}';
+  }
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(b(mismatch34), 0),
+  );
+
+  // 10. Depth 65 exceeds max depth limit
+  var deep65 = '';
+  for (var i = 0; i < 32; i++) {
+    deep65 += '{"k":[';
+  }
+  deep65 += '{"k": 1}'; // 65th level
+  for (var i = 0; i < 32; i++) {
+    deep65 += ']}';
+  }
+  Expect.throwsFormatException(() => JsonUtf8Decoder.skipValue(b(deep65), 0));
+}
+
+void testZeroAllocationKeySlicing() {
+  final buf = Uint8List(128);
+
+  // 1. Colon-terminated pre-quoted key: '"id":'
+  final key1 = Uint8List.fromList(utf8.encode('"id":'));
+  var len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    key1,
+    isFirst: true,
+  );
+  Expect.equals(5, len);
+  Expect.equals('"id":', utf8.decode(buf.sublist(0, len)));
+
+  // Not first property: comma prepended
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    key1,
+    isFirst: false,
+  );
+  Expect.equals(6, len);
+  Expect.equals(',"id":', utf8.decode(buf.sublist(0, len)));
+
+  // 2. Colon-terminated empty string key: '"":'
+  final keyEmpty = Uint8List.fromList(utf8.encode('"":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    keyEmpty,
+    isFirst: true,
+  );
+  Expect.equals(3, len);
+  Expect.equals('"":', utf8.decode(buf.sublist(0, len)));
+
+  // 3. Colon-terminated key with escape sequence: '"escaped\\nfield":'
+  final keyEsc = Uint8List.fromList(utf8.encode(r'"escaped\nfield":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    keyEsc,
+    isFirst: true,
+  );
+  Expect.equals(keyEsc.length, len);
+  Expect.equals(r'"escaped\nfield":', utf8.decode(buf.sublist(0, len)));
+
+  // 4. Colon-terminated key with unicode escape: '"\u0020":'
+  final keyUnicode = Uint8List.fromList(utf8.encode(r'"\u0020":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    keyUnicode,
+    isFirst: true,
+  );
+  Expect.equals(keyUnicode.length, len);
+  Expect.equals(r'"\u0020":', utf8.decode(buf.sublist(0, len)));
+
+  // 5. Colon-terminated key with escaped quote: '"\"":'
+  final keyQuote = Uint8List.fromList(utf8.encode(r'"\"":'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    keyQuote,
+    isFirst: true,
+  );
+  Expect.equals(keyQuote.length, len);
+  Expect.equals(r'"\"":', utf8.decode(buf.sublist(0, len)));
+
+  // 6. Pre-quoted key without colon: '"id"' -> quotes preserved, colon appended
+  final keyNoColon = Uint8List.fromList(utf8.encode('"id"'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    keyNoColon,
+    isFirst: true,
+  );
+  Expect.equals(5, len);
+  Expect.equals('"id":', utf8.decode(buf.sublist(0, len)));
+
+  // 7. Raw unquoted key: 'id' -> quotes added, colon appended
+  final keyRaw = Uint8List.fromList(utf8.encode('id'));
+  len = JsonUtf8Encoder.writePropertyPrefixToBuffer(
+    buf,
+    0,
+    keyRaw,
+    isFirst: true,
+  );
+  Expect.equals(5, len);
+  Expect.equals('"id":', utf8.decode(buf.sublist(0, len)));
 }
