@@ -2076,7 +2076,17 @@ final class _JsonTokenReader implements JsonTokenReader {
     while (i < _bytes.length && _isWs(_bytes[i])) {
       i++;
     }
-    if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+    if (i >= _bytes.length) {
+      if (_stack.isNotEmpty &&
+          _stack.last.state == _ReaderItemState.afterComma) {
+        throw FormatException(
+          'Unexpected end of document after comma',
+          _bytes,
+          _offset,
+        );
+      }
+      return JsonTokenType.endOfDocument;
+    }
 
     if (_stack.isNotEmpty) {
       final top = _stack.last;
@@ -2264,18 +2274,33 @@ final class _JsonTokenReader implements JsonTokenReader {
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
     try {
       _skipWs();
-      if (_offset >= _bytes.length) return false;
       if (_stack.isNotEmpty) {
         final top = _stack.last;
         final closeChar = top.type == _ContainerType.object ? 125 : 93;
         final closeStr = top.type == _ContainerType.object ? '"}"' : '"]"';
 
-        if (top.state == _ReaderItemState.start) {
+        if (top.state == _ReaderItemState.afterComma) {
+          if (_offset >= _bytes.length) {
+            throw FormatException(
+              'Unexpected end of document after comma',
+              _bytes,
+              _offset,
+            );
+          }
+          if (_bytes[_offset] == 125 || _bytes[_offset] == 93) {
+            throw FormatException(
+              'Trailing comma before $closeStr at offset $_offset',
+            );
+          }
+          return true;
+        } else if (top.state == _ReaderItemState.start) {
+          if (_offset >= _bytes.length) return false;
           if (_bytes[_offset] == closeChar) {
             return false;
           }
           return true;
         } else if (top.state == _ReaderItemState.afterValue) {
+          if (_offset >= _bytes.length) return false;
           if (_bytes[_offset] == closeChar) {
             return false;
           }
@@ -2298,25 +2323,18 @@ final class _JsonTokenReader implements JsonTokenReader {
             return true;
           }
           throw FormatException('Expected "," or $closeStr at offset $_offset');
-        } else if (top.state == _ReaderItemState.afterComma) {
+        } else if (top.state == _ReaderItemState.afterName) {
           if (_offset >= _bytes.length) {
             throw FormatException(
-              'Unexpected end of document after comma',
+              'Unexpected end of document after property name',
               _bytes,
               _offset,
             );
           }
-          if (_bytes[_offset] == 125 || _bytes[_offset] == 93) {
-            throw FormatException(
-              'Trailing comma before $closeStr at offset $_offset',
-            );
-          }
-          return true;
-        } else if (top.state == _ReaderItemState.afterName) {
           return true;
         }
       } else {
-        if (_hasReadRoot) {
+        if (_hasReadRoot || _offset >= _bytes.length) {
           return false;
         }
       }
@@ -2360,15 +2378,70 @@ final class _JsonTokenReader implements JsonTokenReader {
     throw FormatException('Unterminated string literal at offset $start');
   }
 
+  (int, int) _scanNameSpanAndConsumeColon() {
+    _beforeReadingName();
+    var i = _offset;
+    while (i < _bytes.length && _isWs(_bytes[i])) {
+      i++;
+    }
+    if (i >= _bytes.length || _bytes[i] != 34) {
+      throw FormatException('Expected string at offset $i', _bytes, i);
+    }
+    final start = i + 1;
+    i = start;
+    while (i < _bytes.length) {
+      final b = _bytes[i];
+      if (b < 0x20) {
+        throw FormatException(
+          'Unescaped control character in string literal at offset $i',
+          _bytes,
+          i,
+        );
+      }
+      if (b == 92) {
+        i = _validateEscape(_bytes, i + 1, _bytes.length);
+      } else if (b == 34) {
+        break;
+      } else {
+        i++;
+      }
+    }
+    if (i >= _bytes.length) {
+      throw FormatException(
+        'Unterminated string literal at offset $start',
+        _bytes,
+        start,
+      );
+    }
+    final end = i;
+    i++; // Skip closing quote '"'
+
+    // Fused colon consumption & trailing whitespace
+    if (i < _bytes.length && _bytes[i] == 58) {
+      i++;
+    } else {
+      while (i < _bytes.length && _isWs(_bytes[i])) {
+        i++;
+      }
+      if (i >= _bytes.length || _bytes[i] != 58) {
+        throw FormatException('Expected ":" at offset $i', _bytes, i);
+      }
+      i++;
+    }
+    while (i < _bytes.length && _isWs(_bytes[i])) {
+      i++;
+    }
+    _offset = i;
+    _stack.last.state = _ReaderItemState.afterName;
+    return (start, end);
+  }
+
   @override
   String nextName() {
     final initialOffset = _offset;
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
     try {
-      _beforeReadingName();
-      final (start, end) = _scanStringSpan();
-      _consumeColon();
-      _stack.last.state = _ReaderItemState.afterName;
+      final (start, end) = _scanNameSpanAndConsumeColon();
       return _decodeStringUtf8(
         _bytes,
         start,
@@ -2389,10 +2462,7 @@ final class _JsonTokenReader implements JsonTokenReader {
     final initialOffset = _offset;
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
     try {
-      _beforeReadingName();
-      final (start, end) = _scanStringSpan();
-      _consumeColon();
-      _stack.last.state = _ReaderItemState.afterName;
+      final (start, end) = _scanNameSpanAndConsumeColon();
 
       final len = end - start;
       if (_isVerbatimUtf8(_bytes, start, end)) {
@@ -2431,8 +2501,63 @@ final class _JsonTokenReader implements JsonTokenReader {
     final hadReadRoot = _hasReadRoot;
     try {
       _beforeReadingValue();
-      final (start, end) = _scanStringSpan();
-      _afterReadingValue();
+      var i = _offset;
+      while (i < _bytes.length && _isWs(_bytes[i])) {
+        i++;
+      }
+      if (i >= _bytes.length || _bytes[i] != 34) {
+        throw FormatException('Expected string at offset $i', _bytes, i);
+      }
+      final start = i + 1;
+      i = start;
+      while (i < _bytes.length) {
+        final b = _bytes[i];
+        if (b < 0x20) {
+          throw FormatException(
+            'Unescaped control character in string literal at offset $i',
+            _bytes,
+            i,
+          );
+        }
+        if (b == 92) {
+          i = _validateEscape(_bytes, i + 1, _bytes.length);
+        } else if (b == 34) {
+          break;
+        } else {
+          i++;
+        }
+      }
+      if (i >= _bytes.length) {
+        throw FormatException(
+          'Unterminated string literal at offset $start',
+          _bytes,
+          start,
+        );
+      }
+      final end = i;
+      i++; // Skip closing quote '"'
+
+      var j = i;
+      while (j < _bytes.length && _isWs(_bytes[j])) {
+        j++;
+      }
+      if (_stack.isNotEmpty) {
+        final top = _stack.last;
+        if (j < _bytes.length && _bytes[j] == 44) {
+          j++;
+          while (j < _bytes.length && _isWs(_bytes[j])) {
+            j++;
+          }
+          top.state = _ReaderItemState.afterComma;
+          _offset = j;
+        } else {
+          top.state = _ReaderItemState.afterValue;
+          _offset = j;
+        }
+      } else {
+        _hasReadRoot = true;
+        _offset = j;
+      }
 
       final len = end - start;
       if (_isVerbatimUtf8(_bytes, start, end)) {
@@ -2472,8 +2597,64 @@ final class _JsonTokenReader implements JsonTokenReader {
     final hadReadRoot = _hasReadRoot;
     try {
       _beforeReadingValue();
-      final (start, end) = _scanStringSpan();
-      _afterReadingValue();
+      var i = _offset;
+      while (i < _bytes.length && _isWs(_bytes[i])) {
+        i++;
+      }
+      if (i >= _bytes.length || _bytes[i] != 34) {
+        throw FormatException('Expected string at offset $i', _bytes, i);
+      }
+      final start = i + 1;
+      i = start;
+      while (i < _bytes.length) {
+        final b = _bytes[i];
+        if (b < 0x20) {
+          throw FormatException(
+            'Unescaped control character in string literal at offset $i',
+            _bytes,
+            i,
+          );
+        }
+        if (b == 92) {
+          i = _validateEscape(_bytes, i + 1, _bytes.length);
+        } else if (b == 34) {
+          break;
+        } else {
+          i++;
+        }
+      }
+      if (i >= _bytes.length) {
+        throw FormatException(
+          'Unterminated string literal at offset $start',
+          _bytes,
+          start,
+        );
+      }
+      final end = i;
+      i++; // Skip closing quote '"'
+
+      var j = i;
+      while (j < _bytes.length && _isWs(_bytes[j])) {
+        j++;
+      }
+      if (_stack.isNotEmpty) {
+        final top = _stack.last;
+        if (j < _bytes.length && _bytes[j] == 44) {
+          j++;
+          while (j < _bytes.length && _isWs(_bytes[j])) {
+            j++;
+          }
+          top.state = _ReaderItemState.afterComma;
+          _offset = j;
+        } else {
+          top.state = _ReaderItemState.afterValue;
+          _offset = j;
+        }
+      } else {
+        _hasReadRoot = true;
+        _offset = j;
+      }
+
       return _decodeStringUtf8(
         _bytes,
         start,
@@ -2492,8 +2673,11 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   (int, int) _scanScalarSpan() {
     _beforeReadingValue();
-    final start = _offset;
-    var i = start;
+    var i = _offset;
+    while (i < _bytes.length && _isWs(_bytes[i])) {
+      i++;
+    }
+    final start = i;
     while (i < _bytes.length) {
       final b = _bytes[i];
       if (b == 44 || b == 125 || b == 93 || _isWs(b)) {
@@ -2501,9 +2685,30 @@ final class _JsonTokenReader implements JsonTokenReader {
       }
       i++;
     }
-    _offset = i;
-    _afterReadingValue();
-    return (start, i);
+    final end = i;
+
+    var j = i;
+    while (j < _bytes.length && _isWs(_bytes[j])) {
+      j++;
+    }
+    if (_stack.isNotEmpty) {
+      final top = _stack.last;
+      if (j < _bytes.length && _bytes[j] == 44) {
+        j++;
+        while (j < _bytes.length && _isWs(_bytes[j])) {
+          j++;
+        }
+        top.state = _ReaderItemState.afterComma;
+        _offset = j;
+      } else {
+        top.state = _ReaderItemState.afterValue;
+        _offset = j;
+      }
+    } else {
+      _hasReadRoot = true;
+      _offset = j;
+    }
+    return (start, end);
   }
 
   @override
@@ -2512,8 +2717,84 @@ final class _JsonTokenReader implements JsonTokenReader {
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
     final hadReadRoot = _hasReadRoot;
     try {
-      final (start, end) = _scanScalarSpan();
-      return JsonUtf8Decoder.parseInt(_bytes, start, end);
+      _beforeReadingValue();
+      var i = _offset;
+      while (i < _bytes.length && _isWs(_bytes[i])) {
+        i++;
+      }
+      if (i >= _bytes.length) {
+        throw FormatException('Unexpected end of document', _bytes, i);
+      }
+      final start = i;
+      if (_bytes[i] == 45) {
+        i++;
+        if (i >= _bytes.length) {
+          throw FormatException('Expected digit after "-"', _bytes, i);
+        }
+      }
+
+      final firstDigit = _bytes[i];
+      if (firstDigit == 48) {
+        i++;
+        if (i < _bytes.length && _bytes[i] >= 48 && _bytes[i] <= 57) {
+          throw FormatException(
+            'Leading zero cannot be followed by another digit',
+            _bytes,
+            i,
+          );
+        }
+      } else if (firstDigit >= 49 && firstDigit <= 57) {
+        while (i < _bytes.length && _bytes[i] >= 48 && _bytes[i] <= 57) {
+          i++;
+        }
+      } else {
+        throw FormatException('Expected digit in number', _bytes, i);
+      }
+
+      if (i < _bytes.length) {
+        final b = _bytes[i];
+        if (b == 46 || b == 101 || b == 69) {
+          throw FormatException(
+            'Invalid integer (found fractional or exponent component)',
+            _bytes,
+            i,
+          );
+        }
+        if (b != 44 && b != 125 && b != 93 && !_isWs(b)) {
+          throw FormatException(
+            'Unexpected character after number: ${String.fromCharCode(b)}',
+            _bytes,
+            i,
+          );
+        }
+      }
+
+      final end = i;
+      final val = JsonUtf8Decoder.parseInt(_bytes, start, end);
+
+      var j = i;
+      while (j < _bytes.length && _isWs(_bytes[j])) {
+        j++;
+      }
+      if (_stack.isNotEmpty) {
+        final top = _stack.last;
+        if (j < _bytes.length && _bytes[j] == 44) {
+          j++;
+          while (j < _bytes.length && _isWs(_bytes[j])) {
+            j++;
+          }
+          top.state = _ReaderItemState.afterComma;
+          _offset = j;
+        } else {
+          top.state = _ReaderItemState.afterValue;
+          _offset = j;
+        }
+      } else {
+        _hasReadRoot = true;
+        _offset = j;
+      }
+
+      return val;
     } catch (_) {
       _offset = initialOffset;
       _hasReadRoot = hadReadRoot;
@@ -2532,6 +2813,9 @@ final class _JsonTokenReader implements JsonTokenReader {
     try {
       _beforeReadingValue();
       var i = _offset;
+      while (i < _bytes.length && _isWs(_bytes[i])) {
+        i++;
+      }
       if (i >= _bytes.length) {
         throw FormatException('Unexpected end of document', _bytes, i);
       }
@@ -2639,8 +2923,28 @@ final class _JsonTokenReader implements JsonTokenReader {
       }
 
       final end = i;
-      _offset = i;
-      _afterReadingValue();
+
+      var j = i;
+      while (j < _bytes.length && _isWs(_bytes[j])) {
+        j++;
+      }
+      if (_stack.isNotEmpty) {
+        final top = _stack.last;
+        if (j < _bytes.length && _bytes[j] == 44) {
+          j++;
+          while (j < _bytes.length && _isWs(_bytes[j])) {
+            j++;
+          }
+          top.state = _ReaderItemState.afterComma;
+          _offset = j;
+        } else {
+          top.state = _ReaderItemState.afterValue;
+          _offset = j;
+        }
+      } else {
+        _hasReadRoot = true;
+        _offset = j;
+      }
 
       // Zero mantissa fast path (preserves -0.0)
       if (mantissa == 0) {
@@ -2751,10 +3055,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       if (_stack.isNotEmpty &&
           _stack.last.type == _ContainerType.object &&
           _stack.last.state != _ReaderItemState.afterName) {
-        _beforeReadingName();
-        _scanStringSpan();
-        _consumeColon();
-        _stack.last.state = _ReaderItemState.afterName;
+        _scanNameSpanAndConsumeColon();
         skipValue();
         return;
       }
