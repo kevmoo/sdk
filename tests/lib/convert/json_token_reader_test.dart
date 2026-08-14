@@ -54,6 +54,7 @@ void main() {
   testTokenReaderSkipObjectMember();
   testCanonicalLargeIntegers();
   testContainerSyntaxCorruptionInSkipValue();
+  testGetTokenSpanTrailingCommaAndEofRejection();
 }
 
 void testTokenReaderPrimitives() {
@@ -2321,5 +2322,68 @@ void testContainerSyntaxCorruptionInSkipValue() {
 
     final endOffset = JsonUtf8Decoder.skipValue(bytes, 0);
     Expect.equals(bytes.length, endOffset);
+  }
+}
+
+void testGetTokenSpanTrailingCommaAndEofRejection() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Trailing comma before '}' in object
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": 1,}'));
+    reader.beginObject();
+    Expect.equals('a', reader.nextName());
+    Expect.equals(1, reader.readInt());
+    Expect.throwsFormatException(
+      () => reader.getTokenSpan(),
+      'Expected FormatException on getTokenSpan() for {"a": 1,}',
+    );
+  }
+
+  // 2. Trailing comma before ']' in array
+  {
+    final reader = JsonTokenReader.fromBytes(b('[1, 2,]'));
+    reader.beginArray();
+    Expect.equals(1, reader.readInt());
+    Expect.equals(2, reader.readInt());
+    Expect.throwsFormatException(
+      () => reader.getTokenSpan(),
+      'Expected FormatException on getTokenSpan() for [1, 2,]',
+    );
+  }
+
+  // 3. Trailing comma at EOF in object
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": 1,'));
+    reader.beginObject();
+    Expect.equals('a', reader.nextName());
+    Expect.equals(1, reader.readInt());
+    Expect.throwsFormatException(
+      () => reader.getTokenSpan(),
+      'Expected FormatException on getTokenSpan() for {"a": 1, at EOF',
+    );
+  }
+
+  // 4. Trailing comma at EOF in array
+  {
+    final reader = JsonTokenReader.fromBytes(b('[1, 2,  '));
+    reader.beginArray();
+    Expect.equals(1, reader.readInt());
+    Expect.equals(2, reader.readInt());
+    Expect.throwsFormatException(
+      () => reader.getTokenSpan(),
+      'Expected FormatException on getTokenSpan() for [1, 2, at EOF',
+    );
+  }
+
+  // 5. Trailing comma in afterComma state (after hasNext() consumed comma)
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": 1, }'));
+    reader.beginObject();
+    Expect.equals('a', reader.nextName());
+    Expect.equals(1, reader.readInt());
+    Expect.throwsFormatException(
+      () => reader.hasNext(), // hasNext throws on trailing comma
+    );
   }
 }

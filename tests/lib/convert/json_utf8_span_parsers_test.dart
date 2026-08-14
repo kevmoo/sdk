@@ -51,6 +51,7 @@ void main() {
   testWriteAsciiAndRawJsonBounds();
   testMatchKeyEscapedKeys();
   testDirectSinkFormatterStress();
+  testWholeCodebaseBoundsAndSentinels();
 }
 
 void testParseInt() {
@@ -2682,4 +2683,91 @@ void testDirectSinkFormatterStress() {
   Expect.equals(-1, opt.selectKey(sampleBytes, -1, 5));
   Expect.equals(-1, opt.selectKey(sampleBytes, 5, 4));
   Expect.equals(-1, opt.selectKey(sampleBytes, 0, 100));
+}
+
+void testWholeCodebaseBoundsAndSentinels() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final sample = b('{"key": [1, 2, 3], "nested": {"a": "b"}}');
+  final options = JsonKeyOptions.of(['key', 'nested', 'a', 'b']);
+
+  // 1. JsonUtf8Decoder.skipWhitespace bounds
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipWhitespace(sample, -1));
+  Expect.throwsRangeError(
+    () => JsonUtf8Decoder.skipWhitespace(sample, sample.length + 1),
+  );
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipWhitespace(sample, 100));
+  Expect.equals(
+    sample.length,
+    JsonUtf8Decoder.skipWhitespace(sample, sample.length),
+  );
+
+  final empty = Uint8List(0);
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipWhitespace(empty, -1));
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipWhitespace(empty, 1));
+  Expect.equals(0, JsonUtf8Decoder.skipWhitespace(empty, 0));
+
+  // 2. JsonUtf8Decoder.skipString bounds
+  final strBytes = b('"hello world" rest');
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipString(strBytes, -1));
+  Expect.throwsRangeError(
+    () => JsonUtf8Decoder.skipString(strBytes, strBytes.length),
+  );
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipString(strBytes, 100));
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipString(empty, 0));
+
+  // 3. JsonUtf8Decoder.skipValue bounds
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipValue(sample, -1));
+  Expect.throwsRangeError(
+    () => JsonUtf8Decoder.skipValue(sample, sample.length + 1),
+  );
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipValue(sample, 100));
+  Expect.equals(
+    sample.length,
+    JsonUtf8Decoder.skipValue(sample, sample.length),
+  );
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipValue(empty, -1));
+  Expect.throwsRangeError(() => JsonUtf8Decoder.skipValue(empty, 1));
+  Expect.equals(0, JsonUtf8Decoder.skipValue(empty, 0));
+
+  // 4. JsonUtf8Decoder.matchKey bounds & sentinels
+  Expect.equals(-1, JsonUtf8Decoder.matchKey(sample, -1, 5, options));
+  Expect.equals(-1, JsonUtf8Decoder.matchKey(sample, 5, 2, options));
+  Expect.equals(-1, JsonUtf8Decoder.matchKey(sample, 0, 100, options));
+  Expect.equals(-1, JsonUtf8Decoder.matchKey(sample, -5, -2, options));
+  Expect.equals(
+    -1,
+    JsonUtf8Decoder.matchKey(sample, 2, sample.length + 10, options),
+  );
+  Expect.equals(0, JsonUtf8Decoder.matchKey(sample, 2, 5, options)); // 'key'
+
+  // 5. JsonUtf8Decoder.decodeString bounds & empty slice precedence
+  Expect.throwsRangeError(() => JsonUtf8Decoder.decodeString(sample, -1, -1));
+  Expect.throwsRangeError(() => JsonUtf8Decoder.decodeString(sample, 100, 100));
+  Expect.throwsRangeError(() => JsonUtf8Decoder.decodeString(sample, -5, -2));
+  Expect.throwsRangeError(() => JsonUtf8Decoder.decodeString(sample, 5, 2));
+  Expect.throwsRangeError(() => JsonUtf8Decoder.decodeString(sample, 0, 100));
+  Expect.equals('', JsonUtf8Decoder.decodeString(sample, 0, 0));
+  Expect.equals('', JsonUtf8Decoder.decodeString(sample, 2, 2));
+  Expect.equals(
+    '',
+    JsonUtf8Decoder.decodeString(sample, sample.length, sample.length),
+  );
+
+  // 6. JsonUtf8Encoder.writeDoubleToBuffer bounds
+  final buf = Uint8List(20);
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(3.14159, buf, -1),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(3.14159, buf, 100),
+  );
+  // Complex float fallback path (subnormal / extreme exponent)
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeDoubleToBuffer(1.2345678901234567e-100, buf, -1),
+  );
+  Expect.throwsRangeError(
+    () =>
+        JsonUtf8Encoder.writeDoubleToBuffer(1.2345678901234567e-100, buf, 100),
+  );
 }

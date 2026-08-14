@@ -334,6 +334,7 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     int end,
     JsonKeyOptions options,
   ) {
+    if (start < 0 || end > bytes.length || start > end) return -1;
     if (_isVerbatimUtf8(bytes, start, end)) {
       return options.selectKey(bytes, start, end);
     }
@@ -361,6 +362,9 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   /// Scans [bytes] starting at [offset] and returns the end byte offset of the
   /// complete JSON value (skipping nested objects, arrays, and strings).
   static int skipValue(Uint8List bytes, int offset) {
+    if (offset < 0 || offset > bytes.length) {
+      throw RangeError.range(offset, 0, bytes.length, 'offset');
+    }
     var i = offset;
     while (i < bytes.length &&
         (bytes[i] == 0x20 ||
@@ -840,6 +844,9 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   /// Fast-skips JSON whitespace (0x20, 0x09, 0x0A, 0x0D) starting at [offset]
   /// and returns the offset of the next non-whitespace byte.
   static int skipWhitespace(Uint8List bytes, int offset) {
+    if (offset < 0 || offset > bytes.length) {
+      throw RangeError.range(offset, 0, bytes.length, 'offset');
+    }
     var i = offset;
     while (i < bytes.length) {
       final b = bytes[i];
@@ -855,6 +862,14 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   /// Scans forward from [offset] past an unescaped closing quote (") without
   /// parsing escapes, returning the byte offset after the closing quote.
   static int skipString(Uint8List bytes, int offset) {
+    if (offset < 0 || offset >= bytes.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        bytes.length == 0 ? 0 : bytes.length - 1,
+        'offset',
+      );
+    }
     var i = offset;
     if (i < bytes.length && bytes[i] == 34) {
       i++;
@@ -1120,7 +1135,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     if (written > 0) return written;
     final str = value.toString();
     final len = str.length;
-    if (offset + len > buffer.length) {
+    if (offset < 0 || offset + len > buffer.length) {
       throw RangeError.range(
         offset,
         0,
@@ -2447,21 +2462,53 @@ final class _JsonTokenReader implements JsonTokenReader {
     while (i < _bytes.length && _isWs(_bytes[i])) {
       i++;
     }
-    if (_stack.isNotEmpty && _stack.last.state == _ReaderItemState.afterValue) {
-      if (i < _bytes.length && _bytes[i] == 44) {
-        i++;
-        while (i < _bytes.length && _isWs(_bytes[i])) {
+    if (_stack.isNotEmpty) {
+      final state = _stack.last.state;
+      if (state == _ReaderItemState.afterValue) {
+        if (i < _bytes.length && _bytes[i] == 44) {
           i++;
+          while (i < _bytes.length && _isWs(_bytes[i])) {
+            i++;
+          }
+          if (i >= _bytes.length) {
+            throw FormatException(
+              'Unexpected end of document after comma',
+              _bytes,
+              _offset,
+            );
+          }
+          if (_bytes[i] == 125 || _bytes[i] == 93) {
+            throw FormatException(
+              'Trailing comma before closing delimiter',
+              _bytes,
+              _offset,
+            );
+          }
+        } else {
+          final top = _stack.last;
+          final closeChar = top.type == _ContainerType.object ? 125 : 93;
+          final closeStr = top.type == _ContainerType.object ? '"}"' : '"]"';
+          if (i < _bytes.length && _bytes[i] != closeChar) {
+            throw FormatException(
+              'Expected "," or $closeStr at offset $i',
+              _bytes,
+              i,
+            );
+          }
         }
-      } else {
-        final top = _stack.last;
-        final closeChar = top.type == _ContainerType.object ? 125 : 93;
-        final closeStr = top.type == _ContainerType.object ? '"}"' : '"]"';
-        if (i < _bytes.length && _bytes[i] != closeChar) {
+      } else if (state == _ReaderItemState.afterComma) {
+        if (i >= _bytes.length) {
           throw FormatException(
-            'Expected "," or $closeStr at offset $i',
+            'Unexpected end of document after comma',
             _bytes,
-            i,
+            _offset,
+          );
+        }
+        if (_bytes[i] == 125 || _bytes[i] == 93) {
+          throw FormatException(
+            'Trailing comma before closing delimiter',
+            _bytes,
+            _offset,
           );
         }
       }
@@ -3877,10 +3924,10 @@ String _decodeStringUtf8(
   int end, {
   bool allowMalformed = false,
 }) {
-  if (start == end) return '';
   if (start < 0 || end > source.length || start > end) {
     throw RangeError('Invalid byte span [$start, $end)');
   }
+  if (start == end) return '';
   var maxByte = 0;
   var hasBackslash = false;
   for (var i = start; i < end; i++) {

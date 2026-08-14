@@ -91,7 +91,7 @@ class JsonUtf8Encoder {
     // port to eliminate heap String allocation on WebAssembly.
     final str = value.toString();
     final len = str.length;
-    if (offset + len > buffer.length) {
+    if (offset < 0 || offset + len > buffer.length) {
       throw RangeError.range(
         offset,
         0,
