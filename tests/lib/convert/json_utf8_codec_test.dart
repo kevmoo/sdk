@@ -17,6 +17,7 @@ void main() {
   testExactBufferCapacity();
   testReentrantSerialization();
   testChunkedDecoderAllowMalformed();
+  testCodecDecodeEncodeNamedParameters();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -290,4 +291,106 @@ void testChunkedDecoderAllowMalformed() {
     sinkFalse.add(malformedBytes);
     sinkFalse.close();
   });
+}
+
+void testCodecDecodeEncodeNamedParameters() {
+  // 1. jsonUtf8.decode with reviver
+  final bytes = Uint8List.fromList(utf8.encode('{"a": 10, "b": 20}'));
+  final resReviver = jsonUtf8.decode(
+    bytes,
+    reviver: (key, value) {
+      if (key == 'a') return (value as int) * 3;
+      return value;
+    },
+  ) as Map<String, dynamic>;
+  Expect.equals(30, resReviver['a']);
+  Expect.equals(20, resReviver['b']);
+
+  // 2. jsonUtf8.decode with allowMalformed: true / false
+  final malformedBytes = Uint8List.fromList([0x22, 0x80, 0x22]); // '"\x80"'
+  final resMalformed = jsonUtf8.decode(malformedBytes, allowMalformed: true);
+  Expect.equals('\uFFFD', resMalformed);
+
+  Expect.throwsFormatException(() {
+    jsonUtf8.decode(malformedBytes, allowMalformed: false);
+  });
+
+  // 3. JsonUtf8Codec instance configuration overrides
+  const strictCodec = JsonUtf8Codec(allowMalformed: false);
+  final resStrictOverridden = strictCodec.decode(
+    malformedBytes,
+    allowMalformed: true,
+  );
+  Expect.equals('\uFFFD', resStrictOverridden);
+
+  const lenientCodec = JsonUtf8Codec(allowMalformed: true);
+  Expect.throwsFormatException(() {
+    lenientCodec.decode(malformedBytes, allowMalformed: false);
+  });
+
+  // 4. jsonUtf8.encode with toEncodable
+  final pt = _CustomPoint(5, 15);
+  final Uint8List encRes = jsonUtf8.encode(
+    pt,
+    toEncodable: (o) => {'px': (o as _CustomPoint).x, 'py': o.y},
+  );
+  final decRes = jsonUtf8.decode(encRes) as Map<String, dynamic>;
+  Expect.equals(5, decRes['px']);
+  Expect.equals(15, decRes['py']);
+
+  // 5. JsonUtf8Codec instance configuration overrides for toEncodable
+  final codecWithEnc = JsonUtf8Codec(toEncodable: (o) => {'default': true});
+  final Uint8List encOverride = codecWithEnc.encode(
+    pt,
+    toEncodable: (o) => {'overridden': true},
+  );
+  final decOverride = jsonUtf8.decode(encOverride) as Map<String, dynamic>;
+  Expect.equals(true, decOverride['overridden']);
+  Expect.isNull(decOverride['default']);
+
+  // 6. JsonUtf8Codec instance reviver preservation when allowMalformed is overridden
+  final codecWithRev = JsonUtf8Codec(
+    reviver: (key, value) {
+      if (key == 'tag') return 'revived_$value';
+      return value;
+    },
+    allowMalformed: false,
+  );
+
+  final malformedWithTag = Uint8List.fromList([
+    ...utf8.encode('{"tag":"val","bad":'),
+    0x22,
+    0x80,
+    0x22, // '"\x80"'
+    0x7D, // '}'
+  ]);
+
+  final resRevWithMalformed = codecWithRev.decode(
+    malformedWithTag,
+    allowMalformed: true,
+  ) as Map<String, dynamic>;
+  Expect.equals('revived_val', resRevWithMalformed['tag']);
+  Expect.equals('\uFFFD', resRevWithMalformed['bad']);
+
+  // Override reviver on instance that already has a reviver
+  final resOverriddenRev = codecWithRev.decode(
+    malformedWithTag,
+    reviver: (k, v) => k == 'tag' ? 'override_$v' : v,
+    allowMalformed: true,
+  ) as Map<String, dynamic>;
+  Expect.equals('override_val', resOverriddenRev['tag']);
+  Expect.equals('\uFFFD', resOverriddenRev['bad']);
+
+  // 7. Indent preservation when encoding with toEncodable
+  const prettyCodec = JsonUtf8Codec(indent: '  ');
+  final Uint8List encPretty = prettyCodec.encode(
+    pt,
+    toEncodable: (o) => {'px': (o as _CustomPoint).x},
+  );
+  final prettyString = utf8.decode(encPretty);
+  Expect.isTrue(prettyString.contains('{\n  "px": 5\n}'));
+
+  // 8. Return type guarantee (Uint8List)
+  final Uint8List encodedDefault = jsonUtf8.encode({'x': 1});
+  Expect.type<Uint8List>(encodedDefault);
 }

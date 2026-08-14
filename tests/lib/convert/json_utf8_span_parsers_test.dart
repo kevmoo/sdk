@@ -48,6 +48,7 @@ void main() {
   testZeroAllocationKeySlicing();
   testSkipValueInvalidEscapes();
   testWebSafeFnv1aHash();
+  testWriteAsciiAndRawJsonBounds();
 }
 
 void testParseInt() {
@@ -2295,4 +2296,194 @@ void testWebSafeFnv1aHash() {
   Expect.equals(2, options.selectKey(buffer, 2, 7));
   // "user_id" starts at index 17, length 7 (indices 17..24)
   Expect.equals(10, options.selectKey(buffer, 17, 24));
+}
+
+void testWriteAsciiAndRawJsonBounds() {
+  // 1. writeAsciiLiteralToBuffer
+  // Exact fit
+  final exactAsciiBuf = Uint8List(3);
+  final aLen = JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+    Uint8List.fromList([65, 66, 67]),
+    exactAsciiBuf,
+    0,
+  );
+  Expect.equals(3, aLen);
+  Expect.listEquals([65, 66, 67], exactAsciiBuf);
+
+  // Exact fit at offset
+  final offAsciiBuf = Uint8List(10);
+  final aLen2 = JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+    Uint8List.fromList([65, 66, 67]),
+    offAsciiBuf,
+    7,
+  );
+  Expect.equals(3, aLen2);
+  Expect.listEquals([65, 66, 67], offAsciiBuf.sublist(7, 10));
+
+  // Negative offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(16),
+      -1,
+    ),
+  );
+
+  // Overflow offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(16),
+      15,
+    ),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(16),
+      1000,
+    ),
+  );
+
+  // Undersized and zero-length buffers -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(0),
+      0,
+    ),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List.fromList([65, 66, 67]),
+      Uint8List(2),
+      0,
+    ),
+  );
+
+  // In-place buffer non-corruption test:
+  final asciiBuf = Uint8List.fromList([1, 2, 3, 4, 5]);
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List.fromList([65, 66, 67]),
+      asciiBuf,
+      3,
+    ),
+  );
+  Expect.listEquals([1, 2, 3, 4, 5], asciiBuf);
+
+  // Empty ascii byte slices:
+  final emptyAsciiBuf = Uint8List(5);
+  Expect.equals(
+    0,
+    JsonUtf8Encoder.writeAsciiLiteralToBuffer(Uint8List(0), emptyAsciiBuf, 0),
+  );
+  Expect.equals(
+    0,
+    JsonUtf8Encoder.writeAsciiLiteralToBuffer(Uint8List(0), emptyAsciiBuf, 5),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List(0),
+      emptyAsciiBuf,
+      6,
+    ),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeAsciiLiteralToBuffer(
+      Uint8List(0),
+      emptyAsciiBuf,
+      -1,
+    ),
+  );
+
+  // 2. writeRawJsonToBuffer
+  // Exact fit
+  final exactRawBuf = Uint8List(3);
+  final rLen = JsonUtf8Encoder.writeRawJsonToBuffer(
+    Uint8List.fromList([65, 66, 67]),
+    exactRawBuf,
+    0,
+  );
+  Expect.equals(3, rLen);
+  Expect.listEquals([65, 66, 67], exactRawBuf);
+
+  // Exact fit at offset
+  final offRawBuf = Uint8List(10);
+  final rLen2 = JsonUtf8Encoder.writeRawJsonToBuffer(
+    Uint8List.fromList([65, 66, 67]),
+    offRawBuf,
+    7,
+  );
+  Expect.equals(3, rLen2);
+  Expect.listEquals([65, 66, 67], offRawBuf.sublist(7, 10));
+
+  // Negative offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(16),
+      -1,
+    ),
+  );
+
+  // Overflow offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(16),
+      15,
+    ),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(16),
+      1000,
+    ),
+  );
+
+  // Undersized and zero-length buffers -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(
+      Uint8List.fromList([65, 66]),
+      Uint8List(0),
+      0,
+    ),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(
+      Uint8List.fromList([65, 66, 67]),
+      Uint8List(2),
+      0,
+    ),
+  );
+
+  // In-place buffer non-corruption test:
+  final rawBuf = Uint8List.fromList([1, 2, 3, 4, 5]);
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(
+      Uint8List.fromList([65, 66, 67]),
+      rawBuf,
+      3,
+    ),
+  );
+  Expect.listEquals([1, 2, 3, 4, 5], rawBuf);
+
+  // Empty raw byte slices:
+  final emptyRawBuf = Uint8List(5);
+  Expect.equals(
+    0,
+    JsonUtf8Encoder.writeRawJsonToBuffer(Uint8List(0), emptyRawBuf, 0),
+  );
+  Expect.equals(
+    0,
+    JsonUtf8Encoder.writeRawJsonToBuffer(Uint8List(0), emptyRawBuf, 5),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(Uint8List(0), emptyRawBuf, 6),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeRawJsonToBuffer(Uint8List(0), emptyRawBuf, -1),
+  );
 }

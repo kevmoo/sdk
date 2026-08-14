@@ -188,6 +188,32 @@ final class JsonUtf8Codec extends Codec<Object?, List<int>> {
 
   @override
   JsonUtf8Decoder get decoder => JsonUtf8Decoder(reviver, allowMalformed);
+
+  @override
+  Object? decode(
+    List<int> encoded, {
+    Object? Function(Object? key, Object? value)? reviver,
+    bool? allowMalformed,
+  }) {
+    if (reviver != null || allowMalformed != null) {
+      return JsonUtf8Decoder(
+        reviver ?? this.reviver,
+        allowMalformed ?? this.allowMalformed,
+      ).convert(encoded);
+    }
+    return decoder.convert(encoded);
+  }
+
+  @override
+  Uint8List encode(
+    Object? value, {
+    Object? Function(dynamic object)? toEncodable,
+  }) {
+    if (toEncodable != null) {
+      return JsonUtf8Encoder(indent, toEncodable, bufferSize).convert(value);
+    }
+    return encoder.convert(value);
+  }
 }
 
 /// A [Converter] that decodes UTF-8 encoded JSON bytes directly into Dart
@@ -622,7 +648,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
   }
 
   @override
-  List<int> convert(Object? object) {
+  Uint8List convert(Object? object) {
     var bytes = <Uint8List>[];
     void addChunk(Uint8List chunk, int start, int end) {
       if (start > 0 || end < chunk.length) {
@@ -879,8 +905,17 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     Uint8List buffer,
     int offset,
   ) {
-    buffer.setRange(offset, offset + asciiBytes.length, asciiBytes);
-    return asciiBytes.length;
+    final len = asciiBytes.length;
+    if (offset < 0 || offset + len > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= len ? buffer.length - len : 0,
+        'offset',
+      );
+    }
+    buffer.setRange(offset, offset + len, asciiBytes);
+    return len;
   }
 
   /// Writes a raw JSON UTF-8 byte fragment directly into [sink].
@@ -895,8 +930,17 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     Uint8List buffer,
     int offset,
   ) {
-    buffer.setRange(offset, offset + rawJson.length, rawJson);
-    return rawJson.length;
+    final len = rawJson.length;
+    if (offset < 0 || offset + len > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= len ? buffer.length - len : 0,
+        'offset',
+      );
+    }
+    buffer.setRange(offset, offset + len, rawJson);
+    return len;
   }
 
   /// Safely writes an object property separator (comma if not first) and key
