@@ -49,6 +49,8 @@ void main() {
   testClosureFreeScalarStreamingAndRollback();
   testZeroAllocationColonTerminatedKeys();
   testTokenReaderSkipValueInvalidEscapes();
+  testSelectNameMalformedUtf8();
+  testSelectStringMalformedUtf8();
 }
 
 void testTokenReaderPrimitives() {
@@ -1778,4 +1780,107 @@ void testTokenReaderSkipValueInvalidEscapes() {
   Expect.throwsFormatException(() => rRollback.skipValue());
   // Offset was rolled back, peek() should still see string
   Expect.equals(JsonTokenType.string, rRollback.peek());
+}
+
+void testSelectNameMalformedUtf8() {
+  final options = JsonKeyOptions.of(['id', 'name', 'café']);
+
+  // 1. Invalid UTF-8 bytes in key with allowMalformed: false (default) throws FormatException
+  // Byte 0xFF is invalid UTF-8
+  final malformedKey1 = Uint8List.fromList([
+    0x7B,
+    0x22,
+    0xFF,
+    0x22,
+    0x3A,
+    0x31,
+    0x7D,
+  ]); // {"\xFF": 1}
+  final r1 = JsonTokenReader.fromBytes(malformedKey1);
+  r1.beginObject();
+  Expect.throwsFormatException(() => r1.selectName(options));
+
+  // Truncated multi-byte UTF-8 sequence: 0xC3 followed by quote
+  final malformedKey2 = Uint8List.fromList([
+    0x7B,
+    0x22,
+    0xC3,
+    0x22,
+    0x3A,
+    0x31,
+    0x7D,
+  ]); // {"\xC3": 1}
+  final r2 = JsonTokenReader.fromBytes(malformedKey2);
+  r2.beginObject();
+  Expect.throwsFormatException(() => r2.selectName(options));
+
+  // Multi-byte invalid sequence: 0xFF, 0xFE
+  final malformedKey3 = Uint8List.fromList([
+    0x7B,
+    0x22,
+    0xFF,
+    0xFE,
+    0x22,
+    0x3A,
+    0x31,
+    0x7D,
+  ]);
+  final r3 = JsonTokenReader.fromBytes(malformedKey3);
+  r3.beginObject();
+  Expect.throwsFormatException(() => r3.selectName(options));
+
+  // 2. With allowMalformed: true, invalid UTF-8 does not throw, decodes with replacement chars and returns -1
+  final r4 = JsonTokenReader.fromBytes(malformedKey1, allowMalformed: true);
+  r4.beginObject();
+  Expect.equals(-1, r4.selectName(options));
+  Expect.equals(1, r4.readInt());
+  r4.endObject();
+}
+
+void testSelectStringMalformedUtf8() {
+  final options = JsonKeyOptions.of(['admin', 'guest', 'café']);
+
+  // 1. Invalid UTF-8 bytes in enum string with allowMalformed: false (default) throws FormatException
+  // Byte 0xFF is invalid UTF-8
+  final malformedString1 = Uint8List.fromList([
+    0x5B,
+    0x22,
+    0xFF,
+    0x22,
+    0x5D,
+  ]); // ["\xFF"]
+  final r1 = JsonTokenReader.fromBytes(malformedString1);
+  r1.beginArray();
+  Expect.throwsFormatException(() => r1.selectString(options));
+
+  // Truncated multi-byte UTF-8 sequence: 0xC3 followed by quote
+  final malformedString2 = Uint8List.fromList([
+    0x5B,
+    0x22,
+    0xC3,
+    0x22,
+    0x5D,
+  ]); // ["\xC3"]
+  final r2 = JsonTokenReader.fromBytes(malformedString2);
+  r2.beginArray();
+  Expect.throwsFormatException(() => r2.selectString(options));
+
+  // Multi-byte invalid sequence: 0xFF, 0xFE
+  final malformedString3 = Uint8List.fromList([
+    0x5B,
+    0x22,
+    0xFF,
+    0xFE,
+    0x22,
+    0x5D,
+  ]);
+  final r3 = JsonTokenReader.fromBytes(malformedString3);
+  r3.beginArray();
+  Expect.throwsFormatException(() => r3.selectString(options));
+
+  // 2. With allowMalformed: true, invalid UTF-8 does not throw, returns -1
+  final r4 = JsonTokenReader.fromBytes(malformedString1, allowMalformed: true);
+  r4.beginArray();
+  Expect.equals(-1, r4.selectString(options));
+  r4.endArray();
 }

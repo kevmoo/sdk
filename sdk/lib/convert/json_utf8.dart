@@ -334,7 +334,11 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     int end,
     JsonKeyOptions options,
   ) {
-    return options.selectKey(bytes, start, end);
+    if (_isVerbatimUtf8(bytes, start, end)) {
+      return options.selectKey(bytes, start, end);
+    }
+    final unescaped = _decodeStringUtf8(bytes, start, end);
+    return options.keys.indexOf(unescaped);
   }
 
   /// Returns `true` if the string literal byte span `bytes[start..end]` contains
@@ -1395,6 +1399,8 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
   }
 
+  @pragma('vm:prefer-inline')
+  @pragma('wasm:prefer-inline')
   bool _isWs(int b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D;
 
   void _skipWs() {
@@ -1833,7 +1839,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       final (start, end) = _scanStringSpan();
       _consumeColon();
       _stack.last.state = _ReaderItemState.afterName;
-      if (_isUnescapedUtf8(_bytes, start, end)) {
+      if (_isVerbatimUtf8(_bytes, start, end)) {
         return options.selectKey(_bytes, start, end);
       }
       final unescaped = _decodeStringUtf8(
@@ -1861,7 +1867,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       _beforeReadingValue();
       final (start, end) = _scanStringSpan();
       _afterReadingValue();
-      if (_isUnescapedUtf8(_bytes, start, end)) {
+      if (_isVerbatimUtf8(_bytes, start, end)) {
         return options.selectKey(_bytes, start, end);
       }
       final unescaped = _decodeStringUtf8(
@@ -2519,6 +2525,8 @@ const String _digitPairs =
     "80818283848586878889"
     "90919293949596979899";
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 int _digitCountNegative(int v) {
   if (v > -10) return 1;
   if (v > -100) return 2;
@@ -2556,6 +2564,8 @@ int _imul32(int a, int b) {
   return ((lo + ((hi & 0xffff) << 16)) & 0x7fffffff);
 }
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool _isHexDigit(int b) =>
     (b >= 48 && b <= 57) || (b >= 65 && b <= 70) || (b >= 97 && b <= 102);
 
@@ -2570,6 +2580,8 @@ bool _isValidEscapeChar(int b) =>
     b == 116 ||
     b == 117;
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 int _validateEscape(Uint8List bytes, int escOffset, int endOffset) {
   if (escOffset >= endOffset) {
     throw FormatException(
@@ -3115,6 +3127,8 @@ const List<double> _powersOfTen = [
   1e22,
 ];
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool _isWs(int b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D;
 
 const List<int> _powersOf10Int = [
@@ -3473,6 +3487,8 @@ int? _tryParseIntUtf8(Uint8List source, int start, int end) {
   return negative ? value : -value;
 }
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool? _tryParseBoolUtf8(Uint8List source, int start, int end) {
   final len = end - start;
   if (start < 0 || end > source.length || len < 4 || len > 5) return null;
@@ -3511,6 +3527,8 @@ bool _equalsAsciiUtf8(
   return true;
 }
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool _isNullUtf8(Uint8List source, int start, int end) {
   return (end - start == 4) &&
       start >= 0 &&
@@ -3521,6 +3539,8 @@ bool _isNullUtf8(Uint8List source, int start, int end) {
       source[start + 3] == 108;
 }
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool _isVerbatimUtf8(Uint8List source, int start, int end) {
   if (start < 0 || end > source.length || start > end) return false;
   for (var i = start; i < end; i++) {
@@ -3532,6 +3552,8 @@ bool _isVerbatimUtf8(Uint8List source, int start, int end) {
   return true;
 }
 
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
 bool _isUnescapedUtf8(Uint8List source, int start, int end) {
   if (start < 0 || end > source.length || start > end) return false;
   for (var i = start; i < end; i++) {

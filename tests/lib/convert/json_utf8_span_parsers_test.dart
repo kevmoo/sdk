@@ -49,6 +49,7 @@ void main() {
   testSkipValueInvalidEscapes();
   testWebSafeFnv1aHash();
   testWriteAsciiAndRawJsonBounds();
+  testMatchKeyEscapedKeys();
 }
 
 void testParseInt() {
@@ -2485,5 +2486,70 @@ void testWriteAsciiAndRawJsonBounds() {
   );
   Expect.throwsRangeError(
     () => JsonUtf8Encoder.writeRawJsonToBuffer(Uint8List(0), emptyRawBuf, -1),
+  );
+}
+
+void testMatchKeyEscapedKeys() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  final options = JsonKeyOptions.of([
+    'id',
+    'name',
+    'latitude',
+    'longitude',
+    'type',
+    'a"b',
+    'café',
+    '😀',
+  ]);
+
+  // 1. Escaped unicode key: \u0069\u0064 -> 'id' (index 0)
+  final escapedId = b(r'{"\u0069\u0064": 1}');
+  Expect.equals(0, JsonUtf8Decoder.matchKey(escapedId, 2, 14, options));
+
+  // 2. Escaped unicode key: n\u0061me -> 'name' (index 1)
+  final escapedName = b(r'{"n\u0061me": "test"}');
+  Expect.equals(1, JsonUtf8Decoder.matchKey(escapedName, 2, 11, options));
+
+  // 3. Escaped quote: a\"b -> 'a"b' (index 5)
+  final escapedQuote = b(r'{"a\"b": 100}');
+  Expect.equals(5, JsonUtf8Decoder.matchKey(escapedQuote, 2, 6, options));
+
+  // 4. Escaped multi-byte UTF-8: caf\u00e9 -> 'café' (index 6)
+  final escapedCafe = b(r'{"caf\u00e9": 200}');
+  Expect.equals(6, JsonUtf8Decoder.matchKey(escapedCafe, 2, 11, options));
+
+  // 5. Escaped type: \u0074\u0079\u0070\u0065 -> 'type' (index 4)
+  final escapedType = b(r'{"\u0074\u0079\u0070\u0065": "item"}');
+  Expect.equals(4, JsonUtf8Decoder.matchKey(escapedType, 2, 26, options));
+
+  // 6. Unknown escaped key: \u0075\u006e\u006b\u006e\u006f\u0077\u006e -> 'unknown' -> returns -1
+  final escapedUnknown = b(
+    r'{"\u0075\u006e\u006b\u006e\u006f\u0077\u006e": true}',
+  );
+  Expect.equals(-1, JsonUtf8Decoder.matchKey(escapedUnknown, 2, 44, options));
+
+  // 7. Surrogate pair escaped key: \uD83D\uDE00 -> '😀' (index 7)
+  final escapedEmoji = b(r'{"\uD83D\uDE00": 300}');
+  Expect.equals(7, JsonUtf8Decoder.matchKey(escapedEmoji, 2, 14, options));
+
+  // 8. Verbatim ASCII keys still match correctly
+  final verbatimSrc = b('{"id": 1, "name": "test", "latitude": 37.77}');
+  Expect.equals(0, JsonUtf8Decoder.matchKey(verbatimSrc, 2, 4, options));
+  Expect.equals(1, JsonUtf8Decoder.matchKey(verbatimSrc, 11, 15, options));
+  Expect.equals(2, JsonUtf8Decoder.matchKey(verbatimSrc, 27, 35, options));
+
+  // 9. Unescaped multi-byte UTF-8 key ('café') matches correctly
+  final utf8Cafe = b('{"café": 200}');
+  Expect.equals(6, JsonUtf8Decoder.matchKey(utf8Cafe, 2, 7, options));
+
+  // 10. Malformed UTF-8 byte span throws FormatException
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.matchKey(Uint8List.fromList([0xFF]), 0, 1, options),
+  );
+
+  // 11. Invalid escape sequence throws FormatException
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.matchKey(b(r'\u123z'), 0, 6, options),
   );
 }
