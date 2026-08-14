@@ -51,6 +51,7 @@ void main() {
   testTokenReaderSkipValueInvalidEscapes();
   testSelectNameMalformedUtf8();
   testSelectStringMalformedUtf8();
+  testTokenReaderSkipObjectMember();
 }
 
 void testTokenReaderPrimitives() {
@@ -1883,4 +1884,184 @@ void testSelectStringMalformedUtf8() {
   r4.beginArray();
   Expect.equals(-1, r4.selectString(options));
   r4.endArray();
+}
+
+void testTokenReaderSkipObjectMember() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Basic object member skipping when positioned before property name
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": 1, "b": 2, "c": 3}'));
+    reader.beginObject();
+    Expect.equals(JsonTokenType.propertyName, reader.peek());
+    reader.skipValue(); // skips "a": 1
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('b', reader.nextName());
+    Expect.equals(2, reader.readInt());
+    reader.skipValue(); // skips "c": 3
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
+
+  // 2. Skipping members with complex nested containers (objects, arrays, strings with escapes)
+  {
+    final json =
+        '{"meta": {"id": 1, "tags": ["x", "y"]}, "target": "keep", "skipList": [10, 20]}';
+    final reader = JsonTokenReader.fromBytes(b(json));
+    reader.beginObject();
+    reader.skipValue(); // skips "meta": {...}
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('target', reader.nextName());
+    Expect.equals('keep', reader.readString());
+    reader.skipValue(); // skips "skipList": [...]
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
+
+  // 3. Consecutive skipValue calls skipping all members
+  {
+    final reader = JsonTokenReader.fromBytes(
+      b('{"k1": 1, "k2": 2, "k3": 3, "k4": 4}'),
+    );
+    reader.beginObject();
+    reader.skipValue(); // skips "k1": 1
+    reader.skipValue(); // skips "k2": 2
+    reader.skipValue(); // skips "k3": 3
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('k4', reader.nextName());
+    Expect.equals(4, reader.readInt());
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
+
+  // 4. Object member skipping with formatting / whitespace
+  {
+    final formatted = '''
+{
+  "first": 100,
+  "second": 200
+}''';
+    final reader = JsonTokenReader.fromBytes(b(formatted));
+    reader.beginObject();
+    reader.skipValue(); // skips "first": 100
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('second', reader.nextName());
+    Expect.equals(200, reader.readInt());
+    reader.endObject();
+  }
+
+  // 5. Positioned after property name (existing skipValue behavior)
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": [1, 2], "b": 2}'));
+    reader.beginObject();
+    Expect.equals('a', reader.nextName());
+    reader.skipValue(); // skips [1, 2]
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('b', reader.nextName());
+    Expect.equals(2, reader.readInt());
+    reader.endObject();
+  }
+
+  // 6. Rollback on FormatException in member skip
+  {
+    final malformed = b('{"a": [1, 2, "unterminated');
+    final reader = JsonTokenReader.fromBytes(malformed);
+    reader.beginObject();
+    Expect.throwsFormatException(() => reader.skipValue());
+    // Cursor rolled back: peek is still propertyName
+    Expect.equals(JsonTokenType.propertyName, reader.peek());
+  }
+
+  // 7. Empty string key member skipping
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"": 123, "b": 456}'));
+    reader.beginObject();
+    reader.skipValue(); // skips "": 123
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('b', reader.nextName());
+    Expect.equals(456, reader.readInt());
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
+
+  // 8. Escaped key member skipping
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"\\u0061": 10, "b": 20}'));
+    reader.beginObject();
+    reader.skipValue(); // skips "\u0061": 10
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('b', reader.nextName());
+    Expect.equals(20, reader.readInt());
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
+
+  // 9. Primitive values in member skipping (booleans, floats, null, strings)
+  {
+    final reader = JsonTokenReader.fromBytes(
+      b(
+        '{"b1": true, "b2": false, "n": null, "d": 3.14159, "s": "hello", "end": 1}',
+      ),
+    );
+    reader.beginObject();
+    reader.skipValue(); // b1: true
+    reader.skipValue(); // b2: false
+    reader.skipValue(); // n: null
+    reader.skipValue(); // d: 3.14159
+    reader.skipValue(); // s: "hello"
+    Expect.isTrue(reader.hasNext());
+    Expect.equals('end', reader.nextName());
+    Expect.equals(1, reader.readInt());
+    reader.endObject();
+  }
+
+  // 10. Calling skipValue on empty object throws FormatException and rolls back
+  {
+    final reader = JsonTokenReader.fromBytes(b('{}'));
+    reader.beginObject();
+    Expect.throwsFormatException(() => reader.skipValue());
+    Expect.equals(JsonTokenType.endObject, reader.peek());
+    reader.endObject();
+  }
+
+  // 11. Calling skipValue when positioned at endObject after reading all members
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": 1}'));
+    reader.beginObject();
+    reader.skipValue();
+    Expect.equals(JsonTokenType.endObject, reader.peek());
+    Expect.throwsFormatException(() => reader.skipValue());
+    reader.endObject();
+  }
+
+  // 12. Missing colon in object member throws FormatException and rolls back
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a" 123}'));
+    reader.beginObject();
+    Expect.throwsFormatException(() => reader.skipValue());
+    Expect.equals(JsonTokenType.propertyName, reader.peek());
+  }
+
+  // 13. Missing value after colon throws FormatException and rolls back
+  {
+    final reader = JsonTokenReader.fromBytes(b('{"a": }'));
+    reader.beginObject();
+    Expect.throwsFormatException(() => reader.skipValue());
+    Expect.equals(JsonTokenType.propertyName, reader.peek());
+  }
+
+  // 14. Interleaved selectName and member skipValue
+  {
+    final options = JsonKeyOptions.of(['keep1', 'skip1', 'keep2']);
+    final json = '{"keep1": 10, "skip_other": [1, 2], "keep2": 20}';
+    final reader = JsonTokenReader.fromBytes(b(json));
+    reader.beginObject();
+    Expect.equals(0, reader.selectName(options)); // keep1
+    Expect.equals(10, reader.readInt());
+    reader.skipValue(); // skips "skip_other": [1, 2]
+    Expect.equals(2, reader.selectName(options)); // keep2
+    Expect.equals(20, reader.readInt());
+    Expect.isFalse(reader.hasNext());
+    reader.endObject();
+  }
 }

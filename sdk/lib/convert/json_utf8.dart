@@ -89,7 +89,7 @@ final class JsonKeyOptions {
       final len = lengths[i];
       var h = 0x811c9dc5;
       for (var j = 0; j < len; j++) {
-        h = _imul32(h ^ encodedKeys[off + j], 0x01000193);
+        h = ((h ^ encodedKeys[off + j]) * 0x01000193) & 0x7fffffff;
       }
       var slot = h & mask;
       while (table[slot] != -1) {
@@ -132,7 +132,7 @@ final class JsonKeyOptions {
     final spanLen = end - start;
     var h = 0x811c9dc5;
     for (var i = start; i < end; i++) {
-      h = _imul32(h ^ source[i], 0x01000193);
+      h = ((h ^ source[i]) * 0x01000193) & 0x7fffffff;
     }
     final mask = _hashMask;
     var slot = h & mask;
@@ -2028,6 +2028,16 @@ final class _JsonTokenReader implements JsonTokenReader {
     final initialFrameState = _stack.isNotEmpty ? _stack.last.state : null;
     final hadReadRoot = _hasReadRoot;
     try {
+      if (_stack.isNotEmpty &&
+          _stack.last.type == _ContainerType.object &&
+          _stack.last.state != _ReaderItemState.afterName) {
+        _beforeReadingName();
+        _scanStringSpan();
+        _consumeColon();
+        _stack.last.state = _ReaderItemState.afterName;
+        skipValue();
+        return;
+      }
       _beforeReadingValue();
       if (_offset >= _bytes.length) return;
       final b = _bytes[_offset];
