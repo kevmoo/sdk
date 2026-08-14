@@ -1943,15 +1943,12 @@ final class _JsonTokenReader implements JsonTokenReader {
   final Uint8List _bytes;
   final ByteData _byteData;
   final bool allowMalformed;
-  final Int64List? _stringCacheKeys;
-  final List<String?> _stringCacheValues = List<String?>.filled(64, null);
   int _offset = 0;
   final List<_ContainerFrame> _stack = [];
   bool _hasReadRoot = false;
 
   _JsonTokenReader(this._bytes, {this.allowMalformed = false})
-    : _byteData = ByteData.sublistView(_bytes),
-      _stringCacheKeys = !identical(1, 1.0) ? Int64List(64) : null {
+    : _byteData = ByteData.sublistView(_bytes) {
     if (_bytes.length >= 3 &&
         _bytes[0] == 0xEF &&
         _bytes[1] == 0xBB &&
@@ -2477,32 +2474,6 @@ final class _JsonTokenReader implements JsonTokenReader {
       _beforeReadingValue();
       final (start, end) = _scanStringSpan();
       _afterReadingValue();
-
-      final len = end - start;
-      final keys = _stringCacheKeys;
-      if (keys != null &&
-          len <= 8 &&
-          start + 8 <= _bytes.length &&
-          _isVerbatimUtf8(_bytes, start, end)) {
-        final keyInt =
-            _byteData.getInt64(start, Endian.little) &
-            JsonKeyOptions._lenMasks[len];
-        final slot = (keyInt ^ (keyInt >> 6)) & 63;
-        final cached = _stringCacheValues[slot];
-        if (cached != null && keys[slot] == keyInt) {
-          return cached;
-        }
-        final str = _decodeStringUtf8(
-          _bytes,
-          start,
-          end,
-          allowMalformed: allowMalformed,
-        );
-        keys[slot] = keyInt;
-        _stringCacheValues[slot] = str;
-        return str;
-      }
-
       return _decodeStringUtf8(
         _bytes,
         start,
