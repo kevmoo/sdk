@@ -2228,6 +2228,13 @@ final class _JsonTokenReader implements JsonTokenReader {
 
   @override
   (int start, int end) getTokenSpan() {
+    if (_hasReadRoot) {
+      throw FormatException(
+        'Cannot read token span past root value',
+        _bytes,
+        _offset,
+      );
+    }
     var i = _offset;
     while (i < _bytes.length && _isWs(_bytes[i])) {
       i++;

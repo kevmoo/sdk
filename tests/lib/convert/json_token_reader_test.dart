@@ -1187,6 +1187,69 @@ void testTokenReaderMultipleRoots() {
     Expect.equals(JsonTokenType.none, r8.peek());
     Expect.throwsFormatException(() => r8.readDouble());
   }
+
+  // Disallow getTokenSpan after root value (Round 19 Item 1.1)
+  {
+    final r = JsonTokenReader.fromBytes(b('123 456'));
+    Expect.equals(123, r.readInt());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('{} []'));
+    r.beginObject();
+    r.endObject();
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('[] {}'));
+    r.beginArray();
+    r.endArray();
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('"hello" "world"'));
+    Expect.equals('hello', r.readString());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('true false'));
+    Expect.isTrue(r.readBool());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('null null'));
+    r.readNull();
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('123.45 67.89'));
+    Expect.equals(123.45, r.readDouble());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('123'));
+    Expect.equals(123, r.readInt());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('456 789'));
+    r.skipValue();
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('{"k": "v"} [1, 2]'));
+    r.skipValue();
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('   "hello"   '));
+    final (s1, e1) = r.getTokenSpan();
+    final (s2, e2) = r.getTokenSpan();
+    Expect.equals(s1, s2);
+    Expect.equals(e1, e2);
+    Expect.equals('hello', r.readString());
+    Expect.throwsFormatException(() => r.getTokenSpan());
+  }
 }
 
 void testTokenReaderSkipValueControlChars() {

@@ -287,6 +287,241 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeStringToBuffer, 0, 3) {
       dest[str_len + 1] = '"';
       return Smi::New(required_len);
     }
+    // OneByteString with escapes or Latin-1 characters: use direct pointer access src[j]
+    intptr_t required_len = 2; // For opening and closing quotes
+    for (intptr_t j = 0; j < str_len; j++) {
+      uint8_t c = src[j];
+      switch (c) {
+        case '"':
+        case '\\':
+        case '\b':
+        case '\f':
+        case '\n':
+        case '\r':
+        case '\t':
+          required_len += 2;
+          break;
+        default:
+          if (c < 0x20) {
+            required_len += 6; // \u00XX
+          } else if (c <= 0x7F) {
+            required_len += 1;
+          } else {
+            // Latin-1 byte in [0x80, 0xFF] encodes to 2 UTF-8 bytes (0xC0..0xC3, 0x80..0xBF)
+            required_len += 2;
+          }
+          break;
+      }
+    }
+
+    if (buf_len < required_len || offset > buf_len - required_len) {
+      Exceptions::ThrowRangeError("offset", offset_obj, 0,
+                                  buf_len >= required_len ? buf_len - required_len : 0);
+    }
+
+    uint8_t* dest = reinterpret_cast<uint8_t*>(buffer.DataAddr(offset));
+    intptr_t cursor = 0;
+    static const char hex_digits[] = "0123456789abcdef";
+
+    dest[cursor++] = '"';
+
+    for (intptr_t j = 0; j < str_len; j++) {
+      uint8_t c = src[j];
+      switch (c) {
+        case '"':
+          dest[cursor++] = '\\';
+          dest[cursor++] = '"';
+          break;
+        case '\\':
+          dest[cursor++] = '\\';
+          dest[cursor++] = '\\';
+          break;
+        case '\b':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'b';
+          break;
+        case '\f':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'f';
+          break;
+        case '\n':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'n';
+          break;
+        case '\r':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'r';
+          break;
+        case '\t':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 't';
+          break;
+        default:
+          if (c < 0x20) {
+            dest[cursor++] = '\\';
+            dest[cursor++] = 'u';
+            dest[cursor++] = '0';
+            dest[cursor++] = '0';
+            dest[cursor++] = hex_digits[(c >> 4) & 0xF];
+            dest[cursor++] = hex_digits[c & 0xF];
+          } else if (c <= 0x7F) {
+            dest[cursor++] = c;
+          } else {
+            dest[cursor++] = static_cast<uint8_t>(0xC0 | (c >> 6));
+            dest[cursor++] = static_cast<uint8_t>(0x80 | (c & 0x3F));
+          }
+          break;
+      }
+    }
+
+    dest[cursor++] = '"';
+    return Smi::New(cursor);
+  }
+
+  if (value_str.IsTwoByteString()) {
+    const uint16_t* src = TwoByteString::DataStart(value_str);
+    intptr_t required_len = 2; // For opening and closing quotes
+    for (intptr_t i = 0; i < str_len; i++) {
+      uint16_t c = src[i];
+      switch (c) {
+        case '"':
+        case '\\':
+        case '\b':
+        case '\f':
+        case '\n':
+        case '\r':
+        case '\t':
+          required_len += 2;
+          break;
+        default:
+          if (c < 0x20) {
+            required_len += 6; // \u00XX
+          } else if (c <= 0x7F) {
+            required_len += 1;
+          } else if (c <= 0x7FF) {
+            required_len += 2;
+          } else if (c >= 0xD800 && c <= 0xDBFF) {
+            if (i + 1 < str_len) {
+              uint16_t c2 = src[i + 1];
+              if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+                i++;
+                required_len += 4;
+                break;
+              }
+            }
+            // Isolated high surrogate -> \uXXXX (6 bytes)
+            required_len += 6;
+          } else if (c >= 0xDC00 && c <= 0xDFFF) {
+            // Isolated low surrogate -> \uXXXX (6 bytes)
+            required_len += 6;
+          } else {
+            required_len += 3;
+          }
+          break;
+      }
+    }
+
+    if (buf_len < required_len || offset > buf_len - required_len) {
+      Exceptions::ThrowRangeError("offset", offset_obj, 0,
+                                  buf_len >= required_len ? buf_len - required_len : 0);
+    }
+
+    uint8_t* dest = reinterpret_cast<uint8_t*>(buffer.DataAddr(offset));
+    intptr_t cursor = 0;
+    static const char hex_digits[] = "0123456789abcdef";
+
+    dest[cursor++] = '"';
+
+    for (intptr_t i = 0; i < str_len; i++) {
+      uint16_t c = src[i];
+      switch (c) {
+        case '"':
+          dest[cursor++] = '\\';
+          dest[cursor++] = '"';
+          break;
+        case '\\':
+          dest[cursor++] = '\\';
+          dest[cursor++] = '\\';
+          break;
+        case '\b':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'b';
+          break;
+        case '\f':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'f';
+          break;
+        case '\n':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'n';
+          break;
+        case '\r':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 'r';
+          break;
+        case '\t':
+          dest[cursor++] = '\\';
+          dest[cursor++] = 't';
+          break;
+        default:
+          if (c < 0x20) {
+            dest[cursor++] = '\\';
+            dest[cursor++] = 'u';
+            dest[cursor++] = '0';
+            dest[cursor++] = '0';
+            dest[cursor++] = hex_digits[(c >> 4) & 0xF];
+            dest[cursor++] = hex_digits[c & 0xF];
+          } else if (c <= 0x7F) {
+            dest[cursor++] = static_cast<uint8_t>(c);
+          } else if (c <= 0x7FF) {
+            dest[cursor++] = static_cast<uint8_t>(0xC0 | (c >> 6));
+            dest[cursor++] = static_cast<uint8_t>(0x80 | (c & 0x3F));
+          } else if (c >= 0xD800 && c <= 0xDBFF) {
+            // Surrogate pair
+            if (i + 1 < str_len) {
+              uint16_t c2 = src[i + 1];
+              if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+                i++;
+                int32_t code_point =
+                    0x10000 + ((c - 0xD800) << 10) + (c2 - 0xDC00);
+                dest[cursor++] =
+                    static_cast<uint8_t>(0xF0 | (code_point >> 18));
+                dest[cursor++] =
+                    static_cast<uint8_t>(0x80 | ((code_point >> 12) & 0x3F));
+                dest[cursor++] =
+                    static_cast<uint8_t>(0x80 | ((code_point >> 6) & 0x3F));
+                dest[cursor++] =
+                    static_cast<uint8_t>(0x80 | (code_point & 0x3F));
+                break;
+              }
+            }
+            // Isolated high surrogate -> \uXXXX (6 ASCII bytes)
+            dest[cursor++] = '\\';
+            dest[cursor++] = 'u';
+            dest[cursor++] = hex_digits[(c >> 12) & 0xF];
+            dest[cursor++] = hex_digits[(c >> 8) & 0xF];
+            dest[cursor++] = hex_digits[(c >> 4) & 0xF];
+            dest[cursor++] = hex_digits[c & 0xF];
+          } else if (c >= 0xDC00 && c <= 0xDFFF) {
+            // Isolated low surrogate -> \uXXXX (6 ASCII bytes)
+            dest[cursor++] = '\\';
+            dest[cursor++] = 'u';
+            dest[cursor++] = hex_digits[(c >> 12) & 0xF];
+            dest[cursor++] = hex_digits[(c >> 8) & 0xF];
+            dest[cursor++] = hex_digits[(c >> 4) & 0xF];
+            dest[cursor++] = hex_digits[c & 0xF];
+          } else {
+            // 3-byte UTF-8
+            dest[cursor++] = static_cast<uint8_t>(0xE0 | (c >> 12));
+            dest[cursor++] = static_cast<uint8_t>(0x80 | ((c >> 6) & 0x3F));
+            dest[cursor++] = static_cast<uint8_t>(0x80 | (c & 0x3F));
+          }
+          break;
+      }
+    }
+
+    dest[cursor++] = '"';
+    return Smi::New(cursor);
   }
 
   // Precalculate exact required output length to avoid partial buffer corruption
