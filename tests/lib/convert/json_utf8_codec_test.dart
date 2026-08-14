@@ -16,6 +16,7 @@ void main() {
   testBitExactJsonCompatibility();
   testExactBufferCapacity();
   testReentrantSerialization();
+  testChunkedDecoderAllowMalformed();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -264,4 +265,29 @@ void testReentrantSerialization() {
     '123.456"nested"{"serialized":"78.9\\"deep_child\\""}',
     (decoded['obj'] as Map)['serialized'],
   );
+}
+
+void testChunkedDecoderAllowMalformed() {
+  // 1. allowMalformed: true should replace invalid UTF-8 bytes with U+FFFD
+  final malformedBytes = [0x22, 0x80, 0x22]; // '"\x80"'
+  Object? result;
+  final sinkTrue = JsonUtf8Decoder(null, true).startChunkedConversion(
+    ChunkedConversionSink.withCallback((List<Object?> values) {
+      result = values[0];
+    }),
+  );
+  sinkTrue.add(malformedBytes);
+  sinkTrue.close();
+  Expect.equals('\uFFFD', result);
+
+  // 2. allowMalformed: false should throw FormatException on invalid UTF-8 bytes
+  final sinkFalse = JsonUtf8Decoder(null, false).startChunkedConversion(
+    ChunkedConversionSink.withCallback((List<Object?> values) {
+      result = values[0];
+    }),
+  );
+  Expect.throwsFormatException(() {
+    sinkFalse.add(malformedBytes);
+    sinkFalse.close();
+  });
 }

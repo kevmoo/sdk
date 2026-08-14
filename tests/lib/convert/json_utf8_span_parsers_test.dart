@@ -46,6 +46,8 @@ void main() {
   testReentrantSinkWriters();
   testDecoderSkipValue64LevelsMixedContainers();
   testZeroAllocationKeySlicing();
+  testSkipValueInvalidEscapes();
+  testWebSafeFnv1aHash();
 }
 
 void testParseInt() {
@@ -2106,4 +2108,191 @@ void testZeroAllocationKeySlicing() {
   );
   Expect.equals(5, len);
   Expect.equals('"id":', utf8.decode(buf.sublist(0, len)));
+}
+
+void testSkipValueInvalidEscapes() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Valid escapes should succeed
+  final valid = [
+    r'"\""',
+    r'"\\"',
+    r'"\/"',
+    r'"\b"',
+    r'"\f"',
+    r'"\n"',
+    r'"\r"',
+    r'"\t"',
+    r'"\u0000"',
+    r'"\uFFFF"',
+    r'"\u12ab"',
+    r'"\uCDEF"',
+    r'"hello \n world \t \" \\ \/ \b \f \r \u1234 done"',
+  ];
+  for (final s in valid) {
+    final bytes = b(s);
+    Expect.equals(bytes.length, JsonUtf8Decoder.skipString(bytes, 0));
+    Expect.equals(bytes.length, JsonUtf8Decoder.skipValue(bytes, 0));
+  }
+
+  // Invalid escapes in skipString
+  final invalidStrings = [
+    r'"\z"',
+    r'"\0"',
+    r'"\a"',
+    r'"\1"',
+    r'"\x20"',
+    r'"\u12"',
+    r'"\u"',
+    r'"\u123"',
+    r'"\u12g4"',
+    r'"\u123Z"',
+    r'"\u12 4"',
+  ];
+  for (final s in invalidStrings) {
+    final bytes = b(s);
+    Expect.throwsFormatException(
+      () => JsonUtf8Decoder.skipString(bytes, 0),
+      'skipString should reject $s',
+    );
+    Expect.throwsFormatException(
+      () => JsonUtf8Decoder.skipValue(bytes, 0),
+      'skipValue should reject scalar string $s',
+    );
+  }
+
+  // Unterminated backslash at EOF in skipString and skipValue
+  final unterminatedEscape = Uint8List.fromList([0x22, 0x5C]); // '"\'
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipString(unterminatedEscape, 0),
+  );
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(unterminatedEscape, 0),
+  );
+
+  // Invalid escapes inside objects and arrays for skipValue
+  final invalidContainers = [
+    r'{"key": "\z"}',
+    r'{"k\z": 1}',
+    r'{"a": "\u12"}',
+    r'{"a": "\u12g4"}',
+    r'{"a": "\0"}',
+    r'["\z"]',
+    r'["\0"]',
+    r'["\a"]',
+    r'["\u12"]',
+    r'["\u123G"]',
+    r'[1, 2, {"nested": ["valid", "\z"]}]',
+  ];
+  for (final c in invalidContainers) {
+    final bytes = b(c);
+    Expect.throwsFormatException(
+      () => JsonUtf8Decoder.skipValue(bytes, 0),
+      'skipValue should reject invalid escape in container $c',
+    );
+  }
+
+  // Unterminated backslash at EOF in container
+  final unterminatedInArray = Uint8List.fromList([0x5B, 0x22, 0x5C]); // '["\'
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(unterminatedInArray, 0),
+  );
+  final unterminatedInObject = Uint8List.fromList([0x7B, 0x22, 0x5C]); // '{"\'
+  Expect.throwsFormatException(
+    () => JsonUtf8Decoder.skipValue(unterminatedInObject, 0),
+  );
+}
+
+void testWebSafeFnv1aHash() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Reference 16-bit split multiplication producing web-safe 31-bit FNV-1a hash
+  int imul32(int a, int b) {
+    final aLo = a & 0xffff;
+    final aHi = (a >> 16) & 0xffff;
+    final bLo = b & 0xffff;
+    final bHi = (b >> 16) & 0xffff;
+    final lo = aLo * bLo;
+    final hi = aLo * bHi + aHi * bLo;
+    return ((lo + ((hi & 0xffff) << 16)) & 0x7fffffff);
+  }
+
+  // 1. Verify exact 32-bit integer arithmetic behavior on edge cases
+  // Multiplications that exceed JS Number.MAX_SAFE_INTEGER (9,007,199,254,740,991)
+  Expect.equals(0, imul32(0, 0x01000193));
+  Expect.equals(0x01000193, imul32(1, 0x01000193));
+  // 0x811c9dc5 * 0x01000193 = 36,342,609,075,723,551 (exceeds 2^53 - 1)
+  // Low 32 bits = 0x050c5d1f = 84696351
+  Expect.equals(0x050c5d1f, imul32(0x811c9dc5, 0x01000193));
+
+  // 2. Test JsonKeyOptions lookup with various key patterns
+  final keyList = [
+    'id',
+    'type',
+    'title',
+    'description',
+    'active',
+    'count',
+    'latitude',
+    'longitude',
+    'created_at',
+    'updated_at',
+    'user_id',
+    'payload',
+    'metadata',
+    'schema_version',
+    'alpha',
+    'beta',
+    'gamma',
+    'delta',
+    'epsilon',
+    'zeta',
+  ];
+  final options = JsonKeyOptions.of(keyList);
+  Expect.equals(keyList.length, options.length);
+
+  for (var i = 0; i < keyList.length; i++) {
+    final keyBytes = b(keyList[i]);
+    final matchedIndex = options.selectKey(keyBytes, 0, keyBytes.length);
+    Expect.equals(i, matchedIndex, 'Expected key ${keyList[i]} at index $i');
+  }
+
+  // Missing keys return -1
+  final nonExistent = ['non_existent', 'missing', 'id_extended', 'typ'];
+  for (final k in nonExistent) {
+    final kb = b(k);
+    Expect.equals(-1, options.selectKey(kb, 0, kb.length));
+  }
+
+  // 3. Multi-byte and special character keys
+  final unicodeKeys = [
+    'café',
+    'résumé',
+    'naïve',
+    'über',
+    '東京',
+    '日本語',
+    '🎉',
+    '🚀',
+    '🔥',
+    '🌟',
+    'a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'f',
+  ];
+  final unicodeOptions = JsonKeyOptions.of(unicodeKeys);
+  for (var i = 0; i < unicodeKeys.length; i++) {
+    final kb = b(unicodeKeys[i]);
+    Expect.equals(i, unicodeOptions.selectKey(kb, 0, kb.length));
+  }
+
+  // 4. Sublist / offset spans in larger buffers
+  final buffer = b('{"title":"test","user_id":123}');
+  // "title" starts at index 2, length 5 (indices 2..7)
+  Expect.equals(2, options.selectKey(buffer, 2, 7));
+  // "user_id" starts at index 17, length 7 (indices 17..24)
+  Expect.equals(10, options.selectKey(buffer, 17, 24));
 }

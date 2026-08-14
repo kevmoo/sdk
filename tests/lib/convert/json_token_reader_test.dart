@@ -48,6 +48,7 @@ void main() {
   testDeepMixedContainerSkipValue64Levels();
   testClosureFreeScalarStreamingAndRollback();
   testZeroAllocationColonTerminatedKeys();
+  testTokenReaderSkipValueInvalidEscapes();
 }
 
 void testTokenReaderPrimitives() {
@@ -1700,4 +1701,81 @@ void testZeroAllocationColonTerminatedKeys() {
     r'{"user_id":42,"user_name":"Alice","escaped\nkey":true}',
     json,
   );
+}
+
+void testTokenReaderSkipValueInvalidEscapes() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // Valid escapes in reader.skipValue()
+  final valid = [
+    r'"hello \n world \t \" \\ \/ \b \f \r \u1234 done"',
+    r'{"key": "hello \n \" \\ \/ \b \f \r \t \uFFFF"}',
+    r'["valid", "\"", "\\", "\/", "\b", "\f", "\n", "\r", "\t", "\u1234"]',
+  ];
+  for (final s in valid) {
+    final reader = JsonTokenReader.fromBytes(b(s));
+    reader.skipValue();
+    Expect.equals(JsonTokenType.endOfDocument, reader.peek());
+  }
+
+  // Invalid escapes in scalar strings
+  final invalidScalars = [
+    r'"\z"',
+    r'"\0"',
+    r'"\a"',
+    r'"\1"',
+    r'"\u12"',
+    r'"\u"',
+    r'"\u123"',
+    r'"\u12g4"',
+  ];
+  for (final s in invalidScalars) {
+    final reader = JsonTokenReader.fromBytes(b(s));
+    Expect.throwsFormatException(
+      () => reader.skipValue(),
+      'reader.skipValue() should throw on invalid escape in $s',
+    );
+  }
+
+  // Unterminated backslash at EOF in scalar string
+  final unterminatedScalar = Uint8List.fromList([0x22, 0x5C]); // '"\'
+  final rUnterm = JsonTokenReader.fromBytes(unterminatedScalar);
+  Expect.throwsFormatException(() => rUnterm.skipValue());
+
+  // Invalid escapes inside container with state rollback check
+  final invalidContainers = [
+    r'{"key": "\z"}',
+    r'{"k\z": 1}',
+    r'{"k": "\u12"}',
+    r'{"k": "\u123G"}',
+    r'["\z"]',
+    r'["\0"]',
+    r'["\a"]',
+    r'["\u12"]',
+    r'["\u123G"]',
+  ];
+  for (final c in invalidContainers) {
+    final reader = JsonTokenReader.fromBytes(b(c));
+    Expect.throwsFormatException(
+      () => reader.skipValue(),
+      'reader.skipValue() should throw on invalid escape in container $c',
+    );
+  }
+
+  // Unterminated escape at EOF inside container
+  final unterminatedInArray = Uint8List.fromList([0x5B, 0x22, 0x5C]); // '["\'
+  final rArray = JsonTokenReader.fromBytes(unterminatedInArray);
+  Expect.throwsFormatException(() => rArray.skipValue());
+
+  final unterminatedInObject = Uint8List.fromList([0x7B, 0x22, 0x5C]); // '{"\'
+  final rObject = JsonTokenReader.fromBytes(unterminatedInObject);
+  Expect.throwsFormatException(() => rObject.skipValue());
+
+  // Verify rollback on skipValue() failure inside array
+  final rRollback = JsonTokenReader.fromBytes(b(r'[1, "\z", 3]'));
+  rRollback.beginArray();
+  Expect.equals(1, rRollback.readInt());
+  Expect.throwsFormatException(() => rRollback.skipValue());
+  // Offset was rolled back, peek() should still see string
+  Expect.equals(JsonTokenType.string, rRollback.peek());
 }

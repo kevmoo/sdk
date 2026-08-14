@@ -89,7 +89,7 @@ final class JsonKeyOptions {
       final len = lengths[i];
       var h = 0x811c9dc5;
       for (var j = 0; j < len; j++) {
-        h = ((h ^ encodedKeys[off + j]) * 0x01000193) & 0x7fffffff;
+        h = _imul32(h ^ encodedKeys[off + j], 0x01000193);
       }
       var slot = h & mask;
       while (table[slot] != -1) {
@@ -132,7 +132,7 @@ final class JsonKeyOptions {
     final spanLen = end - start;
     var h = 0x811c9dc5;
     for (var i = start; i < end; i++) {
-      h = ((h ^ source[i]) * 0x01000193) & 0x7fffffff;
+      h = _imul32(h ^ source[i], 0x01000193);
     }
     final mask = _hashMask;
     var slot = h & mask;
@@ -219,9 +219,9 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
 
   @override
   ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) {
-    return utf8.decoder.startChunkedConversion(
-      JsonDecoder(reviver).startChunkedConversion(sink),
-    );
+    return Utf8Decoder(
+      allowMalformed: allowMalformed,
+    ).startChunkedConversion(JsonDecoder(reviver).startChunkedConversion(sink));
   }
 
   // --- Static Low-Level Zero-Allocation Span Parsing Helpers ---
@@ -352,19 +352,22 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
         if (c == 34) {
           var closed = false;
           while (i < bytes.length) {
-            final sc = bytes[i++];
+            final sc = bytes[i];
             if (sc < 0x20) {
               throw FormatException(
-                'Unescaped control character in string literal at offset ${i - 1}',
+                'Unescaped control character in string literal at offset $i',
                 bytes,
-                i - 1,
+                i,
               );
             }
             if (sc == 92) {
-              if (i < bytes.length) i++;
+              i = _validateEscape(bytes, i + 1, bytes.length);
             } else if (sc == 34) {
+              i++;
               closed = true;
               break;
+            } else {
+              i++;
             }
           }
           if (!closed) {
@@ -434,19 +437,22 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
       i++;
       var closed = false;
       while (i < bytes.length) {
-        final c = bytes[i++];
+        final c = bytes[i];
         if (c < 0x20) {
           throw FormatException(
-            'Unescaped control character in string literal at offset ${i - 1}',
+            'Unescaped control character in string literal at offset $i',
             bytes,
-            i - 1,
+            i,
           );
         }
         if (c == 92) {
-          if (i < bytes.length) i++;
+          i = _validateEscape(bytes, i + 1, bytes.length);
         } else if (c == 34) {
+          i++;
           closed = true;
           break;
+        } else {
+          i++;
         }
       }
       if (!closed) {
@@ -554,19 +560,22 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
     }
     var closed = false;
     while (i < bytes.length) {
-      final b = bytes[i++];
+      final b = bytes[i];
       if (b < 0x20) {
         throw FormatException(
-          'Unescaped control character in string literal at offset ${i - 1}',
+          'Unescaped control character in string literal at offset $i',
           bytes,
-          i - 1,
+          i,
         );
       }
       if (b == 92) {
-        if (i < bytes.length) i++;
+        i = _validateEscape(bytes, i + 1, bytes.length);
       } else if (b == 34) {
+        i++;
         closed = true;
         break;
+      } else {
+        i++;
       }
     }
     if (!closed) {
@@ -1735,7 +1744,7 @@ final class _JsonTokenReader implements JsonTokenReader {
         );
       }
       if (b == 92) {
-        i += 2;
+        i = _validateEscape(_bytes, i + 1, _bytes.length);
       } else if (b == 34) {
         final end = i;
         _offset = i + 1;
@@ -1982,19 +1991,22 @@ final class _JsonTokenReader implements JsonTokenReader {
           if (c == 34) {
             var closed = false;
             while (_offset < _bytes.length) {
-              final sc = _bytes[_offset++];
+              final sc = _bytes[_offset];
               if (sc < 0x20) {
                 throw FormatException(
-                  'Unescaped control character in string literal at offset ${_offset - 1}',
+                  'Unescaped control character in string literal at offset $_offset',
                   _bytes,
-                  _offset - 1,
+                  _offset,
                 );
               }
               if (sc == 92) {
-                if (_offset < _bytes.length) _offset++;
+                _offset = _validateEscape(_bytes, _offset + 1, _bytes.length);
               } else if (sc == 34) {
+                _offset++;
                 closed = true;
                 break;
+              } else {
+                _offset++;
               }
             }
             if (!closed) {
@@ -2199,7 +2211,7 @@ final class _JsonTokenReader implements JsonTokenReader {
           );
         }
         if (c == 92) {
-          j += 2;
+          j = _validateEscape(_bytes, j + 1, _bytes.length);
         } else if (c == 34) {
           return (start, j);
         } else {
@@ -2486,6 +2498,73 @@ int _digitCountNegative(int v) {
 }
 
 const String _hexDigits = "0123456789abcdef";
+
+/// Web-safe 32-bit integer multiplication performing exact modulo 2^32
+/// multiplication with 31-bit non-negative masking (`& 0x7fffffff`), safe
+/// against JavaScript 53-bit float mantissa precision limits.
+int _imul32(int a, int b) {
+  final aLo = a & 0xffff;
+  final aHi = (a >> 16) & 0xffff;
+  final bLo = b & 0xffff;
+  final bHi = (b >> 16) & 0xffff;
+  final lo = aLo * bLo;
+  final hi = aLo * bHi + aHi * bLo;
+  return ((lo + ((hi & 0xffff) << 16)) & 0x7fffffff);
+}
+
+bool _isHexDigit(int b) =>
+    (b >= 48 && b <= 57) || (b >= 65 && b <= 70) || (b >= 97 && b <= 102);
+
+bool _isValidEscapeChar(int b) =>
+    b == 34 ||
+    b == 92 ||
+    b == 47 ||
+    b == 98 ||
+    b == 102 ||
+    b == 110 ||
+    b == 114 ||
+    b == 116 ||
+    b == 117;
+
+int _validateEscape(Uint8List bytes, int escOffset, int endOffset) {
+  if (escOffset >= endOffset) {
+    throw FormatException(
+      'Unterminated escape sequence at offset ${escOffset - 1}',
+      bytes,
+      escOffset - 1,
+    );
+  }
+  final esc = bytes[escOffset];
+  if (esc == 117) {
+    // 'u'
+    if (escOffset + 5 > endOffset) {
+      throw FormatException(
+        'Incomplete unicode escape at offset ${escOffset - 1}',
+        bytes,
+        escOffset - 1,
+      );
+    }
+    for (var k = 1; k <= 4; k++) {
+      final hc = bytes[escOffset + k];
+      if (!_isHexDigit(hc)) {
+        throw FormatException(
+          'Invalid hex digit "${String.fromCharCode(hc)}" at offset ${escOffset + k}',
+          bytes,
+          escOffset + k,
+        );
+      }
+    }
+    return escOffset + 5;
+  }
+  if (!_isValidEscapeChar(esc)) {
+    throw FormatException(
+      'Invalid escape character "${String.fromCharCode(esc)}" at offset $escOffset',
+      bytes,
+      escOffset,
+    );
+  }
+  return escOffset + 1;
+}
 
 int _writeStringToBufferUtf8(String value, Uint8List buffer, int offset) {
   final len = value.length;
