@@ -998,6 +998,118 @@ void testBufferOverflowAndBounds() {
     () => JsonUtf8Encoder.writeStringToBuffer('hello', Uint8List(16), 1000),
   );
 
+  // writeBoolToBuffer exact fit -> Succeeds
+  final exactBoolTrueBuf = Uint8List(4);
+  final bTrueLen = JsonUtf8Encoder.writeBoolToBuffer(true, exactBoolTrueBuf, 0);
+  Expect.equals(4, bTrueLen);
+  Expect.equals('true', utf8.decode(exactBoolTrueBuf));
+
+  final exactBoolFalseBuf = Uint8List(5);
+  final bFalseLen = JsonUtf8Encoder.writeBoolToBuffer(
+    false,
+    exactBoolFalseBuf,
+    0,
+  );
+  Expect.equals(5, bFalseLen);
+  Expect.equals('false', utf8.decode(exactBoolFalseBuf));
+
+  // writeBoolToBuffer exact boundary fit at offset -> Succeeds
+  final offsetBoolBuf = Uint8List(10);
+  final bTrueLen2 = JsonUtf8Encoder.writeBoolToBuffer(true, offsetBoolBuf, 6);
+  Expect.equals(4, bTrueLen2);
+  Expect.equals('true', utf8.decode(offsetBoolBuf.sublist(6, 10)));
+
+  final bFalseLen2 = JsonUtf8Encoder.writeBoolToBuffer(false, offsetBoolBuf, 5);
+  Expect.equals(5, bFalseLen2);
+  Expect.equals('false', utf8.decode(offsetBoolBuf.sublist(5, 10)));
+
+  // writeBoolToBuffer undersized buffer -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(true, Uint8List(0), 0),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(false, Uint8List(0), 0),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(true, Uint8List(3), 0),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(false, Uint8List(4), 0),
+  );
+
+  // writeBoolToBuffer negative offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(true, Uint8List(16), -1),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(false, Uint8List(16), -1),
+  );
+
+  // writeBoolToBuffer offset out of bounds -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(true, Uint8List(16), 13),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(false, Uint8List(16), 12),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(true, Uint8List(16), 1000),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(false, Uint8List(16), 1000),
+  );
+
+  // In-place buffer non-corruption test for writeBoolToBuffer:
+  final boolBufTrue = Uint8List.fromList([1, 2, 3, 4, 5]);
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(true, boolBufTrue, 3),
+  );
+  Expect.listEquals([1, 2, 3, 4, 5], boolBufTrue);
+
+  final boolBufFalse = Uint8List.fromList([1, 2, 3, 4, 5]);
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeBoolToBuffer(false, boolBufFalse, 2),
+  );
+  Expect.listEquals([1, 2, 3, 4, 5], boolBufFalse);
+
+  // writeNullToBuffer exact fit -> Succeeds
+  final exactNullBuf = Uint8List(4);
+  final nLen = JsonUtf8Encoder.writeNullToBuffer(exactNullBuf, 0);
+  Expect.equals(4, nLen);
+  Expect.equals('null', utf8.decode(exactNullBuf));
+
+  // writeNullToBuffer exact boundary fit at offset -> Succeeds
+  final offsetNullBuf = Uint8List(10);
+  final nLen2 = JsonUtf8Encoder.writeNullToBuffer(offsetNullBuf, 6);
+  Expect.equals(4, nLen2);
+  Expect.equals('null', utf8.decode(offsetNullBuf.sublist(6, 10)));
+
+  // writeNullToBuffer undersized buffer -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeNullToBuffer(Uint8List(0), 0),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeNullToBuffer(Uint8List(3), 0),
+  );
+
+  // writeNullToBuffer negative offset -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeNullToBuffer(Uint8List(16), -1),
+  );
+
+  // writeNullToBuffer offset out of bounds -> RangeError
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeNullToBuffer(Uint8List(16), 13),
+  );
+  Expect.throwsRangeError(
+    () => JsonUtf8Encoder.writeNullToBuffer(Uint8List(16), 1000),
+  );
+
+  // In-place buffer non-corruption test for writeNullToBuffer:
+  final nullBuf = Uint8List.fromList([1, 2, 3, 4, 5]);
+  Expect.throwsRangeError(() => JsonUtf8Encoder.writeNullToBuffer(nullBuf, 3));
+  Expect.listEquals([1, 2, 3, 4, 5], nullBuf);
+
   // In-place buffer rollback / non-corruption test:
   final buf = Uint8List.fromList([1, 2, 3, 4, 5]);
   Expect.throwsRangeError(
@@ -1341,7 +1453,7 @@ void testHasNextAtomicRollback() {
     r.beginArray();
     Expect.equals(1, r.readInt());
     Expect.throwsFormatException(() => r.hasNext());
-    Expect.equals(JsonTokenType.endOfDocument, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
   // Truncated object ending on comma
@@ -1351,7 +1463,7 @@ void testHasNextAtomicRollback() {
     Expect.equals('a', r.nextName());
     Expect.equals(1, r.readInt());
     Expect.throwsFormatException(() => r.hasNext());
-    Expect.equals(JsonTokenType.endOfDocument, r.peek());
+    Expect.throwsFormatException(() => r.peek());
   }
 
   // Trailing comma in array before ]

@@ -796,6 +796,15 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
   /// Writes a boolean literal directly into [buffer] starting at [offset].
   /// Returns the number of bytes written.
   static int writeBoolToBuffer(bool value, Uint8List buffer, int offset) {
+    final len = value ? 4 : 5;
+    if (offset < 0 || offset + len > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= len ? buffer.length - len : 0,
+        'offset',
+      );
+    }
     if (value) {
       buffer[offset] = 116; // 't'
       buffer[offset + 1] = 114; // 'r'
@@ -820,6 +829,15 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
   /// Writes a `null` literal directly into [buffer] starting at [offset].
   /// Returns the number of bytes written.
   static int writeNullToBuffer(Uint8List buffer, int offset) {
+    const len = 4;
+    if (offset < 0 || offset + len > buffer.length) {
+      throw RangeError.range(
+        offset,
+        0,
+        buffer.length >= len ? buffer.length - len : 0,
+        'offset',
+      );
+    }
     buffer[offset] = 110;
     buffer[offset + 1] = 117;
     buffer[offset + 2] = 108;
@@ -1463,7 +1481,13 @@ final class _JsonTokenReader implements JsonTokenReader {
               while (i < _bytes.length && _isWs(_bytes[i])) {
                 i++;
               }
-              if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+              if (i >= _bytes.length) {
+                throw FormatException(
+                  'Unexpected end of document after comma',
+                  _bytes,
+                  _offset,
+                );
+              }
               if (_bytes[i] == 125 || _bytes[i] == 93) {
                 throw FormatException(
                   'Trailing comma before closing delimiter',
@@ -1502,7 +1526,13 @@ final class _JsonTokenReader implements JsonTokenReader {
               while (i < _bytes.length && _isWs(_bytes[i])) {
                 i++;
               }
-              if (i >= _bytes.length) return JsonTokenType.endOfDocument;
+              if (i >= _bytes.length) {
+                throw FormatException(
+                  'Unexpected end of document after comma',
+                  _bytes,
+                  _offset,
+                );
+              }
               if (_bytes[i] == 93 || _bytes[i] == 125) {
                 throw FormatException(
                   'Trailing comma before closing delimiter',

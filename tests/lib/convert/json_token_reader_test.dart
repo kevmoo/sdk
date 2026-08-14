@@ -1385,6 +1385,7 @@ void testTruncatedDocumentTrailingCommaEof() {
     r.beginObject();
     Expect.equals('a', r.nextName());
     Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
     Expect.throwsFormatException(() => r.hasNext());
   }
   {
@@ -1392,6 +1393,7 @@ void testTruncatedDocumentTrailingCommaEof() {
     r.beginObject();
     Expect.equals('a', r.nextName());
     Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
     Expect.throwsFormatException(() => r.hasNext());
   }
 
@@ -1400,12 +1402,33 @@ void testTruncatedDocumentTrailingCommaEof() {
     final r = JsonTokenReader.fromBytes(b('[1,'));
     r.beginArray();
     Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
     Expect.throwsFormatException(() => r.hasNext());
   }
   {
     final r = JsonTokenReader.fromBytes(b('[1,   '));
     r.beginArray();
     Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+    Expect.throwsFormatException(() => r.hasNext());
+  }
+
+  // In nested containers: truncated after comma
+  {
+    final r = JsonTokenReader.fromBytes(b('[[1,'));
+    r.beginArray();
+    r.beginArray();
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
+    Expect.throwsFormatException(() => r.hasNext());
+  }
+  {
+    final r = JsonTokenReader.fromBytes(b('[{"a": 1,'));
+    r.beginArray();
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.peek());
     Expect.throwsFormatException(() => r.hasNext());
   }
 }
