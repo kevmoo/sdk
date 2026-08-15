@@ -16,6 +16,7 @@ convert_sdk_sources = [
   "encoding.dart",
   "html_escape.dart",
   "json.dart",
+  "json_utf8.dart",
   "latin1.dart",
   "line_splitter.dart",
   "string_conversion.dart",
