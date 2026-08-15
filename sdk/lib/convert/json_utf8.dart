@@ -53,6 +53,14 @@ final class JsonKeyOptions {
   final Int64List? _shortKeyInts;
   final Uint8List? _shortKeyLens;
 
+  // Masks selecting the low `n` bytes of a packed 8-byte key.
+  //
+  // Only meaningful where `int` is a 64-bit integer. On the web `int` is a
+  // double and bitwise operators are evaluated with 32-bit semantics, so
+  // entries 7 and 8 do not hold the intended values -- entry 7 cannot even be
+  // written as a web-representable literal, which is why it is built with a
+  // shift. Nothing reads this table on the web: [_shortKeyInts] is left null
+  // there and every use is guarded on it.
   static const _lenMasks = <int>[
     0x0,
     0x00000000000000FF,
@@ -165,10 +173,15 @@ final class JsonKeyOptions {
 
   int get length => keys.length;
 
-  /// Fast-path 64-bit SWAR short key matching (len <= 8) in O(K).
+  /// Fast-path 64-bit SWAR short key matching (len <= 8), linear in the
+  /// number of keys.
+  ///
+  /// Takes the key's UTF-8 bytes packed little-endian into an integer, which
+  /// is an internal representation with no portable way for a caller to build
+  /// it, and returns -1 unconditionally on the web. Private for both reasons.
   @pragma('vm:prefer-inline')
   @pragma('wasm:prefer-inline')
-  int findShortKeyIndex(int keyInt, int len) {
+  int _findShortKeyIndex(int keyInt, int len) {
     final ints = _shortKeyInts;
     final lens = _shortKeyLens;
     if (ints == null || lens == null) return -1;
@@ -409,7 +422,7 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
           final bd = ByteData.sublistView(bytes);
           final keyInt =
               bd.getInt64(start, Endian.little) & JsonKeyOptions._lenMasks[len];
-          return options.findShortKeyIndex(keyInt, len);
+          return options._findShortKeyIndex(keyInt, len);
         }
         return options.selectKey(bytes, start, end);
       }
@@ -1653,15 +1666,6 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
   }
 
-  void _consumeColon() {
-    _skipWs();
-    if (_offset < _bytes.length && _bytes[_offset] == 58) {
-      _offset++;
-    } else {
-      throw FormatException('Expected ":" at offset $_offset');
-    }
-  }
-
   void _beforeReadingName() {
     _skipWs();
     if (_stack.isEmpty || _stack.last.type != _ContainerType.object) {
@@ -2113,7 +2117,7 @@ final class _JsonTokenReader implements JsonTokenReader {
           final keyInt =
               _byteData.getInt64(start, Endian.little) &
               JsonKeyOptions._lenMasks[len];
-          return options.findShortKeyIndex(keyInt, len);
+          return options._findShortKeyIndex(keyInt, len);
         }
         return options.selectKey(_bytes, start, end);
       }
@@ -2172,7 +2176,7 @@ final class _JsonTokenReader implements JsonTokenReader {
           final keyInt =
               _byteData.getInt64(start, Endian.little) &
               JsonKeyOptions._lenMasks[len];
-          return options.findShortKeyIndex(keyInt, len);
+          return options._findShortKeyIndex(keyInt, len);
         }
         return options.selectKey(_bytes, start, end);
       }
@@ -3259,8 +3263,10 @@ int _digitCountNegative(int v) {
   if (v > -100000000000000000) return 17;
   if (v > -1000000000000000000) return 18;
   if (v > -10000000000000000000.0) return 19;
+  // Start one power past the 19-digit test above: at v == -1e19 the loop must
+  // not run, otherwise a 20-digit value is reported as 21 digits.
   var count = 20;
-  var limit = -10000000000000000000.0;
+  var limit = -100000000000000000000.0;
   while (v <= limit && count < 320) {
     limit *= 10;
     count++;
@@ -6157,9 +6163,10 @@ double? _tryParseDoubleFastEiselLemire(
     if (finalExp >= 2047) return null;
   }
 
-  if (low11 == 0x400 && shiftedLo == 0) {
-    mantissaBits &= ~0x800;
-  }
+  // No ties-to-even adjustment is needed here: an exact halfway case is
+  // `low11 == 0x400 && shiftedLo == 0`, which the ambiguity check above has
+  // already rejected with `null` so that the correctly rounding fallback
+  // parser handles it.
 
   final fractionBits = (mantissaBits >>> 11) & 0x000FFFFFFFFFFFFF;
   final signBit = isNegative ? 0x8000000000000000 : 0;
