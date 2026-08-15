@@ -14,6 +14,39 @@ void main() {
   testChunkedLargeDocumentStreaming();
   testEncoderConvertSmallBufferSize();
   testMicroBufferSizeChunkedStreaming();
+  testNonPositiveBufferSizeRejected();
+}
+
+/// A zero or negative buffer size cannot be honoured: the copy loops flush and
+/// retry whenever the buffer is full, and a zero-length buffer never frees any
+/// space, so the retry spins forever. Reject it at construction instead.
+void testNonPositiveBufferSizeRejected() {
+  for (final bufferSize in [0, -1, -32768]) {
+    Expect.throwsRangeError(
+      () => JsonUtf8Encoder(null, null, bufferSize),
+      'bufferSize $bufferSize should be rejected',
+    );
+    Expect.throwsRangeError(
+      () => JsonUtf8Codec(bufferSize: bufferSize).encoder,
+      'JsonUtf8Codec bufferSize $bufferSize should be rejected',
+    );
+  }
+
+  // The smallest legal size still encodes correctly.
+  final value = {
+    'a': 'hello world',
+    'b': [1, 2.5, true, null],
+  };
+  Expect.equals(
+    json.encode(value),
+    utf8.decode(JsonUtf8Encoder(null, null, 1).convert(value)),
+  );
+
+  // Omitting the size keeps the default.
+  Expect.equals(
+    json.encode(value),
+    utf8.decode(JsonUtf8Encoder().convert(value)),
+  );
 }
 
 final class _ChunkCapturingSink extends ByteConversionSink {
