@@ -847,7 +847,9 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   /// Formats [value] as an ASCII integer literal directly into [sink].
   static void writeInt(int value, BytesBuilder sink) {
-    if (value >= 1e19 || value <= -1e19) {
+    // See [writeIntToBuffer] for why the limit is platform dependent.
+    final limit = identical(1, 1.0) ? 9007199254740992.0 : 1e19;
+    if (value >= limit || value <= -limit) {
       final str = value.toString();
       for (var i = 0; i < str.length; i++) {
         sink.addByte(str.codeUnitAt(i));
@@ -876,7 +878,14 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
       buffer[offset] = 48; // '0'
       return 1;
     }
-    if (value >= 1e19 || value <= -1e19) {
+    // Above this magnitude the value is formatted with `toString` instead of
+    // the `_digitPairs` loop. On the VM and Wasm `int` is a signed 64-bit
+    // integer and the loop is exact across the whole range, so the limit sits
+    // above it. On the web `int` is a double: `~/` and `*` stop being exact
+    // past 2^53, so `next * 100` can overshoot `temp`, which drives the
+    // remainder negative and indexes outside `_digitPairs`.
+    final limit = identical(1, 1.0) ? 9007199254740992.0 : 1e19;
+    if (value >= limit || value <= -limit) {
       final str = value.toString();
       final len = str.length;
       if (offset < 0 || offset + len > buffer.length) {
