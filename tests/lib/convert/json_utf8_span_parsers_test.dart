@@ -18,6 +18,7 @@ void main() {
   testIsVerbatim();
   testSkipMethods();
   testEncoderBufferWriters();
+  testWriteStringEscapeDensities();
   testSurrogateEncoding();
   testRfc8259NumberGrammar();
   testIntegerOverflowAndLimits();
@@ -475,6 +476,57 @@ void testEncoderBufferWriters() {
     isFirst: false,
   );
   Expect.equals(r',"k\\":', utf8.decode(buffer.sublist(0, len)));
+}
+
+/// [JsonUtf8Encoder.writeString] sizes its scratch buffer for the common case
+/// of three bytes per code unit and re-sizes to the six-byte worst case only
+/// when the string is escape heavy. Both paths must produce identical output,
+/// so exercise strings on either side of that boundary.
+void testWriteStringEscapeDensities() {
+  String encode(String value) {
+    final sink = BytesBuilder(copy: false);
+    JsonUtf8Encoder.writeString(value, sink);
+    return utf8.decode(sink.takeBytes());
+  }
+
+  final samples = <String>[
+    "",
+    "a",
+    "id",
+    "plain ascii text",
+    "café €",
+    "中文测试", // 3 bytes per code unit
+    "\u{1F680}\u{1F600}", // surrogate pairs, 4 bytes per pair
+    '"', "\\", "\b\f\n\r\t",
+    "\u0000\u0001\u001f", // 6 bytes per code unit: forces the re-size
+    "mix \u0001 \"q\" \u{1F680} 中",
+    "\u0001" * 1000, // wholly escape heavy
+    "a" * 1000,
+    "中" * 1000,
+    "\u{1F680}" * 500,
+    String.fromCharCode(0xD800), // isolated high surrogate
+    String.fromCharCode(0xDC00), // isolated low surrogate
+    "before${String.fromCharCode(0xD800)}after",
+  ];
+
+  for (final value in samples) {
+    final actual = encode(value);
+    Expect.equals(json.encode(value), actual, 'writeString("${value.length}")');
+
+    // The token writer routes its string and name output through the same
+    // helper, so it must agree byte for byte.
+    final sink = BytesBuilder(copy: false);
+    JsonTokenWriter.toSink(sink)
+      ..beginObject()
+      ..writeName("k")
+      ..writeString(value)
+      ..endObject();
+    Expect.equals(
+      json.encode({"k": value}),
+      utf8.decode(sink.takeBytes()),
+      'JsonTokenWriter round trip for a ${value.length} code unit string',
+    );
+  }
 }
 
 void testSurrogateEncoding() {
