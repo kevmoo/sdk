@@ -13,6 +13,7 @@ void main() {
   testWriteIntToBufferLargeIntegers();
   testDecodeLargeIntegersPrecision();
   testDecodeCorrectlyRoundedLargeIntegers();
+  testEncodeIntegersAbove2Pow53();
   testTokenReaderLargeIntegers();
 }
 
@@ -62,6 +63,62 @@ void testDecodeCorrectlyRoundedLargeIntegers() {
       reader.readDouble(),
       'readDouble not correctly rounded: "$s"',
     );
+  }
+}
+
+/// Integers between 2^53 and 1e19 are ordinary `int` values on every platform,
+/// but on the web `int` is a double, so `~/` and `*` in the digit-pair
+/// formatter stop being exact. An overshooting quotient drives the pair
+/// remainder negative, which either indexes outside the digit table or emits
+/// well-formed but wrong digits.
+void testEncodeIntegersAbove2Pow53() {
+  final values = <int>[
+    9007199254740991, // 2^53 - 1, last exact value
+    9007199254740992, // 2^53
+    60592972518337896,
+    42845701759940776,
+    68323050187018704,
+    1000000000000000000, // 1e18
+    4611686018427387904, // 2^62
+  ];
+
+  // A deterministic sweep of the binades in between.
+  var seed = 0x51ed270b;
+  var power = 9007199254740992; // 2^53
+  for (var binade = 0; binade < 9; binade++) {
+    for (var i = 0; i < 40; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x3FFFFFFF;
+      values.add(power + (seed % 1000) * 97);
+    }
+    power *= 2;
+  }
+
+  final buffer = Uint8List(64);
+  for (final magnitude in values) {
+    for (final value in [magnitude, -magnitude]) {
+      final expected = value.toString();
+
+      final written = JsonUtf8Encoder.writeIntToBuffer(value, buffer, 4);
+      Expect.equals(
+        expected,
+        utf8.decode(Uint8List.sublistView(buffer, 4, 4 + written)),
+        'writeIntToBuffer disagrees with toString for $value',
+      );
+
+      final sink = BytesBuilder(copy: false);
+      JsonUtf8Encoder.writeInt(value, sink);
+      Expect.equals(
+        expected,
+        utf8.decode(sink.takeBytes()),
+        'writeInt disagrees with toString for $value',
+      );
+
+      Expect.equals(
+        json.encode(value),
+        utf8.decode(jsonUtf8.encode(value)),
+        'jsonUtf8.encode disagrees with json.encode for $value',
+      );
+    }
   }
 }
 
