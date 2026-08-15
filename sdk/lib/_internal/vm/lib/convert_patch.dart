@@ -15,8 +15,6 @@ import "dart:_internal"
         writeIntoOneByteString,
         writeIntoTwoByteString,
         createOneByteStringFromCharacters;
-import "dart:typed_data" show Uint8List, Uint16List;
-import "dart:math" as math;
 
 /// This patch library has no additional parts.
 

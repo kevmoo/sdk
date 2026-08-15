@@ -334,9 +334,9 @@ namespace dart {
   V(DartNativeApiFunctionPointer, 1)                                           \
   V(TransferableTypedData_factory, 1)                                          \
   V(TransferableTypedData_materialize, 1)                                      \
-  V(Timer_postTimerEvent, 1)                                          \
-  V(JsonUtf8Decoder_parseDouble, 3) \
-  V(JsonUtf8Encoder_writeDoubleToBuffer, 3) \
+  V(Timer_postTimerEvent, 1)                                                   \
+  V(JsonUtf8Decoder_parseDouble, 3)                                            \
+  V(JsonUtf8Encoder_writeDoubleToBuffer, 3)                                    \
   V(JsonUtf8Encoder_writeStringToBuffer, 3)
 
 // List of bootstrap native entry points used in the dart:mirror library.
