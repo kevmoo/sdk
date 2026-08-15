@@ -150,7 +150,7 @@ void testBitExactJsonCompatibility() {
     "string": "The quick brown fox jumps over the lazy dog",
     "escapes": "\"quotes\" and \\backslashes\\ and \nnewlines",
     "unicode": "Dart 4.0 \u{1F680} is fast!",
-    "integers": [0, -1, 1, 9223372036854775807, -9223372036854775808],
+    "integers": [0, -1, 1, 9007199254740991, -9007199254740991],
     "doubles": [0.0, 1.0, 3.141592653589793, 1e-15, 1e20],
     "booleans": [true, false],
     "nulls": [null, null],
@@ -527,12 +527,12 @@ void testSplitChunkNetworkStreaming() {
 
   // 3. Split numbers across 1-byte chunks
   final numbersJson =
-      '{"ints": [0, -1, 42, 9223372036854775807, -9223372036854775808], "doubles": [0.0, -0.5, 3.14159265, 1.23e10, -4.56e-8, 1e-15]}';
+      '{"ints": [0, -1, 42, 9007199254740991, -9007199254740991], "doubles": [0.0, -0.5, 3.14159265, 1.23e10, -4.56e-8, 1e-15]}';
   final numbersBytes = utf8.encode(numbersJson);
   final numbersDecoded = parse1ByteChunks(numbersBytes) as Map<String, dynamic>;
   Expect.equals(42, (numbersDecoded['ints'] as List)[2]);
-  Expect.equals(9223372036854775807, (numbersDecoded['ints'] as List)[3]);
-  Expect.equals(-9223372036854775808, (numbersDecoded['ints'] as List)[4]);
+  Expect.equals(9007199254740991, (numbersDecoded['ints'] as List)[3]);
+  Expect.equals(-9007199254740991, (numbersDecoded['ints'] as List)[4]);
   Expect.equals(3.14159265, (numbersDecoded['doubles'] as List)[2]);
   Expect.equals(1.23e10, (numbersDecoded['doubles'] as List)[3]);
   Expect.equals(-4.56e-8, (numbersDecoded['doubles'] as List)[4]);

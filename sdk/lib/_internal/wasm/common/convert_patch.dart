@@ -15,7 +15,6 @@ import "dart:_typed_data";
 import "dart:_object_helper";
 import "dart:_wasm";
 import "dart:typed_data" show Uint8List;
-import "dart:math" as math;
 
 @patch
 dynamic _parseJson(

@@ -282,6 +282,12 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   /// Creates a [JsonUtf8Decoder].
   const JsonUtf8Decoder([this.reviver, this.allowMalformed = false]);
 
+  /// Decodes [input] directly into Dart objects without creating an
+  /// intermediate [String].
+  ///
+  /// Enforces a maximum structural nesting depth limit of 64 levels of nested
+  /// objects and arrays as a contract guarantee, throwing a [FormatException]
+  /// if input exceeds 64 levels of nesting.
   @override
   Object? convert(List<int> input) {
     final bytes = input is Uint8List ? input : Uint8List.fromList(input);
@@ -981,7 +987,14 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
   /// UTF-8 buffer size.
   final int _bufferSize;
 
-  /// Create converter.
+  /// Creates a [JsonUtf8Encoder].
+  ///
+  /// The [indent] string is used for pretty-printing, or `null` for compact output.
+  ///
+  /// The [toEncodable] function is called on objects that are not natively encodable.
+  ///
+  /// The [bufferSize] specifies the chunk buffer size (in bytes) used during
+  /// chunked conversion. If omitted, defaults to 32 KB (32768 bytes).
   JsonUtf8Encoder([
     String? indent,
     dynamic Function(dynamic object)? toEncodable,
@@ -1604,13 +1617,12 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
 
   String? get _partialResult => null;
 
-  void _flushBuffer([int requiredExtra = 0]) {
+  void _flushBuffer() {
     if (index > 0) {
       addChunk(buffer, 0, index);
       index = 0;
     }
-    final nextSize = requiredExtra > bufferSize ? requiredExtra : bufferSize;
-    buffer = Uint8List(nextSize);
+    buffer = Uint8List(bufferSize);
   }
 
   @override
@@ -1630,10 +1642,12 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
       return true;
     } else if (object is String) {
       final maxLen = object.length * 6 + 2;
-      if (index + maxLen > buffer.length) {
-        _flushBuffer(maxLen);
-      }
       if (index + maxLen <= buffer.length) {
+        index += JsonUtf8Encoder.writeStringToBuffer(object, buffer, index);
+        return true;
+      }
+      if (maxLen <= bufferSize) {
+        _flushBuffer();
         index += JsonUtf8Encoder.writeStringToBuffer(object, buffer, index);
         return true;
       }
@@ -1678,10 +1692,11 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
       if (i > 0) writeByte(0x2C); // ','
       final key = keyValueList[i] as String;
       final maxLen = key.length * 6 + 3; // quotes + escapes + ':'
-      if (index + maxLen > buffer.length) {
-        _flushBuffer(maxLen);
-      }
       if (index + maxLen <= buffer.length) {
+        index += JsonUtf8Encoder.writeStringToBuffer(key, buffer, index);
+        buffer[index++] = 0x3A; // ':'
+      } else if (maxLen <= bufferSize) {
+        _flushBuffer();
         index += JsonUtf8Encoder.writeStringToBuffer(key, buffer, index);
         buffer[index++] = 0x3A; // ':'
       } else {
@@ -1712,10 +1727,12 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
   void writeNumber(num number) {
     if (number is int) {
       if (number > -1e19 && number < 1e19) {
-        if (index + 24 > buffer.length) {
-          _flushBuffer(24);
-        }
         if (index + 24 <= buffer.length) {
+          index += JsonUtf8Encoder.writeIntToBuffer(number, buffer, index);
+          return;
+        }
+        if (24 <= bufferSize) {
+          _flushBuffer();
           index += JsonUtf8Encoder.writeIntToBuffer(number, buffer, index);
           return;
         }
@@ -1723,10 +1740,12 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
       writeAsciiString(number.toString());
       return;
     } else if (number is double && number.isFinite) {
-      if (index + 32 > buffer.length) {
-        _flushBuffer(32);
-      }
       if (index + 32 <= buffer.length) {
+        index += JsonUtf8Encoder.writeDoubleToBuffer(number, buffer, index);
+        return;
+      }
+      if (32 <= bufferSize) {
+        _flushBuffer();
         index += JsonUtf8Encoder.writeDoubleToBuffer(number, buffer, index);
         return;
       }
@@ -1736,17 +1755,33 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
 
   void writeAsciiString(String string) {
     final len = string.length;
-    if (index + len > buffer.length) {
-      _flushBuffer(len);
-    }
     if (index + len <= buffer.length) {
       for (var i = 0; i < len; i++) {
         buffer[index++] = string.codeUnitAt(i);
       }
       return;
     }
-    for (var i = 0; i < len; i++) {
-      writeByte(string.codeUnitAt(i));
+    if (len <= bufferSize) {
+      _flushBuffer();
+      for (var i = 0; i < len; i++) {
+        buffer[index++] = string.codeUnitAt(i);
+      }
+      return;
+    }
+    var srcPos = 0;
+    var remaining = len;
+    while (remaining > 0) {
+      final space = buffer.length - index;
+      if (space == 0) {
+        _flushBuffer();
+        continue;
+      }
+      final toCopy = remaining < space ? remaining : space;
+      for (var k = 0; k < toCopy; k++) {
+        buffer[index++] = string.codeUnitAt(srcPos + k);
+      }
+      srcPos += toCopy;
+      remaining -= toCopy;
     }
   }
 
@@ -1766,14 +1801,20 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
           i++;
         }
         final asciiLen = i - asciiStart;
-        if (index + asciiLen <= buffer.length) {
-          for (var k = asciiStart; k < i; k++) {
-            buffer[index++] = string.codeUnitAt(k);
+        var srcPos = asciiStart;
+        var remaining = asciiLen;
+        while (remaining > 0) {
+          final space = buffer.length - index;
+          if (space == 0) {
+            _flushBuffer();
+            continue;
           }
-        } else {
-          for (var k = asciiStart; k < i; k++) {
-            writeByte(string.codeUnitAt(k));
+          final toCopy = remaining < space ? remaining : space;
+          for (var k = 0; k < toCopy; k++) {
+            buffer[index++] = string.codeUnitAt(srcPos + k);
           }
+          srcPos += toCopy;
+          remaining -= toCopy;
         }
       } else {
         if ((char & 0xF800) == 0xD800) {
@@ -1837,11 +1878,7 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
   void writeByte(int byte) {
     assert(byte <= 0xff);
     if (index == buffer.length) {
-      if (index > 0) {
-        addChunk(buffer, 0, index);
-      }
-      buffer = Uint8List(bufferSize);
-      index = 0;
+      _flushBuffer();
     }
     buffer[index++] = byte;
   }
@@ -1884,6 +1921,10 @@ class _JsonUtf8StringifierPretty extends _JsonUtf8Stringifier
 }
 
 /// High-performance imperative pull-based JSON token reader.
+///
+/// Enforces a maximum structural nesting depth limit of 64 levels of nested
+/// objects and arrays as a contract guarantee, throwing a [FormatException]
+/// if input exceeds 64 levels of nesting.
 abstract interface class JsonTokenReader {
   /// Instantiates a pull-based token reader over [bytes].
   factory JsonTokenReader.fromBytes(Uint8List bytes, {bool allowMalformed}) =
