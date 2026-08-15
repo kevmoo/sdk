@@ -12,7 +12,43 @@ void main() {
   testJsonTokenWriterLargeIntegers();
   testWriteIntToBufferLargeIntegers();
   testDecodeLargeIntegersPrecision();
+  testDecodeCorrectlyRoundedLargeIntegers();
   testTokenReaderLargeIntegers();
+}
+
+/// Values that reach the decoder's unsigned 64-bit range checks.
+///
+/// On the web `int` is a double and bitwise operators are evaluated with
+/// 32-bit semantics, so an `x ^ 0x8000000000000000` sign-flip comparison
+/// silently degenerates to comparing the low 32 bits. When that check is wrong
+/// the digit-accumulation shortcut is taken for values it cannot represent and
+/// the result is off by one or more ulp from the correctly rounded value that
+/// `json.decode` produces.
+void testDecodeCorrectlyRoundedLargeIntegers() {
+  const cases = [
+    "9308364126768071717",
+    "9095156293722702342",
+    "8925238349618745892",
+    "68323050187018705",
+    "999999999999999999",
+    "1234567890123456789",
+    "9999999999999999999", // > int64 max: decoded as a double
+    "9223372036854775807", // int64 max
+  ];
+
+  for (final s in cases) {
+    final bytes = Uint8List.fromList(utf8.encode(s));
+    Expect.equals(
+      json.decode(s),
+      jsonUtf8.decode(bytes),
+      'Not correctly rounded: "$s"',
+    );
+    Expect.equals(
+      double.parse(s),
+      JsonUtf8Decoder.parseDouble(bytes, 0, bytes.length),
+      'parseDouble not correctly rounded: "$s"',
+    );
+  }
 }
 
 /// Verifies that jsonUtf8.encode on numbers >= 20 digits does not corrupt

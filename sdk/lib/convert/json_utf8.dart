@@ -5661,13 +5661,25 @@ final Int32List _power10_Exp = Int32List.fromList(const <int>[
   1024, // q = 308
 ]);
 
-@pragma('vm:prefer-inline')
-bool _unsignedLe(int a, int b) =>
-    (a ^ 0x8000000000000000) <= (b ^ 0x8000000000000000);
+// Unsigned 64-bit comparisons.
+//
+// On the VM and Wasm `int` is a signed 64-bit integer, so a mantissa that has
+// wrapped past 2^63 compares as negative; flipping the sign bit restores
+// unsigned ordering. On the web `int` is a double and bitwise operators are
+// evaluated with 32-bit semantics: `x ^ 0x8000000000000000` truncates its
+// operands to 32 bits and yields `ToUint32(x)`, so the sign trick silently
+// compares the low 32 bits of each side. Web values reaching these helpers are
+// non-negative doubles, so a plain comparison is both correct and exact there.
 
 @pragma('vm:prefer-inline')
-bool _unsignedLt(int a, int b) =>
-    (a ^ 0x8000000000000000) < (b ^ 0x8000000000000000);
+bool _unsignedLe(int a, int b) => identical(1, 1.0)
+    ? a <= b
+    : (a ^ 0x8000000000000000) <= (b ^ 0x8000000000000000);
+
+@pragma('vm:prefer-inline')
+bool _unsignedLt(int a, int b) => identical(1, 1.0)
+    ? a < b
+    : (a ^ 0x8000000000000000) < (b ^ 0x8000000000000000);
 
 @pragma('vm:prefer-inline')
 int _clz64(int w) {
