@@ -20,6 +20,8 @@ void main() {
   testMatchKeyDirectSpanParsing();
   testDuplicateKeysPreserveFirst();
   testEmptyKeyHandling();
+  testEmptyKeyWithLongKeysPresent();
+  testEmptyKeyNotInOptions();
 }
 
 Uint8List _b(String s) => Uint8List.fromList(utf8.encode(s));
@@ -328,4 +330,43 @@ void testEmptyKeyHandling() {
   Expect.equals(1, reader.selectName(options));
   Expect.equals(20, reader.readInt());
   reader.endObject();
+}
+
+/// Keys longer than 8 UTF-8 bytes have no entry in the short-key tables. The
+/// empty key must not be confused with one of them, and must still be found
+/// when it is not the first entry.
+void testEmptyKeyWithLongKeysPresent() {
+  final options = JsonKeyOptions.of(['description', '', 'id']);
+  final reader = JsonTokenReader.fromBytes(_b('{"": 1, "id": 2}'));
+
+  reader.beginObject();
+  Expect.equals(1, reader.selectName(options));
+  Expect.equals(1, reader.readInt());
+  Expect.equals(2, reader.selectName(options));
+  Expect.equals(2, reader.readInt());
+  reader.endObject();
+
+  // The same span through the direct entry point.
+  final bytes = _b('{"": 1}');
+  Expect.equals(1, JsonUtf8Decoder.matchKey(bytes, 2, 2, options));
+}
+
+/// An empty key or string value that is absent from the options must report a
+/// miss, not the first key too long to be short-key encoded.
+void testEmptyKeyNotInOptions() {
+  final names = JsonKeyOptions.of(['description', 'id']);
+  final reader = JsonTokenReader.fromBytes(_b('{"": 1, "id": 2}'));
+  reader.beginObject();
+  Expect.equals(-1, reader.selectName(names));
+  reader.skipValue();
+  Expect.equals(1, reader.selectName(names));
+  Expect.equals(2, reader.readInt());
+  reader.endObject();
+
+  // selectString is the enum-dispatch path and must miss the same way.
+  final values = JsonKeyOptions.of(['admin', 'editor', 'pending_review']);
+  final r2 = JsonTokenReader.fromBytes(_b('{"role": "", "note": "x"}'));
+  r2.beginObject();
+  Expect.equals('role', r2.nextName());
+  Expect.equals(-1, r2.selectString(values));
 }
