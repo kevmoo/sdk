@@ -798,9 +798,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     final maxLen = value.length * 6 + 2;
     final buf = Uint8List(maxLen <= 256 ? 256 : maxLen);
     final len = writeStringToBuffer(value, buf, 0);
-    for (var i = 0; i < len; i++) {
-      sink.addByte(buf[i]);
-    }
+    sink.add(Uint8List.sublistView(buf, 0, len));
   }
 
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
@@ -816,9 +814,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     }
     final buf = Uint8List(32);
     final len = writeDoubleToBuffer(value, buf, 0);
-    for (var i = 0; i < len; i++) {
-      sink.addByte(buf[i]);
-    }
+    sink.add(Uint8List.sublistView(buf, 0, len));
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -856,9 +852,7 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
     }
     final buf = Uint8List(24);
     final len = writeIntToBuffer(value, buf, 0);
-    for (var i = 0; i < len; i++) {
-      sink.addByte(buf[i]);
-    }
+    sink.add(Uint8List.sublistView(buf, 0, len));
   }
 
   /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
@@ -2656,6 +2650,7 @@ abstract interface class JsonTokenWriter {
 final class _JsonTokenWriter implements JsonTokenWriter {
   static const int _maxDepth = 64;
   final BytesBuilder _sink;
+  final Uint8List _scratch = Uint8List(256);
   final List<_ContainerType> _stateStack = [];
   final List<_ObjectState> _objectStateStack = [];
   final List<bool> _isArrayFirstStack = [];
@@ -2818,19 +2813,26 @@ final class _JsonTokenWriter implements JsonTokenWriter {
   @override
   void writeString(String value) {
     _beforeValue();
-    JsonUtf8Encoder.writeString(value, _sink);
+    if (value.length <= 40) {
+      final len = JsonUtf8Encoder.writeStringToBuffer(value, _scratch, 0);
+      _sink.add(Uint8List.sublistView(_scratch, 0, len));
+    } else {
+      JsonUtf8Encoder.writeString(value, _sink);
+    }
   }
 
   @override
   void writeInt(int value) {
     _beforeValue();
-    JsonUtf8Encoder.writeInt(value, _sink);
+    final len = JsonUtf8Encoder.writeIntToBuffer(value, _scratch, 0);
+    _sink.add(Uint8List.sublistView(_scratch, 0, len));
   }
 
   @override
   void writeDouble(double value) {
     _beforeValue();
-    JsonUtf8Encoder.writeDouble(value, _sink);
+    final len = JsonUtf8Encoder.writeDoubleToBuffer(value, _scratch, 0);
+    _sink.add(Uint8List.sublistView(_scratch, 0, len));
   }
 
   @override
