@@ -816,10 +816,24 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   /// Writes [value] with standard JSON escaping directly into [sink].
   static void writeString(String value, BytesBuilder sink) {
-    final maxLen = value.length * 6 + 2;
-    final buf = Uint8List(maxLen <= 256 ? 256 : maxLen);
-    final len = writeStringToBuffer(value, buf, 0);
-    sink.add(Uint8List.sublistView(buf, 0, len));
+    // Six bytes per code unit is only reached by a string made entirely of
+    // control characters or isolated surrogates. Three covers every
+    // unescaped code unit, including astral characters, which arrive as a
+    // surrogate pair and encode to four bytes across two units. Sizing for
+    // the worst case up front costs twice the output for ordinary text and,
+    // with no floor, allocated 256 bytes for every short object key.
+    final length = value.length;
+    var buffer = Uint8List(length * 3 + 2);
+    int written;
+    try {
+      written = writeStringToBuffer(value, buffer, 0);
+    } on RangeError {
+      // Escape-heavy: retry once at the true worst case. The offset is zero
+      // and the buffer is local, so capacity is the only possible cause.
+      buffer = Uint8List(length * 6 + 2);
+      written = writeStringToBuffer(value, buffer, 0);
+    }
+    sink.add(Uint8List.sublistView(buffer, 0, written));
   }
 
   /// Writes [value] with standard JSON escaping directly into [buffer] starting
