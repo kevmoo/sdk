@@ -103,7 +103,10 @@ final class JsonKeyOptions {
       builder.add(encoded);
 
       if (shortKeyInts != null && shortKeyLens != null && len <= 8) {
-        shortKeyLens[i] = len;
+        // Biased by 1 so that 0 is reserved for "not a short key". Without the
+        // bias, keys longer than 8 bytes keep the zero-filled default (0, 0),
+        // which is exactly what a lookup of the empty key computes.
+        shortKeyLens[i] = len + 1;
         var packed = 0;
         for (var j = 0; j < len; j++) {
           packed |= encoded[j] << (j * 8);
@@ -170,8 +173,9 @@ final class JsonKeyOptions {
     final lens = _shortKeyLens;
     if (ints == null || lens == null) return -1;
     final count = keys.length;
+    final biasedLen = len + 1;
     for (var i = 0; i < count; i++) {
-      if (lens[i] == len && ints[i] == keyInt) {
+      if (lens[i] == biasedLen && ints[i] == keyInt) {
         return i;
       }
     }
