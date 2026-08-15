@@ -2229,16 +2229,15 @@ final class _JsonTokenReader implements JsonTokenReader {
       _offset = j;
     }
 
+    final cacheKeys = _stringCacheKeys;
     final len = end - start;
-    if (_isVerbatimUtf8(_bytes, start, end) &&
+    if (cacheKeys != null &&
+        _isVerbatimUtf8(_bytes, start, end) &&
         len <= 8 &&
         start + 8 <= _bytes.length) {
       final keyInt = _byteData.getInt64(start, Endian.little) & _lenMasks[len];
       final slot = ((keyInt ^ (keyInt >> 6)) & 63);
-      final cacheKeys = _stringCacheKeys;
-      if (cacheKeys != null &&
-          cacheKeys[slot] == keyInt &&
-          _stringCacheValues[slot] != null) {
+      if (cacheKeys[slot] == keyInt && _stringCacheValues[slot] != null) {
         return _stringCacheValues[slot]!;
       }
       final str = _decodeStringUtf8(
@@ -2247,10 +2246,8 @@ final class _JsonTokenReader implements JsonTokenReader {
         end,
         allowMalformed: allowMalformed,
       );
-      if (cacheKeys != null) {
-        cacheKeys[slot] = keyInt;
-        _stringCacheValues[slot] = str;
-      }
+      cacheKeys[slot] = keyInt;
+      _stringCacheValues[slot] = str;
       return str;
     }
 
