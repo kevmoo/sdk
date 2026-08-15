@@ -164,7 +164,13 @@ library dart.convert;
 
 import 'dart:async';
 import 'dart:typed_data';
-import 'dart:_internal' show CastConverter, checkNotNullable, parseHexByte;
+import 'dart:_internal'
+    show
+        CastConverter,
+        checkNotNullable,
+        hexDigitValue,
+        parseHexByte,
+        POWERS_OF_TEN;
 
 part 'ascii.dart';
 part 'base64.dart';

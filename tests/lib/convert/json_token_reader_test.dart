@@ -55,6 +55,7 @@ void main() {
   testCanonicalLargeIntegers();
   testContainerSyntaxCorruptionInSkipValue();
   testGetTokenSpanTrailingCommaAndEofRejection();
+  testTokenReaderUnifiedRollbackSemantics();
 }
 
 void testTokenReaderPrimitives() {
@@ -2186,23 +2187,23 @@ void testCanonicalLargeIntegers() {
   final maxIntStr = "9223372036854775807";
   final maxIntBytes = b(maxIntStr);
   final rMax = JsonTokenReader.fromBytes(maxIntBytes);
-  Expect.equals(9223372036854775807, rMax.readInt());
+  Expect.equals(int.parse(maxIntStr), rMax.readInt());
   final rMaxNum = JsonTokenReader.fromBytes(maxIntBytes);
-  Expect.equals(9223372036854775807, rMaxNum.readNum());
+  Expect.equals(int.parse(maxIntStr), rMaxNum.readNum());
 
   final minIntStr = "-9223372036854775808";
   final minIntBytes = b(minIntStr);
   final rMin = JsonTokenReader.fromBytes(minIntBytes);
-  Expect.equals(-9223372036854775808, rMin.readInt());
+  Expect.equals(int.parse(minIntStr), rMin.readInt());
   final rMinNum = JsonTokenReader.fromBytes(minIntBytes);
-  Expect.equals(-9223372036854775808, rMinNum.readNum());
+  Expect.equals(int.parse(minIntStr), rMinNum.readNum());
 
   final regIntStr = "9223372036854774784";
   final regIntBytes = b(regIntStr);
   final rReg = JsonTokenReader.fromBytes(regIntBytes);
-  Expect.equals(9223372036854774784, rReg.readInt());
+  Expect.equals(int.parse(regIntStr), rReg.readInt());
   final rRegNum = JsonTokenReader.fromBytes(regIntBytes);
-  Expect.equals(9223372036854774784, rRegNum.readNum());
+  Expect.equals(int.parse(regIntStr), rRegNum.readNum());
 
   // 4. Large integers inside arrays
   final arrJson =
@@ -2213,10 +2214,14 @@ void testCanonicalLargeIntegers() {
   Expect.type<double>(arrDecoded[0]);
   Expect.equals(-9223372036854775809.0, arrDecoded[1]);
   Expect.type<double>(arrDecoded[1]);
-  Expect.equals(9223372036854774784, arrDecoded[2]);
-  Expect.type<int>(arrDecoded[2]);
-  Expect.equals(-9223372036854775808, arrDecoded[3]);
-  Expect.type<int>(arrDecoded[3]);
+  Expect.equals(int.parse("9223372036854774784"), arrDecoded[2]);
+  if (!identical(1, 1.0)) {
+    Expect.type<int>(arrDecoded[2]);
+  }
+  Expect.equals(int.parse("-9223372036854775808"), arrDecoded[3]);
+  if (!identical(1, 1.0)) {
+    Expect.type<int>(arrDecoded[3]);
+  }
 }
 
 void testContainerSyntaxCorruptionInSkipValue() {
@@ -2385,5 +2390,118 @@ void testGetTokenSpanTrailingCommaAndEofRejection() {
     Expect.throwsFormatException(
       () => reader.hasNext(), // hasNext throws on trailing comma
     );
+  }
+}
+
+void testTokenReaderUnifiedRollbackSemantics() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. readInt() rollback on floating point
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 3.14, "b": 10}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.throwsFormatException(() => r.readInt());
+    // After rollback, peek() is still number, and readDouble succeeds
+    Expect.equals(JsonTokenType.number, r.peek());
+    Expect.equals(3.14, r.readDouble());
+    Expect.equals('b', r.nextName());
+    Expect.equals(10, r.readInt());
+    r.endObject();
+  }
+
+  // 2. readDouble() rollback on invalid exponent
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1e, "b": 20}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.throwsFormatException(() => r.readDouble());
+    // Reader cursor rolled back to start of token
+    Expect.equals(JsonTokenType.number, r.peek());
+  }
+
+  // 3. readBool() rollback on invalid boolean
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": truthy, "b": true}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.throwsFormatException(() => r.readBool());
+    Expect.equals(JsonTokenType.boolean, r.peek());
+  }
+
+  // 4. readNull() rollback on non-null
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": nil, "b": null}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.throwsFormatException(() => r.readNull());
+    Expect.equals(JsonTokenType.nullValue, r.peek());
+  }
+
+  // 5. nextName() rollback on unclosed quote
+  {
+    final r = JsonTokenReader.fromBytes(b('{"unclosed: 10}'));
+    r.beginObject();
+    Expect.throwsFormatException(() => r.nextName());
+    // After rollback, cursor is preserved at opening quote
+    Expect.equals(JsonTokenType.propertyName, r.peek());
+  }
+
+  // 6. selectName() rollback on missing colon
+  {
+    final options = JsonKeyOptions.of(['key1', 'key2']);
+    final r = JsonTokenReader.fromBytes(b('{"key1" 10}'));
+    r.beginObject();
+    Expect.throwsFormatException(() => r.selectName(options));
+    Expect.equals(JsonTokenType.propertyName, r.peek());
+  }
+
+  // 7. selectString() rollback on invalid string
+  {
+    final options = JsonKeyOptions.of(['val1', 'val2']);
+    final r = JsonTokenReader.fromBytes(b('{"key": 123}'));
+    r.beginObject();
+    Expect.equals('key', r.nextName());
+    Expect.throwsFormatException(() => r.selectString(options));
+    Expect.equals(JsonTokenType.number, r.peek());
+    Expect.equals(123, r.readInt());
+    r.endObject();
+  }
+
+  // 8. readString() rollback on invalid string
+  {
+    final r = JsonTokenReader.fromBytes(b('{"key": "unclosed}'));
+    r.beginObject();
+    Expect.equals('key', r.nextName());
+    Expect.throwsFormatException(() => r.readString());
+    Expect.equals(JsonTokenType.string, r.peek());
+  }
+
+  // 9. hasNext() rollback on unexpected end of document after comma
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": 1,'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.equals(1, r.readInt());
+    Expect.throwsFormatException(() => r.hasNext());
+    Expect.throwsFormatException(() => r.hasNext());
+  }
+
+  // 10. readNum() rollback on malformed scalar
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": invalid, "b": 123}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.throwsFormatException(() => r.readNum());
+    Expect.equals(JsonTokenType.none, r.peek());
+  }
+
+  // 11. skipValue() rollback on malformed container
+  {
+    final r = JsonTokenReader.fromBytes(b('{"a": {"unclosed: 1}, "b": 2}'));
+    r.beginObject();
+    Expect.equals('a', r.nextName());
+    Expect.throwsFormatException(() => r.skipValue());
+    Expect.equals(JsonTokenType.beginObject, r.peek());
   }
 }

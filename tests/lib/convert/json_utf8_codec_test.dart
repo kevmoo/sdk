@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import "dart:async";
 import "dart:convert";
 import "dart:typed_data";
 
@@ -21,6 +22,8 @@ void main() {
   testCanonicalLargeIntegers();
   testSplitChunkNetworkStreaming();
   testFusedCodecs();
+  testEncoderSinkToEncodableExceptionClose();
+  testTokenWriterStringEscapingAndFastPath();
 }
 
 void _expectDeepEquals(Object? expected, Object? actual) {
@@ -594,4 +597,75 @@ void testFusedCodecs() {
   final decodedData = jsonToUtf8.decode(encodedData) as Map<String, dynamic>;
   Expect.equals('fused', decodedData['name']);
   Expect.listEquals([10, 20.5], decodedData['values'] as List);
+}
+
+class _RecordingByteSink extends ByteConversionSink {
+  bool closed = false;
+  final List<List<int>> chunks = [];
+
+  @override
+  void add(List<int> event) {
+    chunks.add(event);
+  }
+
+  @override
+  void addSlice(List<int> chunk, int start, int end, bool isLast) {
+    chunks.add(chunk.sublist(start, end));
+    if (isLast) closed = true;
+  }
+
+  @override
+  void close() {
+    closed = true;
+  }
+}
+
+void testEncoderSinkToEncodableExceptionClose() {
+  final recordingSink = _RecordingByteSink();
+  final encoderSink = JsonUtf8Encoder(
+    null,
+    (o) => throw FormatException('Custom conversion failure'),
+  ).startChunkedConversion(recordingSink);
+
+  try {
+    encoderSink.add(Object());
+    Expect.fail('Expected exception from toEncodable');
+  } catch (e) {
+    Expect.type<JsonUnsupportedObjectError>(e);
+  } finally {
+    encoderSink.close();
+  }
+
+  Expect.isTrue(
+    recordingSink.closed,
+    'Downstream sink must be closed in finally block when toEncodable throws',
+  );
+}
+
+void testTokenWriterStringEscapingAndFastPath() {
+  // 1. Strings of various lengths (short <= 16, medium <= 256, large > 256)
+  final sink = BytesBuilder();
+  final writer = JsonTokenWriter.toSink(sink);
+  writer.beginObject();
+  writer.writeName("short");
+  writer.writeString("abc");
+  writer.writeName("quotes_and_escapes");
+  writer.writeString(
+    'Line 1\nLine 2\t"quoted" \\backslash\\ \r\b\f \u0000 \u001f',
+  );
+  writer.writeName("unicode");
+  writer.writeString("Hello 🚀 € 汉语 😀 \u{1F600}");
+  writer.writeName("large");
+  writer.writeString("A" * 1000);
+  writer.endObject();
+
+  final bytes = Uint8List.fromList(sink.takeBytes());
+  final decoded = jsonUtf8Decode(bytes) as Map<String, dynamic>;
+  Expect.equals("abc", decoded["short"]);
+  Expect.equals(
+    'Line 1\nLine 2\t"quoted" \\backslash\\ \r\b\f \u0000 \u001f',
+    decoded["quotes_and_escapes"],
+  );
+  Expect.equals("Hello 🚀 € 汉语 😀 \u{1F600}", decoded["unicode"]);
+  Expect.equals("A" * 1000, decoded["large"]);
 }
