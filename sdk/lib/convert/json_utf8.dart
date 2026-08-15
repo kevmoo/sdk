@@ -238,7 +238,10 @@ final class JsonUtf8Codec extends Codec<Object?, List<int>> {
     this.reviver,
     this.allowMalformed = false,
     this.bufferSize,
-  });
+  }) : assert(
+         bufferSize == null || bufferSize > 0,
+         'bufferSize must be positive',
+       );
 
   @override
   JsonUtf8Encoder get encoder =>
@@ -715,14 +718,28 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
   /// The [toEncodable] function is called on objects that are not natively encodable.
   ///
   /// The [bufferSize] specifies the chunk buffer size (in bytes) used during
-  /// chunked conversion. If omitted, defaults to 32 KB (32768 bytes).
+  /// chunked conversion. It must be greater than zero. If omitted, defaults to
+  /// 32 KB (32768 bytes).
+  ///
+  /// Throws a [RangeError] if [bufferSize] is zero or negative.
   JsonUtf8Encoder([
     String? indent,
     dynamic Function(dynamic object)? toEncodable,
     int? bufferSize,
   ]) : _indent = _utf8Encode(indent),
        _toEncodable = toEncodable,
-       _bufferSize = bufferSize ?? _defaultBufferSize;
+       _bufferSize = _checkBufferSize(bufferSize);
+
+  static int _checkBufferSize(int? bufferSize) {
+    if (bufferSize == null) return _defaultBufferSize;
+    // The copy loops flush and retry whenever the buffer is full. With a
+    // zero-length buffer the flush cannot free any space, so the retry would
+    // spin forever.
+    if (bufferSize < 1) {
+      throw RangeError.value(bufferSize, 'bufferSize', 'Must be positive');
+    }
+    return bufferSize;
+  }
 
   static List<int>? _utf8Encode(String? string) {
     if (string == null) return null;
