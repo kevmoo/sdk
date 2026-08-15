@@ -1215,22 +1215,17 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
 
   /// Formats [value] as an ASCII integer literal directly into [sink].
   static void writeInt(int value, BytesBuilder sink) {
-    if (value == 0) {
-      sink.addByte(48); // '0'
+    if (value >= 1e19 || value <= -1e19) {
+      final str = value.toString();
+      for (var i = 0; i < str.length; i++) {
+        sink.addByte(str.codeUnitAt(i));
+      }
       return;
     }
-    var v = value;
-    if (v < 0) {
-      sink.addByte(45); // '-'
-    } else {
-      v = -v;
-    }
-    final digitCount = _digitCountNegative(v);
-    for (var k = digitCount - 1; k >= 0; k--) {
-      final power = _powersOf10Int[k];
-      final digit = -(v ~/ power);
-      sink.addByte(48 + digit);
-      v += digit * power;
+    final buf = Uint8List(24);
+    final len = writeIntToBuffer(value, buf, 0);
+    for (var i = 0; i < len; i++) {
+      sink.addByte(buf[i]);
     }
   }
 
@@ -1248,6 +1243,22 @@ final class JsonUtf8Encoder extends Converter<Object?, List<int>> {
       }
       buffer[offset] = 48; // '0'
       return 1;
+    }
+    if (value >= 1e19 || value <= -1e19) {
+      final str = value.toString();
+      final len = str.length;
+      if (offset < 0 || offset + len > buffer.length) {
+        throw RangeError.range(
+          offset,
+          0,
+          buffer.length >= len ? buffer.length - len : 0,
+          'offset',
+        );
+      }
+      for (var i = 0; i < len; i++) {
+        buffer[offset + i] = str.codeUnitAt(i);
+      }
+      return len;
     }
     var v = value;
     final isNeg = v < 0;
@@ -1700,13 +1711,17 @@ class _JsonUtf8Stringifier extends _JsonStringifier {
 
   void writeNumber(num number) {
     if (number is int) {
-      if (index + 24 > buffer.length) {
-        _flushBuffer(24);
+      if (number > -1e19 && number < 1e19) {
+        if (index + 24 > buffer.length) {
+          _flushBuffer(24);
+        }
+        if (index + 24 <= buffer.length) {
+          index += JsonUtf8Encoder.writeIntToBuffer(number, buffer, index);
+          return;
+        }
       }
-      if (index + 24 <= buffer.length) {
-        index += JsonUtf8Encoder.writeIntToBuffer(number, buffer, index);
-        return;
-      }
+      writeAsciiString(number.toString());
+      return;
     } else if (number is double && number.isFinite) {
       if (index + 32 > buffer.length) {
         _flushBuffer(32);
@@ -3449,7 +3464,14 @@ int _digitCountNegative(int v) {
   if (v > -10000000000000000) return 16;
   if (v > -100000000000000000) return 17;
   if (v > -1000000000000000000) return 18;
-  return 19;
+  if (v > -10000000000000000000.0) return 19;
+  var count = 20;
+  var limit = -10000000000000000000.0;
+  while (v <= limit && count < 320) {
+    limit *= 10;
+    count++;
+  }
+  return count;
 }
 
 const String _hexDigits = "0123456789abcdef";
@@ -4037,28 +4059,6 @@ const List<double> _powersOfTen = [
 @pragma('vm:prefer-inline')
 @pragma('wasm:prefer-inline')
 bool _isWs(int b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D;
-
-const List<int> _powersOf10Int = [
-  1,
-  10,
-  100,
-  1000,
-  10000,
-  100000,
-  1000000,
-  10000000,
-  100000000,
-  1000000000,
-  10000000000,
-  100000000000,
-  1000000000000,
-  10000000000000,
-  100000000000000,
-  1000000000000000,
-  10000000000000000,
-  100000000000000000,
-  1000000000000000000,
-];
 
 int _skipScalar(Uint8List bytes, int offset) {
   if (offset >= bytes.length) {
@@ -6594,6 +6594,11 @@ int? _tryParseIntUtf8(Uint8List source, int start, int end) {
       if (d < lim) break;
       if (d > lim) return null;
     }
+  }
+
+  if (identical(1, 1.0) && numDigits >= 16) {
+    final d = _tryParseDoubleUtf8(source, start, end);
+    return d?.toInt();
   }
 
   int value = 0;
