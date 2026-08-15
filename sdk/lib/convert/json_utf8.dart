@@ -1582,15 +1582,19 @@ final class _ContainerFrame {
 
 final class _JsonTokenReader implements JsonTokenReader {
   static const int _maxDepth = 64;
+  static const _lenMasks = JsonKeyOptions._lenMasks;
   final Uint8List _bytes;
   final ByteData _byteData;
   final bool allowMalformed;
+  final Int64List? _stringCacheKeys;
+  final List<String?> _stringCacheValues = List<String?>.filled(64, null);
   int _offset = 0;
   final List<_ContainerFrame> _stack = [];
   bool _hasReadRoot = false;
 
   _JsonTokenReader(this._bytes, {this.allowMalformed = false})
-    : _byteData = ByteData.sublistView(_bytes) {
+    : _byteData = ByteData.sublistView(_bytes),
+      _stringCacheKeys = !identical(1, 1.0) ? Int64List(64) : null {
     if (_bytes.length >= 3 &&
         _bytes[0] == 0xEF &&
         _bytes[1] == 0xBB &&
@@ -2141,6 +2145,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   });
 
   @override
+  @pragma('vm:prefer-inline')
   String readString() => _restoringOnError(() {
     _beforeReadingValue();
     var i = _offset;
@@ -2174,6 +2179,31 @@ final class _JsonTokenReader implements JsonTokenReader {
     } else {
       _hasReadRoot = true;
       _offset = j;
+    }
+
+    final len = end - start;
+    if (_isVerbatimUtf8(_bytes, start, end) &&
+        len <= 8 &&
+        start + 8 <= _bytes.length) {
+      final keyInt = _byteData.getInt64(start, Endian.little) & _lenMasks[len];
+      final slot = ((keyInt ^ (keyInt >> 6)) & 63);
+      final cacheKeys = _stringCacheKeys;
+      if (cacheKeys != null &&
+          cacheKeys[slot] == keyInt &&
+          _stringCacheValues[slot] != null) {
+        return _stringCacheValues[slot]!;
+      }
+      final str = _decodeStringUtf8(
+        _bytes,
+        start,
+        end,
+        allowMalformed: allowMalformed,
+      );
+      if (cacheKeys != null) {
+        cacheKeys[slot] = keyInt;
+        _stringCacheValues[slot] = str;
+      }
+      return str;
     }
 
     return _decodeStringUtf8(
@@ -2632,6 +2662,10 @@ abstract interface class JsonTokenWriter {
   /// Instantiates a token writer emitting to [sink].
   factory JsonTokenWriter.toSink(BytesBuilder sink) = _JsonTokenWriter;
 
+  /// Instantiates a contiguous buffer token writer with [initialCapacity].
+  factory JsonTokenWriter.toBuffer([int initialCapacity]) =
+      _BufferJsonTokenWriter;
+
   void beginObject();
   void endObject();
   void beginArray();
@@ -2645,6 +2679,9 @@ abstract interface class JsonTokenWriter {
   void writeDouble(double value);
   void writeBool(bool value);
   void writeNull();
+
+  /// Returns the encoded UTF-8 JSON bytes.
+  Uint8List toBytes();
 }
 
 final class _JsonTokenWriter implements JsonTokenWriter {
@@ -2657,6 +2694,9 @@ final class _JsonTokenWriter implements JsonTokenWriter {
   bool _hasRootValue = false;
 
   _JsonTokenWriter(this._sink);
+
+  @override
+  Uint8List toBytes() => _sink.toBytes();
 
   void _beforeValue() {
     if (_stateStack.isNotEmpty) {
@@ -2846,6 +2886,262 @@ final class _JsonTokenWriter implements JsonTokenWriter {
     _beforeValue();
     JsonUtf8Encoder.writeNull(_sink);
   }
+}
+
+final class _BufferJsonTokenWriter implements JsonTokenWriter {
+  static const int _maxDepth = 64;
+  Uint8List _buffer;
+  int _cursor = 0;
+  final List<_ContainerType> _stateStack = [];
+  final List<_ObjectState> _objectStateStack = [];
+  final List<bool> _isArrayFirstStack = [];
+  bool _hasRootValue = false;
+
+  _BufferJsonTokenWriter([int initialCapacity = 256])
+    : _buffer = Uint8List(initialCapacity > 0 ? initialCapacity : 256);
+
+  @pragma('vm:prefer-inline')
+  @pragma('wasm:prefer-inline')
+  void _ensureCapacity(int needed) {
+    if (_cursor + needed > _buffer.length) {
+      _grow(needed);
+    }
+  }
+
+  void _grow(int needed) {
+    var newCap = _buffer.length * 2;
+    final minCap = _cursor + needed + 1024;
+    if (newCap < minCap) {
+      newCap = minCap;
+    }
+    final newBuffer = Uint8List(newCap);
+    newBuffer.setRange(0, _cursor, _buffer);
+    _buffer = newBuffer;
+  }
+
+  void _beforeValue() {
+    if (_stateStack.isNotEmpty) {
+      final inObject = _stateStack.last == _ContainerType.object;
+      if (inObject) {
+        if (_objectStateStack.last != _ObjectState.key) {
+          throw StateError('Expected property name before value in object');
+        }
+        _objectStateStack.last = _ObjectState.value;
+      } else {
+        // In array
+        if (!_isArrayFirstStack.last) {
+          _ensureCapacity(1);
+          _buffer[_cursor++] = 44; // ','
+        }
+        _isArrayFirstStack.last = false;
+      }
+    } else {
+      if (_hasRootValue) {
+        throw StateError('Cannot write multiple root values');
+      }
+      _hasRootValue = true;
+    }
+  }
+
+  @override
+  void beginObject() {
+    if (_stateStack.length >= _maxDepth) {
+      throw StateError('Nesting depth exceeds limit of $_maxDepth');
+    }
+    _beforeValue();
+    _ensureCapacity(1);
+    _buffer[_cursor++] = 123; // '{'
+    _stateStack.add(_ContainerType.object);
+    _objectStateStack.add(_ObjectState.empty);
+  }
+
+  @override
+  void endObject() {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
+      throw StateError('Cannot endObject: not inside an object');
+    }
+    if (_objectStateStack.last == _ObjectState.key) {
+      throw StateError('Cannot endObject: expected value after property name');
+    }
+    _ensureCapacity(1);
+    _buffer[_cursor++] = 125; // '}'
+    _stateStack.removeLast();
+    _objectStateStack.removeLast();
+  }
+
+  @override
+  void beginArray() {
+    if (_stateStack.length >= _maxDepth) {
+      throw StateError('Nesting depth exceeds limit of $_maxDepth');
+    }
+    _beforeValue();
+    _ensureCapacity(1);
+    _buffer[_cursor++] = 91; // '['
+    _stateStack.add(_ContainerType.array);
+    _isArrayFirstStack.add(true);
+  }
+
+  @override
+  void endArray() {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.array) {
+      throw StateError('Cannot endArray: not inside an array');
+    }
+    _ensureCapacity(1);
+    _buffer[_cursor++] = 93; // ']'
+    _stateStack.removeLast();
+    _isArrayFirstStack.removeLast();
+  }
+
+  @override
+  void writeName(String name) {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
+      throw StateError('Cannot writeName: not inside an object');
+    }
+    final objState = _objectStateStack.last;
+    if (objState == _ObjectState.key) {
+      throw StateError(
+        'Cannot writeName: already expecting a value for previous property',
+      );
+    }
+    if (objState == _ObjectState.value) {
+      _ensureCapacity(1);
+      _buffer[_cursor++] = 44; // ','
+    }
+    _objectStateStack.last = _ObjectState.key;
+    final maxLen = name.length * 6 + 4;
+    _ensureCapacity(maxLen);
+    _cursor += JsonUtf8Encoder.writeStringToBuffer(name, _buffer, _cursor);
+    _buffer[_cursor++] = 58; // ':'
+  }
+
+  @override
+  void writeNameBytes(Uint8List asciiKey) {
+    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
+      throw StateError('Cannot writeNameBytes: not inside an object');
+    }
+    final objState = _objectStateStack.last;
+    if (objState == _ObjectState.key) {
+      throw StateError(
+        'Cannot writeNameBytes: already expecting a value for previous property',
+      );
+    }
+    if (objState == _ObjectState.value) {
+      _ensureCapacity(1);
+      _buffer[_cursor++] = 44; // ','
+    }
+    _objectStateStack.last = _ObjectState.key;
+    final isColonTerminated =
+        asciiKey.length >= 3 &&
+        asciiKey.first == 0x22 &&
+        asciiKey.last == 0x3A &&
+        _isSingleQuotedSlice(asciiKey, 0, asciiKey.length - 1);
+    if (isColonTerminated) {
+      _ensureCapacity(asciiKey.length);
+      _buffer.setRange(_cursor, _cursor + asciiKey.length, asciiKey);
+      _cursor += asciiKey.length;
+      return;
+    }
+    final isQuoted = _isSingleQuotedString(asciiKey);
+    if (isQuoted) {
+      _ensureCapacity(asciiKey.length + 1);
+      _buffer.setRange(_cursor, _cursor + asciiKey.length, asciiKey);
+      _cursor += asciiKey.length;
+      _buffer[_cursor++] = 58; // ':'
+      return;
+    }
+    _ensureCapacity(asciiKey.length * 6 + 4);
+    _buffer[_cursor++] = 34; // '"'
+    for (var i = 0; i < asciiKey.length; i++) {
+      final b = asciiKey[i];
+      if (b == 0x22) {
+        _buffer[_cursor++] = 0x5C;
+        _buffer[_cursor++] = 0x22;
+      } else if (b == 0x5C) {
+        _buffer[_cursor++] = 0x5C;
+        _buffer[_cursor++] = 0x5C;
+      } else if (b < 0x20) {
+        _buffer[_cursor++] = 0x5C;
+        _buffer[_cursor++] = 0x75; // 'u'
+        _buffer[_cursor++] = 0x30; // '0'
+        _buffer[_cursor++] = 0x30; // '0'
+        _buffer[_cursor++] = _hexDigits.codeUnitAt((b >> 4) & 0xF);
+        _buffer[_cursor++] = _hexDigits.codeUnitAt(b & 0xF);
+      } else {
+        _buffer[_cursor++] = b;
+      }
+    }
+    _buffer[_cursor++] = 34; // '"'
+    _buffer[_cursor++] = 58; // ':'
+  }
+
+  @override
+  void writeAsciiLiteral(Uint8List preEncoded) {
+    _beforeValue();
+    _ensureCapacity(preEncoded.length);
+    _buffer.setRange(_cursor, _cursor + preEncoded.length, preEncoded);
+    _cursor += preEncoded.length;
+  }
+
+  @override
+  void writeRawJson(Uint8List rawJson) {
+    _beforeValue();
+    _ensureCapacity(rawJson.length);
+    _buffer.setRange(_cursor, _cursor + rawJson.length, rawJson);
+    _cursor += rawJson.length;
+  }
+
+  @override
+  void writeString(String value) {
+    _beforeValue();
+    _ensureCapacity(value.length * 6 + 2);
+    _cursor += JsonUtf8Encoder.writeStringToBuffer(value, _buffer, _cursor);
+  }
+
+  @override
+  void writeInt(int value) {
+    _beforeValue();
+    _ensureCapacity(32);
+    _cursor += JsonUtf8Encoder.writeIntToBuffer(value, _buffer, _cursor);
+  }
+
+  @override
+  void writeDouble(double value) {
+    _beforeValue();
+    _ensureCapacity(32);
+    _cursor += JsonUtf8Encoder.writeDoubleToBuffer(value, _buffer, _cursor);
+  }
+
+  @override
+  void writeBool(bool value) {
+    _beforeValue();
+    if (value) {
+      _ensureCapacity(4);
+      _buffer[_cursor++] = 116; // 't'
+      _buffer[_cursor++] = 114; // 'r'
+      _buffer[_cursor++] = 117; // 'u'
+      _buffer[_cursor++] = 101; // 'e'
+    } else {
+      _ensureCapacity(5);
+      _buffer[_cursor++] = 102; // 'f'
+      _buffer[_cursor++] = 97; // 'a'
+      _buffer[_cursor++] = 108; // 'l'
+      _buffer[_cursor++] = 115; // 's'
+      _buffer[_cursor++] = 101; // 'e'
+    }
+  }
+
+  @override
+  void writeNull() {
+    _beforeValue();
+    _ensureCapacity(4);
+    _buffer[_cursor++] = 110; // 'n'
+    _buffer[_cursor++] = 117; // 'u'
+    _buffer[_cursor++] = 108; // 'l'
+    _buffer[_cursor++] = 108; // 'l'
+  }
+
+  @override
+  Uint8List toBytes() => Uint8List.sublistView(_buffer, 0, _cursor);
 }
 
 // =============================================================================

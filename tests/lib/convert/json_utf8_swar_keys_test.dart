@@ -20,6 +20,7 @@ void main() {
   testMatchKeyDirectSpanParsing();
   testDuplicateKeysPreserveFirst();
   testEmptyKeyHandling();
+  testStringCacheReadString();
 }
 
 Uint8List _b(String s) => Uint8List.fromList(utf8.encode(s));
@@ -328,4 +329,74 @@ void testEmptyKeyHandling() {
   Expect.equals(1, reader.selectName(options));
   Expect.equals(20, reader.readInt());
   reader.endObject();
+}
+
+void testStringCacheReadString() {
+  // 1. Repeated short strings return cached string instances
+  final shortStringsJson =
+      '["status", "active", "status", "active", "status", ""]';
+  final r1 = JsonTokenReader.fromBytes(_b(shortStringsJson));
+  r1.beginArray();
+  final s1 = r1.readString();
+  final a1 = r1.readString();
+  final s2 = r1.readString();
+  final a2 = r1.readString();
+  final s3 = r1.readString();
+  final empty = r1.readString();
+  r1.endArray();
+
+  Expect.equals('status', s1);
+  Expect.equals('active', a1);
+  Expect.equals('status', s2);
+  Expect.equals('active', a2);
+  Expect.equals('status', s3);
+  Expect.equals('', empty);
+
+  // Check identity caching (hit returns exact same instance)
+  Expect.identical(s1, s2);
+  Expect.identical(s1, s3);
+  Expect.identical(a1, a2);
+
+  // 2. Empty string caching test
+  final emptyStringsJson = '["", "", ""]';
+  final rEmpty = JsonTokenReader.fromBytes(_b(emptyStringsJson));
+  rEmpty.beginArray();
+  final e1 = rEmpty.readString();
+  final e2 = rEmpty.readString();
+  final e3 = rEmpty.readString();
+  rEmpty.endArray();
+  Expect.equals('', e1);
+  Expect.identical(e1, e2);
+  Expect.identical(e1, e3);
+
+  // 3. Collision handling: test 128 distinct short strings (more than the 64 cache slots)
+  final keys = List.generate(128, (i) => 'k$i');
+  final jsonCollision = jsonEncode(keys);
+  final rCollision = JsonTokenReader.fromBytes(_b(jsonCollision));
+  rCollision.beginArray();
+  final decodedKeys = <String>[];
+  while (rCollision.hasNext()) {
+    decodedKeys.add(rCollision.readString());
+  }
+  rCollision.endArray();
+  Expect.listEquals(keys, decodedKeys);
+
+  // 4. Strings > 8 bytes, escaped strings, and non-ASCII UTF-8 strings
+  final mixedJson =
+      '["aLongerStringGreaterThan8Bytes", "escaped\\nstring", "用户", "🎯"]';
+  final rMixed = JsonTokenReader.fromBytes(_b(mixedJson));
+  rMixed.beginArray();
+  Expect.equals('aLongerStringGreaterThan8Bytes', rMixed.readString());
+  Expect.equals('escaped\nstring', rMixed.readString());
+  Expect.equals('用户', rMixed.readString());
+  Expect.equals('🎯', rMixed.readString());
+  rMixed.endArray();
+
+  // 5. Short string right at buffer boundary where start + 8 > bytes.length
+  final boundaryJson = '{"k":"v"}'; // 'v' is at index 6..7, bytes.length is 9. start=6, start+8=14 > 9
+  final rBoundary = JsonTokenReader.fromBytes(_b(boundaryJson));
+  rBoundary.beginObject();
+  Expect.equals('k', rBoundary.nextName());
+  Expect.equals('v', rBoundary.readString());
+  rBoundary.endObject();
 }
