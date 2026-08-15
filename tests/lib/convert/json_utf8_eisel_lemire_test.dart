@@ -14,7 +14,70 @@ void main() {
   testNegativeRfc8259Syntax();
   testTokenReaderReadDouble();
   testTokenReaderAtomicRollback();
+  testOversizedExponents();
   testFuzzDifferential100k();
+}
+
+/// Exponents with more digits than the scanner's accumulator can hold.
+///
+/// Truncating the accumulator is not safe: the decimal exponent is also
+/// adjusted by the mantissa's digit count, so a truncated exponent can be
+/// cancelled back into the Eisel-Lemire table window and yield a confident
+/// finite result for a value that underflows to zero or overflows to infinity.
+void testOversizedExponents() {
+  final manyDigits = ("123456789" * 1114).substring(0, 10019);
+  final manyZeros = "0" * 10000;
+
+  final cases = <String>[
+    "${manyDigits}e-100000",
+    "-${manyDigits}e-100000",
+    "0.${manyZeros}1e100000",
+    "0.${manyZeros}1e+100000",
+    "-0.${manyZeros}1e-100000",
+    "1e100000",
+    "1e+100000",
+    "1e-100000",
+    "1e999999999",
+    "1e-999999999",
+    "1e10000",
+    "1e+10000",
+    "1e10001",
+    "1e99999",
+    "0e100000",
+    "-0e-100000",
+    "0.0e100000",
+    "-0.0e100000",
+    "1e309",
+    "1e-400",
+  ];
+
+  for (final source in cases) {
+    final bytes = _utf8Bytes(source);
+    final expected = double.parse(source);
+    final actual = JsonUtf8Decoder.parseDouble(bytes, 0, bytes.length);
+    final label = source.length > 32
+        ? "${source.substring(0, 16)}...(${source.length} chars)"
+        : source;
+    Expect.equals(expected, actual, 'parseDouble("$label")');
+    Expect.equals(
+      expected.isNegative,
+      actual.isNegative,
+      'sign of parseDouble("$label")',
+    );
+
+    final reader = JsonTokenReader.fromBytes(bytes);
+    Expect.equals(expected, reader.readDouble(), 'readDouble("$label")');
+  }
+
+  // Structural JSON stream with saturated exponent tokens
+  final doc = '{"val": ${manyDigits}e-100000, "flag": true}';
+  final rDoc = JsonTokenReader.fromBytes(_utf8Bytes(doc));
+  rDoc.beginObject();
+  Expect.equals("val", rDoc.nextName());
+  Expect.equals(0.0, rDoc.readDouble());
+  Expect.equals("flag", rDoc.nextName());
+  Expect.isTrue(rDoc.readBool());
+  rDoc.endObject();
 }
 
 extension DoubleBits on double {

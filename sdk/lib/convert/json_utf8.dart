@@ -2350,7 +2350,6 @@ final class _JsonTokenReader implements JsonTokenReader {
   });
 
   @override
-  @override
   double readDouble() => _restoringOnError(() {
     _beforeReadingValue();
     var i = _offset;
@@ -2438,13 +2437,24 @@ final class _JsonTokenReader implements JsonTokenReader {
         throw FormatException('Expected digit in exponent', _bytes, i);
       }
       var explicitExp = 0;
+      var expSaturated = false;
       while (i < _bytes.length && _bytes[i] >= 48 && _bytes[i] <= 57) {
         if (explicitExp < 10000) {
           explicitExp = explicitExp * 10 + (_bytes[i] - 48);
+        } else {
+          expSaturated = true;
         }
         i++;
       }
       decimalExp += expNeg ? -explicitExp : explicitExp;
+      if (expSaturated) {
+        // The exponent has more digits than can matter. Dropping them lets the
+        // mantissa digit count cancel the truncated value back into the
+        // Eisel-Lemire window, which turns an underflow or overflow into a
+        // confident finite result. Pin it outside the window instead so the
+        // platform parser produces the 0 or Infinity.
+        decimalExp = expNeg ? -100000 : 100000;
+      }
     }
 
     // Delimiter check: next byte must be EOF, ',', '}', ']', or whitespace
@@ -6228,13 +6238,22 @@ double? _tryParseDoubleUtf8(
       return null;
     }
     var explicitExp = 0;
+    var expSaturated = false;
     while (i < actualEnd && source[i] >= 48 && source[i] <= 57) {
       if (explicitExp < 10000) {
         explicitExp = explicitExp * 10 + (source[i] - 48);
+      } else {
+        expSaturated = true;
       }
       i++;
     }
     decimalExp += expNegative ? -explicitExp : explicitExp;
+    if (expSaturated) {
+      // See the matching note in _JsonTokenReader.readDouble: a truncated
+      // exponent can be cancelled back into range by the mantissa digit
+      // count, so pin it outside the Eisel-Lemire window instead.
+      decimalExp = expNegative ? -100000 : 100000;
+    }
   }
 
   if (i != actualEnd) return null;
