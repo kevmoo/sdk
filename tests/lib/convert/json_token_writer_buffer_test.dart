@@ -14,6 +14,33 @@ void main() {
   testBufferWriterNamesAndKeys();
   testBufferWriterStateMachineAndErrors();
   testBothWritersParity();
+  testBufferWriterRejectsNonPositiveCapacity();
+}
+
+/// A non-positive initial capacity is a caller mistake, usually a size hint
+/// that computed to zero, and is reported rather than silently replaced with
+/// the default. [JsonUtf8Encoder] rejects its `bufferSize` the same way.
+void testBufferWriterRejectsNonPositiveCapacity() {
+  for (final capacity in [0, -1, -1000]) {
+    Expect.throwsRangeError(
+      () => JsonTokenWriter.toBuffer(capacity),
+      'initialCapacity $capacity should be rejected',
+    );
+  }
+
+  // The smallest legal capacity still encodes correctly, growing as needed.
+  final w = JsonTokenWriter.toBuffer(1);
+  w.beginArray();
+  w.writeInt(1);
+  w.writeString('two');
+  w.writeDouble(3.5);
+  w.endArray();
+  Expect.equals('[1,"two",3.5]', utf8.decode(w.toBytes()));
+
+  // Omitting the capacity keeps the default.
+  final d = JsonTokenWriter.toBuffer();
+  d.writeInt(7);
+  Expect.equals('7', utf8.decode(d.toBytes()));
 }
 
 void testBufferWriterPrimitives() {

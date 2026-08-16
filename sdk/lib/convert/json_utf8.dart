@@ -2718,6 +2718,11 @@ abstract interface class JsonTokenWriter {
   factory JsonTokenWriter.toSink(BytesBuilder sink) = _JsonTokenWriter;
 
   /// Instantiates a contiguous buffer token writer with [initialCapacity].
+  ///
+  /// The buffer grows as needed, so [initialCapacity] only affects how often
+  /// that happens. It must be greater than zero.
+  ///
+  /// Throws a [RangeError] if [initialCapacity] is zero or negative.
   factory JsonTokenWriter.toBuffer([int initialCapacity]) =
       _BufferJsonTokenWriter;
 
@@ -2953,7 +2958,21 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
   bool _hasRootValue = false;
 
   _BufferJsonTokenWriter([int initialCapacity = 256])
-    : _buffer = Uint8List(initialCapacity > 0 ? initialCapacity : 256);
+    : _buffer = Uint8List(_checkCapacity(initialCapacity));
+
+  static int _checkCapacity(int initialCapacity) {
+    // Silently substituting a default hides a caller that computed its
+    // capacity from a bad size hint. JsonUtf8Encoder rejects a non-positive
+    // bufferSize for the same reason.
+    if (initialCapacity < 1) {
+      throw RangeError.value(
+        initialCapacity,
+        'initialCapacity',
+        'Must be positive',
+      );
+    }
+    return initialCapacity;
+  }
 
   @pragma('vm:prefer-inline')
   @pragma('wasm:prefer-inline')
