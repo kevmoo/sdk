@@ -141,8 +141,70 @@ void testBufferWriterToBytesView() {
   Expect.equals(5, bytes.length); // "[1,2]" is 5 bytes
   Expect.equals("[1,2]", utf8.decode(bytes));
 
-  // Verify toBytes() returns Uint8List sublistView
-  Expect.isTrue(bytes is Uint8List);
+  testToBytesIsIndependentOfTheWriter();
+}
+
+/// [JsonTokenWriter.toBytes] hands the caller a copy that is independent of
+/// the writer in both directions. Both writer flavours have to agree, since
+/// callers only ever see the interface.
+void testToBytesIsIndependentOfTheWriter() {
+  for (final make in [
+    () => JsonTokenWriter.toBuffer(1024), // room to spare: no growth
+    () => JsonTokenWriter.toBuffer(1), // grows on every write
+    () => JsonTokenWriter.toBuffer(16), // grows partway through
+    () => JsonTokenWriter.toSink(BytesBuilder()),
+  ]) {
+    final w = make();
+    w.beginArray();
+    w.writeInt(1);
+    final snapshot = w.toBytes();
+    final snapshotText = utf8.decode(snapshot);
+
+    // Continuing to write must not disturb the snapshot.
+    w.writeInt(2);
+    w.writeString("three");
+    w.endArray();
+    Expect.equals(
+      snapshotText,
+      utf8.decode(snapshot),
+      'toBytes() result changed after further writes',
+    );
+
+    // ...and the completed document must still be correct.
+    Expect.equals('[1,2,"three"]', utf8.decode(w.toBytes()));
+  }
+
+  // Modifying the returned bytes must not reach back into the writer.
+  for (final make in [
+    () => JsonTokenWriter.toBuffer(1024),
+    () => JsonTokenWriter.toSink(BytesBuilder()),
+  ]) {
+    final w = make();
+    w.beginArray();
+    w.writeInt(1);
+    w.toBytes()[0] = 0x58; // 'X'
+    w.writeInt(2);
+    w.endArray();
+    Expect.equals(
+      '[1,2]',
+      utf8.decode(w.toBytes()),
+      'writing to the result of toBytes() corrupted the writer',
+    );
+  }
+
+  // Repeated snapshots stay valid alongside each other.
+  final w = JsonTokenWriter.toBuffer(1024);
+  w.beginObject();
+  w.writeName("a");
+  w.writeInt(1);
+  final first = w.toBytes();
+  w.writeName("b");
+  w.writeInt(2);
+  final second = w.toBytes();
+  w.endObject();
+  Expect.equals('{"a":1', utf8.decode(first));
+  Expect.equals('{"a":1,"b":2', utf8.decode(second));
+  Expect.equals('{"a":1,"b":2}', utf8.decode(w.toBytes()));
 }
 
 void testBufferWriterNamesAndKeys() {

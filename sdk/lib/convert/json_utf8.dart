@@ -2735,7 +2735,15 @@ abstract interface class JsonTokenWriter {
   void writeBool(bool value);
   void writeNull();
 
-  /// Returns the encoded UTF-8 JSON bytes.
+  /// Returns a copy of the UTF-8 JSON bytes written so far.
+  ///
+  /// The copy belongs to the caller and is independent of this writer in both
+  /// directions: writing more does not change bytes already returned, and
+  /// modifying the returned list does not disturb the writer, which stays
+  /// usable.
+  ///
+  /// Calling this before the document is complete returns the partial output;
+  /// closing every container is the caller's responsibility.
   Uint8List toBytes();
 }
 
@@ -3196,7 +3204,8 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
   }
 
   @override
-  Uint8List toBytes() => Uint8List.sublistView(_buffer, 0, _cursor);
+  Uint8List toBytes() =>
+      Uint8List.fromList(Uint8List.sublistView(_buffer, 0, _cursor));
 }
 
 // =============================================================================
