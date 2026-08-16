@@ -281,4 +281,21 @@ void testBothWritersParity() {
   final bufferBytes = bufferWriter.toBytes();
 
   Expect.listEquals(sinkBytes, bufferBytes);
+
+  // Agreeing with each other is not enough: two writers sharing a formatting
+  // helper can agree on the same wrong bytes. Pin both to json.encode.
+  final expected = json.encode({
+    "alpha": 123456,
+    "beta": -42.75,
+    "gamma": false,
+    "delta": null,
+    "epsilon": "Unicode \u{1F680} \u0000 \t \n \"quote\"",
+    "nested": [
+      1,
+      2,
+      {"inner": "val"},
+    ],
+  });
+  Expect.equals(expected, utf8.decode(sinkBytes));
+  Expect.equals(expected, utf8.decode(bufferBytes));
 }

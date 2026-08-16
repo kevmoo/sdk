@@ -397,10 +397,20 @@ void testStringCacheReadString() {
   Expect.equals('status', s3);
   Expect.equals('', empty);
 
-  // Check identity caching (hit returns exact same instance)
-  Expect.identical(s1, s2);
-  Expect.identical(s1, s3);
-  Expect.identical(a1, a2);
+  // Identity only says something where the cache exists. The cache packs
+  // eight key bytes into a 64-bit integer, so it is disabled on dart2js and
+  // DDC, where `int` is a double -- and there JavaScript reports equal strings
+  // as identical anyway, so asserting it unconditionally would pass without
+  // testing anything.
+  if (!identical(1, 1.0)) {
+    Expect.identical(s1, s2);
+    Expect.identical(s1, s3);
+    Expect.identical(a1, a2);
+
+    // Distinct values must not share an instance, so a passing run above
+    // cannot be explained by the reader returning one string for everything.
+    Expect.notIdentical(s1, a1);
+  }
 
   // 2. Empty string caching test
   final emptyStringsJson = '["", "", ""]';
@@ -411,8 +421,12 @@ void testStringCacheReadString() {
   final e3 = rEmpty.readString();
   rEmpty.endArray();
   Expect.equals('', e1);
-  Expect.identical(e1, e2);
-  Expect.identical(e1, e3);
+  Expect.equals('', e2);
+  Expect.equals('', e3);
+  if (!identical(1, 1.0)) {
+    Expect.identical(e1, e2);
+    Expect.identical(e1, e3);
+  }
 
   // 3. Collision handling: test 128 distinct short strings (more than the 64 cache slots)
   final keys = List.generate(128, (i) => 'k$i');
