@@ -2742,7 +2742,39 @@ abstract interface class JsonTokenWriter {
 final class _JsonTokenWriter implements JsonTokenWriter {
   static const int _maxDepth = 64;
   final BytesBuilder _sink;
-  final Uint8List _scratch = Uint8List(256);
+  // Scratch space for formatting a value before handing it to [_sink].
+  //
+  // Emitted bytes are passed to the sink as a view rather than a copy, and a
+  // `BytesBuilder(copy: false)` keeps that view until `takeBytes`, so a region
+  // must never be written again once it has been handed over. Bump a cursor
+  // through the block instead of restarting at zero, and take a fresh block
+  // when the remainder is too small, which keeps allocation at roughly one per
+  // block of output rather than one per value.
+  static const int _scratchBlockSize = 1024;
+
+  /// Largest run [_reserveScratch] can be asked for: a string of up to 40 code
+  /// units at six bytes each, plus the surrounding quotes.
+  static const int _scratchReserve = 40 * 6 + 2;
+
+  Uint8List _scratch = Uint8List(_scratchBlockSize);
+  int _scratchAt = 0;
+
+  /// Returns an offset into [_scratch] with at least [_scratchReserve] bytes
+  /// free, replacing the block if the current one is too full.
+  int _reserveScratch() {
+    if (_scratch.length - _scratchAt < _scratchReserve) {
+      _scratch = Uint8List(_scratchBlockSize);
+      _scratchAt = 0;
+    }
+    return _scratchAt;
+  }
+
+  /// Hands [length] bytes written at [start] to the sink and retires them.
+  void _emitScratch(int start, int length) {
+    _sink.add(Uint8List.sublistView(_scratch, start, start + length));
+    _scratchAt = start + length;
+  }
+
   final List<_ContainerType> _stateStack = [];
   final List<_ObjectState> _objectStateStack = [];
   final List<bool> _isArrayFirstStack = [];
@@ -2909,8 +2941,9 @@ final class _JsonTokenWriter implements JsonTokenWriter {
   void writeString(String value) {
     _beforeValue();
     if (value.length <= 40) {
-      final len = JsonUtf8Encoder.writeStringToBuffer(value, _scratch, 0);
-      _sink.add(Uint8List.sublistView(_scratch, 0, len));
+      final at = _reserveScratch();
+      final len = JsonUtf8Encoder.writeStringToBuffer(value, _scratch, at);
+      _emitScratch(at, len);
     } else {
       JsonUtf8Encoder.writeString(value, _sink);
     }
@@ -2919,15 +2952,17 @@ final class _JsonTokenWriter implements JsonTokenWriter {
   @override
   void writeInt(int value) {
     _beforeValue();
-    final len = JsonUtf8Encoder.writeIntToBuffer(value, _scratch, 0);
-    _sink.add(Uint8List.sublistView(_scratch, 0, len));
+    final at = _reserveScratch();
+    final len = JsonUtf8Encoder.writeIntToBuffer(value, _scratch, at);
+    _emitScratch(at, len);
   }
 
   @override
   void writeDouble(double value) {
     _beforeValue();
-    final len = JsonUtf8Encoder.writeDoubleToBuffer(value, _scratch, 0);
-    _sink.add(Uint8List.sublistView(_scratch, 0, len));
+    final at = _reserveScratch();
+    final len = JsonUtf8Encoder.writeDoubleToBuffer(value, _scratch, at);
+    _emitScratch(at, len);
   }
 
   @override

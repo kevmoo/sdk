@@ -14,6 +14,101 @@ void main() {
   testBufferWriterNamesAndKeys();
   testBufferWriterStateMachineAndErrors();
   testBothWritersParity();
+  testSinkWriterDoesNotAliasScratch();
+}
+
+/// The sink writer formats values into a reusable scratch block and hands the
+/// bytes to the sink as a view rather than a copy.
+///
+/// `BytesBuilder(copy: false)` keeps every added list until `takeBytes` and
+/// documents that an added list "should not change its content after being
+/// added", so a scratch region that has been handed over must never be written
+/// again. Writing several values through one writer is what exercises that: a
+/// single value cannot alias anything.
+void testSinkWriterDoesNotAliasScratch() {
+  void check(String expected, void Function(JsonTokenWriter) build) {
+    for (final copy in [true, false]) {
+      final sink = BytesBuilder(copy: copy);
+      build(JsonTokenWriter.toSink(sink));
+      Expect.equals(
+        expected,
+        utf8.decode(sink.takeBytes()),
+        'BytesBuilder(copy: $copy)',
+      );
+    }
+  }
+
+  check('[11,22,33]', (w) {
+    w.beginArray();
+    w.writeInt(11);
+    w.writeInt(22);
+    w.writeInt(33);
+    w.endArray();
+  });
+
+  check('["alpha","bravo","charlie"]', (w) {
+    w.beginArray();
+    w.writeString('alpha');
+    w.writeString('bravo');
+    w.writeString('charlie');
+    w.endArray();
+  });
+
+  check('[1.5,7,2.25]', (w) {
+    w.beginArray();
+    w.writeDouble(1.5);
+    w.writeInt(7);
+    w.writeDouble(2.25);
+    w.endArray();
+  });
+
+  check('{"first":1,"second":"two","third":3.5}', (w) {
+    w.beginObject();
+    w.writeName('first');
+    w.writeInt(1);
+    w.writeName('second');
+    w.writeString('two');
+    w.writeName('third');
+    w.writeDouble(3.5);
+    w.endObject();
+  });
+
+  // Enough values to refill the scratch block many times, mixing the lengths
+  // so the reserve boundary is crossed at varying offsets. Strings stay short
+  // enough to take the scratch path rather than the streaming one.
+  final expected = StringBuffer('[');
+  for (var i = 0; i < 500; i++) {
+    if (i > 0) expected.write(',');
+    expected.write('$i,"s$i",${i + 0.5}');
+  }
+  expected.write(']');
+  check(expected.toString(), (w) {
+    w.beginArray();
+    for (var i = 0; i < 500; i++) {
+      w.writeInt(i);
+      w.writeString('s$i');
+      w.writeDouble(i + 0.5);
+    }
+    w.endArray();
+  });
+
+  // Nested containers interleave structural bytes with scratch emissions.
+  check('{"a":[1,2],"b":{"c":"x","d":"y"}}', (w) {
+    w.beginObject();
+    w.writeName('a');
+    w.beginArray();
+    w.writeInt(1);
+    w.writeInt(2);
+    w.endArray();
+    w.writeName('b');
+    w.beginObject();
+    w.writeName('c');
+    w.writeString('x');
+    w.writeName('d');
+    w.writeString('y');
+    w.endObject();
+    w.endObject();
+  });
 }
 
 void testBufferWriterPrimitives() {

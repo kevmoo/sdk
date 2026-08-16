@@ -203,16 +203,12 @@ void testJsonTokenWriterLargeIntegers() {
     outStr.contains(':'),
     'Array contains unexpected colon: $outStr',
   );
+  // Assert the whole document, not just that the last value appears somewhere.
+  // A containment check passes even when earlier elements have been corrupted.
   if (identical(1, 1.0)) {
-    Expect.isTrue(
-      outStr.contains('10000000000000000000'),
-      'Expected 10000000000000000000 in output: $outStr',
-    );
+    Expect.equals('[5,1000000000000000000,10000000000000000000]', outStr);
   } else {
-    Expect.isTrue(
-      outStr.contains('9223372036854775807'),
-      'Expected 9223372036854775807 in output: $outStr',
-    );
+    Expect.equals('[5,1000000000000000000,9223372036854775807]', outStr);
   }
 
   // 2. JsonTokenWriter inside object
