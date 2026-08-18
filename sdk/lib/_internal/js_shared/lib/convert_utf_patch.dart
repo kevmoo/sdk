@@ -11,7 +11,13 @@ import 'dart:_native_typed_data' show NativeUint8List;
 class Utf8Decoder {
   @patch
   Converter<List<int>, T> fuse<T>(Converter<String, T> next) {
-    return super.fuse(next);
+    if (next is JsonDecoder) {
+      return JsonUtf8Decoder(
+        (next as JsonDecoder)._reviver,
+        this._allowMalformed,
+      ) as dynamic /*=Converter<List<int>, T>*/;
+    }
+    return super.fuse<T>(next);
   }
 }
 

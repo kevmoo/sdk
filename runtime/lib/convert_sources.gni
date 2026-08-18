@@ -3,3 +3,4 @@
 # BSD-style license that can be found in the LICENSE file.
 
 convert_runtime_dart_files = [ "convert_patch.dart" ]
+convert_runtime_cc_files = [ "convert.cc" ]

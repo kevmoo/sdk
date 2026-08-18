@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import "dart:_compact_hash" show createMapFromKeyValueListUnsafe;
-
 import "dart:_internal"
     show
         allocateOneByteString,
@@ -16,8 +15,6 @@ import "dart:_internal"
         writeIntoOneByteString,
         writeIntoTwoByteString,
         createOneByteStringFromCharacters;
-
-import "dart:typed_data" show Uint8List, Uint16List;
 
 /// This patch library has no additional parts.
 
@@ -42,7 +39,7 @@ class Utf8Decoder {
   @patch
   Converter<List<int>, T> fuse<T>(Converter<String, T> next) {
     if (next is JsonDecoder) {
-      return _JsonUtf8Decoder(
+      return JsonUtf8Decoder(
         (next as JsonDecoder)._reviver,
         this._allowMalformed,
       ) as dynamic /*=Converter<List<int>, T>*/;
@@ -51,21 +48,11 @@ class Utf8Decoder {
   }
 }
 
-class _JsonUtf8Decoder extends Converter<List<int>, Object?> {
-  final Object? Function(Object? key, Object? value)? _reviver;
-  final bool _allowMalformed;
-
-  _JsonUtf8Decoder(this._reviver, this._allowMalformed);
-
-  Object? convert(List<int> input) {
-    var parser = _JsonUtf8DecoderSink._createParser(_reviver, _allowMalformed);
-    parser.parseChunk(input, 0, input.length);
-    parser.close();
-    return parser.result;
-  }
-
-  ByteConversionSink startChunkedConversion(Sink<Object?> sink) {
-    return _JsonUtf8DecoderSink(_reviver, sink, _allowMalformed);
+@patch
+class JsonUtf8Decoder {
+  @patch
+  ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) {
+    return _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
   }
 }
 
@@ -238,11 +225,10 @@ class _NumberBuffer {
     return result;
   }
 
-  // TODO(lrn): See if parsing of numbers can be abstracted to something
-  // not only working on strings, but also on char-code lists, without losing
-  // performance.
-  num parseNum() => num.parse(getString());
-  double parseDouble() => double.parse(getString());
+  num parseNum() =>
+      _tryParseIntUtf8(list, 0, length) ??
+      _parseDoubleFromBytes(list, 0, length);
+  double parseDouble() => _parseDoubleFromBytes(list, 0, length);
 }
 
 abstract class _JsonParserWithListener {
@@ -1652,8 +1638,7 @@ class _JsonUtf8Parser extends _JsonParserWithListener
   }
 
   double parseDouble(int start, int end) {
-    String string = getString(start, end, 0x7f);
-    return _parseDouble(string, 0, string.length);
+    return _parseDoubleFromBytes(chunk, start, end);
   }
 }
 
@@ -2133,3 +2118,72 @@ class _Utf8Decoder {
     return result;
   }
 }
+
+@patch
+double _parseDoubleFromBytes(Uint8List bytes, int start, int end) {
+  return _tryParseDoubleUtf8(bytes, start, end, allowFallback: false) ??
+      _parseDoubleNative(bytes, start, end) ??
+      (throw FormatException(
+        'Invalid double in byte span [$start, $end)',
+        bytes,
+        start,
+      ));
+}
+
+@patch
+double? _tryParseDoubleFromBytes(Uint8List bytes, int start, int end) {
+  return _tryParseDoubleUtf8(bytes, start, end, allowFallback: false) ??
+      _parseDoubleNative(bytes, start, end);
+}
+
+@patch
+int _writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
+  final written = _writeDoubleToBufferUtf8(value, buffer, offset);
+  if (written > 0) return written;
+  return _writeDoubleToBufferNative(value, buffer, offset);
+}
+
+@patch
+int _writeStringToBuffer(String value, Uint8List buffer, int offset) {
+  final len = value.length;
+  if (len <= 16) {
+    final requiredLen = len + 2;
+    if (offset < 0 || offset + requiredLen > buffer.length) {
+      return _writeStringToBufferNative(value, buffer, offset);
+    }
+    var isAscii = true;
+    for (var i = 0; i < len; i++) {
+      final c = value.codeUnitAt(i);
+      if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+        isAscii = false;
+        break;
+      }
+    }
+    if (isAscii) {
+      buffer[offset] = 0x22;
+      for (var i = 0; i < len; i++) {
+        buffer[offset + 1 + i] = value.codeUnitAt(i);
+      }
+      buffer[offset + 1 + len] = 0x22;
+      return requiredLen;
+    }
+  }
+  return _writeStringToBufferNative(value, buffer, offset);
+}
+
+@pragma("vm:external-name", "JsonUtf8Decoder_parseDouble")
+external double? _parseDoubleNative(Uint8List bytes, int start, int end);
+
+@pragma("vm:external-name", "JsonUtf8Encoder_writeDoubleToBuffer")
+external int _writeDoubleToBufferNative(
+  double value,
+  Uint8List buffer,
+  int offset,
+);
+
+@pragma("vm:external-name", "JsonUtf8Encoder_writeStringToBuffer")
+external int _writeStringToBufferNative(
+  String value,
+  Uint8List buffer,
+  int offset,
+);
