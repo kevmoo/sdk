@@ -1602,12 +1602,20 @@ final class _ContainerFrame {
 
 final class _JsonTokenReader implements JsonTokenReader {
   static const int _maxDepth = 1024;
+  static const int _stringCacheSize = 16;
+  static const int _stringCacheMask = 15;
+  static const int _maxCachedStringLength = 64;
+
   final Uint8List _bytes;
   final ByteData _byteData;
   final bool allowMalformed;
   int _offset = 0;
   final List<_ContainerFrame> _stack = [];
   bool _hasReadRoot = false;
+  final List<String?> _stringCache = List<String?>.filled(
+    _stringCacheSize,
+    null,
+  );
 
   @override
   Uint8List get bytes => _bytes;
@@ -2057,15 +2065,54 @@ final class _JsonTokenReader implements JsonTokenReader {
     return (start, end);
   }
 
-  @override
-  String nextName() => _restoringOnError(() {
-    final (start, end) = _scanNameSpanAndConsumeColon();
-    return _decodeStringUtf8(
+  @pragma('vm:prefer-inline')
+  @pragma('wasm:prefer-inline')
+  String _decodeCachedString(int start, int end) {
+    final len = end - start;
+    if (len == 0) return '';
+    if (len > _maxCachedStringLength) {
+      return _decodeStringUtf8(
+        _bytes,
+        start,
+        end,
+        allowMalformed: allowMalformed,
+      );
+    }
+
+    var h = len;
+    for (var i = start; i < end; i++) {
+      h = (h * 31 + _bytes[i]) & 0x3fffffff;
+    }
+    final slot = h & _stringCacheMask;
+    final cached = _stringCache[slot];
+    if (cached != null && cached.length == len) {
+      var match = true;
+      for (var i = 0; i < len; i++) {
+        final b = _bytes[start + i];
+        if (b > 0x7F || b != cached.codeUnitAt(i)) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return cached;
+      }
+    }
+
+    final s = _decodeStringUtf8(
       _bytes,
       start,
       end,
       allowMalformed: allowMalformed,
     );
+    _stringCache[slot] = s;
+    return s;
+  }
+
+  @override
+  String nextName() => _restoringOnError(() {
+    final (start, end) = _scanNameSpanAndConsumeColon();
+    return _decodeCachedString(start, end);
   });
 
   @override
@@ -2086,12 +2133,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       return options._selectKey(_bytes, start, end);
     }
 
-    final unescaped = _decodeStringUtf8(
-      _bytes,
-      start,
-      end,
-      allowMalformed: allowMalformed,
-    );
+    final unescaped = _decodeCachedString(start, end);
     return options.keys.indexOf(unescaped);
   });
 
@@ -2145,12 +2187,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       return options._selectKey(_bytes, start, end);
     }
 
-    final unescaped = _decodeStringUtf8(
-      _bytes,
-      start,
-      end,
-      allowMalformed: allowMalformed,
-    );
+    final unescaped = _decodeCachedString(start, end);
     return options.keys.indexOf(unescaped);
   });
 
@@ -2200,12 +2237,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   @pragma('wasm:prefer-inline')
   String readString() => _restoringOnError(() {
     final (start, end) = readStringSpan();
-    return _decodeStringUtf8(
-      _bytes,
-      start,
-      end,
-      allowMalformed: allowMalformed,
-    );
+    return _decodeCachedString(start, end);
   });
 
   (int, int) _scanScalarSpan() {

@@ -57,6 +57,7 @@ void main() {
   testGetTokenSpanTrailingCommaAndEofRejection();
   testTokenReaderUnifiedRollbackSemantics();
   testReadStringSpanAndBytes();
+  testStringCacheDirectMapped();
 }
 
 void testTokenReaderPrimitives() {
@@ -2639,5 +2640,199 @@ void testReadStringSpanAndBytes() {
     reader.beginArray();
     Expect.throwsFormatException(() => reader.readStringSpan());
     Expect.equals(JsonTokenType.string, reader.peek());
+  }
+}
+
+void testStringCacheDirectMapped() {
+  Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
+
+  // 1. Repeated property names and string values hit the cache and return identical instances
+  {
+    final json =
+        '[{"id": "usr_100", "role": "admin", "status": "active"}, '
+        '{"id": "usr_200", "role": "admin", "status": "active"}, '
+        '{"id": "usr_300", "role": "admin", "status": "active"}]';
+    final reader = JsonTokenReader.fromBytes(b(json));
+    reader.beginArray();
+
+    reader.beginObject();
+    final k1Id = reader.nextName();
+    final v1Id = reader.readString();
+    final k1Role = reader.nextName();
+    final v1Role = reader.readString();
+    final k1Status = reader.nextName();
+    final v1Status = reader.readString();
+    reader.endObject();
+
+    reader.beginObject();
+    final k2Id = reader.nextName();
+    final v2Id = reader.readString();
+    final k2Role = reader.nextName();
+    final v2Role = reader.readString();
+    final k2Status = reader.nextName();
+    final v2Status = reader.readString();
+    reader.endObject();
+
+    reader.beginObject();
+    final k3Id = reader.nextName();
+    final v3Id = reader.readString();
+    final k3Role = reader.nextName();
+    final v3Role = reader.readString();
+    final k3Status = reader.nextName();
+    final v3Status = reader.readString();
+    reader.endObject();
+    reader.endArray();
+
+    Expect.equals('id', k1Id);
+    Expect.equals('role', k1Role);
+    Expect.equals('status', k1Status);
+    Expect.equals('admin', v1Role);
+    Expect.equals('active', v1Status);
+
+    Expect.equals('id', k2Id);
+    Expect.equals('role', k2Role);
+    Expect.equals('status', k2Status);
+    Expect.equals('admin', v2Role);
+    Expect.equals('active', v2Status);
+
+    Expect.equals('id', k3Id);
+    Expect.equals('role', k3Role);
+    Expect.equals('status', k3Status);
+    Expect.equals('admin', v3Role);
+    Expect.equals('active', v3Status);
+
+    // Non-colliding slots (id: slot 13, status: slot 8, active: slot 12) return identical instances
+    Expect.isTrue(identical(k1Id, k2Id));
+    Expect.isTrue(identical(k1Id, k3Id));
+    Expect.isTrue(identical(k1Status, k2Status));
+    Expect.isTrue(identical(k1Status, k3Status));
+    Expect.isTrue(identical(v1Status, v2Status));
+    Expect.isTrue(identical(v1Status, v3Status));
+
+    // Colliding slots (role and admin both map to slot 10) correctly evict and accurately decode
+    Expect.equals(k1Role, k2Role);
+    Expect.equals(v1Role, v2Role);
+  }
+
+  // 2. Direct-mapped slot collision and eviction with >16 keys
+  {
+    final keys = List.generate(
+      32,
+      (i) => 'property_key_${i.toString().padLeft(3, '0')}',
+    );
+    final sb = StringBuffer('{');
+    for (var i = 0; i < keys.length; i++) {
+      if (i > 0) sb.write(', ');
+      sb.write('"${keys[i]}": $i');
+    }
+    sb.write('}');
+    final bytes = b(sb.toString());
+
+    // First pass populates and evicts cache slots
+    final reader = JsonTokenReader.fromBytes(bytes);
+    reader.beginObject();
+    for (var i = 0; i < keys.length; i++) {
+      Expect.isTrue(reader.hasNext());
+      final name = reader.nextName();
+      Expect.equals(keys[i], name);
+      Expect.equals(i, reader.readInt());
+    }
+    reader.endObject();
+    Expect.equals(JsonTokenType.endOfDocument, reader.peek());
+
+    // Second reader pass verifies accuracy across all slots
+    final reader2 = JsonTokenReader.fromBytes(bytes);
+    reader2.beginObject();
+    for (var i = 0; i < keys.length; i++) {
+      Expect.isTrue(reader2.hasNext());
+      final name = reader2.nextName();
+      Expect.equals(keys[i], name);
+      Expect.equals(i, reader2.readInt());
+    }
+    reader2.endObject();
+  }
+
+  // 3. Strings longer than 64 characters bypass cache accurately
+  {
+    final longKey = 'a' * 80;
+    final longVal = 'b' * 120;
+    final json = '{"$longKey": "$longVal", "$longKey": "$longVal"}';
+    final reader = JsonTokenReader.fromBytes(b(json));
+    reader.beginObject();
+    final k1 = reader.nextName();
+    final v1 = reader.readString();
+    final k2 = reader.nextName();
+    final v2 = reader.readString();
+    reader.endObject();
+
+    Expect.equals(longKey, k1);
+    Expect.equals(longVal, v1);
+    Expect.equals(longKey, k2);
+    Expect.equals(longVal, v2);
+  }
+
+  // 4. Empty strings
+  {
+    final json = '{"": "", "": ""}';
+    final reader = JsonTokenReader.fromBytes(b(json));
+    reader.beginObject();
+    final k1 = reader.nextName();
+    final v1 = reader.readString();
+    final k2 = reader.nextName();
+    final v2 = reader.readString();
+    reader.endObject();
+
+    Expect.equals('', k1);
+    Expect.equals('', v1);
+    Expect.equals('', k2);
+    Expect.equals('', v2);
+  }
+
+  // 5. Escaped characters and unicode values
+  {
+    final json = '{"escaped\\nkey": "val\\n1", "escaped\\nkey": "val\\n1"}';
+    final reader = JsonTokenReader.fromBytes(b(json));
+    reader.beginObject();
+    final k1 = reader.nextName();
+    final v1 = reader.readString();
+    final k2 = reader.nextName();
+    final v2 = reader.readString();
+    reader.endObject();
+
+    Expect.equals('escaped\nkey', k1);
+    Expect.equals('val\n1', v1);
+    Expect.equals('escaped\nkey', k2);
+    Expect.equals('val\n1', v2);
+  }
+
+  // 6. Control character rejection
+  {
+    final bytesWithCtrl = Uint8List.fromList([
+      34, // '"'
+      107, 101, 121, // 'key'
+      0x01, // unescaped control character
+      34, // '"'
+    ]);
+    final reader = JsonTokenReader.fromBytes(bytesWithCtrl);
+    Expect.throwsFormatException(() => reader.readString());
+  }
+
+  // 7. Malformed UTF-8 with allowMalformed
+  {
+    final malformedBytes = Uint8List.fromList([
+      123, // '{'
+      34, 107, 34, 58, // '"k":'
+      34, 0xFF, 0xFE, 34, // '"\xFF\xFE"'
+      125, // '}'
+    ]);
+    final reader = JsonTokenReader.fromBytes(
+      malformedBytes,
+      allowMalformed: true,
+    );
+    reader.beginObject();
+    Expect.equals('k', reader.nextName());
+    final val = reader.readString();
+    Expect.equals('\uFFFD\uFFFD', val);
+    reader.endObject();
   }
 }
