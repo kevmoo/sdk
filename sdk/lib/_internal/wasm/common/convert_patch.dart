@@ -2909,3 +2909,433 @@ const ImmutableWasmArray<BoxedInt> _intBoxes256 = ImmutableWasmArray.literal([
   240, 241, 242, 243, 244, 245, 246, 247, //
   248, 249, 250, 251, 252, 253, 254, 255, //
 ]);
+
+@patch
+class _JsonTokenReader {
+  @pragma('wasm:prefer-inline')
+  WasmArray<WasmI8> get _data => (unsafeCast<WasmI8ArrayBase>(_bytes)).data;
+
+  @pragma('wasm:prefer-inline')
+  int get _offsetInElements =>
+      (unsafeCast<WasmI8ArrayBase>(_bytes)).offsetInBytes;
+
+  @pragma('wasm:prefer-inline')
+  int _b(int index) => _data.readUnsigned(_offsetInElements + index);
+
+  @patch
+  void _skipWs() {
+    final _len = _bytes.length;
+    while (_offset < _len && _isWs(_b(_offset))) {
+      _offset++;
+    }
+  }
+
+  @patch
+  JsonTokenType peek() {
+    final _len = _bytes.length;
+    var i = _offset;
+    while (i < _len && _isWs(_b(i))) {
+      i++;
+    }
+    if (i >= _len) {
+      if (_stack.isNotEmpty &&
+          _stack.last.state == _ReaderItemState.afterComma) {
+        throw FormatException(
+          'Unexpected end of document after comma',
+          _bytes,
+          _offset,
+        );
+      }
+      return JsonTokenType.endOfDocument;
+    }
+
+    if (_stack.isNotEmpty) {
+      final top = _stack.last;
+      if (top.type == _ContainerType.object) {
+        switch (top.state) {
+          case _ReaderItemState.start:
+            if (_b(i) == 125) return JsonTokenType.endObject;
+            if (_b(i) == 34) return JsonTokenType.propertyName;
+            return JsonTokenType.none;
+          case _ReaderItemState.afterName:
+            return _valueTokenType(_b(i));
+          case _ReaderItemState.afterComma:
+            if (_b(i) == 34) return JsonTokenType.propertyName;
+            if (_b(i) == 125 || _b(i) == 93) {
+              throw FormatException(
+                'Trailing comma before closing delimiter',
+                _bytes,
+                _offset,
+              );
+            }
+            return JsonTokenType.none;
+          case _ReaderItemState.afterValue:
+            if (_b(i) == 125) return JsonTokenType.endObject;
+            if (_b(i) == 44) {
+              i++;
+              while (i < _len && _isWs(_b(i))) {
+                i++;
+              }
+              if (i >= _len) {
+                throw FormatException(
+                  'Unexpected end of document after comma',
+                  _bytes,
+                  _offset,
+                );
+              }
+              if (_b(i) == 125 || _b(i) == 93) {
+                throw FormatException(
+                  'Trailing comma before closing delimiter',
+                  _bytes,
+                  _offset,
+                );
+              }
+              if (_b(i) == 34) return JsonTokenType.propertyName;
+              return JsonTokenType.none;
+            }
+            throw FormatException(
+              'Expected comma or closing delimiter',
+              _bytes,
+              _offset,
+            );
+        }
+      } else {
+        // _ContainerType.array
+        switch (top.state) {
+          case _ReaderItemState.start:
+            if (_b(i) == 93) return JsonTokenType.endArray;
+            return _valueTokenType(_b(i));
+          case _ReaderItemState.afterComma:
+            if (_b(i) == 93 || _b(i) == 125) {
+              throw FormatException(
+                'Trailing comma before closing delimiter',
+                _bytes,
+                _offset,
+              );
+            }
+            return _valueTokenType(_b(i));
+          case _ReaderItemState.afterValue:
+            if (_b(i) == 93) return JsonTokenType.endArray;
+            if (_b(i) == 44) {
+              i++;
+              while (i < _len && _isWs(_b(i))) {
+                i++;
+              }
+              if (i >= _len) {
+                throw FormatException(
+                  'Unexpected end of document after comma',
+                  _bytes,
+                  _offset,
+                );
+              }
+              if (_b(i) == 93 || _b(i) == 125) {
+                throw FormatException(
+                  'Trailing comma before closing delimiter',
+                  _bytes,
+                  _offset,
+                );
+              }
+              return _valueTokenType(_b(i));
+            }
+            throw FormatException(
+              'Expected comma or closing delimiter',
+              _bytes,
+              _offset,
+            );
+          case _ReaderItemState.afterName:
+            return JsonTokenType.none;
+        }
+      }
+    } else {
+      if (_hasReadRoot) {
+        return JsonTokenType.none;
+      }
+      return _valueTokenType(_b(i));
+    }
+  }
+
+  @patch
+  int selectName(JsonKeyOptions options) => _restoringOnError(() {
+    final _len = _bytes.length;
+    final (start, end) = _scanNameSpanAndConsumeColon();
+
+    final len = end - start;
+    if (_isVerbatimUtf8(_bytes, start, end)) {
+      if (len <= 8 && options._shortKeyInts != null) {
+        if (start + 8 <= _len) {
+          final keyInt =
+              _byteData.getInt64(start, Endian.little) &
+              JsonKeyOptions._lenMasks[len];
+          return options._findShortKeyIndex(keyInt, len);
+        }
+        return options._selectKey(_bytes, start, end);
+      }
+      return options._selectKey(_bytes, start, end);
+    }
+
+    final unescaped = _decodeCachedString(start, end);
+    return options.keys.indexOf(unescaped);
+  });
+
+  @patch
+  int readInt() => _restoringOnError(() {
+    final _len = _bytes.length;
+    _beforeReadingValue();
+    var i = _offset;
+    while (i < _len && _isWs(_b(i))) {
+      i++;
+    }
+    if (i >= _len) {
+      throw FormatException('Unexpected end of document', _bytes, i);
+    }
+    final start = i;
+    if (_b(i) == 45) {
+      i++;
+      if (i >= _len) {
+        throw FormatException('Expected digit after "-"', _bytes, i);
+      }
+    }
+
+    final firstDigit = _b(i);
+    if (firstDigit == 48) {
+      i++;
+      if (i < _len && _b(i) >= 48 && _b(i) <= 57) {
+        throw FormatException(
+          'Leading zero cannot be followed by another digit',
+          _bytes,
+          i,
+        );
+      }
+    } else if (firstDigit >= 49 && firstDigit <= 57) {
+      while (i < _len && _b(i) >= 48 && _b(i) <= 57) {
+        i++;
+      }
+    } else {
+      throw FormatException('Expected digit in number', _bytes, i);
+    }
+
+    if (i < _len) {
+      final b = _b(i);
+      if (b == 46 || b == 101 || b == 69) {
+        throw FormatException(
+          'Invalid integer (found fractional or exponent component)',
+          _bytes,
+          i,
+        );
+      }
+      if (b != 44 && b != 125 && b != 93 && !_isWs(b)) {
+        throw FormatException(
+          'Unexpected character after number: ${String.fromCharCode(b)}',
+          _bytes,
+          i,
+        );
+      }
+    }
+
+    final end = i;
+    final val = _parseIntFromBytes(_bytes, start, end);
+
+    var j = i;
+    while (j < _len && _isWs(_b(j))) {
+      j++;
+    }
+    if (_stack.isNotEmpty) {
+      final top = _stack.last;
+      if (j < _len && _b(j) == 44) {
+        j++;
+        while (j < _len && _isWs(_b(j))) {
+          j++;
+        }
+        top.state = _ReaderItemState.afterComma;
+        _offset = j;
+      } else {
+        top.state = _ReaderItemState.afterValue;
+        _offset = j;
+      }
+    } else {
+      _hasReadRoot = true;
+      _offset = j;
+    }
+
+    return val;
+  });
+
+  @patch
+  double readDouble() => _restoringOnError(() {
+    final _len = _bytes.length;
+    _beforeReadingValue();
+    var i = _offset;
+    while (i < _len && _isWs(_b(i))) {
+      i++;
+    }
+    if (i >= _len) {
+      throw FormatException('Unexpected end of document', _bytes, i);
+    }
+    final start = i;
+    var isNegative = false;
+    if (_b(i) == 45) {
+      // '-'
+      isNegative = true;
+      i++;
+      if (i >= _len) {
+        throw FormatException('Expected digit after "-"', _bytes, i);
+      }
+    }
+
+    int mantissa = 0;
+    int digitCount = 0;
+    int decimalExp = 0;
+    bool truncatedDigits = false;
+
+    // Integer part
+    final firstDigit = _b(i);
+    if (firstDigit == 48) {
+      // '0'
+      i++;
+      if (i < _len && _b(i) >= 48 && _b(i) <= 57) {
+        throw FormatException(
+          'Leading zero cannot be followed by another digit',
+          _bytes,
+          i,
+        );
+      }
+    } else if (firstDigit >= 49 && firstDigit <= 57) {
+      // '1'..'9'
+      while (i < _len && _b(i) >= 48 && _b(i) <= 57) {
+        if (digitCount < 19) {
+          mantissa = mantissa * 10 + (_b(i) - 48);
+          digitCount++;
+        } else {
+          truncatedDigits = true;
+          decimalExp++;
+        }
+        i++;
+      }
+    } else {
+      throw FormatException('Expected digit in number', _bytes, i);
+    }
+
+    // Fraction part (optional)
+    if (i < _len && _b(i) == 46) {
+      // '.'
+      i++;
+      if (i >= _len || _b(i) < 48 || _b(i) > 57) {
+        throw FormatException('Expected digit after decimal point', _bytes, i);
+      }
+      while (i < _len && _b(i) >= 48 && _b(i) <= 57) {
+        if (mantissa == 0 && _b(i) == 48) {
+          decimalExp--;
+        } else if (digitCount < 19) {
+          mantissa = mantissa * 10 + (_b(i) - 48);
+          digitCount++;
+          decimalExp--;
+        } else {
+          truncatedDigits = true;
+        }
+        i++;
+      }
+    }
+
+    // Exponent part (optional)
+    if (i < _len && (_b(i) == 101 || _b(i) == 69)) {
+      // 'e' or 'E'
+      i++;
+      var expNeg = false;
+      if (i < _len && (_b(i) == 43 || _b(i) == 45)) {
+        if (_b(i) == 45) expNeg = true;
+        i++;
+      }
+      if (i >= _len || _b(i) < 48 || _b(i) > 57) {
+        throw FormatException('Expected digit in exponent', _bytes, i);
+      }
+      var explicitExp = 0;
+      var expSaturated = false;
+      while (i < _len && _b(i) >= 48 && _b(i) <= 57) {
+        if (explicitExp < 10000) {
+          explicitExp = explicitExp * 10 + (_b(i) - 48);
+        } else {
+          expSaturated = true;
+        }
+        i++;
+      }
+      decimalExp += expNeg ? -explicitExp : explicitExp;
+      if (expSaturated) {
+        // The exponent has more digits than can matter. Dropping them lets the
+        // mantissa digit count cancel the truncated value back into the
+        // Eisel-Lemire window, which turns an underflow or overflow into a
+        // confident finite result. Pin it outside the window instead so the
+        // platform parser produces the 0 or Infinity.
+        decimalExp = expNeg ? -100000 : 100000;
+      }
+    }
+
+    // Delimiter check: next byte must be EOF, ',', '}', ']', or whitespace
+    if (i < _len) {
+      final b = _b(i);
+      if (b != 44 && b != 125 && b != 93 && !_isWs(b)) {
+        throw FormatException(
+          'Unexpected character after number: ${String.fromCharCode(b)}',
+          _bytes,
+          i,
+        );
+      }
+    }
+
+    final end = i;
+
+    var j = i;
+    while (j < _len && _isWs(_b(j))) {
+      j++;
+    }
+    if (_stack.isNotEmpty) {
+      final top = _stack.last;
+      if (j < _len && _b(j) == 44) {
+        j++;
+        while (j < _len && _isWs(_b(j))) {
+          j++;
+        }
+        top.state = _ReaderItemState.afterComma;
+        _offset = j;
+      } else {
+        top.state = _ReaderItemState.afterValue;
+        _offset = j;
+      }
+    } else {
+      _hasReadRoot = true;
+      _offset = j;
+    }
+
+    // Zero mantissa fast path (preserves -0.0)
+    if (mantissa == 0) {
+      return isNegative ? -0.0 : 0.0;
+    }
+
+    // Exponent-zero integer bypass (exact up to 53 bits)
+    if (decimalExp == 0 &&
+        !truncatedDigits &&
+        _unsignedLe(mantissa, 0x001FFFFFFFFFFFFF)) {
+      return isNegative ? -mantissa.toDouble() : mantissa.toDouble();
+    }
+
+    // Eisel-Lemire 64-bit float parser
+    var result = _tryParseDoubleFastEiselLemire(
+      mantissa,
+      decimalExp,
+      isNegative,
+    );
+    if (result != null && truncatedDigits) {
+      final resultPlus1 = _tryParseDoubleFastEiselLemire(
+        mantissa + 1,
+        decimalExp,
+        isNegative,
+      );
+      if (resultPlus1 != result) {
+        result = null;
+      }
+    }
+    if (result != null) return result;
+
+    // Fallback
+    return _parseDoubleFromBytes(_bytes, start, end);
+  });
+}
