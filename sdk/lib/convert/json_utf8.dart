@@ -2751,8 +2751,8 @@ final class _JsonTokenWriter implements JsonTokenWriter {
   static const int _scratchBlockSize = 1024;
 
   /// Largest run [_reserveScratch] can be asked for: a string of up to 40 code
-  /// units at six bytes each, plus the surrounding quotes.
-  static const int _scratchReserve = 40 * 6 + 2;
+  /// units at six bytes each, plus the surrounding quotes and colon.
+  static const int _scratchReserve = 40 * 6 + 4;
 
   Uint8List _scratch = Uint8List(_scratchBlockSize);
   int _scratchAt = 0;
@@ -2866,8 +2866,37 @@ final class _JsonTokenWriter implements JsonTokenWriter {
       _sink.addByte(44); // ','
     }
     _objectStateStack.last = _ObjectState.key;
-    _writeString(name, _sink);
-    _sink.addByte(58); // ':'
+    final len = name.length;
+    if (len <= 32) {
+      var isAscii = true;
+      for (var i = 0; i < len; i++) {
+        final c = name.codeUnitAt(i);
+        if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+          isAscii = false;
+          break;
+        }
+      }
+      if (isAscii) {
+        final at = _reserveScratch();
+        _scratch[at] = 0x22; // '"'
+        for (var i = 0; i < len; i++) {
+          _scratch[at + 1 + i] = name.codeUnitAt(i);
+        }
+        _scratch[at + 1 + len] = 0x22; // '"'
+        _scratch[at + 2 + len] = 0x3A; // ':'
+        _emitScratch(at, len + 3);
+        return;
+      }
+    }
+    if (name.length <= 40) {
+      final at = _reserveScratch();
+      final written = _writeStringToBuffer(name, _scratch, at);
+      _scratch[at + written] = 0x3A; // ':'
+      _emitScratch(at, written + 1);
+    } else {
+      _writeString(name, _sink);
+      _sink.addByte(58); // ':'
+    }
   }
 
   @override
@@ -2938,6 +2967,27 @@ final class _JsonTokenWriter implements JsonTokenWriter {
   @override
   void writeString(String value) {
     _beforeValue();
+    final len = value.length;
+    if (len <= 32) {
+      var isAscii = true;
+      for (var i = 0; i < len; i++) {
+        final c = value.codeUnitAt(i);
+        if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+          isAscii = false;
+          break;
+        }
+      }
+      if (isAscii) {
+        final at = _reserveScratch();
+        _scratch[at] = 0x22; // '"'
+        for (var i = 0; i < len; i++) {
+          _scratch[at + 1 + i] = value.codeUnitAt(i);
+        }
+        _scratch[at + 1 + len] = 0x22; // '"'
+        _emitScratch(at, len + 2);
+        return;
+      }
+    }
     if (value.length <= 40) {
       final at = _reserveScratch();
       final len = _writeStringToBuffer(value, _scratch, at);
@@ -3110,6 +3160,27 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
       _buffer[_cursor++] = 44; // ','
     }
     _objectStateStack.last = _ObjectState.key;
+    final len = name.length;
+    if (len <= 32) {
+      var isAscii = true;
+      for (var i = 0; i < len; i++) {
+        final c = name.codeUnitAt(i);
+        if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+          isAscii = false;
+          break;
+        }
+      }
+      if (isAscii) {
+        _ensureCapacity(len + 3);
+        _buffer[_cursor++] = 0x22; // '"'
+        for (var i = 0; i < len; i++) {
+          _buffer[_cursor++] = name.codeUnitAt(i);
+        }
+        _buffer[_cursor++] = 0x22; // '"'
+        _buffer[_cursor++] = 0x3A; // ':'
+        return;
+      }
+    }
     final maxLen = name.length * 6 + 4;
     _ensureCapacity(maxLen);
     _cursor += _writeStringToBuffer(name, _buffer, _cursor);
@@ -3195,6 +3266,26 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
   @override
   void writeString(String value) {
     _beforeValue();
+    final len = value.length;
+    if (len <= 32) {
+      var isAscii = true;
+      for (var i = 0; i < len; i++) {
+        final c = value.codeUnitAt(i);
+        if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
+          isAscii = false;
+          break;
+        }
+      }
+      if (isAscii) {
+        _ensureCapacity(len + 2);
+        _buffer[_cursor++] = 0x22; // '"'
+        for (var i = 0; i < len; i++) {
+          _buffer[_cursor++] = value.codeUnitAt(i);
+        }
+        _buffer[_cursor++] = 0x22; // '"'
+        return;
+      }
+    }
     _ensureCapacity(value.length * 6 + 2);
     _cursor += _writeStringToBuffer(value, _buffer, _cursor);
   }

@@ -17,6 +17,7 @@ void main() {
   testSinkWriterDoesNotAliasScratch();
   testBufferWriterRejectsNonPositiveCapacity();
   testBufferWriterMaxDepthLimit();
+  testShortStringAndPropertyNameFastPath();
 }
 
 /// A non-positive initial capacity is a caller mistake, usually a size hint
@@ -575,4 +576,73 @@ void testBufferWriterMaxDepthLimit() {
       wSinkObjExceed.writeName('a');
     }
   });
+}
+
+void testShortStringAndPropertyNameFastPath() {
+  final testStrings = <String>[
+    "",
+    "a",
+    "id",
+    "key",
+    "name",
+    "status",
+    "created_at",
+    "description",
+    "a" * 15,
+    "a" * 16,
+    "a" * 31,
+    "a" * 32,
+    "a" * 33,
+    "a" * 40,
+    "a" * 50,
+    "a" * 100,
+    "escaped\"quote",
+    "back\\slash",
+    "new\nline",
+    "tab\tchar",
+    "cr\rchar",
+    "control\x00char",
+    "control\x1Fchar",
+    "euro € sign",
+    "rocket 🚀 emoji",
+    "japanese 日本語 text",
+  ];
+
+  for (final s in testStrings) {
+    // 1. Value string writing
+    {
+      final sink = BytesBuilder();
+      final sinkWriter = JsonTokenWriter.toSink(sink);
+      sinkWriter.writeString(s);
+      final sinkBytes = sinkWriter.toBytes();
+      Expect.equals(json.encode(s), utf8.decode(sinkBytes));
+
+      final bufWriter = JsonTokenWriter.toBuffer();
+      bufWriter.writeString(s);
+      final bufBytes = bufWriter.toBytes();
+      Expect.equals(json.encode(s), utf8.decode(bufBytes));
+      Expect.listEquals(sinkBytes, bufBytes);
+    }
+
+    // 2. Object property name writing
+    {
+      final sink = BytesBuilder();
+      final sinkWriter = JsonTokenWriter.toSink(sink);
+      sinkWriter.beginObject();
+      sinkWriter.writeName(s);
+      sinkWriter.writeInt(42);
+      sinkWriter.endObject();
+      final sinkBytes = sinkWriter.toBytes();
+      Expect.equals(json.encode({s: 42}), utf8.decode(sinkBytes));
+
+      final bufWriter = JsonTokenWriter.toBuffer();
+      bufWriter.beginObject();
+      bufWriter.writeName(s);
+      bufWriter.writeInt(42);
+      bufWriter.endObject();
+      final bufBytes = bufWriter.toBytes();
+      Expect.equals(json.encode({s: 42}), utf8.decode(bufBytes));
+      Expect.listEquals(sinkBytes, bufBytes);
+    }
+  }
 }

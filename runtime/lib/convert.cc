@@ -18,6 +18,8 @@
 #include <arm_neon.h>
 #endif
 
+#include "../../third_party/double-conversion/src/double-conversion.h"
+
 // TODO(kevmoo): Architectural Opportunity (Horizon / Extreme-Scale Streaming):
 // Implement a native C++ compact 64-bit structural delimiter tape parser
 // (simdjson Stage 1 style) for JsonTokenReader. This records 64-bit offsets of
@@ -142,9 +144,43 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Encoder_writeDoubleToBuffer, 0, 3) {
   intptr_t offset = offset_obj.Value();
   intptr_t buf_len = buffer.LengthInBytes();
 
+  if (offset < 0 || offset > buf_len) {
+    Exceptions::ThrowRangeError("offset", offset_obj, 0, buf_len);
+  }
+
+  static constexpr char kExponentChar = 'e';
+  static constexpr const char* kInfinitySymbol = "Infinity";
+  static constexpr const char* kNaNSymbol = "NaN";
+  static const int kDecimalLow = -6;
+  static const int kDecimalHigh = 21;
+  static const int kConversionFlags =
+      double_conversion::DoubleToStringConverter::EMIT_POSITIVE_EXPONENT_SIGN |
+      double_conversion::DoubleToStringConverter::EMIT_TRAILING_DECIMAL_POINT |
+      double_conversion::DoubleToStringConverter::
+          EMIT_TRAILING_ZERO_AFTER_POINT;
+
+  static const double_conversion::DoubleToStringConverter converter(
+      kConversionFlags, kInfinitySymbol, kNaNSymbol, kExponentChar, kDecimalLow,
+      kDecimalHigh, 0, 0);
+
+  // Direct-to-bytes fast path: if remaining buffer capacity >= 128 bytes, format
+  // directly into the destination buffer without stack copying or strlen.
+  if (buf_len - offset >= 128) {
+    NoSafepointScope no_safepoint;
+    char* dest = reinterpret_cast<char*>(buffer.DataAddr(offset));
+    double_conversion::StringBuilder builder(dest, buf_len - offset);
+    bool status = converter.ToShortest(value, &builder);
+    if (status) {
+      return Smi::New(builder.position());
+    }
+  }
+
+  // Fallback for tight remaining buffer: format to local stack buffer and check exact bounds.
   char char_buffer[128];
-  DoubleToCString(value, char_buffer, sizeof(char_buffer));
-  intptr_t len = strlen(char_buffer);
+  double_conversion::StringBuilder builder(char_buffer, sizeof(char_buffer));
+  bool status = converter.ToShortest(value, &builder);
+  ASSERT(status);
+  intptr_t len = builder.position();
 
   if (offset < 0 || buf_len < len || offset > buf_len - len) {
     Exceptions::ThrowRangeError("offset", offset_obj, 0,

@@ -2146,7 +2146,7 @@ int _writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
 @patch
 int _writeStringToBuffer(String value, Uint8List buffer, int offset) {
   final len = value.length;
-  if (len <= 16) {
+  if (len <= 32) {
     final requiredLen = len + 2;
     if (offset < 0 || offset + requiredLen > buffer.length) {
       return _writeStringToBufferNative(value, buffer, offset);
