@@ -51,6 +51,14 @@ class Utf8Decoder {
 @patch
 class JsonUtf8Decoder {
   @patch
+  Object? convert(List<int> input) {
+    var parser = _JsonUtf8DecoderSink._createParser(reviver, allowMalformed);
+    parser.parseChunk(input, 0, input.length);
+    parser.close();
+    return parser.result;
+  }
+
+  @patch
   ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) {
     return _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
   }
@@ -66,8 +74,16 @@ class JsonUtf8Decoder {
  * This is a simple stack-based object builder. It keeps the most recently
  * seen value in a variable, and uses it depending on the following event.
  */
+/// Structural nesting limit documented on [JsonUtf8Decoder].
+const int _jsonMaxNestingDepth = 1024;
+
 class _JsonListener {
-  _JsonListener(this.reviver);
+  _JsonListener(this.reviver, {this.maxDepth = _noDepthLimit});
+
+  static const int _noDepthLimit = -1;
+
+  /// Maximum number of nested containers, or [_noDepthLimit].
+  final int maxDepth;
 
   final Object? Function(Object? key, Object? value)? reviver;
 
@@ -91,6 +107,9 @@ class _JsonListener {
 
   /** Pushes the currently active container. */
   void beginContainer() {
+    if (maxDepth != _noDepthLimit && stack.length >= maxDepth) {
+      throw FormatException('Nesting depth exceeds limit of $maxDepth');
+    }
     stack.add(currentContainer);
     currentContainer = [];
   }
@@ -1660,7 +1679,10 @@ class _JsonUtf8DecoderSink extends ByteConversionSink {
     Object? Function(Object? key, Object? value)? reviver,
     bool allowMalformed,
   ) {
-    return _JsonUtf8Parser(_JsonListener(reviver), allowMalformed);
+    return _JsonUtf8Parser(
+      _JsonListener(reviver, maxDepth: _jsonMaxNestingDepth),
+      allowMalformed,
+    );
   }
 
   void addSlice(List<int> chunk, int start, int end, bool isLast) {
