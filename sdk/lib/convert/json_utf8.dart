@@ -1620,6 +1620,10 @@ final class _JsonTokenReader implements JsonTokenReader {
   @override
   Uint8List get bytes => _bytes;
 
+  Int64List? _tape;
+  int _tapeIndex = 0;
+  int _tapeCount = 0;
+
   _JsonTokenReader(this._bytes, {this.allowMalformed = false})
     : _byteData = ByteData.sublistView(_bytes) {
     if (_bytes.length >= 3 &&
@@ -1628,9 +1632,28 @@ final class _JsonTokenReader implements JsonTokenReader {
         _bytes[2] == 0xBF) {
       _offset = 3;
     }
+
+    // Attempt to invoke the native VM C++ structural tape intrinsic
+    final tapeResult = _parseToTapeNative(_bytes);
+    if (tapeResult != null) {
+      _tape = tapeResult.$1;
+      _tapeCount = tapeResult.$2;
+    }
   }
 
   void _skipWs() {
+    if (_tape != null) {
+      while (_tapeIndex < _tapeCount &&
+          ((_tape![_tapeIndex] >> 32) < _offset)) {
+        _tapeIndex++;
+      }
+      if (_tapeIndex < _tapeCount) {
+        _offset = _tape![_tapeIndex] >> 32;
+      } else {
+        _offset = _bytes.length; // EOF
+      }
+      return;
+    }
     while (_offset < _bytes.length && _isWs(_bytes[_offset])) {
       _offset++;
     }
@@ -6812,3 +6835,5 @@ bool _isSingleQuotedSlice(Uint8List bytes, int start, int end) {
   }
   return i == last;
 }
+
+(Int64List, int)? _parseToTapeNative(Uint8List bytes) => null;
