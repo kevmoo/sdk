@@ -1620,7 +1620,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   @override
   Uint8List get bytes => _bytes;
 
-  final Int64List? _tape = null;
+  Int64List? _tape;
   int _tapeIndex = 0;
   int _tapeCount = 0;
 
@@ -1635,22 +1635,24 @@ final class _JsonTokenReader implements JsonTokenReader {
 
     // Attempt to invoke the optimized SIMD Structural Tape Intrinsic
     try {
-      int initialSize = (_bytes.length >> 1) + 8;
+      int initialSize = _bytes.length + 8;
       final tapeBuffer = Int64List(initialSize);
       int count = _parseToTapeNative(_bytes, tapeBuffer);
       if (count > 0 && count <= tapeBuffer.length) {
-        // TODO: The assignment is commented out for now since we just want to run tests cleanly.
-        // _tape = tapeBuffer;
-        // _tapeCount = count;
+        _tape = tapeBuffer;
+        _tapeCount = count;
       }
     } catch (_) {}
   }
 
   void _skipWs() {
     if (_tape != null) {
+      while (_tapeIndex < _tapeCount &&
+          ((_tape![_tapeIndex] >> 32) < _offset)) {
+        _tapeIndex++;
+      }
       if (_tapeIndex < _tapeCount) {
         _offset = _tape![_tapeIndex] >> 32;
-        // Don't advance tapeIndex here. We just skipped WS to arrive at the token!
       } else {
         _offset = _bytes.length; // EOF
       }
