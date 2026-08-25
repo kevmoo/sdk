@@ -2187,3 +2187,7 @@ external int _writeStringToBufferNative(
   Uint8List buffer,
   int offset,
 );
+
+@patch
+@pragma("vm:external-name", "JsonUtf8Decoder_parseToTape")
+external int _parseToTapeNative(Uint8List bytes, Int64List tape);
