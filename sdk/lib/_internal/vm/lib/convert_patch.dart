@@ -51,6 +51,14 @@ class Utf8Decoder {
 @patch
 class JsonUtf8Decoder {
   @patch
+  Object? convert(List<int> input) {
+    var parser = _JsonUtf8DecoderSink._createParser(reviver, allowMalformed);
+    parser.parseChunk(input, 0, input.length);
+    parser.close();
+    return parser.result;
+  }
+
+  @patch
   ChunkedConversionSink<List<int>> startChunkedConversion(Sink<Object?> sink) {
     return _JsonUtf8DecoderSink(reviver, sink, allowMalformed);
   }
