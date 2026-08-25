@@ -2188,6 +2188,15 @@ external int _writeStringToBufferNative(
   int offset,
 );
 
-@patch
 @pragma("vm:external-name", "JsonUtf8Decoder_parseToTape")
-external int _parseToTapeNative(Uint8List bytes, Int64List tape);
+external int _parseToTapeNativeImpl(Uint8List bytes, Int64List tape);
+
+@patch
+(Int64List, int)? _parseToTapeNative(Uint8List bytes) {
+  final tapeBuffer = Int64List(bytes.length + 8);
+  final count = _parseToTapeNativeImpl(bytes, tapeBuffer);
+  if (count > 0 && count <= tapeBuffer.length) {
+    return (tapeBuffer, count);
+  }
+  return null;
+}

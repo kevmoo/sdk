@@ -129,6 +129,9 @@ DEFINE_NATIVE_ENTRY(JsonUtf8Decoder_parseToTape, 0, 2) {
   GET_NON_NULL_NATIVE_ARGUMENT(TypedDataBase, tape, arguments->NativeArgAt(1));
 
   intptr_t bytes_len = bytes.LengthInBytes();
+  if (bytes_len > 0x7FFFFFFF) {
+    return Smi::New(-1);
+  }
   intptr_t tape_len = tape.LengthInBytes() / 8;
   const uint8_t* payload = reinterpret_cast<const uint8_t*>(bytes.DataAddr(0));
   int64_t* tape_data = reinterpret_cast<int64_t*>(tape.DataAddr(0));

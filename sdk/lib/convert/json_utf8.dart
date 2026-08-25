@@ -1633,16 +1633,12 @@ final class _JsonTokenReader implements JsonTokenReader {
       _offset = 3;
     }
 
-    // Attempt to invoke the optimized SIMD Structural Tape Intrinsic
-    try {
-      int initialSize = _bytes.length + 8;
-      final tapeBuffer = Int64List(initialSize);
-      int count = _parseToTapeNative(_bytes, tapeBuffer);
-      if (count > 0 && count <= tapeBuffer.length) {
-        _tape = tapeBuffer;
-        _tapeCount = count;
-      }
-    } catch (_) {}
+    // Attempt to invoke the native VM C++ structural tape intrinsic
+    final tapeResult = _parseToTapeNative(_bytes);
+    if (tapeResult != null) {
+      _tape = tapeResult.$1;
+      _tapeCount = tapeResult.$2;
+    }
   }
 
   void _skipWs() {
@@ -1663,12 +1659,6 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
   }
 
-  void _consumeTapeToken() {
-    if (_tape != null) {
-      _tapeIndex++;
-    }
-  }
-
   void _beforeReadingName() {
     _skipWs();
     if (_stack.isEmpty || _stack.last.type != _ContainerType.object) {
@@ -1684,10 +1674,7 @@ final class _JsonTokenReader implements JsonTokenReader {
     }
     if (top.state == _ReaderItemState.afterValue) {
       if (_offset < _bytes.length && _bytes[_offset] == 44) {
-        {
-          _offset++;
-          _consumeTapeToken();
-        }
+        _offset++;
         top.state = _ReaderItemState.afterComma;
         _skipWs();
       } else {
@@ -1711,10 +1698,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       } else {
         if (top.state == _ReaderItemState.afterValue) {
           if (_offset < _bytes.length && _bytes[_offset] == 44) {
-            {
-              _offset++;
-              _consumeTapeToken();
-            }
+            _offset++;
             top.state = _ReaderItemState.afterComma;
             _skipWs();
           } else {
@@ -1900,10 +1884,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   void beginObject() {
     _beforeReadingValue();
     if (_offset < _bytes.length && _bytes[_offset] == 123) {
-      {
-        _offset++;
-        _consumeTapeToken();
-      }
+      _offset++;
       if (_stack.length >= _maxDepth) {
         throw FormatException(
           'Nesting depth exceeds limit of $_maxDepth at offset $_offset',
@@ -1932,10 +1913,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       );
     }
     if (_offset < _bytes.length && _bytes[_offset] == 125) {
-      {
-        _offset++;
-        _consumeTapeToken();
-      }
+      _offset++;
       _stack.removeLast();
       _afterReadingValue();
     } else {
@@ -1947,10 +1925,7 @@ final class _JsonTokenReader implements JsonTokenReader {
   void beginArray() {
     _beforeReadingValue();
     if (_offset < _bytes.length && _bytes[_offset] == 91) {
-      {
-        _offset++;
-        _consumeTapeToken();
-      }
+      _offset++;
       if (_stack.length >= _maxDepth) {
         throw FormatException(
           'Nesting depth exceeds limit of $_maxDepth at offset $_offset',
@@ -1972,10 +1947,7 @@ final class _JsonTokenReader implements JsonTokenReader {
       throw FormatException('Trailing comma before "]" at offset $_offset');
     }
     if (_offset < _bytes.length && _bytes[_offset] == 93) {
-      {
-        _offset++;
-        _consumeTapeToken();
-      }
+      _offset++;
       _stack.removeLast();
       _afterReadingValue();
     } else {
@@ -2035,10 +2007,7 @@ final class _JsonTokenReader implements JsonTokenReader {
           return false;
         }
         if (_bytes[_offset] == 44) {
-          {
-            _offset++;
-            _consumeTapeToken();
-          }
+          _offset++;
           top.state = _ReaderItemState.afterComma;
           _skipWs();
           if (_offset >= _bytes.length) {
@@ -6867,4 +6836,4 @@ bool _isSingleQuotedSlice(Uint8List bytes, int start, int end) {
   return i == last;
 }
 
-int _parseToTapeNative(Uint8List bytes, Int64List tape) => -1;
+(Int64List, int)? _parseToTapeNative(Uint8List bytes) => null;
