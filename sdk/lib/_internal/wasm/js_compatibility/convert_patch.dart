@@ -26,9 +26,26 @@ dynamic _parseJson(
 }
 
 @patch
+class JsonUtf8Decoder {
+  @patch
+  Object? convert(List<int> input) {
+    // Route through the platform-native string decoder and `JSON.parse`,
+    // which are far faster than the pure-Dart token reader on web.
+    final source = Utf8Decoder(allowMalformed: allowMalformed).convert(input);
+    return _parseJson(source, reviver);
+  }
+}
+
+@patch
 class Utf8Decoder {
   @patch
   Converter<List<int>, T> fuse<T>(Converter<String, T> next) {
+    if (next is JsonDecoder) {
+      return JsonUtf8Decoder(
+        (next as JsonDecoder)._reviver,
+        this._allowMalformed,
+      ) as dynamic;
+    }
     return super.fuse(next);
   }
 }

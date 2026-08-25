@@ -305,9 +305,11 @@ final class JsonUtf8Decoder extends Converter<List<int>, Object?> {
   /// Decodes [input] directly into Dart objects without creating an
   /// intermediate [String].
   ///
-  /// Enforces a maximum structural nesting depth limit of 1,024 levels of nested
-  /// objects and arrays as a contract guarantee, throwing a [FormatException]
-  /// if input exceeds 1,024 levels of nesting.
+  /// Nesting depth is bounded by the platform decoder: the native VM and
+  /// Wasm decoders reject input nested more than 1,024 levels deep with a
+  /// [FormatException], while web platforms delegate to the JavaScript
+  /// `JSON.parse` and inherit its (effectively unbounded) behavior. Use
+  /// [JsonTokenReader] when a guaranteed 1,024-level limit is required.
   @override
   Object? convert(List<int> input) {
     final bytes = input is Uint8List ? input : Uint8List.fromList(input);
