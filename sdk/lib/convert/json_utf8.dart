@@ -804,7 +804,7 @@ void _writeDouble(double value, BytesBuilder sink) {
 }
 
 /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
-/// Returns the number of bytes written.
+/// Number of bytes written.
 int _writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
   if (!value.isFinite) {
     throw ArgumentError.value(value, 'value', 'Must be finite');
@@ -844,7 +844,7 @@ void _writeInt(int value, BytesBuilder sink) {
 }
 
 /// Formats [value] directly into [buffer] starting at [offset] as ASCII bytes.
-/// Returns the number of bytes written.
+/// Number of bytes written.
 int _writeIntToBuffer(int value, Uint8List buffer, int offset) {
   if (value == 0) {
     if (offset < 0 || offset >= buffer.length) {
@@ -915,7 +915,7 @@ void _writeBool(bool value, BytesBuilder sink) {
 }
 
 /// Writes a boolean literal directly into [buffer] starting at [offset].
-/// Returns the number of bytes written.
+/// Number of bytes written.
 int _writeBoolToBuffer(bool value, Uint8List buffer, int offset) {
   final len = value ? 4 : 5;
   if (offset < 0 || offset + len > buffer.length) {
@@ -948,7 +948,7 @@ void _writeNull(BytesBuilder sink) {
 }
 
 /// Writes a `null` literal directly into [buffer] starting at [offset].
-/// Returns the number of bytes written.
+/// Number of bytes written.
 int _writeNullToBuffer(Uint8List buffer, int offset) {
   const len = 4;
   if (offset < 0 || offset + len > buffer.length) {
@@ -972,7 +972,7 @@ void _writeAsciiLiteral(Uint8List asciiBytes, BytesBuilder sink) {
 }
 
 /// Writes a pre-encoded ASCII byte literal directly into [buffer] at [offset].
-/// Returns the number of bytes written.
+/// Number of bytes written.
 int _writeAsciiLiteralToBuffer(
   Uint8List asciiBytes,
   Uint8List buffer,
@@ -997,7 +997,7 @@ void _writeRawJson(Uint8List rawJson, BytesBuilder sink) {
 }
 
 /// Writes a raw JSON UTF-8 byte fragment directly into [buffer] at [offset].
-/// Returns the number of bytes written.
+/// Number of bytes written.
 int _writeRawJsonToBuffer(Uint8List rawJson, Uint8List buffer, int offset) {
   final len = rawJson.length;
   if (offset < 0 || offset + len > buffer.length) {
@@ -1532,7 +1532,7 @@ abstract interface class JsonTokenReader {
   /// Advances past the closing `]` of an array.
   void endArray();
 
-  /// Returns `true` if the current object or array has more elements.
+  /// Whether the current object or array has more elements.
   bool hasNext();
 
   /// Reads the next object property name as a [String].
@@ -1587,7 +1587,7 @@ abstract interface class JsonTokenReader {
   /// Skips the entire next value (including nested objects and arrays).
   void skipValue();
 
-  /// Returns the raw byte span `(start, end)` of the current token.
+  /// The raw byte span `(start, end)` of the current token.
   (int start, int end) getTokenSpan();
 }
 
@@ -2750,7 +2750,7 @@ abstract interface class JsonTokenWriter {
   void writeBool(bool value);
   void writeNull();
 
-  /// Returns a copy of the UTF-8 JSON bytes written so far.
+  /// A copy of the UTF-8 JSON bytes written so far.
   ///
   /// The copy belongs to the caller and is independent of this writer in both
   /// directions: writing more does not change bytes already returned, and
@@ -2782,7 +2782,7 @@ final class _JsonTokenWriter implements JsonTokenWriter {
   Uint8List _scratch = Uint8List(_scratchBlockSize);
   int _scratchAt = 0;
 
-  /// Returns an offset into [_scratch] with at least [_scratchReserve] bytes
+  /// An offset into [_scratch] with at least [_scratchReserve] bytes
   /// free, replacing the block if the current one is too full.
   int _reserveScratch() {
     if (_scratch.length - _scratchAt < _scratchReserve) {
