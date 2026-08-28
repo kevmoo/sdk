@@ -696,9 +696,11 @@ int _skipString(Uint8List bytes, int offset) {
 }
 
 int _writeStringToBuffer(String value, Uint8List buffer, int offset) {
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.writeString(value);
-  final bytes = w.toBytes();
+  w.flush();
+  final bytes = sink.takeBytes();
   if (offset < 0 || offset + bytes.length > buffer.length) {
     throw RangeError.range(
       offset,
@@ -715,9 +717,11 @@ int _writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
   if (!value.isFinite) {
     throw ArgumentError.value(value, 'value', 'Must be finite');
   }
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.writeDouble(value);
-  final bytes = w.toBytes();
+  w.flush();
+  final bytes = sink.takeBytes();
   if (offset < 0 || offset + bytes.length > buffer.length) {
     throw RangeError.range(
       offset,
@@ -731,9 +735,11 @@ int _writeDoubleToBuffer(double value, Uint8List buffer, int offset) {
 }
 
 int _writeIntToBuffer(int value, Uint8List buffer, int offset) {
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.writeInt(value);
-  final bytes = w.toBytes();
+  w.flush();
+  final bytes = sink.takeBytes();
   if (offset < 0 || offset + bytes.length > buffer.length) {
     throw RangeError.range(
       offset,
@@ -747,9 +753,11 @@ int _writeIntToBuffer(int value, Uint8List buffer, int offset) {
 }
 
 int _writeBoolToBuffer(bool value, Uint8List buffer, int offset) {
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.writeBool(value);
-  final bytes = w.toBytes();
+  w.flush();
+  final bytes = sink.takeBytes();
   if (offset < 0 || offset + bytes.length > buffer.length) {
     throw RangeError.range(
       offset,
@@ -763,9 +771,11 @@ int _writeBoolToBuffer(bool value, Uint8List buffer, int offset) {
 }
 
 int _writeNullToBuffer(Uint8List buffer, int offset) {
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.writeNull();
-  final bytes = w.toBytes();
+  w.flush();
+  final bytes = sink.takeBytes();
   if (offset < 0 || offset + bytes.length > buffer.length) {
     throw RangeError.range(
       offset,
@@ -783,9 +793,11 @@ int _writeAsciiLiteralToBuffer(
   Uint8List buffer,
   int offset,
 ) {
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.writeAsciiLiteral(literal);
-  final bytes = w.toBytes();
+  w.flush();
+  final bytes = sink.takeBytes();
   if (offset < 0 || offset + bytes.length > buffer.length) {
     throw RangeError.range(
       offset,
@@ -799,9 +811,11 @@ int _writeAsciiLiteralToBuffer(
 }
 
 int _writeRawJsonToBuffer(Uint8List rawJson, Uint8List buffer, int offset) {
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.writeRawJson(rawJson);
-  final bytes = w.toBytes();
+  w.flush();
+  final bytes = sink.takeBytes();
   if (offset < 0 || offset + bytes.length > buffer.length) {
     throw RangeError.range(
       offset,
@@ -969,26 +983,31 @@ int _writePropertyPrefixToBuffer(
 void _writeString(String value, BytesBuilder sink) {
   final w = JsonTokenWriter.toSink(sink);
   w.writeString(value);
+  w.flush();
 }
 
 void _writeDouble(double value, BytesBuilder sink) {
   final w = JsonTokenWriter.toSink(sink);
   w.writeDouble(value);
+  w.flush();
 }
 
 void _writeInt(int value, BytesBuilder sink) {
   final w = JsonTokenWriter.toSink(sink);
   w.writeInt(value);
+  w.flush();
 }
 
 void _writeBool(bool value, BytesBuilder sink) {
   final w = JsonTokenWriter.toSink(sink);
   w.writeBool(value);
+  w.flush();
 }
 
 void _writeNull(BytesBuilder sink) {
   final w = JsonTokenWriter.toSink(sink);
   w.writeNull();
+  w.flush();
 }
 
 void _writeAsciiLiteral(Uint8List literal, BytesBuilder sink) {
@@ -1422,7 +1441,9 @@ void testEncoderBufferWriters() {
 void testWriteStringEscapeDensities() {
   String encode(String value, {required bool copy}) {
     final sink = BytesBuilder(copy: copy);
-    _writeString(value, sink);
+    final writer = JsonTokenWriter.toSink(sink);
+    writer.writeString(value);
+    writer.flush();
     return utf8.decode(sink.takeBytes());
   }
 

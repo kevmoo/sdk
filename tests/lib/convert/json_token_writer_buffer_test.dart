@@ -8,42 +8,13 @@ import "dart:typed_data";
 import "package:expect/expect.dart";
 
 void main() {
-  testBufferWriterPrimitives();
-  testBufferWriterGrowth();
-  testBufferWriterToBytesView();
-  testBufferWriterNamesAndKeys();
-  testBufferWriterStateMachineAndErrors();
-  testBothWritersParity();
+  testSinkWriterPrimitives();
+  testSinkWriterNamesAndKeys();
+  testSinkWriterStateMachineAndErrors();
+  testSinkWriterParity();
   testSinkWriterDoesNotAliasScratch();
-  testBufferWriterRejectsNonPositiveCapacity();
-  testBufferWriterMaxDepthLimit();
+  testSinkWriterMaxDepthLimit();
   testShortStringAndPropertyNameFastPath();
-}
-
-/// A non-positive initial capacity is a caller mistake, usually a size hint
-/// that computed to zero, and is reported rather than silently replaced with
-/// the default. [JsonUtf8Encoder] rejects its `bufferSize` the same way.
-void testBufferWriterRejectsNonPositiveCapacity() {
-  for (final capacity in [0, -1, -1000]) {
-    Expect.throwsRangeError(
-      () => JsonTokenWriter.toBuffer(capacity),
-      'initialCapacity $capacity should be rejected',
-    );
-  }
-
-  // The smallest legal capacity still encodes correctly, growing as needed.
-  final w = JsonTokenWriter.toBuffer(1);
-  w.beginArray();
-  w.writeInt(1);
-  w.writeString('two');
-  w.writeDouble(3.5);
-  w.endArray();
-  Expect.equals('[1,"two",3.5]', utf8.decode(w.toBytes()));
-
-  // Omitting the capacity keeps the default.
-  final d = JsonTokenWriter.toBuffer();
-  d.writeInt(7);
-  Expect.equals('7', utf8.decode(d.toBytes()));
 }
 
 /// The sink writer formats values into a reusable scratch block and hands the
@@ -58,7 +29,9 @@ void testSinkWriterDoesNotAliasScratch() {
   void check(String expected, void Function(JsonTokenWriter) build) {
     for (final copy in [true, false]) {
       final sink = BytesBuilder(copy: copy);
-      build(JsonTokenWriter.toSink(sink));
+      final writer = JsonTokenWriter.toSink(sink);
+      build(writer);
+      writer.flush();
       Expect.equals(
         expected,
         utf8.decode(sink.takeBytes()),
@@ -140,62 +113,81 @@ void testSinkWriterDoesNotAliasScratch() {
   });
 }
 
-void testBufferWriterPrimitives() {
+void testSinkWriterPrimitives() {
   // 1. Root primitives
   {
-    final w = JsonTokenWriter.toBuffer(8);
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeInt(42);
-    Expect.equals("42", utf8.decode(w.toBytes()));
+    w.flush();
+    Expect.equals("42", utf8.decode(sink.takeBytes()));
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeInt(int.parse("-9223372036854775808"));
+    w.flush();
     if (!identical(1, 1.0)) {
-      Expect.equals("-9223372036854775808", utf8.decode(w.toBytes()));
+      Expect.equals("-9223372036854775808", utf8.decode(sink.takeBytes()));
     }
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeInt(int.parse("9223372036854775807"));
+    w.flush();
     if (!identical(1, 1.0)) {
-      Expect.equals("9223372036854775807", utf8.decode(w.toBytes()));
+      Expect.equals("9223372036854775807", utf8.decode(sink.takeBytes()));
     }
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeInt(0);
-    Expect.equals("0", utf8.decode(w.toBytes()));
+    w.flush();
+    Expect.equals("0", utf8.decode(sink.takeBytes()));
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeDouble(3.14159);
-    Expect.equals(3.14159, jsonUtf8Decode(w.toBytes()));
+    w.flush();
+    Expect.equals(3.14159, jsonUtf8Decode(sink.takeBytes()));
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeBool(true);
-    Expect.equals("true", utf8.decode(w.toBytes()));
+    w.flush();
+    Expect.equals("true", utf8.decode(sink.takeBytes()));
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeBool(false);
-    Expect.equals("false", utf8.decode(w.toBytes()));
+    w.flush();
+    Expect.equals("false", utf8.decode(sink.takeBytes()));
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeNull();
-    Expect.equals("null", utf8.decode(w.toBytes()));
+    w.flush();
+    Expect.equals("null", utf8.decode(sink.takeBytes()));
   }
   {
-    final w = JsonTokenWriter.toBuffer();
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.writeString("hello world \n \t \"quotes\" \\ \u{1F600} €");
-    final decoded = jsonUtf8Decode(w.toBytes());
+    w.flush();
+    final decoded = jsonUtf8Decode(sink.takeBytes());
     Expect.equals("hello world \n \t \"quotes\" \\ \u{1F600} €", decoded);
   }
 
   // 2. Structured Object
   {
-    final w = JsonTokenWriter.toBuffer(16);
+    final sink = BytesBuilder();
+    final w = JsonTokenWriter.toSink(sink);
     w.beginObject();
     w.writeName("name");
     w.writeString("Alice");
@@ -214,8 +206,9 @@ void testBufferWriterPrimitives() {
     w.writeInt(100);
     w.endArray();
     w.endObject();
+    w.flush();
 
-    final bytes = w.toBytes();
+    final bytes = sink.takeBytes();
     final decoded = jsonUtf8Decode(bytes) as Map<String, dynamic>;
     Expect.equals("Alice", decoded["name"]);
     Expect.equals(30, decoded["age"]);
@@ -226,117 +219,9 @@ void testBufferWriterPrimitives() {
   }
 }
 
-void testBufferWriterGrowth() {
-  // Start with very tiny buffer capacity = 1 to force frequent growth
-  final w = JsonTokenWriter.toBuffer(1);
-  w.beginArray();
-  for (var i = 0; i < 5000; i++) {
-    w.writeInt(i);
-  }
-  w.endArray();
-
-  final bytes = w.toBytes();
-  final decoded = jsonUtf8Decode(bytes) as List;
-  Expect.equals(5000, decoded.length);
-  for (var i = 0; i < 5000; i++) {
-    Expect.equals(i, decoded[i]);
-  }
-
-  // Test large strings forcing capacity growth
-  final w2 = JsonTokenWriter.toBuffer(4);
-  w2.beginObject();
-  for (var i = 0; i < 100; i++) {
-    w2.writeName("key_$i");
-    w2.writeString("value_${"x" * (i * 20)}");
-  }
-  w2.endObject();
-
-  final decodedObj = jsonUtf8Decode(w2.toBytes()) as Map<String, dynamic>;
-  Expect.equals(100, decodedObj.length);
-  for (var i = 0; i < 100; i++) {
-    Expect.equals("value_${"x" * (i * 20)}", decodedObj["key_$i"]);
-  }
-}
-
-void testBufferWriterToBytesView() {
-  final w = JsonTokenWriter.toBuffer(1024);
-  w.beginArray();
-  w.writeInt(1);
-  w.writeInt(2);
-  w.endArray();
-
-  final bytes = w.toBytes();
-  Expect.equals(5, bytes.length); // "[1,2]" is 5 bytes
-  Expect.equals("[1,2]", utf8.decode(bytes));
-
-  testToBytesIsIndependentOfTheWriter();
-}
-
-/// [JsonTokenWriter.toBytes] hands the caller a copy that is independent of
-/// the writer in both directions. Both writer flavours have to agree, since
-/// callers only ever see the interface.
-void testToBytesIsIndependentOfTheWriter() {
-  for (final make in [
-    () => JsonTokenWriter.toBuffer(1024), // room to spare: no growth
-    () => JsonTokenWriter.toBuffer(1), // grows on every write
-    () => JsonTokenWriter.toBuffer(16), // grows partway through
-    () => JsonTokenWriter.toSink(BytesBuilder()),
-  ]) {
-    final w = make();
-    w.beginArray();
-    w.writeInt(1);
-    final snapshot = w.toBytes();
-    final snapshotText = utf8.decode(snapshot);
-
-    // Continuing to write must not disturb the snapshot.
-    w.writeInt(2);
-    w.writeString("three");
-    w.endArray();
-    Expect.equals(
-      snapshotText,
-      utf8.decode(snapshot),
-      'toBytes() result changed after further writes',
-    );
-
-    // ...and the completed document must still be correct.
-    Expect.equals('[1,2,"three"]', utf8.decode(w.toBytes()));
-  }
-
-  // Modifying the returned bytes must not reach back into the writer.
-  for (final make in [
-    () => JsonTokenWriter.toBuffer(1024),
-    () => JsonTokenWriter.toSink(BytesBuilder()),
-  ]) {
-    final w = make();
-    w.beginArray();
-    w.writeInt(1);
-    w.toBytes()[0] = 0x58; // 'X'
-    w.writeInt(2);
-    w.endArray();
-    Expect.equals(
-      '[1,2]',
-      utf8.decode(w.toBytes()),
-      'writing to the result of toBytes() corrupted the writer',
-    );
-  }
-
-  // Repeated snapshots stay valid alongside each other.
-  final w = JsonTokenWriter.toBuffer(1024);
-  w.beginObject();
-  w.writeName("a");
-  w.writeInt(1);
-  final first = w.toBytes();
-  w.writeName("b");
-  w.writeInt(2);
-  final second = w.toBytes();
-  w.endObject();
-  Expect.equals('{"a":1', utf8.decode(first));
-  Expect.equals('{"a":1,"b":2', utf8.decode(second));
-  Expect.equals('{"a":1,"b":2}', utf8.decode(w.toBytes()));
-}
-
-void testBufferWriterNamesAndKeys() {
-  final w = JsonTokenWriter.toBuffer(32);
+void testSinkWriterNamesAndKeys() {
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.beginObject();
 
   // Standard writeName
@@ -368,8 +253,9 @@ void testBufferWriterNamesAndKeys() {
   w.writeRawJson(Uint8List.fromList('{"inner":true}'.codeUnits));
 
   w.endObject();
+  w.flush();
 
-  final decoded = jsonUtf8Decode(w.toBytes()) as Map<String, dynamic>;
+  final decoded = jsonUtf8Decode(sink.takeBytes()) as Map<String, dynamic>;
   Expect.equals(1, decoded["standard"]);
   Expect.equals(2, decoded["colonTerm"]);
   Expect.equals(3, decoded["quoted"]);
@@ -379,14 +265,14 @@ void testBufferWriterNamesAndKeys() {
   Expect.mapEquals({"inner": true}, decoded["raw"] as Map);
 }
 
-void testBufferWriterStateMachineAndErrors() {
+void testSinkWriterStateMachineAndErrors() {
   // writeName in array
-  final w1 = JsonTokenWriter.toBuffer();
+  final w1 = JsonTokenWriter.toSink(BytesBuilder());
   w1.beginArray();
   Expect.throwsStateError(() => w1.writeName('a'));
 
   // value before writeName in object
-  final w2 = JsonTokenWriter.toBuffer();
+  final w2 = JsonTokenWriter.toSink(BytesBuilder());
   w2.beginObject();
   Expect.throwsStateError(() => w2.writeInt(1));
   Expect.throwsStateError(() => w2.writeString('val'));
@@ -396,40 +282,40 @@ void testBufferWriterStateMachineAndErrors() {
   Expect.throwsStateError(() => w2.beginArray());
 
   // consecutive writeName in object
-  final w3 = JsonTokenWriter.toBuffer();
+  final w3 = JsonTokenWriter.toSink(BytesBuilder());
   w3.beginObject();
   w3.writeName('a');
   Expect.throwsStateError(() => w3.writeName('b'));
 
   // endObject when expecting value
-  final w4 = JsonTokenWriter.toBuffer();
+  final w4 = JsonTokenWriter.toSink(BytesBuilder());
   w4.beginObject();
   w4.writeName('a');
   Expect.throwsStateError(() => w4.endObject());
 
   // mismatched container ends
-  final w5 = JsonTokenWriter.toBuffer();
+  final w5 = JsonTokenWriter.toSink(BytesBuilder());
   w5.beginObject();
   Expect.throwsStateError(() => w5.endArray());
 
-  final w6 = JsonTokenWriter.toBuffer();
+  final w6 = JsonTokenWriter.toSink(BytesBuilder());
   w6.beginArray();
   Expect.throwsStateError(() => w6.endObject());
 
   // Disallow non-finite double
-  final w7 = JsonTokenWriter.toBuffer();
+  final w7 = JsonTokenWriter.toSink(BytesBuilder());
   w7.beginArray();
   Expect.throwsArgumentError(() => w7.writeDouble(double.nan));
   Expect.throwsArgumentError(() => w7.writeDouble(double.infinity));
   Expect.throwsArgumentError(() => w7.writeDouble(double.negativeInfinity));
 
   // Multiple root values
-  final w8 = JsonTokenWriter.toBuffer();
+  final w8 = JsonTokenWriter.toSink(BytesBuilder());
   w8.writeInt(1);
   Expect.throwsStateError(() => w8.writeInt(2));
 
   // Writer max depth limit
-  final w9 = JsonTokenWriter.toBuffer();
+  final w9 = JsonTokenWriter.toSink(BytesBuilder());
   Expect.throwsStateError(() {
     for (var i = 0; i < 1025; i++) {
       w9.beginArray();
@@ -437,7 +323,7 @@ void testBufferWriterStateMachineAndErrors() {
   });
 }
 
-void testBothWritersParity() {
+void testSinkWriterParity() {
   void populate(JsonTokenWriter writer) {
     writer.beginObject();
     writer.writeName("alpha");
@@ -462,18 +348,13 @@ void testBothWritersParity() {
     writer.endObject();
   }
 
-  final sinkWriter = JsonTokenWriter.toSink(BytesBuilder());
+  final sink = BytesBuilder();
+  final sinkWriter = JsonTokenWriter.toSink(sink);
   populate(sinkWriter);
-  final sinkBytes = sinkWriter.toBytes();
+  sinkWriter.flush();
+  final sinkBytes = sink.takeBytes();
 
-  final bufferWriter = JsonTokenWriter.toBuffer();
-  populate(bufferWriter);
-  final bufferBytes = bufferWriter.toBytes();
-
-  Expect.listEquals(sinkBytes, bufferBytes);
-
-  // Agreeing with each other is not enough: two writers sharing a formatting
-  // helper can agree on the same wrong bytes. Pin both to json.encode.
+  // Pin to json.encode
   final expected = json.encode({
     "alpha": 123456,
     "beta": -42.75,
@@ -487,53 +368,10 @@ void testBothWritersParity() {
     ],
   });
   Expect.equals(expected, utf8.decode(sinkBytes));
-  Expect.equals(expected, utf8.decode(bufferBytes));
 }
 
-void testBufferWriterMaxDepthLimit() {
-  // 1. Buffer writer: 1,024 nested arrays succeeds cleanly
-  final wBufArrOk = JsonTokenWriter.toBuffer();
-  for (var i = 0; i < 1024; i++) {
-    wBufArrOk.beginArray();
-  }
-  for (var i = 0; i < 1024; i++) {
-    wBufArrOk.endArray();
-  }
-  Expect.equals('[' * 1024 + ']' * 1024, utf8.decode(wBufArrOk.toBytes()));
-
-  // 2. Buffer writer: 1,024 nested objects succeeds cleanly
-  final wBufObjOk = JsonTokenWriter.toBuffer();
-  for (var i = 0; i < 1024; i++) {
-    wBufObjOk.beginObject();
-    wBufObjOk.writeName('a');
-  }
-  wBufObjOk.writeInt(42);
-  for (var i = 0; i < 1024; i++) {
-    wBufObjOk.endObject();
-  }
-  Expect.equals(
-    '{"a":' * 1024 + '42' + '}' * 1024,
-    utf8.decode(wBufObjOk.toBytes()),
-  );
-
-  // 3. Buffer writer: 1,025 nested arrays throws StateError
-  final wBufArrExceed = JsonTokenWriter.toBuffer();
-  Expect.throwsStateError(() {
-    for (var i = 0; i < 1025; i++) {
-      wBufArrExceed.beginArray();
-    }
-  });
-
-  // 4. Buffer writer: 1,025 nested objects throws StateError
-  final wBufObjExceed = JsonTokenWriter.toBuffer();
-  Expect.throwsStateError(() {
-    for (var i = 0; i < 1025; i++) {
-      wBufObjExceed.beginObject();
-      wBufObjExceed.writeName('a');
-    }
-  });
-
-  // 5. Sink writer: 1,024 nested arrays succeeds cleanly
+void testSinkWriterMaxDepthLimit() {
+  // 1. Sink writer: 1,024 nested arrays succeeds cleanly
   final sinkArrOk = BytesBuilder();
   final wSinkArrOk = JsonTokenWriter.toSink(sinkArrOk);
   for (var i = 0; i < 1024; i++) {
@@ -542,9 +380,10 @@ void testBufferWriterMaxDepthLimit() {
   for (var i = 0; i < 1024; i++) {
     wSinkArrOk.endArray();
   }
-  Expect.equals('[' * 1024 + ']' * 1024, utf8.decode(wSinkArrOk.toBytes()));
+  wSinkArrOk.flush();
+  Expect.equals('[' * 1024 + ']' * 1024, utf8.decode(sinkArrOk.takeBytes()));
 
-  // 6. Sink writer: 1,024 nested objects succeeds cleanly
+  // 2. Sink writer: 1,024 nested objects succeeds cleanly
   final sinkObjOk = BytesBuilder();
   final wSinkObjOk = JsonTokenWriter.toSink(sinkObjOk);
   for (var i = 0; i < 1024; i++) {
@@ -555,12 +394,13 @@ void testBufferWriterMaxDepthLimit() {
   for (var i = 0; i < 1024; i++) {
     wSinkObjOk.endObject();
   }
+  wSinkObjOk.flush();
   Expect.equals(
     '{"a":' * 1024 + '42' + '}' * 1024,
-    utf8.decode(wSinkObjOk.toBytes()),
+    utf8.decode(sinkObjOk.takeBytes()),
   );
 
-  // 7. Sink writer: 1,025 nested arrays throws StateError
+  // 3. Sink writer: 1,025 nested arrays throws StateError
   final wSinkArrExceed = JsonTokenWriter.toSink(BytesBuilder());
   Expect.throwsStateError(() {
     for (var i = 0; i < 1025; i++) {
@@ -568,7 +408,7 @@ void testBufferWriterMaxDepthLimit() {
     }
   });
 
-  // 8. Sink writer: 1,025 nested objects throws StateError
+  // 4. Sink writer: 1,025 nested objects throws StateError
   final wSinkObjExceed = JsonTokenWriter.toSink(BytesBuilder());
   Expect.throwsStateError(() {
     for (var i = 0; i < 1025; i++) {
@@ -614,14 +454,9 @@ void testShortStringAndPropertyNameFastPath() {
       final sink = BytesBuilder();
       final sinkWriter = JsonTokenWriter.toSink(sink);
       sinkWriter.writeString(s);
-      final sinkBytes = sinkWriter.toBytes();
+      sinkWriter.flush();
+      final sinkBytes = sink.takeBytes();
       Expect.equals(json.encode(s), utf8.decode(sinkBytes));
-
-      final bufWriter = JsonTokenWriter.toBuffer();
-      bufWriter.writeString(s);
-      final bufBytes = bufWriter.toBytes();
-      Expect.equals(json.encode(s), utf8.decode(bufBytes));
-      Expect.listEquals(sinkBytes, bufBytes);
     }
 
     // 2. Object property name writing
@@ -632,17 +467,9 @@ void testShortStringAndPropertyNameFastPath() {
       sinkWriter.writeName(s);
       sinkWriter.writeInt(42);
       sinkWriter.endObject();
-      final sinkBytes = sinkWriter.toBytes();
+      sinkWriter.flush();
+      final sinkBytes = sink.takeBytes();
       Expect.equals(json.encode({s: 42}), utf8.decode(sinkBytes));
-
-      final bufWriter = JsonTokenWriter.toBuffer();
-      bufWriter.beginObject();
-      bufWriter.writeName(s);
-      bufWriter.writeInt(42);
-      bufWriter.endObject();
-      final bufBytes = bufWriter.toBytes();
-      Expect.equals(json.encode({s: 42}), utf8.decode(bufBytes));
-      Expect.listEquals(sinkBytes, bufBytes);
     }
   }
 }

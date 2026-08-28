@@ -13,7 +13,6 @@ void main() {
   testTokenWriterSink();
   testNonByteTypedDataArguments();
   testEmptyAndBoundarySliceParsing();
-  testZeroCapacityBufferWrites();
 }
 
 void testUnmodifiableViewsTokenReader() {
@@ -43,7 +42,8 @@ void testUnmodifiableViewsTokenReader() {
 }
 
 void testTokenWriterBuffer() {
-  final w = JsonTokenWriter.toBuffer();
+  final sink = BytesBuilder();
+  final w = JsonTokenWriter.toSink(sink);
   w.beginObject();
   w.writeName("hello");
   w.writeString("world");
@@ -58,8 +58,9 @@ void testTokenWriterBuffer() {
   w.writeName("rocket");
   w.writeString("🚀");
   w.endObject();
+  w.flush();
 
-  final bytes = w.toBytes();
+  final bytes = sink.takeBytes();
   Expect.isTrue(bytes.isNotEmpty);
   final decoded = jsonUtf8Decode(bytes) as Map<String, dynamic>;
   Expect.equals("world", decoded["hello"]);
@@ -79,8 +80,9 @@ void testTokenWriterSink() {
   w.writeBool(false);
   w.writeNull();
   w.endArray();
+  w.flush();
 
-  final bytes = w.toBytes();
+  final bytes = b.takeBytes();
   final decoded = jsonUtf8Decode(bytes) as List<dynamic>;
   Expect.equals("test", decoded[0]);
   Expect.equals(42.0, decoded[1]);
@@ -114,9 +116,4 @@ void testEmptyAndBoundarySliceParsing() {
   Expect.throwsFormatException(
     () => JsonTokenReader.fromBytes(emptySlice).readDouble(),
   );
-}
-
-void testZeroCapacityBufferWrites() {
-  Expect.throws(() => JsonTokenWriter.toBuffer(0), (e) => e is RangeError);
-  Expect.throws(() => JsonTokenWriter.toBuffer(-1), (e) => e is RangeError);
 }

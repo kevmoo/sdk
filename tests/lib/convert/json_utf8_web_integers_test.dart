@@ -88,25 +88,16 @@ void testEncodeIntegersAbove2Pow53() {
     power *= 2;
   }
 
-  final buffer = Uint8List(64);
   for (final magnitude in values) {
     for (final value in [magnitude, -magnitude]) {
       final expected = value.toString();
-
-      final writer = JsonTokenWriter.toBuffer();
-      writer.writeInt(value);
-      Expect.equals(
-        expected,
-        utf8.decode(writer.toBytes()),
-        'writeInt disagrees with toString for $value',
-      );
-
       final sink = BytesBuilder(copy: false);
       final writerSink = JsonTokenWriter.toSink(sink);
       writerSink.writeInt(value);
+      writerSink.flush();
       Expect.equals(
         expected,
-        utf8.decode(writerSink.toBytes()),
+        utf8.decode(sink.takeBytes()),
         'writeInt with sink disagrees with toString for $value',
       );
 
@@ -232,13 +223,15 @@ void testJsonTokenWriterLargeIntegers() {
   if (identical(1, 1.0)) {
     final num1e19 = 1e19.toInt();
     w2.writeInt(num1e19);
-    final directBytes = w2.toBytes();
+    w2.flush();
+    final directBytes = bb2.takeBytes();
     final directStr = utf8.decode(directBytes);
     Expect.equals('10000000000000000000', directStr);
     Expect.isFalse(directStr.contains(':'));
   } else {
     w2.writeInt(maxInt64);
-    final directBytes = w2.toBytes();
+    w2.flush();
+    final directBytes = bb2.takeBytes();
     final directStr = utf8.decode(directBytes);
     Expect.equals('9223372036854775807', directStr);
     Expect.isFalse(directStr.contains(':'));
@@ -249,11 +242,13 @@ void testJsonTokenWriterLargeIntegers() {
   final w3 = JsonTokenWriter.toSink(bb3);
   if (identical(1, 1.0)) {
     w3.writeInt((-1e19).toInt());
-    final negStr = utf8.decode(w3.toBytes());
+    w3.flush();
+    final negStr = utf8.decode(bb3.takeBytes());
     Expect.equals('-10000000000000000000', negStr);
   } else {
     w3.writeInt(minInt64);
-    final negStr = utf8.decode(w3.toBytes());
+    w3.flush();
+    final negStr = utf8.decode(bb3.takeBytes());
     Expect.equals('-9223372036854775808', negStr);
   }
 
@@ -262,7 +257,8 @@ void testJsonTokenWriterLargeIntegers() {
     final bb4 = BytesBuilder(copy: false);
     final w4 = JsonTokenWriter.toSink(bb4);
     w4.writeInt(1e25.toInt());
-    final str1e25 = utf8.decode(w4.toBytes());
+    w4.flush();
+    final str1e25 = utf8.decode(bb4.takeBytes());
     Expect.equals((1e25.toInt()).toString(), str1e25);
   }
 
@@ -270,20 +266,23 @@ void testJsonTokenWriterLargeIntegers() {
   final bbZero = BytesBuilder(copy: false);
   final wZero = JsonTokenWriter.toSink(bbZero);
   wZero.writeInt(0);
-  Expect.equals('0', utf8.decode(wZero.toBytes()));
+  wZero.flush();
+  Expect.equals('0', utf8.decode(bbZero.takeBytes()));
 
   final bb42 = BytesBuilder(copy: false);
   final w42 = JsonTokenWriter.toSink(bb42);
   w42.writeInt(42);
-  Expect.equals('42', utf8.decode(w42.toBytes()));
+  w42.flush();
+  Expect.equals('42', utf8.decode(bb42.takeBytes()));
 
   final bbNeg42 = BytesBuilder(copy: false);
   final wNeg42 = JsonTokenWriter.toSink(bbNeg42);
   wNeg42.writeInt(-42);
-  Expect.equals('-42', utf8.decode(wNeg42.toBytes()));
+  wNeg42.flush();
+  Expect.equals('-42', utf8.decode(bbNeg42.takeBytes()));
 }
 
-/// Verifies that JsonTokenWriter.toBuffer correctly formats
+/// Verifies that JsonTokenWriter correctly formats
 /// numbers with >= 20 digits.
 void testWriteIntToBufferLargeIntegers() {
   final maxInt64 = int.parse("9223372036854775807");
@@ -291,38 +290,50 @@ void testWriteIntToBufferLargeIntegers() {
 
   // 1. Positive large integer
   final val1 = identical(1, 1.0) ? 1e19.toInt() : maxInt64;
-  final w1 = JsonTokenWriter.toBuffer();
+  final sink1 = BytesBuilder();
+  final w1 = JsonTokenWriter.toSink(sink1);
   w1.writeInt(val1);
-  final str1 = utf8.decode(w1.toBytes());
+  w1.flush();
+  final str1 = utf8.decode(sink1.takeBytes());
   Expect.equals(val1.toString(), str1);
 
   // 2. Negative large integer
   final val2 = identical(1, 1.0) ? (-1e19).toInt() : minInt64;
-  final w2 = JsonTokenWriter.toBuffer();
+  final sink2 = BytesBuilder();
+  final w2 = JsonTokenWriter.toSink(sink2);
   w2.writeInt(val2);
-  final str2 = utf8.decode(w2.toBytes());
+  w2.flush();
+  final str2 = utf8.decode(sink2.takeBytes());
   Expect.equals(val2.toString(), str2);
 
   // 3. 1e25 on Web
   if (identical(1, 1.0)) {
-    final w3 = JsonTokenWriter.toBuffer();
+    final sink3 = BytesBuilder();
+    final w3 = JsonTokenWriter.toSink(sink3);
     w3.writeInt(1e25.toInt());
-    final str3 = utf8.decode(w3.toBytes());
+    w3.flush();
+    final str3 = utf8.decode(sink3.takeBytes());
     Expect.equals((1e25.toInt()).toString(), str3);
   }
 
   // 4. Standard 0, 42, -42
-  final w0 = JsonTokenWriter.toBuffer();
+  final sink0 = BytesBuilder();
+  final w0 = JsonTokenWriter.toSink(sink0);
   w0.writeInt(0);
-  Expect.equals('0', utf8.decode(w0.toBytes()));
+  w0.flush();
+  Expect.equals('0', utf8.decode(sink0.takeBytes()));
 
-  final w42 = JsonTokenWriter.toBuffer();
+  final sink42 = BytesBuilder();
+  final w42 = JsonTokenWriter.toSink(sink42);
   w42.writeInt(42);
-  Expect.equals('42', utf8.decode(w42.toBytes()));
+  w42.flush();
+  Expect.equals('42', utf8.decode(sink42.takeBytes()));
 
-  final wNeg42 = JsonTokenWriter.toBuffer();
+  final sinkNeg42 = BytesBuilder();
+  final wNeg42 = JsonTokenWriter.toSink(sinkNeg42);
   wNeg42.writeInt(-42);
-  Expect.equals('-42', utf8.decode(wNeg42.toBytes()));
+  wNeg42.flush();
+  Expect.equals('-42', utf8.decode(sinkNeg42.takeBytes()));
 }
 
 int? _tryParseInt(Uint8List bytes, int start, int end) {

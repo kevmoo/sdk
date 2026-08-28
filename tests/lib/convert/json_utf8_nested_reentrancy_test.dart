@@ -208,9 +208,11 @@ void _isolateWorker(SendPort replyPort) {
       final dVal = reader.readDouble();
       Expect.equals(3.14159265, dVal);
 
-      final w = JsonTokenWriter.toBuffer();
+      final sink = BytesBuilder();
+      final w = JsonTokenWriter.toSink(sink);
       w.writeString('concurrent_str');
-      final outBytes = w.toBytes();
+      w.flush();
+      final outBytes = sink.takeBytes();
       Expect.equals(16, outBytes.length);
       Expect.equals('"concurrent_str"', utf8.decode(outBytes));
     }

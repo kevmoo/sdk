@@ -2725,16 +2725,7 @@ enum _ObjectState { empty, key, value }
 /// if input exceeds 1,024 levels of nesting.
 abstract interface class JsonTokenWriter {
   /// Instantiates a token writer emitting to [sink].
-  factory JsonTokenWriter.toSink(BytesBuilder sink) = _JsonTokenWriter;
-
-  /// Instantiates a contiguous buffer token writer with [initialCapacity].
-  ///
-  /// The buffer grows as needed, so [initialCapacity] only affects how often
-  /// that happens. It must be greater than zero.
-  ///
-  /// Throws a [RangeError] if [initialCapacity] is zero or negative.
-  factory JsonTokenWriter.toBuffer([int initialCapacity]) =
-      _BufferJsonTokenWriter;
+  factory JsonTokenWriter.toSink(BytesBuilder sink) = JsonUtf8TokenWriter;
 
   void beginObject();
   void endObject();
@@ -2750,351 +2741,51 @@ abstract interface class JsonTokenWriter {
   void writeBool(bool value);
   void writeNull();
 
-  /// A copy of the UTF-8 JSON bytes written so far.
-  ///
-  /// The copy belongs to the caller and is independent of this writer in both
-  /// directions: writing more does not change bytes already returned, and
-  /// modifying the returned list does not disturb the writer, which stays
-  /// usable.
-  ///
-  /// Calling this before the document is complete returns the partial output;
-  /// closing every container is the caller's responsibility.
-  Uint8List toBytes();
+  /// Flushes any pending buffered state to the underlying sink.
+  void flush();
 }
 
-final class _JsonTokenWriter implements JsonTokenWriter {
+final class JsonUtf8TokenWriter implements JsonTokenWriter {
   static const int _maxDepth = 1024;
+  static const int _chunkSize = 32768;
+
   final BytesBuilder _sink;
-  // Scratch space for formatting a value before handing it to [_sink].
-  //
-  // Emitted bytes are passed to the sink as a view rather than a copy, and a
-  // `BytesBuilder(copy: false)` keeps that view until `takeBytes`, so a region
-  // must never be written again once it has been handed over. Bump a cursor
-  // through the block instead of restarting at zero, and take a fresh block
-  // when the remainder is too small, which keeps allocation at roughly one per
-  // block of output rather than one per value.
-  static const int _scratchBlockSize = 1024;
-
-  /// Largest run [_reserveScratch] can be asked for: a string of up to 40 code
-  /// units at six bytes each, plus the surrounding quotes and colon.
-  static const int _scratchReserve = 40 * 6 + 4;
-
-  Uint8List _scratch = Uint8List(_scratchBlockSize);
-  int _scratchAt = 0;
-
-  /// An offset into [_scratch] with at least [_scratchReserve] bytes
-  /// free, replacing the block if the current one is too full.
-  int _reserveScratch() {
-    if (_scratch.length - _scratchAt < _scratchReserve) {
-      _scratch = Uint8List(_scratchBlockSize);
-      _scratchAt = 0;
-    }
-    return _scratchAt;
-  }
-
-  /// Hands [length] bytes written at [start] to the sink and retires them.
-  void _emitScratch(int start, int length) {
-    _sink.add(Uint8List.sublistView(_scratch, start, start + length));
-    _scratchAt = start + length;
-  }
-
-  final List<_ContainerType> _stateStack = [];
-  final List<_ObjectState> _objectStateStack = [];
-  final List<bool> _isArrayFirstStack = [];
-  bool _hasRootValue = false;
-
-  _JsonTokenWriter(this._sink);
-
-  @override
-  Uint8List toBytes() => _sink.toBytes();
-
-  void _beforeValue() {
-    if (_stateStack.isNotEmpty) {
-      final inObject = _stateStack.last == _ContainerType.object;
-      if (inObject) {
-        if (_objectStateStack.last != _ObjectState.key) {
-          throw StateError('Expected property name before value in object');
-        }
-        _objectStateStack.last = _ObjectState.value;
-      } else {
-        // In array
-        if (!_isArrayFirstStack.last) {
-          _sink.addByte(44); // ','
-        }
-        _isArrayFirstStack.last = false;
-      }
-    } else {
-      if (_hasRootValue) {
-        throw StateError('Cannot write multiple root values');
-      }
-      _hasRootValue = true;
-    }
-  }
-
-  @override
-  void beginObject() {
-    if (_stateStack.length >= _maxDepth) {
-      throw StateError('Nesting depth exceeds limit of $_maxDepth');
-    }
-    _beforeValue();
-    _sink.addByte(123); // '{'
-    _stateStack.add(_ContainerType.object);
-    _objectStateStack.add(_ObjectState.empty);
-  }
-
-  @override
-  void endObject() {
-    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
-      throw StateError('Cannot endObject: not inside an object');
-    }
-    if (_objectStateStack.last == _ObjectState.key) {
-      throw StateError('Cannot endObject: expected value after property name');
-    }
-    _sink.addByte(125); // '}'
-    _stateStack.removeLast();
-    _objectStateStack.removeLast();
-  }
-
-  @override
-  void beginArray() {
-    if (_stateStack.length >= _maxDepth) {
-      throw StateError('Nesting depth exceeds limit of $_maxDepth');
-    }
-    _beforeValue();
-    _sink.addByte(91); // '['
-    _stateStack.add(_ContainerType.array);
-    _isArrayFirstStack.add(true);
-  }
-
-  @override
-  void endArray() {
-    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.array) {
-      throw StateError('Cannot endArray: not inside an array');
-    }
-    _sink.addByte(93); // ']'
-    _stateStack.removeLast();
-    _isArrayFirstStack.removeLast();
-  }
-
-  @override
-  void writeName(String name) {
-    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
-      throw StateError('Cannot writeName: not inside an object');
-    }
-    final objState = _objectStateStack.last;
-    if (objState == _ObjectState.key) {
-      throw StateError(
-        'Cannot writeName: already expecting a value for previous property',
-      );
-    }
-    if (objState == _ObjectState.value) {
-      _sink.addByte(44); // ','
-    }
-    _objectStateStack.last = _ObjectState.key;
-    final len = name.length;
-    if (len <= 32) {
-      var isAscii = true;
-      for (var i = 0; i < len; i++) {
-        final c = name.codeUnitAt(i);
-        if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
-          isAscii = false;
-          break;
-        }
-      }
-      if (isAscii) {
-        final at = _reserveScratch();
-        _scratch[at] = 0x22; // '"'
-        for (var i = 0; i < len; i++) {
-          _scratch[at + 1 + i] = name.codeUnitAt(i);
-        }
-        _scratch[at + 1 + len] = 0x22; // '"'
-        _scratch[at + 2 + len] = 0x3A; // ':'
-        _emitScratch(at, len + 3);
-        return;
-      }
-    }
-    if (name.length <= 40) {
-      final at = _reserveScratch();
-      final written = _writeStringToBuffer(name, _scratch, at);
-      _scratch[at + written] = 0x3A; // ':'
-      _emitScratch(at, written + 1);
-    } else {
-      _writeString(name, _sink);
-      _sink.addByte(58); // ':'
-    }
-  }
-
-  @override
-  void writeNameBytes(Uint8List asciiKey) {
-    if (_stateStack.isEmpty || _stateStack.last != _ContainerType.object) {
-      throw StateError('Cannot writeNameBytes: not inside an object');
-    }
-    final objState = _objectStateStack.last;
-    if (objState == _ObjectState.key) {
-      throw StateError(
-        'Cannot writeNameBytes: already expecting a value for previous property',
-      );
-    }
-    if (objState == _ObjectState.value) {
-      _sink.addByte(44); // ','
-    }
-    _objectStateStack.last = _ObjectState.key;
-    final isColonTerminated =
-        asciiKey.length >= 3 &&
-        asciiKey.first == 0x22 &&
-        asciiKey.last == 0x3A &&
-        _isSingleQuotedSlice(asciiKey, 0, asciiKey.length - 1);
-    if (isColonTerminated) {
-      _sink.add(asciiKey);
-      return;
-    }
-    final isQuoted = _isSingleQuotedString(asciiKey);
-    if (isQuoted) {
-      _sink.add(asciiKey);
-    } else {
-      _sink.addByte(34); // '"'
-      for (var i = 0; i < asciiKey.length; i++) {
-        final b = asciiKey[i];
-        if (b == 0x22) {
-          _sink.addByte(0x5C);
-          _sink.addByte(0x22);
-        } else if (b == 0x5C) {
-          _sink.addByte(0x5C);
-          _sink.addByte(0x5C);
-        } else if (b < 0x20) {
-          _sink.addByte(0x5C);
-          _sink.addByte(0x75); // 'u'
-          _sink.addByte(0x30); // '0'
-          _sink.addByte(0x30); // '0'
-          _sink.addByte(_hexDigits.codeUnitAt((b >> 4) & 0xF));
-          _sink.addByte(_hexDigits.codeUnitAt(b & 0xF));
-        } else {
-          _sink.addByte(b);
-        }
-      }
-      _sink.addByte(34); // '"'
-    }
-    _sink.addByte(58); // ':'
-  }
-
-  @override
-  void writeAsciiLiteral(Uint8List preEncoded) {
-    _beforeValue();
-    _sink.add(preEncoded);
-  }
-
-  @override
-  void writeRawJson(Uint8List rawJson) {
-    _beforeValue();
-    _sink.add(rawJson);
-  }
-
-  @override
-  void writeString(String value) {
-    _beforeValue();
-    final len = value.length;
-    if (len <= 32) {
-      var isAscii = true;
-      for (var i = 0; i < len; i++) {
-        final c = value.codeUnitAt(i);
-        if (c < 0x20 || c == 0x22 || c == 0x5C || c >= 0x80) {
-          isAscii = false;
-          break;
-        }
-      }
-      if (isAscii) {
-        final at = _reserveScratch();
-        _scratch[at] = 0x22; // '"'
-        for (var i = 0; i < len; i++) {
-          _scratch[at + 1 + i] = value.codeUnitAt(i);
-        }
-        _scratch[at + 1 + len] = 0x22; // '"'
-        _emitScratch(at, len + 2);
-        return;
-      }
-    }
-    if (value.length <= 40) {
-      final at = _reserveScratch();
-      final len = _writeStringToBuffer(value, _scratch, at);
-      _emitScratch(at, len);
-    } else {
-      _writeString(value, _sink);
-    }
-  }
-
-  @override
-  void writeInt(int value) {
-    _beforeValue();
-    final at = _reserveScratch();
-    final len = _writeIntToBuffer(value, _scratch, at);
-    _emitScratch(at, len);
-  }
-
-  @override
-  void writeDouble(double value) {
-    _beforeValue();
-    final at = _reserveScratch();
-    final len = _writeDoubleToBuffer(value, _scratch, at);
-    _emitScratch(at, len);
-  }
-
-  @override
-  void writeBool(bool value) {
-    _beforeValue();
-    _writeBool(value, _sink);
-  }
-
-  @override
-  void writeNull() {
-    _beforeValue();
-    _writeNull(_sink);
-  }
-}
-
-final class _BufferJsonTokenWriter implements JsonTokenWriter {
-  static const int _maxDepth = 1024;
-  Uint8List _buffer;
+  Uint8List _buffer = Uint8List(_chunkSize);
   int _cursor = 0;
+
   final List<_ContainerType> _stateStack = [];
   final List<_ObjectState> _objectStateStack = [];
   final List<bool> _isArrayFirstStack = [];
   bool _hasRootValue = false;
 
-  _BufferJsonTokenWriter([int initialCapacity = 256])
-    : _buffer = Uint8List(_checkCapacity(initialCapacity));
+  JsonUtf8TokenWriter(this._sink);
 
-  static int _checkCapacity(int initialCapacity) {
-    // Silently substituting a default hides a caller that computed its
-    // capacity from a bad size hint. JsonUtf8Encoder rejects a non-positive
-    // bufferSize for the same reason.
-    if (initialCapacity < 1) {
-      throw RangeError.value(
-        initialCapacity,
-        'initialCapacity',
-        'Must be positive',
-      );
-    }
-    return initialCapacity;
-  }
-
-  @pragma('vm:prefer-inline')
-  @pragma('wasm:prefer-inline')
   void _ensureCapacity(int needed) {
     if (_cursor + needed > _buffer.length) {
-      _grow(needed);
+      _flushBuffer();
+      if (needed > _buffer.length) {
+        _buffer = Uint8List(needed > _chunkSize ? needed : _chunkSize);
+      }
     }
   }
 
-  void _grow(int needed) {
-    var newCap = _buffer.length * 2;
-    final minCap = _cursor + needed + 1024;
-    if (newCap < minCap) {
-      newCap = minCap;
+  void _flushBuffer() {
+    if (_cursor > 0) {
+      _sink.add(Uint8List.sublistView(_buffer, 0, _cursor));
+      _buffer = Uint8List(_chunkSize);
+      _cursor = 0;
     }
-    final newBuffer = Uint8List(newCap);
-    newBuffer.setRange(0, _cursor, _buffer);
-    _buffer = newBuffer;
   }
+
+  void _writeDirectByte(int byte) {
+    if (_cursor >= _buffer.length) {
+      _flushBuffer();
+    }
+    _buffer[_cursor++] = byte;
+  }
+
+  @override
+  void flush() => _flushBuffer();
 
   void _beforeValue() {
     if (_stateStack.isNotEmpty) {
@@ -3105,10 +2796,8 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
         }
         _objectStateStack.last = _ObjectState.value;
       } else {
-        // In array
         if (!_isArrayFirstStack.last) {
-          _ensureCapacity(1);
-          _buffer[_cursor++] = 44; // ','
+          _writeDirectByte(44); // ','
         }
         _isArrayFirstStack.last = false;
       }
@@ -3126,8 +2815,7 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
       throw StateError('Nesting depth exceeds limit of $_maxDepth');
     }
     _beforeValue();
-    _ensureCapacity(1);
-    _buffer[_cursor++] = 123; // '{'
+    _writeDirectByte(123); // '{'
     _stateStack.add(_ContainerType.object);
     _objectStateStack.add(_ObjectState.empty);
   }
@@ -3140,10 +2828,12 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
     if (_objectStateStack.last == _ObjectState.key) {
       throw StateError('Cannot endObject: expected value after property name');
     }
-    _ensureCapacity(1);
-    _buffer[_cursor++] = 125; // '}'
+    _writeDirectByte(125); // '}'
     _stateStack.removeLast();
     _objectStateStack.removeLast();
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
@@ -3152,8 +2842,7 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
       throw StateError('Nesting depth exceeds limit of $_maxDepth');
     }
     _beforeValue();
-    _ensureCapacity(1);
-    _buffer[_cursor++] = 91; // '['
+    _writeDirectByte(91); // '['
     _stateStack.add(_ContainerType.array);
     _isArrayFirstStack.add(true);
   }
@@ -3163,10 +2852,12 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
     if (_stateStack.isEmpty || _stateStack.last != _ContainerType.array) {
       throw StateError('Cannot endArray: not inside an array');
     }
-    _ensureCapacity(1);
-    _buffer[_cursor++] = 93; // ']'
+    _writeDirectByte(93); // ']'
     _stateStack.removeLast();
     _isArrayFirstStack.removeLast();
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
@@ -3181,8 +2872,7 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
       );
     }
     if (objState == _ObjectState.value) {
-      _ensureCapacity(1);
-      _buffer[_cursor++] = 44; // ','
+      _writeDirectByte(44); // ','
     }
     _objectStateStack.last = _ObjectState.key;
     final len = name.length;
@@ -3206,10 +2896,10 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
         return;
       }
     }
-    final maxLen = name.length * 6 + 4;
-    _ensureCapacity(maxLen);
-    _cursor += _writeStringToBuffer(name, _buffer, _cursor);
-    _buffer[_cursor++] = 58; // ':'
+    _ensureCapacity(len * 6 + 4);
+    final written = _writeStringToBuffer(name, _buffer, _cursor);
+    _cursor += written;
+    _buffer[_cursor++] = 0x3A; // ':'
   }
 
   @override
@@ -3224,8 +2914,7 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
       );
     }
     if (objState == _ObjectState.value) {
-      _ensureCapacity(1);
-      _buffer[_cursor++] = 44; // ','
+      _writeDirectByte(44); // ','
     }
     _objectStateStack.last = _ObjectState.key;
     final isColonTerminated =
@@ -3234,58 +2923,68 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
         asciiKey.last == 0x3A &&
         _isSingleQuotedSlice(asciiKey, 0, asciiKey.length - 1);
     if (isColonTerminated) {
-      _ensureCapacity(asciiKey.length);
-      _buffer.setRange(_cursor, _cursor + asciiKey.length, asciiKey);
-      _cursor += asciiKey.length;
+      final len = asciiKey.length;
+      _ensureCapacity(len);
+      _buffer.setRange(_cursor, _cursor + len, asciiKey);
+      _cursor += len;
       return;
     }
     final isQuoted = _isSingleQuotedString(asciiKey);
     if (isQuoted) {
-      _ensureCapacity(asciiKey.length + 1);
-      _buffer.setRange(_cursor, _cursor + asciiKey.length, asciiKey);
-      _cursor += asciiKey.length;
-      _buffer[_cursor++] = 58; // ':'
-      return;
-    }
-    _ensureCapacity(asciiKey.length * 6 + 4);
-    _buffer[_cursor++] = 34; // '"'
-    for (var i = 0; i < asciiKey.length; i++) {
-      final b = asciiKey[i];
-      if (b == 0x22) {
-        _buffer[_cursor++] = 0x5C;
-        _buffer[_cursor++] = 0x22;
-      } else if (b == 0x5C) {
-        _buffer[_cursor++] = 0x5C;
-        _buffer[_cursor++] = 0x5C;
-      } else if (b < 0x20) {
-        _buffer[_cursor++] = 0x5C;
-        _buffer[_cursor++] = 0x75; // 'u'
-        _buffer[_cursor++] = 0x30; // '0'
-        _buffer[_cursor++] = 0x30; // '0'
-        _buffer[_cursor++] = _hexDigits.codeUnitAt((b >> 4) & 0xF);
-        _buffer[_cursor++] = _hexDigits.codeUnitAt(b & 0xF);
-      } else {
-        _buffer[_cursor++] = b;
+      final len = asciiKey.length;
+      _ensureCapacity(len + 1);
+      _buffer.setRange(_cursor, _cursor + len, asciiKey);
+      _cursor += len;
+      _buffer[_cursor++] = 0x3A; // ':'
+    } else {
+      _ensureCapacity(asciiKey.length * 6 + 3);
+      _buffer[_cursor++] = 0x22; // '"'
+      for (var i = 0; i < asciiKey.length; i++) {
+        final b = asciiKey[i];
+        if (b == 0x22) {
+          _buffer[_cursor++] = 0x5C;
+          _buffer[_cursor++] = 0x22;
+        } else if (b == 0x5C) {
+          _buffer[_cursor++] = 0x5C;
+          _buffer[_cursor++] = 0x5C;
+        } else if (b < 0x20) {
+          _buffer[_cursor++] = 0x5C;
+          _buffer[_cursor++] = 0x75; // 'u'
+          _buffer[_cursor++] = 0x30; // '0'
+          _buffer[_cursor++] = 0x30; // '0'
+          _buffer[_cursor++] = _hexDigits.codeUnitAt((b >> 4) & 0xF);
+          _buffer[_cursor++] = _hexDigits.codeUnitAt(b & 0xF);
+        } else {
+          _buffer[_cursor++] = b;
+        }
       }
+      _buffer[_cursor++] = 0x22; // '"'
+      _buffer[_cursor++] = 0x3A; // ':'
     }
-    _buffer[_cursor++] = 34; // '"'
-    _buffer[_cursor++] = 58; // ':'
   }
 
   @override
   void writeAsciiLiteral(Uint8List preEncoded) {
     _beforeValue();
-    _ensureCapacity(preEncoded.length);
-    _buffer.setRange(_cursor, _cursor + preEncoded.length, preEncoded);
-    _cursor += preEncoded.length;
+    final len = preEncoded.length;
+    _ensureCapacity(len);
+    _buffer.setRange(_cursor, _cursor + len, preEncoded);
+    _cursor += len;
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
   void writeRawJson(Uint8List rawJson) {
     _beforeValue();
-    _ensureCapacity(rawJson.length);
-    _buffer.setRange(_cursor, _cursor + rawJson.length, rawJson);
-    _cursor += rawJson.length;
+    final len = rawJson.length;
+    _ensureCapacity(len);
+    _buffer.setRange(_cursor, _cursor + len, rawJson);
+    _cursor += len;
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
@@ -3308,25 +3007,40 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
           _buffer[_cursor++] = value.codeUnitAt(i);
         }
         _buffer[_cursor++] = 0x22; // '"'
+        if (_stateStack.isEmpty) {
+          _flushBuffer();
+        }
         return;
       }
     }
-    _ensureCapacity(value.length * 6 + 2);
-    _cursor += _writeStringToBuffer(value, _buffer, _cursor);
+    _ensureCapacity(len * 6 + 2);
+    final written = _writeStringToBuffer(value, _buffer, _cursor);
+    _cursor += written;
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
   void writeInt(int value) {
     _beforeValue();
-    _ensureCapacity(32);
-    _cursor += _writeIntToBuffer(value, _buffer, _cursor);
+    _ensureCapacity(24);
+    final written = _writeIntToBuffer(value, _buffer, _cursor);
+    _cursor += written;
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
   void writeDouble(double value) {
     _beforeValue();
     _ensureCapacity(32);
-    _cursor += _writeDoubleToBuffer(value, _buffer, _cursor);
+    final written = _writeDoubleToBuffer(value, _buffer, _cursor);
+    _cursor += written;
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
@@ -3346,6 +3060,9 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
       _buffer[_cursor++] = 115; // 's'
       _buffer[_cursor++] = 101; // 'e'
     }
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
 
   @override
@@ -3356,11 +3073,10 @@ final class _BufferJsonTokenWriter implements JsonTokenWriter {
     _buffer[_cursor++] = 117; // 'u'
     _buffer[_cursor++] = 108; // 'l'
     _buffer[_cursor++] = 108; // 'l'
+    if (_stateStack.isEmpty) {
+      _flushBuffer();
+    }
   }
-
-  @override
-  Uint8List toBytes() =>
-      Uint8List.fromList(Uint8List.sublistView(_buffer, 0, _cursor));
 }
 
 // =============================================================================
